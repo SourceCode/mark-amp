@@ -1,0 +1,38 @@
+# Build directories
+build/
+out/
+bin/
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+*.cmake
+compile_commands.json
+
+# Compiled outputs
+*.o
+*.obj
+*.exe
+*.app
+*.dylib
+*.so
+*.dll
+*.a
+*.lib
+
+# IDE files
+.vscode/
+.idea/
+*.xcodeproj/
+*.xcworkspace/
+*.sln
+*.vcxproj
+*.vcxproj.user
+
+# Package managers
+vcpkg_installed/
+
+# OS files
+.DS_Store
+Thumbs.db

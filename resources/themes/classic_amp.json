@@ -1,0 +1,16 @@
+{
+    "id": "winamp-classic",
+    "name": "Classic Amp",
+    "colors": {
+        "--bg-app": "#282828",
+        "--bg-panel": "#191919",
+        "--bg-header": "#333333",
+        "--bg-input": "#000000",
+        "--text-main": "#00ff00",
+        "--text-muted": "#aaaaaa",
+        "--accent-primary": "#d4af37",
+        "--accent-secondary": "#888888",
+        "--border-light": "#555555",
+        "--border-dark": "#111111"
+    }
+}

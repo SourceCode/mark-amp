@@ -1,0 +1,5 @@
+// Suppress system include warnings (system headers may not be resolvable)
+missingIncludeSystem
+
+// Avoid circular suppression warnings
+unmatchedSuppression

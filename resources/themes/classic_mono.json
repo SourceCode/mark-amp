@@ -1,0 +1,16 @@
+{
+    "id": "classic-mono",
+    "name": "Classic Mono",
+    "colors": {
+        "--bg-app": "#ffffff",
+        "--bg-panel": "#f3f3f3",
+        "--bg-header": "#e5e5e5",
+        "--bg-input": "#ffffff",
+        "--text-main": "#111111",
+        "--text-muted": "#666666",
+        "--accent-primary": "#000000",
+        "--accent-secondary": "#444444",
+        "--border-light": "#cccccc",
+        "--border-dark": "#999999"
+    }
+}

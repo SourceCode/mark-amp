@@ -1,0 +1,16 @@
+{
+    "id": "high-contrast-blue",
+    "name": "High Contrast Blue",
+    "colors": {
+        "--bg-app": "#000080",
+        "--bg-panel": "#0000a0",
+        "--bg-header": "#000080",
+        "--bg-input": "#000000",
+        "--text-main": "#ffffff",
+        "--text-muted": "#00ffff",
+        "--accent-primary": "#ffff00",
+        "--accent-secondary": "#00ff00",
+        "--border-light": "#ffffff",
+        "--border-dark": "#000040"
+    }
+}

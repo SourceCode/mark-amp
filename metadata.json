@@ -1,0 +1,5 @@
+{
+  "name": "MarkAmp",
+  "description": "A high-fidelity, Winamp-inspired Markdown editor with retro-futuristic styling, split-view editing, and native Mermaid diagram support.",
+  "requestFramePermissions": []
+}

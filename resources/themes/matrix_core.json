@@ -1,0 +1,16 @@
+{
+    "id": "matrix-core",
+    "name": "Matrix Core",
+    "colors": {
+        "--bg-app": "#0d1117",
+        "--bg-panel": "#000000",
+        "--bg-header": "#161b22",
+        "--bg-input": "#0d1117",
+        "--text-main": "#00ff41",
+        "--text-muted": "#008f11",
+        "--accent-primary": "#00ff41",
+        "--accent-secondary": "#003b00",
+        "--border-light": "#222222",
+        "--border-dark": "#000000"
+    }
+}

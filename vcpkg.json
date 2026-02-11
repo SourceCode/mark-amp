@@ -1,0 +1,15 @@
+{
+    "name": "markamp",
+    "version-semver": "1.0.0",
+    "description": "Cross-platform Markdown viewer and editor with retro-futuristic UI",
+    "homepage": "https://github.com/markamp/markamp",
+    "dependencies": [
+        "wxwidgets",
+        "nlohmann-json",
+        "md4c",
+        "catch2",
+        "fmt",
+        "spdlog"
+    ],
+    "overrides": []
+}

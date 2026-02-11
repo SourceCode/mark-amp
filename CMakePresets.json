@@ -1,0 +1,72 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": { "major": 3, "minor": 30, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "debug",
+      "displayName": "Debug",
+      "description": "Debug build with tests enabled",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "MARKAMP_BUILD_TESTS": "ON",
+        "CMAKE_MAKE_PROGRAM": "/opt/homebrew/bin/ninja"
+      },
+      "environment": {
+        "VCPKG_ROOT": "${sourceDir}/external/vcpkg"
+      }
+    },
+    {
+      "name": "release",
+      "displayName": "Release",
+      "description": "Release build, tests off",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "MARKAMP_BUILD_TESTS": "OFF",
+        "CMAKE_MAKE_PROGRAM": "/opt/homebrew/bin/ninja"
+      },
+      "environment": {
+        "VCPKG_ROOT": "${sourceDir}/external/vcpkg"
+      }
+    },
+    {
+      "name": "release-static",
+      "displayName": "Release (Static)",
+      "description": "Static release build for distribution — minimal runtime dependencies",
+      "inherits": "release",
+      "binaryDir": "${sourceDir}/build/release-static",
+      "cacheVariables": {
+        "BUILD_SHARED_LIBS": "OFF"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "debug-build",
+      "configurePreset": "debug"
+    },
+    {
+      "name": "release-build",
+      "configurePreset": "release"
+    },
+    {
+      "name": "release-static-build",
+      "configurePreset": "release-static"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "debug-test",
+      "configurePreset": "debug",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    }
+  ]
+}

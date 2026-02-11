@@ -1,0 +1,14 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=MarkAmp
+GenericName=Markdown Editor
+Comment=A cross-platform Markdown viewer and editor with skinnable UI
+Exec=markamp %F
+Icon=markamp
+Terminal=false
+Categories=Development;TextEditor;Utility;
+MimeType=text/markdown;text/x-markdown;
+Keywords=markdown;editor;viewer;mermaid;
+StartupNotify=true
+StartupWMClass=MarkAmp

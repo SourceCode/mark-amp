@@ -1,0 +1,16 @@
+{
+    "id": "midnight-neon",
+    "name": "Midnight Neon",
+    "colors": {
+        "--bg-app": "#050510",
+        "--bg-panel": "#0a0a1f",
+        "--bg-header": "#0f0f2d",
+        "--bg-input": "#050510",
+        "--text-main": "#00ffea",
+        "--text-muted": "#5e6ad2",
+        "--accent-primary": "#ff0055",
+        "--accent-secondary": "#00ffea",
+        "--border-light": "rgba(255, 0, 85, 0.2)",
+        "--border-dark": "#000000"
+    }
+}

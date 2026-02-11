@@ -1,0 +1,16 @@
+{
+    "id": "cyber-night",
+    "name": "Cyber Night",
+    "colors": {
+        "--bg-app": "#1a1a2e",
+        "--bg-panel": "#16213e",
+        "--bg-header": "#0f3460",
+        "--bg-input": "#0f3460",
+        "--text-main": "#e94560",
+        "--text-muted": "#533483",
+        "--accent-primary": "#e94560",
+        "--accent-secondary": "#533483",
+        "--border-light": "rgba(255, 255, 255, 0.1)",
+        "--border-dark": "rgba(0, 0, 0, 0.5)"
+    }
+}

@@ -1,0 +1,16 @@
+{
+    "id": "vapor-wave",
+    "name": "Vapor Wave",
+    "colors": {
+        "--bg-app": "#2b1055",
+        "--bg-panel": "#3d2c8d",
+        "--bg-header": "#7562e0",
+        "--bg-input": "#1c0c3f",
+        "--text-main": "#00ffff",
+        "--text-muted": "#b8c0ff",
+        "--accent-primary": "#ff00ff",
+        "--accent-secondary": "#916bbf",
+        "--border-light": "rgba(255, 255, 255, 0.2)",
+        "--border-dark": "rgba(0, 0, 0, 0.6)"
+    }
+}

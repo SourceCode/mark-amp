@@ -1,0 +1,43 @@
+---
+Language: Cpp
+BasedOnStyle: LLVM
+IndentWidth: 4
+ColumnLimit: 100
+UseTab: Never
+BreakBeforeBraces: Allman
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AlwaysBreakTemplateDeclarations: Yes
+PointerAlignment: Left
+NamespaceIndentation: None
+FixNamespaceComments: true
+SortIncludes: CaseSensitive
+IncludeBlocks: Regroup
+IncludeCategories:
+  # Project headers
+  - Regex: '^".*'
+    Priority: 1
+  # Library headers (angle brackets, non-system)
+  - Regex: '^<(wx|nlohmann|catch2|md4c|tree_sitter)/.*'
+    Priority: 2
+  # System/standard headers
+  - Regex: '^<.*'
+    Priority: 3
+SpaceAfterCStyleCast: false
+SpacesInParentheses: false
+Cpp11BracedListStyle: true
+AccessModifierOffset: -4
+AlignAfterOpenBracket: Align
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+AlignTrailingComments: true
+BinPackArguments: false
+BinPackParameters: false
+BreakConstructorInitializers: BeforeComma
+ConstructorInitializerIndentWidth: 4
+IndentCaseLabels: true
+MaxEmptyLinesToKeep: 1
+SpaceBeforeParens: ControlStatements
+Standard: Latest
+...
