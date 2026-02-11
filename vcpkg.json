@@ -1,6 +1,6 @@
 {
     "name": "markamp",
-    "version-semver": "1.0.0",
+    "version-semver": "1.1.3",
     "description": "Cross-platform Markdown viewer and editor with retro-futuristic UI",
     "homepage": "https://github.com/markamp/markamp",
     "dependencies": [
@@ -9,7 +9,8 @@
         "md4c",
         "catch2",
         "fmt",
-        "spdlog"
+        "spdlog",
+        "yaml-cpp"
     ],
     "overrides": []
 }

@@ -265,6 +265,12 @@ auto Color::blend(const Color& other, float factor) const -> Color
             static_cast<uint8_t>(static_cast<float>(a) * inv + static_cast<float>(other.a) * f)};
 }
 
+auto Color::lighten(float factor) const -> Color
+{
+    // Lighten by blending with white
+    return blend(Color{255, 255, 255, a}, factor);
+}
+
 // WCAG 2.1 relative luminance
 static auto srgb_to_linear(float channel) -> float
 {

@@ -26,6 +26,20 @@ struct ThemeColors
     Color border_light;     // --border-light
     Color border_dark;      // --border-dark
 
+    // Editor specific
+    Color editor_bg;
+    Color editor_fg;
+    Color editor_selection;
+    Color editor_line_number;
+    Color editor_cursor;
+    Color editor_gutter;
+
+    // UI specific
+    Color list_hover;
+    Color list_selected;
+    Color scrollbar_thumb;
+    Color scrollbar_track;
+
     auto operator<=>(const ThemeColors&) const = default;
     auto operator==(const ThemeColors&) const -> bool = default;
 };

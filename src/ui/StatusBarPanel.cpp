@@ -47,14 +47,10 @@ StatusBarPanel::StatusBarPanel(wxWindow* parent,
             Refresh();
         });
 
-    // Editor content changes → update word count
-    content_sub_ = event_bus_.subscribe<core::events::EditorContentChangedEvent>(
-        [this](const core::events::EditorContentChangedEvent& evt)
-        {
-            word_count_ = count_words(evt.content);
-            RebuildItems();
-            Refresh();
-        });
+    // Editor stats changes
+    content_sub_ = event_bus_.subscribe<core::events::EditorStatsChangedEvent>(
+        [this](const core::events::EditorStatsChangedEvent& evt)
+        { set_stats(evt.word_count, evt.char_count, evt.line_count, evt.selection_length); });
 
     // View mode changes
     view_mode_sub_ = event_bus_.subscribe<core::events::ViewModeChangedEvent>(
@@ -98,6 +94,9 @@ void StatusBarPanel::set_cursor_position(int line, int column)
 {
     cursor_line_ = line;
     cursor_col_ = column;
+    // Don't rebuild/refresh here if we assume stats event comes frequently?
+    // But cursor position updates on arrow keys, stats updates on debounce.
+    // We want fast cursor updates.
     RebuildItems();
     Refresh();
 }
@@ -120,6 +119,16 @@ void StatusBarPanel::set_mermaid_status(const std::string& status, bool active)
 {
     mermaid_status_ = status;
     mermaid_active_ = active;
+    RebuildItems();
+    Refresh();
+}
+
+void StatusBarPanel::set_stats(int word_count, int char_count, int line_count, int selection_len)
+{
+    word_count_ = word_count;
+    char_count_ = char_count;
+    line_count_ = line_count;
+    selection_len_ = selection_len;
     RebuildItems();
     Refresh();
 }
@@ -177,11 +186,23 @@ void StatusBarPanel::RebuildItems()
 
     left_items_.push_back({view_mode_label(view_mode_), {}, false, false, nullptr});
 
-    // Right zone: {N} WORDS • MERMAID: {STATUS} • Theme Name
+    // Right zone: {N} WORDS • {M} CHARS • SEL: {LEN} • MERMAID: {STATUS} • Theme Name
     if (word_count_ > 0)
     {
         auto words_text = fmt::format("{} WORDS", word_count_);
         right_items_.push_back({words_text, {}, false, false, nullptr});
+    }
+
+    if (char_count_ > 0)
+    {
+        auto chars_text = fmt::format("{} CHARS", char_count_);
+        right_items_.push_back({chars_text, {}, false, false, nullptr});
+    }
+
+    if (selection_len_ > 0)
+    {
+        auto sel_text = fmt::format("SEL: {}", selection_len_);
+        right_items_.push_back({sel_text, {}, false, false, nullptr});
     }
 
     auto mermaid_text = fmt::format("MERMAID: {}", mermaid_status_);

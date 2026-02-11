@@ -101,6 +101,7 @@ struct CursorPositionChangedEvent : Event
 {
     int line;
     int column;
+    int selection_length{0};
     [[nodiscard]] auto type_name() const -> std::string_view override
     {
         return "CursorPositionChangedEvent";
@@ -113,6 +114,19 @@ struct EditorContentChangedEvent : Event
     [[nodiscard]] auto type_name() const -> std::string_view override
     {
         return "EditorContentChangedEvent";
+    }
+};
+
+struct EditorStatsChangedEvent : Event
+{
+    int word_count{0};
+    int char_count{0};
+    int line_count{0};
+    int selection_length{0};
+
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "EditorStatsChangedEvent";
     }
 };
 
@@ -179,6 +193,28 @@ struct InputModeChangedEvent : Event
     [[nodiscard]] auto type_name() const -> std::string_view override
     {
         return "InputModeChangedEvent";
+    }
+};
+
+// --- Startup / Workspace Events ---
+
+struct OpenFolderRequestEvent : Event
+{
+    // If empty, prompt user. If set, open directly.
+    std::string path;
+
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "OpenFolderRequestEvent";
+    }
+};
+
+struct WorkspaceOpenRequestEvent : Event
+{
+    std::string path;
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "WorkspaceOpenRequestEvent";
     }
 };
 

@@ -1,5 +1,9 @@
 #pragma once
-#include <wx/wx.h>
+
+#include "core/RecentWorkspaces.h"
+#include "platform/PlatformAbstraction.h"
+
+#include <wx/app.h>
 
 #include <memory>
 
@@ -8,6 +12,7 @@ namespace markamp::core
 class EventBus;
 class Config;
 class AppStateManager;
+class RecentWorkspaces;
 class CommandHistory;
 class MermaidRenderer;
 class ThemeRegistry;
@@ -41,6 +46,7 @@ private:
     // Core services (owned by the app, lifetime-managed)
     std::unique_ptr<core::EventBus> event_bus_;
     std::unique_ptr<core::Config> config_;
+    std::unique_ptr<core::RecentWorkspaces> recent_workspaces_;
     std::unique_ptr<core::AppStateManager> state_manager_;
     std::unique_ptr<core::CommandHistory> command_history_;
     std::unique_ptr<platform::PlatformAbstraction> platform_;

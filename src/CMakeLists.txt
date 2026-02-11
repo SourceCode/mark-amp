@@ -18,6 +18,7 @@ add_executable(markamp
     ui/ThemePreviewCard.cpp
     ui/ShortcutOverlay.cpp
     ui/CommandPalette.cpp
+    ui/StartupPanel.cpp
     ui/BreadcrumbBar.cpp
     core/Logger.cpp
     core/EventBus.cpp
@@ -38,12 +39,14 @@ add_executable(markamp
     core/MarkdownDocument.cpp
     core/Md4cWrapper.cpp
     core/MarkdownParser.cpp
+    core/RecentWorkspaces.cpp
     core/SyntaxHighlighter.cpp
     core/ShortcutManager.cpp
     core/AccessibilityManager.cpp
     core/Profiler.cpp
     core/MermaidRenderer.cpp
     core/HtmlSanitizer.cpp
+    core/loader/ThemeLoader.cpp
     rendering/HtmlRenderer.cpp
     rendering/CodeBlockRenderer.cpp
     rendering/MermaidBlockRenderer.cpp
@@ -94,6 +97,8 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "Src" FILES
     ui/ThemeGallery.cpp
     ui/ThemePreviewCard.h
     ui/ThemePreviewCard.cpp
+    ui/StartupPanel.h
+    ui/StartupPanel.cpp
     core/Logger.h
     core/Logger.cpp
     core/EventBus.h
@@ -111,6 +116,8 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "Src" FILES
     core/Command.cpp
     core/Config.h
     core/Config.cpp
+    core/RecentWorkspaces.h
+    core/RecentWorkspaces.cpp
     core/Color.h
     core/Color.cpp
     core/Theme.h

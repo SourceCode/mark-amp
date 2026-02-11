@@ -5,6 +5,40 @@ All notable changes to MarkAmp are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.3] - 2026-02-11
+
+### Added
+
+- Editor QoL: zoom (mouse wheel + keyboard), trim trailing whitespace, document statistics in status bar, Zen Mode, session restore
+- Command Palette (Ctrl+Shift+P) with fuzzy search
+- Breadcrumb Bar for document path navigation
+- Snippet system insertable from command palette
+- Native macOS window controls (traffic-light integration)
+- Lucide SVG icons in file tree via nanosvg
+- Markdown-based theme loading with YAML frontmatter (ThemeLoader)
+- YAML configuration format via yaml-cpp (replaces JSON config)
+- Extended builtin theme color tokens (editor_bg, editor_fg, editor_selection, editor_line_number, editor_cursor, editor_gutter, list_hover, list_selected, scrollbar_thumb, scrollbar_track)
+- Preview panel zoom controls
+- Layout manager zen-mode and sidebar-toggle support
+- SplitView programmatic sash positioning
+- New events: zoom, zen mode, session restore, theme changes
+- StatusBarPanel real-time document statistics
+- Startup panel with recent workspace history
+
+### Changed
+
+- Simplified tests/CMakeLists.txt (removed 390+ lines of legacy targets)
+- Added yaml-cpp dependency to vcpkg.json
+- Refactored FileTreeCtrl for icon-aware rendering
+- Expanded EditorPanel with 400+ lines of new functionality
+- Expanded MainFrame with 450+ lines for command palette, session restore, toolbar
+
+### Fixed
+
+- Heading rendering: visible `#` characters no longer appear in preview
+- Shutdown crash from EventBus/Subscription lifetime issue
+- Compilation errors in editor control tests
+
 ## [1.0.2] - 2026-02-11
 
 ### Added

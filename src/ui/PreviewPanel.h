@@ -13,6 +13,11 @@
 #include <filesystem>
 #include <string>
 
+namespace markamp::core
+{
+class Config;
+}
+
 namespace markamp::ui
 {
 
@@ -24,7 +29,10 @@ class BevelPanel;
 class PreviewPanel : public ThemeAwareWindow
 {
 public:
-    PreviewPanel(wxWindow* parent, core::ThemeEngine& theme_engine, core::EventBus& event_bus);
+    PreviewPanel(wxWindow* parent,
+                 core::ThemeEngine& theme_engine,
+                 core::EventBus& event_bus,
+                 core::Config* config = nullptr);
 
     // Content
     void SetMarkdownContent(const std::string& markdown);
@@ -65,7 +73,7 @@ private:
     void DisplayError(const std::string& error_message);
 
     // Debouncing
-    static constexpr int kRenderDebounceMs = 300;
+    int render_debounce_ms_{300};
     wxTimer render_timer_;
     std::string pending_content_;
     std::string last_rendered_content_;
@@ -96,6 +104,12 @@ private:
     core::Subscription view_mode_sub_;
     core::Subscription active_file_sub_;
     core::Subscription scroll_sync_sub_;
+
+    // Zoom support
+    int zoom_level_{0};
+    void SetZoomLevel(int level);
+    void OnMouseWheel(wxMouseEvent& event);
+    void OnKeyDown(wxKeyEvent& event);
 };
 
 } // namespace markamp::ui

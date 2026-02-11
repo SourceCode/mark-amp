@@ -57,6 +57,7 @@ struct Color
     }
     [[nodiscard]] auto with_alpha(float alpha_01) const -> Color;
     [[nodiscard]] auto blend(const Color& other, float factor) const -> Color;
+    [[nodiscard]] auto lighten(float factor) const -> Color;
 
     /// Relative luminance per WCAG 2.1 (0.0 = black, 1.0 = white).
     [[nodiscard]] auto luminance() const -> float;

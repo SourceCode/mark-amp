@@ -1,6 +1,7 @@
 #include "PreviewPanel.h"
 
 #include "BevelPanel.h"
+#include "core/Config.h"
 #include "core/Events.h"
 #include "core/IMermaidRenderer.h"
 #include "core/Profiler.h"
@@ -22,13 +23,20 @@ namespace markamp::ui
 
 PreviewPanel::PreviewPanel(wxWindow* parent,
                            core::ThemeEngine& theme_engine,
-                           core::EventBus& event_bus)
+                           core::EventBus& event_bus,
+                           core::Config* config)
     : ThemeAwareWindow(parent, theme_engine)
     , event_bus_(event_bus)
     , render_timer_(this)
     , resize_timer_(this)
     , scroll_sync_timer_(this)
 {
+    // Load config
+    if (config)
+    {
+        render_debounce_ms_ = config->get_int("preview.render_debounce_ms", 300);
+    }
+
     // Layout: single wxHtmlWindow filling the panel
     auto* sizer = new wxBoxSizer(wxVERTICAL);
 
@@ -65,12 +73,18 @@ PreviewPanel::PreviewPanel(wxWindow* parent,
     // Resize handling
     Bind(wxEVT_SIZE, &PreviewPanel::OnSize, this);
 
+    // Zoom / Input handling
+    html_view_->Bind(wxEVT_MOUSEWHEEL, &PreviewPanel::OnMouseWheel, this);
+    html_view_->Bind(wxEVT_KEY_DOWN, &PreviewPanel::OnKeyDown, this);
+    Bind(wxEVT_MOUSEWHEEL, &PreviewPanel::OnMouseWheel, this);
+    Bind(wxEVT_KEY_DOWN, &PreviewPanel::OnKeyDown, this);
+
     // Subscribe to editor content changes (debounced)
     content_changed_sub_ = event_bus_.subscribe<core::events::EditorContentChangedEvent>(
         [this](const core::events::EditorContentChangedEvent& evt)
         {
             pending_content_ = evt.content;
-            render_timer_.Start(kRenderDebounceMs, wxTIMER_ONE_SHOT);
+            render_timer_.Start(render_debounce_ms_, wxTIMER_ONE_SHOT);
         });
 
     // Subscribe to active file changes (immediate render + scroll to top)
@@ -163,7 +177,8 @@ body {{
     background-color: {bg_app};
     color: {text_main};
     font-family: 'Rajdhani', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
-    font-size: 14px;
+    font-family: 'Rajdhani', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    font-size: {}px;
     line-height: 1.6;
     padding: 24px;
     word-wrap: break-word;
@@ -557,7 +572,8 @@ summary::marker {{
                               fmt::arg("accent_bg_20", accent_bg_20),
                               fmt::arg("accent_bg_30", accent_bg_30),
                               fmt::arg("border_30", border_30),
-                              fmt::arg("code_bg", code_bg));
+                              fmt::arg("code_bg", code_bg),
+                              14 + zoom_level_ * 2);
     // Improvement 4: cache the generated CSS string
     cached_css_ = std::move(result);
     return cached_css_;
@@ -784,6 +800,94 @@ void PreviewPanel::OnThemeChanged(const core::Theme& new_theme)
         last_rendered_content_.clear(); // Force re-render
         RenderContent(content);
     }
+}
+
+// ═══════════════════════════════════════════════════════
+// Zoom support
+// ═══════════════════════════════════════════════════════
+
+void PreviewPanel::SetZoomLevel(int level)
+{
+    if (zoom_level_ == level)
+    {
+        return;
+    }
+    zoom_level_ = std::clamp(level, -5, 10);
+
+    // Clear cache and re-render
+    cached_css_.clear();
+    if (!last_rendered_content_.empty())
+    {
+        auto content = last_rendered_content_;
+        last_rendered_content_.clear();
+        RenderContent(content);
+    }
+}
+
+void PreviewPanel::OnMouseWheel(wxMouseEvent& event)
+{
+    if (event.CmdDown())
+    {
+        // Ctrl/Cmd + Wheel for Zoom
+        int rotation = event.GetWheelRotation();
+        if (rotation > 0)
+        {
+            SetZoomLevel(zoom_level_ + 1);
+        }
+        else if (rotation < 0)
+        {
+            SetZoomLevel(zoom_level_ - 1);
+        }
+    }
+    else
+    {
+        event.Skip();
+    }
+}
+
+void PreviewPanel::OnKeyDown(wxKeyEvent& event)
+{
+    int key = event.GetKeyCode();
+    bool cmd = event.CmdDown();
+
+    if (cmd && (key == '=' || key == WXK_NUMPAD_ADD || key == '+'))
+    {
+        SetZoomLevel(zoom_level_ + 1);
+        return;
+    }
+
+    if (cmd && (key == '-' || key == WXK_NUMPAD_SUBTRACT))
+    {
+        SetZoomLevel(zoom_level_ - 1);
+        return;
+    }
+
+    if (cmd && (key == '0' || key == WXK_NUMPAD0))
+    {
+        SetZoomLevel(0);
+        return;
+    }
+
+    // Item 12: Scroll To Top (Home / Cmd+Up)
+    if (key == WXK_HOME || (cmd && key == WXK_UP))
+    {
+        ScrollToTop();
+        return;
+    }
+
+    // Scroll To Bottom (End / Cmd+Down)
+    if (key == WXK_END || (cmd && key == WXK_DOWN))
+    {
+        if (html_view_ != nullptr)
+        {
+            int x = 0, y = 0;
+            html_view_->GetVirtualSize(&x, &y);
+            html_view_->Scroll(0, y);
+        }
+        return;
+    }
+
+    event.Skip();
 }
 
 // ═══════════════════════════════════════════════════════

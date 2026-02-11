@@ -26,6 +26,7 @@ public:
     void set_ready_state(const std::string& state);
     void set_mermaid_status(const std::string& status, bool active);
     void set_word_count(int count);
+    void set_stats(int word_count, int char_count, int line_count, int selection_len);
     void set_file_modified(bool modified);
     void set_view_mode(core::events::ViewMode mode);
 
@@ -61,6 +62,10 @@ public:
     [[nodiscard]] auto word_count() const -> int
     {
         return word_count_;
+    }
+    [[nodiscard]] auto char_count() const -> int
+    {
+        return char_count_;
     }
     [[nodiscard]] auto file_modified() const -> bool
     {
@@ -118,6 +123,9 @@ private:
     bool mermaid_active_{true};
     std::string theme_name_;
     int word_count_{0};
+    int char_count_{0};
+    int line_count_{0};
+    int selection_len_{0};
     bool file_modified_{false};
     core::events::ViewMode view_mode_{core::events::ViewMode::Split};
 
@@ -130,11 +138,11 @@ private:
     void OnMouseDown(wxMouseEvent& event);
     void OnMouseMove(wxMouseEvent& event);
 
-    /// Count words in a content string (whitespace-separated tokens).
-    static auto count_words(const std::string& content) -> int;
-
     /// Convert ViewMode to display string.
     static auto view_mode_label(core::events::ViewMode mode) -> std::string;
+
+    /// Helper to count words in content.
+    static auto count_words(const std::string& content) -> int;
 };
 
 } // namespace markamp::ui

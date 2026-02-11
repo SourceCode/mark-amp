@@ -41,6 +41,9 @@ public:
     void SetSplitRatio(double ratio);
     [[nodiscard]] auto GetSplitRatio() const -> double;
 
+    // File operations
+    void SaveFile(const std::string& path);
+
     static constexpr int kDividerWidth = 4;
     static constexpr int kDividerHitWidth = 8; // wider hit area for grabbing
     static constexpr double kMinSplitRatio = 0.2;

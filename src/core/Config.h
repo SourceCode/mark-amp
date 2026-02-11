@@ -1,16 +1,15 @@
 #pragma once
 
-#include <nlohmann/json.hpp>
-
 #include <expected>
 #include <filesystem>
 #include <string>
 #include <string_view>
+#include <yaml-cpp/yaml.h>
 
 namespace markamp::core
 {
 
-/// Persistent configuration manager backed by a JSON file.
+/// Persistent configuration manager backed by a Markdown file (YAML frontmatter).
 /// Uses platform-appropriate config directory (wxStandardPaths-compatible).
 class Config
 {
@@ -41,7 +40,7 @@ public:
     [[nodiscard]] static auto config_file_path() -> std::filesystem::path;
 
 private:
-    nlohmann::json data_;
+    YAML::Node data_;
 
     void apply_defaults();
 };

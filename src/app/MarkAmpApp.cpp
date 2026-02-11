@@ -7,6 +7,7 @@
 #include "core/Events.h"
 #include "core/Logger.h"
 #include "core/MermaidRenderer.h"
+#include "core/RecentWorkspaces.h"
 #include "core/ServiceRegistry.h"
 #include "core/ThemeEngine.h"
 #include "core/ThemeRegistry.h"
@@ -58,6 +59,10 @@ bool MarkAmpApp::OnInit()
         MARKAMP_LOG_INFO("Configuration loaded");
     }
 
+    // 3b. Initialize recent workspaces
+    recent_workspaces_ = std::make_unique<core::RecentWorkspaces>(*config_);
+    MARKAMP_LOG_DEBUG("RecentWorkspaces initialized");
+
     // 4. Initialize app state manager
     state_manager_ = std::make_unique<core::AppStateManager>(*event_bus_);
     MARKAMP_LOG_DEBUG("AppStateManager initialized");
@@ -86,6 +91,7 @@ bool MarkAmpApp::OnInit()
                                     wxSize(kDefaultWidth, kDefaultHeight),
                                     event_bus_.get(),
                                     config_.get(),
+                                    recent_workspaces_.get(),
                                     platform_.get(),
                                     theme_engine_.get());
 

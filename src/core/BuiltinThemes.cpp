@@ -24,6 +24,18 @@ static auto make_builtin_themes() -> std::vector<Theme>
                 .accent_secondary = Color(0x00, 0xff, 0xea),
                 .border_light = Color(255, 0, 85, 51), // rgba(255, 0, 85, 0.2)
                 .border_dark = Color(0x00, 0x00, 0x00),
+                // Editor
+                .editor_bg = Color(0x05, 0x05, 0x10),
+                .editor_fg = Color(0x00, 0xff, 0xea),
+                .editor_selection = Color(255, 0, 85, 51),
+                .editor_line_number = Color(0x5e, 0x6a, 0xd2),
+                .editor_cursor = Color(0xff, 0x00, 0x55),
+                .editor_gutter = Color(0x05, 0x05, 0x10),
+                // UI
+                .list_hover = Color(255, 0, 85, 25), // ~10%
+                .list_selected = Color(255, 0, 85, 51),
+                .scrollbar_thumb = Color(0x00, 0xff, 0xea),
+                .scrollbar_track = Color(0x0a, 0x0a, 0x1f),
             },
     });
 
@@ -43,6 +55,18 @@ static auto make_builtin_themes() -> std::vector<Theme>
                 .accent_secondary = Color(0x53, 0x34, 0x83),
                 .border_light = Color(255, 255, 255, 26), // rgba(255, 255, 255, 0.1)
                 .border_dark = Color(0, 0, 0, 128),       // rgba(0, 0, 0, 0.5)
+                // Editor
+                .editor_bg = Color(0x0f, 0x34, 0x60),
+                .editor_fg = Color(0xe9, 0x45, 0x60),
+                .editor_selection = Color(233, 69, 96, 51),
+                .editor_line_number = Color(0x53, 0x34, 0x83),
+                .editor_cursor = Color(0xe9, 0x45, 0x60),
+                .editor_gutter = Color(0x0f, 0x34, 0x60),
+                // UI
+                .list_hover = Color(233, 69, 96, 25),
+                .list_selected = Color(233, 69, 96, 51),
+                .scrollbar_thumb = Color(0x53, 0x34, 0x83),
+                .scrollbar_track = Color(0x16, 0x21, 0x3e),
             },
     });
 
@@ -62,6 +86,18 @@ static auto make_builtin_themes() -> std::vector<Theme>
                 .accent_secondary = Color(0x2a, 0xa1, 0x98),
                 .border_light = Color(0x58, 0x6e, 0x75),
                 .border_dark = Color(0x00, 0x1e, 0x26),
+                // Editor
+                .editor_bg = Color(0x00, 0x2b, 0x36),
+                .editor_fg = Color(0x83, 0x94, 0x96),
+                .editor_selection = Color(0x07, 0x36, 0x42), // distinct selection in solarized
+                .editor_line_number = Color(0x58, 0x6e, 0x75),
+                .editor_cursor = Color(0xb5, 0x89, 0x00),
+                .editor_gutter = Color(0x00, 0x2b, 0x36),
+                // UI
+                .list_hover = Color(0x07, 0x36, 0x42),
+                .list_selected = Color(0x58, 0x6e, 0x75),
+                .scrollbar_thumb = Color(0x2a, 0xa1, 0x98),
+                .scrollbar_track = Color(0x07, 0x36, 0x42),
             },
     });
 
@@ -81,6 +117,18 @@ static auto make_builtin_themes() -> std::vector<Theme>
                 .accent_secondary = Color(0x44, 0x44, 0x44),
                 .border_light = Color(0xcc, 0xcc, 0xcc),
                 .border_dark = Color(0x99, 0x99, 0x99),
+                // Editor
+                .editor_bg = Color(0xff, 0xff, 0xff),
+                .editor_fg = Color(0x11, 0x11, 0x11),
+                .editor_selection = Color(0xcc, 0xcc, 0xcc),
+                .editor_line_number = Color(0x99, 0x99, 0x99),
+                .editor_cursor = Color(0x00, 0x00, 0x00),
+                .editor_gutter = Color(0xf3, 0xf3, 0xf3),
+                // UI
+                .list_hover = Color(0xe5, 0xe5, 0xe5),
+                .list_selected = Color(0xcc, 0xcc, 0xcc),
+                .scrollbar_thumb = Color(0x99, 0x99, 0x99),
+                .scrollbar_track = Color(0xf3, 0xf3, 0xf3),
             },
     });
 
@@ -100,6 +148,18 @@ static auto make_builtin_themes() -> std::vector<Theme>
                 .accent_secondary = Color(0x00, 0xff, 0x00),
                 .border_light = Color(0xff, 0xff, 0xff),
                 .border_dark = Color(0x00, 0x00, 0x40),
+                // Editor
+                .editor_bg = Color(0x00, 0x00, 0x00),
+                .editor_fg = Color(0xff, 0xff, 0xff),
+                .editor_selection = Color(0x00, 0x00, 0x80),
+                .editor_line_number = Color(0x00, 0xff, 0xff),
+                .editor_cursor = Color(0xff, 0xff, 0x00),
+                .editor_gutter = Color(0x00, 0x00, 0x00),
+                // UI
+                .list_hover = Color(0x00, 0x00, 0x80),
+                .list_selected = Color(0x00, 0x00, 0xa0),
+                .scrollbar_thumb = Color(0x00, 0xff, 0xff),
+                .scrollbar_track = Color(0x00, 0x00, 0x80),
             },
     });
 
@@ -119,6 +179,18 @@ static auto make_builtin_themes() -> std::vector<Theme>
                 .accent_secondary = Color(0x00, 0x3b, 0x00),
                 .border_light = Color(0x22, 0x22, 0x22),
                 .border_dark = Color(0x00, 0x00, 0x00),
+                // Editor
+                .editor_bg = Color(0x0d, 0x11, 0x17),
+                .editor_fg = Color(0x00, 0xff, 0x41),
+                .editor_selection = Color(0x00, 0x3b, 0x00),
+                .editor_line_number = Color(0x00, 0x8f, 0x11),
+                .editor_cursor = Color(0x00, 0xff, 0x41),
+                .editor_gutter = Color(0x0d, 0x11, 0x17),
+                // UI
+                .list_hover = Color(0x16, 0x1b, 0x22),
+                .list_selected = Color(0x22, 0x22, 0x22),
+                .scrollbar_thumb = Color(0x00, 0x3b, 0x00),
+                .scrollbar_track = Color(0x00, 0x00, 0x00),
             },
     });
 
@@ -138,6 +210,18 @@ static auto make_builtin_themes() -> std::vector<Theme>
                 .accent_secondary = Color(0x88, 0x88, 0x88),
                 .border_light = Color(0x55, 0x55, 0x55),
                 .border_dark = Color(0x11, 0x11, 0x11),
+                // Editor
+                .editor_bg = Color(0x00, 0x00, 0x00),
+                .editor_fg = Color(0x00, 0xFF, 0x00),
+                .editor_selection = Color(0x33, 0x33, 0x33),
+                .editor_line_number = Color(0xaa, 0xaa, 0xaa),
+                .editor_cursor = Color(0xd4, 0xaf, 0x37),
+                .editor_gutter = Color(0x00, 0x00, 0x00),
+                // UI
+                .list_hover = Color(0x33, 0x33, 0x33),
+                .list_selected = Color(0x44, 0x44, 0x44),
+                .scrollbar_thumb = Color(0x88, 0x88, 0x88),
+                .scrollbar_track = Color(0x19, 0x19, 0x19),
             },
     });
 
@@ -157,6 +241,18 @@ static auto make_builtin_themes() -> std::vector<Theme>
                 .accent_secondary = Color(0x91, 0x6b, 0xbf),
                 .border_light = Color(255, 255, 255, 51), // rgba(255, 255, 255, 0.2)
                 .border_dark = Color(0, 0, 0, 153),       // rgba(0, 0, 0, 0.6)
+                // Editor
+                .editor_bg = Color(0x2b, 0x10, 0x55),
+                .editor_fg = Color(0x00, 0xff, 0xff),
+                .editor_selection = Color(117, 98, 224, 100),
+                .editor_line_number = Color(0xb8, 0xc0, 0xff),
+                .editor_cursor = Color(0xff, 0x00, 0xff),
+                .editor_gutter = Color(0x2b, 0x10, 0x55),
+                // UI
+                .list_hover = Color(117, 98, 224, 60),
+                .list_selected = Color(117, 98, 224, 100),
+                .scrollbar_thumb = Color(0x91, 0x6b, 0xbf),
+                .scrollbar_track = Color(0x3d, 0x2c, 0x8d),
             },
     });
 

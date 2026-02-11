@@ -42,6 +42,7 @@ public:
     [[nodiscard]] auto GetCursorLine() const -> int;
     [[nodiscard]] auto GetCursorColumn() const -> int;
     void SetCursorPosition(int line, int column);
+    void SetSelection(int start, int end);
 
     // ── Editor operations ──
     void Undo();
@@ -66,6 +67,22 @@ public:
     [[nodiscard]] auto GetBracketMatching() const -> bool;
     void SetAutoIndent(bool enabled);
     [[nodiscard]] auto GetAutoIndent() const -> bool;
+    void SetSmartListContinuation(bool enabled);
+    [[nodiscard]] auto GetSmartListContinuation() const -> bool;
+
+    // ── QoL: Editor Actions ──
+    void ToggleLineComment();
+    void InsertDateTime();
+    void SortSelectedLines();
+    void ConvertSelectionUpperCase();
+    void ConvertSelectionLowerCase();
+
+    void DuplicateLine();
+    void MoveLineUp();
+    void MoveLineDown();
+    void DeleteLine();
+    void InsertLineBelow();
+    void GoToLineDialog();
 
     // ── Phase 1: Editor Core Improvements ──
     void SetIndentationGuides(bool enabled);
@@ -116,7 +133,7 @@ public:
     static constexpr int kDefaultTabSize = 4;
     static constexpr int kCaretWidth = 2;
     static constexpr int kCaretBlinkMs = 530;
-    static constexpr int kDebounceMs = 300;
+    static constexpr int kDebounceMs = 50; // Responsive! (was 300)
     static constexpr int kDebounceMaxMs = 500;
     static constexpr int kFindBarHeight = 36;
     static constexpr int kLargeFileThreshold = 50000;
@@ -150,10 +167,7 @@ private:
     bool find_bar_visible_{false};
     bool match_case_{false};
     bool replace_visible_{false};
-
-    // ── Placeholder ──
-    wxStaticText* placeholder_label_{nullptr};
-    bool showing_placeholder_{false};
+    bool smart_list_continuation_{true};
 
     // ── Debounce timer ──
     wxTimer debounce_timer_;
@@ -214,6 +228,7 @@ private:
     void OnEditorUpdateUI(wxStyledTextEvent& event);
     void OnCharAdded(wxStyledTextEvent& event);
     void OnKeyDown(wxKeyEvent& event);
+    void OnMouseWheel(wxMouseEvent& event);
     void OnDebounceTimer(wxTimerEvent& event);
 
     // ── Bracket matching helpers ──
@@ -221,6 +236,8 @@ private:
 
     // ── Auto-indent helpers ──
     void HandleMarkdownAutoIndent(int char_added);
+    void HandleSmartListContinuation();
+    void CalculateAndPublishStats();
 
     // ── Find helpers ──
     void FindNext();
@@ -235,12 +252,6 @@ private:
     void UpdatePlaceholderVisibility();
 
     // ── Line manipulation ──
-    void DuplicateLine();
-    void MoveLineUp();
-    void MoveLineDown();
-    void DeleteLine();
-    void InsertLineBelow();
-    void GoToLineDialog();
 
     // ── Markdown formatting ──
     void WrapSelectionWith(const std::string& prefix, const std::string& suffix);

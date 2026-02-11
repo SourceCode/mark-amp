@@ -5,6 +5,7 @@
 #include "core/Logger.h"
 
 #include <wx/button.h>
+#include <wx/datetime.h>
 #include <wx/numdlg.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
@@ -13,6 +14,7 @@
 
 #include <array>
 #include <cmath>
+#include <numeric>
 #include <regex>
 
 namespace markamp::ui
@@ -38,15 +40,12 @@ EditorPanel::EditorPanel(wxWindow* parent,
     CreateEditor();
     sizer->Add(editor_, 1, wxEXPAND);
 
-    CreatePlaceholder();
-
     SetSizer(sizer);
 
     // Bind debounce timer
     Bind(wxEVT_TIMER, &EditorPanel::OnDebounceTimer, this, debounce_timer_.GetId());
 
     ApplyThemeToEditor();
-    UpdatePlaceholderVisibility();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -59,7 +58,6 @@ void EditorPanel::SetContent(const std::string& content)
     editor_->EmptyUndoBuffer();
     editor_->SetSavePoint();
     editor_->GotoPos(0);
-    UpdatePlaceholderVisibility();
     UpdateLineNumberMargin();
 
     // Apply large file optimizations based on content size
@@ -101,6 +99,11 @@ void EditorPanel::SetCursorPosition(int line, int column)
 {
     auto pos = editor_->FindColumn(line - 1, column - 1);
     editor_->GotoPos(pos);
+}
+
+void EditorPanel::SetSelection(int start, int end)
+{
+    editor_->SetSelection(start, end);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -237,6 +240,16 @@ auto EditorPanel::GetAutoIndent() const -> bool
     return auto_indent_;
 }
 
+void EditorPanel::SetSmartListContinuation(bool enabled)
+{
+    smart_list_continuation_ = enabled;
+}
+
+auto EditorPanel::GetSmartListContinuation() const -> bool
+{
+    return smart_list_continuation_;
+}
+
 // ═══════════════════════════════════════════════════════
 // Preferences persistence
 // ═══════════════════════════════════════════════════════
@@ -347,6 +360,9 @@ void EditorPanel::LoadPreferences(core::Config& config)
     // Phase 3 preferences
     trailing_ws_visible_ = config.get_bool("editor.trailing_whitespace", true);
     auto_trim_trailing_ws_ = config.get_bool("editor.auto_trim_trailing_ws", false);
+
+    // QoL
+    smart_list_continuation_ = config.get_bool("editor.smart_list_continuation", true);
 }
 
 void EditorPanel::SavePreferences(core::Config& config) const
@@ -381,6 +397,9 @@ void EditorPanel::SavePreferences(core::Config& config) const
     // Phase 3 preferences
     config.set("editor.trailing_whitespace", trailing_ws_visible_);
     config.set("editor.auto_trim_trailing_ws", auto_trim_trailing_ws_);
+
+    // QoL
+    config.set("editor.smart_list_continuation", smart_list_continuation_);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -408,6 +427,7 @@ void EditorPanel::CreateEditor()
     editor_->Bind(wxEVT_STC_UPDATEUI, &EditorPanel::OnEditorUpdateUI, this);
     editor_->Bind(wxEVT_STC_CHARADDED, &EditorPanel::OnCharAdded, this);
     editor_->Bind(wxEVT_KEY_DOWN, &EditorPanel::OnKeyDown, this);
+    editor_->Bind(wxEVT_MOUSEWHEEL, &EditorPanel::OnMouseWheel, this);
 }
 
 void EditorPanel::CreateFindBar()
@@ -475,17 +495,6 @@ void EditorPanel::CreateFindBar()
     replace_all_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { ReplaceAll(); });
 }
 
-void EditorPanel::CreatePlaceholder()
-{
-    placeholder_label_ = new wxStaticText(
-        this, wxID_ANY, "Start typing...", wxDefaultPosition, wxDefaultSize, wxALIGN_LEFT);
-    placeholder_label_->SetForegroundColour(theme_engine().color(core::ThemeColorToken::TextMuted));
-
-    // Position the placeholder over the editor area
-    placeholder_label_->SetPosition(wxPoint(16, kFindBarHeight + 16));
-    placeholder_label_->Raise();
-}
-
 void EditorPanel::ConfigureEditorDefaults()
 {
     editor_->SetUseTabs(false);
@@ -514,8 +523,9 @@ void EditorPanel::ConfigureEditorDefaults()
     // Disable auto-complete
     editor_->AutoCompCancel();
 
-    // Padding inside the editor
-    editor_->SetMarginLeft(12);
+    // Padding inside the editor (QoL Item 4)
+    editor_->SetMarginLeft(16);
+    editor_->SetMarginRight(16); // Balanced padding
 
     // Current line highlight — always visible
     editor_->SetCaretLineVisibleAlways(true);
@@ -1533,13 +1543,6 @@ void EditorPanel::ApplyThemeToEditor()
         }
     }
 
-    // Placeholder theme
-    if (placeholder_label_ != nullptr)
-    {
-        placeholder_label_->SetForegroundColour(muted);
-        placeholder_label_->SetFont(mono_font);
-    }
-
     editor_->Refresh();
 }
 
@@ -1574,7 +1577,6 @@ void EditorPanel::OnEditorChange(wxStyledTextEvent& /*event*/)
     // Restart debounce timer with adaptive delay
     debounce_timer_.Stop();
     debounce_timer_.StartOnce(debounce_ms);
-    UpdatePlaceholderVisibility();
 
     // Update line number margin width if digits changed
     if (show_line_numbers_)
@@ -1583,12 +1585,15 @@ void EditorPanel::OnEditorChange(wxStyledTextEvent& /*event*/)
     }
 }
 
+// QoL Item 10: Status Bar Stats -> Moved to DebounceTimer to avoid lag
+
 void EditorPanel::OnEditorUpdateUI(wxStyledTextEvent& /*event*/)
 {
     // Publish cursor position
     core::events::CursorPositionChangedEvent evt;
     evt.line = GetCursorLine();
     evt.column = GetCursorColumn();
+    evt.selection_length = std::abs(editor_->GetSelectionEnd() - editor_->GetSelectionStart());
     event_bus_.publish(evt);
 
     // Check bracket matching
@@ -1602,6 +1607,9 @@ void EditorPanel::OnEditorUpdateUI(wxStyledTextEvent& /*event*/)
 
     // Phase 3 Item 26: highlight all occurrences of word under cursor
     HighlightWordUnderCursor();
+
+    // QoL Item 10: Status Bar Stats -> Moved to DebounceTimer to avoid lag
+    // CalculateAndPublishStats();
 
     // Phase 3 Item 29: trailing whitespace visualization
     if (trailing_ws_visible_)
@@ -1618,6 +1626,12 @@ void EditorPanel::OnCharAdded(wxStyledTextEvent& event)
     if (auto_indent_)
     {
         HandleMarkdownAutoIndent(event.GetKey());
+    }
+
+    // QoL Item 1: Smart List Continuation
+    if (smart_list_continuation_ && (event.GetKey() == '\n' || event.GetKey() == '\r'))
+    {
+        HandleSmartListContinuation();
     }
 }
 
@@ -1660,6 +1674,56 @@ void EditorPanel::OnKeyDown(wxKeyEvent& event)
         {
             Undo();
         }
+        return;
+    }
+
+    // Cmd+G: Go to Line (QoL Item 2)
+    if (cmd && key == 'G')
+    {
+        GoToLineDialog();
+        return;
+    }
+
+    // Cmd+D: Duplicate Line (QoL Item 2)
+    if (cmd && key == 'D')
+    {
+        DuplicateLine();
+        return;
+    }
+
+    // Alt+Up/Down: Move Line (QoL Item 2)
+    if (event.AltDown() && !cmd)
+    {
+        if (key == WXK_UP)
+        {
+            MoveLineUp();
+            return;
+        }
+        if (key == WXK_DOWN)
+        {
+            MoveLineDown();
+            return;
+        }
+    }
+
+    // Cmd+/: Toggle Comment (QoL Item 3)
+    if (cmd && (key == '/' || key == '?')) // ? is usually / with shift, but check /
+    {
+        ToggleLineComment();
+        return;
+    }
+
+    // Cmd+Shift+I: Insert Date/Time (QoL Item 6)
+    if (cmd && event.ShiftDown() && key == 'I')
+    {
+        InsertDateTime();
+        return;
+    }
+
+    // Cmd+Shift+K: Delete Line (QoL Item 2)
+    if (cmd && event.ShiftDown() && key == 'K')
+    {
+        DeleteLine();
         return;
     }
 
@@ -1722,10 +1786,34 @@ void EditorPanel::OnKeyDown(wxKeyEvent& event)
         return;
     }
 
-    // Cmd+Shift+D: duplicate current line (moved from Cmd+D)
+    // Cmd+Shift+D: duplicate current line
     if (cmd && event.ShiftDown() && key == 'D')
     {
         DuplicateLine();
+        return;
+    }
+
+    // Shift+Alt+Down: duplicate current line (VS Code style)
+    if (event.ShiftDown() && event.AltDown() && key == WXK_DOWN)
+    {
+        DuplicateLine();
+        return;
+    }
+
+    // Zoom controls
+    if (cmd && (key == '=' || key == WXK_NUMPAD_ADD || key == '+'))
+    {
+        editor_->ZoomIn();
+        return;
+    }
+    if (cmd && (key == '-' || key == WXK_NUMPAD_SUBTRACT))
+    {
+        editor_->ZoomOut();
+        return;
+    }
+    if (cmd && (key == '0' || key == WXK_NUMPAD0))
+    {
+        editor_->SetZoom(0);
         return;
     }
 
@@ -1804,11 +1892,35 @@ void EditorPanel::OnKeyDown(wxKeyEvent& event)
     event.Skip();
 }
 
+void EditorPanel::OnMouseWheel(wxMouseEvent& event)
+{
+    if (event.CmdDown())
+    {
+        // Ctrl/Cmd + Wheel for Zoom
+        int rotation = event.GetWheelRotation();
+        if (rotation > 0)
+        {
+            editor_->ZoomIn();
+        }
+        else if (rotation < 0)
+        {
+            editor_->ZoomOut();
+        }
+    }
+    else
+    {
+        event.Skip();
+    }
+}
+
 void EditorPanel::OnDebounceTimer(wxTimerEvent& /*event*/)
 {
     core::events::EditorContentChangedEvent evt;
     evt.content = GetContent();
     event_bus_.publish(evt);
+
+    // QoL Item 10: Status Bar Stats
+    CalculateAndPublishStats();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -2178,23 +2290,6 @@ void EditorPanel::ClearFindHighlights()
     editor_->IndicatorClearRange(0, editor_->GetLength());
 }
 
-// ═══════════════════════════════════════════════════════
-// Placeholder helpers
-// ═══════════════════════════════════════════════════════
-
-void EditorPanel::UpdatePlaceholderVisibility()
-{
-    bool empty = editor_->GetLength() == 0;
-    if (empty != showing_placeholder_)
-    {
-        showing_placeholder_ = empty;
-        if (placeholder_label_ != nullptr)
-        {
-            placeholder_label_->Show(empty);
-        }
-    }
-}
-
 } // namespace markamp::ui
 
 // ═══════════════════════════════════════════════════════
@@ -2444,6 +2539,240 @@ void EditorPanel::InsertLink()
 void EditorPanel::ToggleInlineCode()
 {
     WrapSelectionWith("`", "`");
+}
+
+// ═══════════════════════════════════════════════════════
+// QoL: Editor Actions
+// ═══════════════════════════════════════════════════════
+
+void EditorPanel::ToggleLineComment()
+{
+    if (editor_ == nullptr)
+        return;
+
+    editor_->BeginUndoAction();
+
+    int start_line = editor_->LineFromPosition(editor_->GetSelectionStart());
+    int end_line = editor_->LineFromPosition(editor_->GetSelectionEnd());
+
+    // If selection ends at the start of a line (and spans multiple lines), exclude that last line
+    if (start_line < end_line && editor_->PositionFromLine(end_line) == editor_->GetSelectionEnd())
+    {
+        end_line--;
+    }
+
+    for (int line = start_line; line <= end_line; ++line)
+    {
+        auto line_text = editor_->GetLine(line).ToStdString();
+        // Trim newline
+        if (!line_text.empty() && line_text.back() == '\n')
+            line_text.pop_back();
+        if (!line_text.empty() && line_text.back() == '\r')
+            line_text.pop_back();
+
+        // Check for existing comment
+        // Simple heuristic: starts with <!-- and ends with -->
+        // We need to handle leading whitespace
+        size_t first_char = line_text.find_first_not_of(" \t");
+        if (first_char == std::string::npos)
+            continue; // Empty line
+
+        std::string content = line_text.substr(first_char);
+        std::string prefix = line_text.substr(0, first_char);
+
+        if (content.rfind("<!-- ", 0) == 0 && content.length() >= 7 &&
+            content.substr(content.length() - 4) == " -->")
+        {
+            // Uncomment
+            // <!-- content --> -> content
+            std::string uncommented = content.substr(5, content.length() - 9);
+
+            editor_->SetTargetStart(editor_->PositionFromLine(line));
+            editor_->SetTargetEnd(editor_->GetLineEndPosition(line));
+            editor_->ReplaceTarget(prefix + uncommented);
+        }
+        else
+        {
+            // Comment
+            // content -> <!-- content -->
+            editor_->SetTargetStart(editor_->PositionFromLine(line));
+            editor_->SetTargetEnd(editor_->GetLineEndPosition(line));
+            editor_->ReplaceTarget(prefix + "<!-- " + content + " -->");
+        }
+    }
+
+    editor_->EndUndoAction();
+}
+
+void EditorPanel::InsertDateTime()
+{
+    if (editor_ == nullptr)
+        return;
+    auto now = wxDateTime::Now();
+    editor_->ReplaceSelection(now.FormatISOCombined(' '));
+}
+
+void EditorPanel::SortSelectedLines()
+{
+    // Not bound to key yet, but good for API
+    // Implementation left for future or context menu
+}
+
+void EditorPanel::ConvertSelectionUpperCase()
+{
+    editor_->UpperCase();
+}
+
+void EditorPanel::ConvertSelectionLowerCase()
+{
+    editor_->LowerCase();
+}
+
+// ═══════════════════════════════════════════════════════
+// Smart List Continuation & Stats
+// ═══════════════════════════════════════════════════════
+
+void EditorPanel::HandleSmartListContinuation()
+{
+    if (editor_ == nullptr)
+        return;
+
+    int cur_line = editor_->GetCurrentLine();
+    if (cur_line == 0)
+        return;
+
+    // Look at previous line (since we just hit enter, we are on a new empty line)
+    // Actually, we are on the new line. The *previous* line contains the list item.
+    int prev_line = cur_line - 1;
+    auto prev_text = editor_->GetLine(prev_line).ToStdString();
+
+    // Trim newline
+    while (!prev_text.empty() && (prev_text.back() == '\n' || prev_text.back() == '\r'))
+    {
+        prev_text.pop_back();
+    }
+
+    std::smatch match;
+
+    // Regex for unordered list: ^(\s*)([-*+])\s+(.*)$
+    static const std::regex re_ul(R"(^(\s*)([-*+])\s+(.*)$)");
+    // Regex for ordered list: ^(\s*)(\d+)\.(\s+)(.*)$
+    static const std::regex re_ol(R"(^(\s*)(\d+)\.(\s+)(.*)$)");
+    // Regex for task list: ^(\s*)- \[([ xX])\]\s+(.*)$
+    static const std::regex re_task(R"(^(\s*)-\s\[([ xX])\]\s+(.*)$)");
+
+    std::string insertion;
+
+    // Check task list first (subset of unordered)
+    if (std::regex_match(prev_text, match, re_task))
+    {
+        // match[1] = indent, match[2] = x/space, match[3] = content
+        if (match[3].length() == 0)
+        {
+            // Empty task item: user pressed enter twice. Remove the bullet from prev line.
+            editor_->BeginUndoAction();
+            int prev_start = editor_->PositionFromLine(prev_line);
+            int prev_end = editor_->GetLineEndPosition(prev_line);
+            editor_->SetTargetStart(prev_start);
+            editor_->SetTargetEnd(prev_end);
+            editor_->ReplaceTarget("");   // Clear line
+            editor_->GotoPos(prev_start); // Go back
+            editor_->EndUndoAction();
+            return;
+        }
+        else
+        {
+            // Continue task list with empty box
+            insertion = match[1].str() + "- [ ] ";
+        }
+    }
+    else if (std::regex_match(prev_text, match, re_ul))
+    {
+        // match[1] = indent, match[2] = bullet, match[3] = content
+        if (match[3].length() == 0)
+        {
+            // Empty item: terminate list
+            editor_->BeginUndoAction();
+            int prev_start = editor_->PositionFromLine(prev_line);
+            int prev_end = editor_->GetLineEndPosition(prev_line);
+            editor_->SetTargetStart(prev_start);
+            editor_->SetTargetEnd(prev_end);
+            editor_->ReplaceTarget("");
+            editor_->GotoPos(prev_start);
+            editor_->EndUndoAction();
+            return;
+        }
+        else
+        {
+            insertion = match[1].str() + match[2].str() + " ";
+        }
+    }
+    else if (std::regex_match(prev_text, match, re_ol))
+    {
+        // match[1] = indent, match[2] = number, match[3] = space, match[4] = content
+        if (match[4].length() == 0)
+        {
+            // Empty item: terminate
+            editor_->BeginUndoAction();
+            int prev_start = editor_->PositionFromLine(prev_line);
+            int prev_end = editor_->GetLineEndPosition(prev_line);
+            editor_->SetTargetStart(prev_start);
+            editor_->SetTargetEnd(prev_end);
+            editor_->ReplaceTarget("");
+            editor_->GotoPos(prev_start);
+            editor_->EndUndoAction();
+            return;
+        }
+        else
+        {
+            int num = std::stoi(match[2].str());
+            insertion = match[1].str() + std::to_string(num + 1) + "." + match[3].str();
+        }
+    }
+
+    if (!insertion.empty())
+    {
+        editor_->InsertText(editor_->GetCurrentPos(), insertion);
+        editor_->GotoPos(editor_->GetCurrentPos() + static_cast<int>(insertion.length()));
+    }
+}
+
+void EditorPanel::CalculateAndPublishStats()
+{
+    if (editor_ == nullptr)
+        return;
+
+    core::events::EditorStatsChangedEvent evt;
+
+    evt.char_count = editor_->GetLength();
+    evt.line_count = editor_->GetLineCount();
+
+    // Word count calculation
+    // Simple iteration or regex. For speed, simpler is better.
+    // Scintilla doesn't give word count directly.
+    std::string text = editor_->GetText().ToStdString();
+
+    // Simple word count: counting transitions from space to non-space
+    int words = 0;
+    bool in_word = false;
+    for (char c : text)
+    {
+        bool is_space = std::isspace(static_cast<unsigned char>(c));
+        if (!is_space && !in_word)
+        {
+            in_word = true;
+            words++;
+        }
+        else if (is_space)
+        {
+            in_word = false;
+        }
+    }
+    evt.word_count = words;
+
+    evt.selection_length = std::abs(editor_->GetSelectionEnd() - editor_->GetSelectionStart());
+
+    event_bus_.publish(evt);
 }
 
 } // namespace markamp::ui

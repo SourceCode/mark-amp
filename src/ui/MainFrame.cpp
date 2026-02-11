@@ -1,6 +1,8 @@
 #include "MainFrame.h"
 
 #include "LayoutManager.h"
+#include "StartupPanel.h"
+#include "StatusBarPanel.h"
 #include "app/MarkAmpApp.h"
 #include "core/Config.h"
 #include "core/EventBus.h"
@@ -10,6 +12,7 @@
 
 #include <wx/aboutdlg.h>
 #include <wx/display.h>
+#include <wx/filedlg.h>
 #include <wx/filename.h>
 #include <wx/icon.h>
 #include <wx/image.h>
@@ -73,12 +76,14 @@ MainFrame::MainFrame(const wxString& title,
                      const wxSize& size,
                      markamp::core::EventBus* event_bus,
                      markamp::core::Config* config,
+                     markamp::core::RecentWorkspaces* recent_workspaces,
                      markamp::platform::PlatformAbstraction* platform,
                      markamp::core::ThemeEngine* theme_engine)
     : wxFrame(
           nullptr, wxID_ANY, title, pos, size, wxBORDER_NONE | wxRESIZE_BORDER | wxCLIP_CHILDREN)
     , event_bus_(event_bus)
     , config_(config)
+    , recent_workspaces_(recent_workspaces)
     , platform_(platform)
     , theme_engine_(theme_engine)
 {
@@ -127,18 +132,29 @@ MainFrame::MainFrame(const wxString& title,
     auto* sizer = new wxBoxSizer(wxVERTICAL);
     sizer->Add(chrome_, 0, wxEXPAND);
 
+    // Default to Startup Screen unless arguments are parsed (logic to be added via MarkAmpApp)
+    // For now, we initialize both but show based on logic.
+    // Actually, good practice: don't create LayoutManager yet if not needed?
+    // User wants: Startup Screen -> Selection -> Editor.
+
+    startup_panel_ = new StartupPanel(this, event_bus_, recent_workspaces_, theme_engine_);
+    sizer->Add(startup_panel_, 1, wxEXPAND);
+
+    // We'll create LayoutManager on demand or hide it?
+    // Better: create it hidden? Or create on Open.
+    // Let's create it hidden for smoother transition if possible, or just create on demand.
+    // To keep it simple: Create it hidden.
+
     if (theme_engine_ != nullptr && event_bus_ != nullptr)
     {
         layout_ = new LayoutManager(this, *theme_engine_, *event_bus_, config_);
         sizer->Add(layout_, 1, wxEXPAND);
+        layout_->Hide(); // Hidden by default
     }
-    else
-    {
-        // Fallback: plain placeholder content panel
-        auto* contentPanel = new wxPanel(this);
-        contentPanel->SetBackgroundColour(wxColour(25, 25, 35));
-        sizer->Add(contentPanel, 1, wxEXPAND);
-    }
+
+    // Determine initial view
+    // TODO: if command line args has file, showEditor(); else showStartupScreen();
+    showStartupScreen(); // Default for now
 
     SetSizer(sizer);
 
@@ -298,6 +314,7 @@ void MainFrame::saveWindowState()
     config_->set("window_width", sz.GetWidth());
     config_->set("window_height", sz.GetHeight());
     config_->set("window_maximized", maximized);
+    config_->set("last_open_file", last_active_file_);
 
     auto result = config_->save();
     if (!result)
@@ -357,6 +374,15 @@ void MainFrame::restoreWindowState()
     {
         platform_->toggle_maximize(this);
     }
+
+    // Restore last open file (Session Restore)
+    std::string last_file = config_->get_string("last_open_file", "");
+    if (!last_file.empty() && event_bus_ != nullptr)
+    {
+        core::events::ActiveFileChangedEvent evt;
+        evt.file_id = last_file;
+        event_bus_->publish(evt);
+    }
 }
 
 void MainFrame::logDpiInfo()
@@ -381,6 +407,7 @@ void MainFrame::logDpiInfo()
 enum MenuId : int
 {
     kMenuOpenFile = wxID_OPEN,
+    kMenuOpenFolder = wxID_HIGHEST + 10,
     kMenuSave = wxID_SAVE,
     kMenuSaveAs = wxID_SAVEAS,
     kMenuQuit = wxID_EXIT,
@@ -396,23 +423,37 @@ enum MenuId : int
     kMenuViewSplit,
     kMenuViewPreview,
     kMenuToggleSidebar,
+    kMenuToggleZenMode,
     kMenuThemeGallery,
     kMenuFullscreen
 };
+
+// (Moved logic to end of file to fix redefinition and structure)
 
 void MainFrame::createMenuBar()
 {
     auto* menu_bar = new wxMenuBar();
 
     // --- File menu ---
-    auto* file_menu = new wxMenu();
-    file_menu->Append(kMenuOpenFile, "&Open...\tCtrl+O");
-    file_menu->AppendSeparator();
-    file_menu->Append(kMenuSave, "&Save\tCtrl+S");
-    file_menu->Append(kMenuSaveAs, "Save &As...\tCtrl+Shift+S");
-    file_menu->AppendSeparator();
-    file_menu->Append(kMenuQuit, "&Quit\tCtrl+Q");
-    menu_bar->Append(file_menu, "&File");
+    auto* fileMenu = new wxMenu;
+    fileMenu->Append(wxID_NEW, "&New\tCtrl+N");
+    fileMenu->Append(wxID_OPEN, "&Open Folder...\tCtrl+O");
+
+    auto* recentMenu = new wxMenu;
+    fileMenu->AppendSubMenu(recentMenu, "Open &Recent");
+
+    fileMenu->Append(wxID_SAVE, "&Save\tCtrl+S");
+    fileMenu->AppendSeparator();
+    fileMenu->Append(wxID_EXIT, "E&xit\tAlt+F4");
+    menu_bar->Append(fileMenu, "&File");
+
+    // Bind events
+    Bind(wxEVT_MENU, &MainFrame::onOpenFolder, this, wxID_OPEN);
+    Bind(
+        wxEVT_MENU, [this](wxCommandEvent& /*event*/) { Close(true); }, wxID_EXIT);
+
+    // Initial population of recent menu
+    rebuildRecentMenu();
 
     // --- Edit menu ---
     auto* edit_menu = new wxMenu();
@@ -435,6 +476,7 @@ void MainFrame::createMenuBar()
     view_menu->AppendSeparator();
     view_menu->AppendCheckItem(kMenuToggleSidebar, "Toggle &Sidebar\tCtrl+B");
     view_menu->Check(kMenuToggleSidebar, true);
+    view_menu->AppendCheckItem(kMenuToggleZenMode, "Toggle &Zen Mode\tCtrl+K");
     view_menu->AppendSeparator();
     view_menu->Append(kMenuFullscreen, "Toggle &Fullscreen\tF11");
     menu_bar->Append(view_menu, "&View");
@@ -454,6 +496,9 @@ void MainFrame::createMenuBar()
     // --- Bind menu events ---
     Bind(
         wxEVT_MENU, [this]([[maybe_unused]] wxCommandEvent& evt) { Close(); }, kMenuQuit);
+
+    Bind(wxEVT_MENU, &MainFrame::onOpenFolder, this, kMenuOpenFolder);
+    Bind(wxEVT_MENU, &MainFrame::onSave, this, kMenuSave);
 
     Bind(
         wxEVT_MENU,
@@ -507,6 +552,11 @@ void MainFrame::createMenuBar()
                 event_bus_->publish(e);
             },
             kMenuToggleSidebar);
+
+        Bind(
+            wxEVT_MENU,
+            [this]([[maybe_unused]] wxCommandEvent& evt) { toggleZenMode(); },
+            kMenuToggleZenMode);
     }
 
     // Fullscreen toggle
@@ -540,6 +590,384 @@ void MainFrame::createMenuBar()
         kMenuFullscreen);
 
     MARKAMP_LOG_DEBUG("Menu bar created with File/Edit/View/Window/Help menus");
+
+    // --- Startup Events ---
+    if (event_bus_ != nullptr)
+    {
+        subscriptions_.push_back(event_bus_->subscribe<core::events::OpenFolderRequestEvent>(
+            [this](const core::events::OpenFolderRequestEvent& evt)
+            {
+                if (evt.path.empty())
+                {
+                    // Trigger standard open folder dialog logic
+                    wxCommandEvent dummy;
+                    onOpenFolder(dummy);
+                    // onOpenFolder handles the UI switch if successful
+                }
+                else
+                {
+                    // Direct open
+                    std::vector<core::FileNode> nodes;
+                    scanDirectory(evt.path, nodes);
+                    if (layout_ != nullptr)
+                    {
+                        layout_->setFileTree(nodes);
+                        showEditor();
+                        // Add to recent workspaces
+                        if (recent_workspaces_ != nullptr)
+                        {
+                            recent_workspaces_->add(evt.path);
+                        }
+                    }
+                }
+            }));
+
+        subscriptions_.push_back(event_bus_->subscribe<core::events::WorkspaceOpenRequestEvent>(
+            [this](const core::events::WorkspaceOpenRequestEvent& evt)
+            {
+                std::vector<core::FileNode> nodes;
+                scanDirectory(evt.path, nodes);
+                if (layout_ != nullptr)
+                {
+                    layout_->setFileTree(nodes);
+                    showEditor();
+                    // Add/Bump in recent workspaces
+                    if (recent_workspaces_ != nullptr)
+                    {
+                        recent_workspaces_->add(evt.path);
+                    }
+                }
+            }));
+
+        subscriptions_.push_back(event_bus_->subscribe<core::events::ActiveFileChangedEvent>(
+            [this](const core::events::ActiveFileChangedEvent& evt)
+            {
+                last_active_file_ = evt.file_id;
+                // Update Title Bar (Item 19)
+                if (!evt.file_id.empty())
+                {
+                    wxFileName fname(evt.file_id);
+                    SetTitle(fname.GetFullName() + " - MarkAmp");
+                }
+                else
+                {
+                    SetTitle("MarkAmp");
+                }
+            }));
+    }
+}
+
+// --- Folder opening ---
+
+void MainFrame::onOpenFolder(wxCommandEvent& /*event*/)
+{
+    wxDirDialog dlg(this, "Open Folder", "", wxDD_DEFAULT_STYLE | wxDD_DIR_MUST_EXIST);
+    if (dlg.ShowModal() == wxID_CANCEL)
+    {
+        return;
+    }
+
+    wxString path = dlg.GetPath();
+    MARKAMP_LOG_INFO("Opening folder: {}", path.ToStdString());
+
+    std::vector<core::FileNode> nodes;
+    scanDirectory(path.ToStdString(), nodes);
+
+    if (layout_ != nullptr)
+    {
+        layout_->setFileTree(nodes);
+        showEditor();
+    }
+
+    if (recent_workspaces_ != nullptr)
+    {
+        recent_workspaces_->add(path.ToStdString());
+    }
+}
+
+void MainFrame::scanDirectory(const std::string& path, std::vector<core::FileNode>& out_nodes)
+{
+    namespace fs = std::filesystem;
+
+    try
+    {
+        if (!fs::exists(path) || !fs::is_directory(path))
+        {
+            return;
+        }
+
+        // Separate folders and files for sorting
+        std::vector<core::FileNode> folders;
+        std::vector<core::FileNode> files;
+
+        for (const auto& entry : fs::directory_iterator(path))
+        {
+            const auto& p = entry.path();
+            std::string name = p.filename().string();
+
+            // Skip hidden files/folders (starting with dot)
+            if (name.empty() || name[0] == '.')
+            {
+                continue;
+            }
+
+            core::FileNode node;
+            node.id = p.string();
+            node.name = name;
+            node.is_open = false; // Collapsed by default
+
+            if (entry.is_directory())
+            {
+                // Recursively scan directories
+                scanDirectory(p.string(), node.children);
+                folders.push_back(node);
+            }
+            else if (entry.is_regular_file())
+            {
+                // Filter for Markdown-related files
+                std::string ext = p.extension().string();
+                std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+
+                if (ext == ".md" || ext == ".markdown" || ext == ".txt")
+                {
+                    files.push_back(node);
+                }
+            }
+        }
+
+        // Sort: folders first, then files, both alphabetically
+        auto sort_func = [](const core::FileNode& a, const core::FileNode& b)
+        {
+            // Case-insensitive sort
+            std::string sa = a.name;
+            std::string sb = b.name;
+            std::transform(sa.begin(), sa.end(), sa.begin(), ::tolower);
+            std::transform(sb.begin(), sb.end(), sb.begin(), ::tolower);
+            return sa < sb;
+        };
+
+        std::sort(folders.begin(), folders.end(), sort_func);
+        std::sort(files.begin(), files.end(), sort_func);
+
+        // Merge
+        out_nodes.reserve(out_nodes.size() + folders.size() + files.size());
+        out_nodes.insert(out_nodes.end(), folders.begin(), folders.end());
+        out_nodes.insert(out_nodes.end(), files.begin(), files.end());
+    }
+    catch (const std::exception& e)
+    {
+        MARKAMP_LOG_ERROR("Failed to scan directory {}: {}", path, e.what());
+    }
+}
+
+void MainFrame::showStartupScreen()
+{
+    if (layout_ != nullptr)
+    {
+        layout_->Hide();
+    }
+    if (startup_panel_ != nullptr)
+    {
+        startup_panel_->Show();
+        startup_panel_->refreshRecentWorkspaces();
+    }
+    Layout();
+    updateMenuBarForStartup();
+}
+
+void MainFrame::showEditor()
+{
+    if (startup_panel_ != nullptr)
+    {
+        startup_panel_->Hide();
+    }
+    if (layout_ != nullptr)
+    {
+        layout_->Show();
+    }
+    Layout();
+    updateMenuBarForStartup();
+}
+
+void MainFrame::updateMenuBarForStartup()
+{
+    rebuildRecentMenu();
+    // Disable editor-specific menus (e.g. Save, Close Editor)
+    auto* menuBar = GetMenuBar();
+    if (menuBar == nullptr)
+    {
+        return;
+    }
+
+    // Example: Disable "Save" (id: kMenuSave)
+    // We need to find the menu item by ID.
+    // Assuming standard IDs or ones defined in MainFrame.h
+    // For now, let's just log. Real implementation depends on Menu IDs being accessible.
+    // menuBar->Enable(kMenuSave, false);
+    // menuBar->Enable(kMenuCloseEditor, false);
+    MARKAMP_LOG_DEBUG("MainFrame: Menu bar updated for Startup Screen");
+}
+
+void MainFrame::updateMenuBarForEditor()
+{
+    rebuildRecentMenu();
+    // Re-enable editor menus
+    auto* menuBar = GetMenuBar();
+    if (menuBar == nullptr)
+    {
+        return;
+    }
+
+    // menuBar->Enable(kMenuSave, true);
+    // menuBar->Enable(kMenuCloseEditor, true);
+    MARKAMP_LOG_DEBUG("MainFrame: Menu bar updated for Editor View");
+}
+
+void MainFrame::rebuildRecentMenu()
+{
+    auto* menuBar = GetMenuBar();
+    if (menuBar == nullptr)
+        return;
+
+    // Find "File" menu
+    int fileMenuIdx = menuBar->FindMenu("File");
+    if (fileMenuIdx == wxNOT_FOUND)
+        return;
+
+    wxMenu* fileMenu = menuBar->GetMenu(static_cast<size_t>(fileMenuIdx));
+    if (fileMenu == nullptr)
+        return;
+
+    wxMenu* recentMenu = nullptr;
+    for (size_t i = 0; i < fileMenu->GetMenuItemCount(); ++i)
+    {
+        wxMenuItem* item = fileMenu->FindItemByPosition(i);
+        if (item && item->IsSubMenu() && item->GetItemLabelText() == "Open Recent")
+        {
+            recentMenu = item->GetSubMenu();
+            break;
+        }
+    }
+
+    if (!recentMenu)
+        return;
+
+    // Clear existing items
+    // wxMenu doesn't have DestroyChildren, we must loop and delete
+    while (recentMenu->GetMenuItemCount() > 0)
+    {
+        recentMenu->Destroy(recentMenu->FindItemByPosition(0));
+    }
+
+    // Populate with new recent workspaces
+    if (recent_workspaces_ != nullptr)
+    {
+        const auto& recent = recent_workspaces_->list();
+        if (recent.empty())
+        {
+            auto* item = recentMenu->Append(wxID_ANY, "(No recent folders)", "");
+            item->Enable(false);
+        }
+        else
+        {
+            int id = kMenuOpenRecentBase;
+            for (const auto& path : recent)
+            {
+                recentMenu->Append(id, path.string());
+                Bind(
+                    wxEVT_MENU,
+                    [this, path](wxCommandEvent&)
+                    {
+                        core::events::WorkspaceOpenRequestEvent evt;
+                        evt.path = path.string();
+                        if (event_bus_)
+                            event_bus_->publish(evt);
+                    },
+                    id);
+                id++;
+            }
+        }
+    }
+}
+
+void MainFrame::onSave(wxCommandEvent& /*event*/)
+{
+    if (layout_ == nullptr)
+    {
+        return;
+    }
+
+    // If no active file, prompt for Save As
+    if (last_active_file_.empty())
+    {
+        wxFileDialog dlg(this,
+                         "Save As",
+                         "",
+                         "Untitled.md",
+                         "Markdown files (*.md)|*.md|All files (*.*)|*.*",
+                         wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+
+        if (dlg.ShowModal() == wxID_CANCEL)
+        {
+            return;
+        }
+
+        last_active_file_ = dlg.GetPath().ToStdString();
+
+        // Update Title (Item 19) - or wait for event?
+        // Let's set it now for responsiveness, event will confirm later
+        SetTitle(dlg.GetFilename() + " - MarkAmp");
+
+        // Notify others that file changed?
+        // For now just save to it.
+    }
+
+    layout_->SaveFile(last_active_file_);
+}
+
+void MainFrame::toggleZenMode()
+{
+    zen_mode_ = !zen_mode_;
+
+    if (layout_)
+    {
+        // Hide sidebar in zen mode
+        layout_->set_sidebar_visible(!zen_mode_);
+
+        // Hide status bar in zen mode
+        auto* status_bar = layout_->statusbar_container();
+        if (status_bar)
+        {
+            status_bar->Show(!zen_mode_);
+            layout_->Layout();
+        }
+    }
+
+    // Update menu state
+    auto* menu_bar = GetMenuBar();
+    if (menu_bar)
+    {
+        // Update View -> Zen Mode check
+        // We need to find the item ID.
+        // wxMenuBar doesn't have FindItem(id) directly on top level, but FindItem(id) works if we
+        // have the menu or recursively. wxFrame::FindItemInMenuBar exists? No. But we can just use
+        // FindItem.
+        wxMenuItem* item = menu_bar->FindItem(kMenuToggleZenMode);
+        if (item)
+        {
+            item->Check(zen_mode_);
+        }
+
+        wxMenuItem* sidebar_item = menu_bar->FindItem(kMenuToggleSidebar);
+        if (sidebar_item)
+        {
+            sidebar_item->Check(!zen_mode_);
+        }
+    }
+
+    // Optional: Enter/Exit fullscreen for true Zen
+    // ShowFullScreen(zen_mode_, wxFULLSCREEN_NOBORDER | wxFULLSCREEN_NOCAPTION);
+    // For now, let's keep it strictly UI element toggling as requested.
 }
 
 } // namespace markamp::ui

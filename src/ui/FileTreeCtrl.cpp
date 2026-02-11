@@ -4,9 +4,12 @@
 #include "core/Logger.h"
 
 #include <wx/dcbuffer.h>
+#include <wx/filename.h>
 #include <wx/graphics.h>
 
 #include <algorithm>
+#include <fstream>
+#include <sstream>
 
 namespace markamp::ui
 {
@@ -25,6 +28,8 @@ FileTreeCtrl::FileTreeCtrl(wxWindow* parent,
     Bind(wxEVT_LEFT_DOWN, &FileTreeCtrl::OnMouseDown, this);
     Bind(wxEVT_LEAVE_WINDOW, &FileTreeCtrl::OnMouseLeave, this);
     Bind(wxEVT_MOUSEWHEEL, &FileTreeCtrl::OnScroll, this);
+
+    LoadIcons();
 }
 
 void FileTreeCtrl::SetFileTree(const std::vector<core::FileNode>& roots)
@@ -73,6 +78,54 @@ void FileTreeCtrl::OnPaint(wxPaintEvent& /*event*/)
     }
 }
 
+void FileTreeCtrl::LoadIcons()
+{
+    // Get current theme text color
+    auto text_color = theme_engine().color(core::ThemeColorToken::TextMain);
+    std::string hex_color = text_color.GetAsString(wxC2S_HTML_SYNTAX).ToStdString();
+
+    // Helpers to load SVG from resources
+    auto load_svg = [&](const std::string& name) -> wxBitmapBundle
+    {
+        std::vector<std::string> search_paths = {"resources/icons/lucide/" + name + ".svg",
+                                                 "../resources/icons/lucide/" + name + ".svg",
+                                                 "../../resources/icons/lucide/" + name + ".svg"};
+
+        for (const auto& path : search_paths)
+        {
+            if (wxFileName::FileExists(path))
+            {
+                std::ifstream file(path);
+                if (file)
+                {
+                    std::stringstream buffer;
+                    buffer << file.rdbuf();
+                    std::string content = buffer.str();
+
+                    // Replace "currentColor" with theme color
+                    size_t pos = 0;
+                    while ((pos = content.find("currentColor", pos)) != std::string::npos)
+                    {
+                        content.replace(pos, 12, hex_color);
+                        pos += hex_color.length();
+                    }
+
+                    // VS Code icons are typically 16x16.
+                    return wxBitmapBundle::FromSVG(content.c_str(), wxSize(kIconSize, kIconSize));
+                }
+            }
+        }
+        return wxBitmapBundle();
+    };
+
+    icon_folder_ = load_svg("folder");
+    icon_folder_open_ = load_svg("folder-open");
+    icon_file_ = load_svg("file");
+    icon_file_text_ = load_svg("file-text");
+    icon_chevron_right_ = load_svg("chevron-right");
+    icon_chevron_down_ = load_svg("chevron-down");
+}
+
 void FileTreeCtrl::DrawNode(wxDC& dc, const core::FileNode& node, int depth, int& y_offset)
 {
     auto sz = GetClientSize();
@@ -82,56 +135,87 @@ void FileTreeCtrl::DrawNode(wxDC& dc, const core::FileNode& node, int depth, int
     // Only draw if the row is visible
     if (row_top + kRowHeight > 0 && row_top < sz.GetHeight())
     {
-        int x = kLeftPadding + depth * kIndentWidth;
+        // VS Code style layout:
+        // [Indent] [Twistie] [Icon] [Text]
+        // Twistie is always present in the slot, but only drawn for folders.
+        // Icon is always present.
+
+        int content_x = kLeftPadding + depth * kIndentWidth;
+        int twistie_x = content_x;
+        int icon_x = twistie_x + kTwistieSize;
+        int text_x = icon_x + kIconSize + kIconTextGap;
+
+        // Centering vertically
         int text_y = row_top + (kRowHeight - dc.GetCharHeight()) / 2;
         int icon_y = row_top + (kRowHeight - kIconSize) / 2;
+        int twistie_y = row_top + (kRowHeight - kTwistieSize) / 2;
 
         bool is_selected = (node.id == active_file_id_ && node.is_file());
         bool is_hovered = (node.id == hovered_node_id_);
 
         // Row background
+        // VS Code uses full row selection
         if (is_selected)
         {
-            // Accent at 20% opacity
-            auto accent = theme_engine().color(core::ThemeColorToken::AccentPrimary);
-            auto bg = theme_engine().color(core::ThemeColorToken::BgPanel);
-            wxColour blended(
-                static_cast<unsigned char>((accent.Red() * 51 + bg.Red() * 204) / 255),
-                static_cast<unsigned char>((accent.Green() * 51 + bg.Green() * 204) / 255),
-                static_cast<unsigned char>((accent.Blue() * 51 + bg.Blue() * 204) / 255));
-            dc.SetBrush(wxBrush(blended));
+            dc.SetBrush(wxBrush(theme_engine()
+                                    .color(core::ThemeColorToken::AccentPrimary)
+                                    .ChangeLightness(180))); // Lighter accent
             dc.SetPen(*wxTRANSPARENT_PEN);
             dc.DrawRectangle(0, row_top, row_w, kRowHeight);
         }
         else if (is_hovered)
         {
-            // Accent at 10% opacity
-            auto accent = theme_engine().color(core::ThemeColorToken::AccentPrimary);
-            auto bg = theme_engine().color(core::ThemeColorToken::BgPanel);
-            wxColour blended(
-                static_cast<unsigned char>((accent.Red() * 26 + bg.Red() * 229) / 255),
-                static_cast<unsigned char>((accent.Green() * 26 + bg.Green() * 229) / 255),
-                static_cast<unsigned char>((accent.Blue() * 26 + bg.Blue() * 229) / 255));
-            dc.SetBrush(wxBrush(blended));
+            dc.SetBrush(wxBrush(theme_engine()
+                                    .color(core::ThemeColorToken::BgPanel)
+                                    .ChangeLightness(110))); // Slightly lighter bg
             dc.SetPen(*wxTRANSPARENT_PEN);
             dc.DrawRectangle(0, row_top, row_w, kRowHeight);
         }
 
-        // Icon
+        // 1. Draw Twistie (Chevron) - LEFT ALIGNED now
         if (node.is_folder())
         {
-            DrawFolderIcon(dc, node.is_open, x, icon_y);
+            wxBitmapBundle* chevron_bundle =
+                node.is_open ? &icon_chevron_down_ : &icon_chevron_right_;
+            if (chevron_bundle && chevron_bundle->IsOk())
+            {
+                // Draw chevron slightly smaller or centered in the 16px slot
+                wxBitmap bitmap = chevron_bundle->GetBitmap(wxSize(kTwistieSize, kTwistieSize));
+                dc.DrawBitmap(bitmap, twistie_x, twistie_y, true);
+            }
+        }
+
+        // 2. Draw Icon
+        wxBitmapBundle* icon_bundle = nullptr;
+        if (node.is_folder())
+        {
+            icon_bundle = node.is_open ? &icon_folder_open_ : &icon_folder_;
         }
         else
         {
-            DrawFileIcon(dc, x, icon_y);
+            // Simple extension check
+            if (node.name.find(".md") != std::string::npos ||
+                node.name.find(".txt") != std::string::npos)
+            {
+                icon_bundle = &icon_file_text_;
+            }
+            else
+            {
+                icon_bundle = &icon_file_;
+            }
         }
 
-        // Text
-        int text_x = x + kIconSize + kIconTextGap;
+        if (icon_bundle && icon_bundle->IsOk())
+        {
+            wxBitmap bitmap = icon_bundle->GetBitmap(wxSize(kIconSize, kIconSize));
+            dc.DrawBitmap(bitmap, icon_x, icon_y, true);
+        }
+
+        // 3. Draw Text
         if (is_selected)
         {
-            dc.SetTextForeground(theme_engine().color(core::ThemeColorToken::AccentPrimary));
+            // Selected text color often contrasts
+            dc.SetTextForeground(theme_engine().color(core::ThemeColorToken::TextMain));
         }
         else if (is_hovered)
         {
@@ -139,15 +223,13 @@ void FileTreeCtrl::DrawNode(wxDC& dc, const core::FileNode& node, int depth, int
         }
         else
         {
-            dc.SetTextForeground(theme_engine().color(core::ThemeColorToken::TextMuted));
+            // Muted for normal state if consistent with theme, or TextMain
+            dc.SetTextForeground(theme_engine().color(
+                core::ThemeColorToken::TextMain)); // VS Code usually uses main text color
         }
 
         // Truncate text with ellipsis if it overflows
         int max_text_width = row_w - text_x - kLeftPadding;
-        if (node.is_folder())
-        {
-            max_text_width -= (kChevronSize + kIconTextGap);
-        }
         wxString display_name = node.name;
         auto text_extent = dc.GetTextExtent(display_name);
         if (text_extent.GetWidth() > max_text_width && max_text_width > 0)
@@ -164,14 +246,8 @@ void FileTreeCtrl::DrawNode(wxDC& dc, const core::FileNode& node, int depth, int
             }
         }
         dc.DrawText(display_name, text_x, text_y);
-
         // Chevron for folders (right-aligned)
-        if (node.is_folder())
-        {
-            int chevron_x = row_w - kLeftPadding - kChevronSize;
-            int chevron_y = row_top + (kRowHeight - kChevronSize) / 2;
-            DrawChevron(dc, node.is_open, chevron_x, chevron_y);
-        }
+        // OBSOLETE: Chevron is now left-aligned and drawn above.
     }
 
     y_offset += kRowHeight;
@@ -183,102 +259,6 @@ void FileTreeCtrl::DrawNode(wxDC& dc, const core::FileNode& node, int depth, int
         {
             DrawNode(dc, child, depth + 1, y_offset);
         }
-    }
-}
-
-void FileTreeCtrl::DrawFolderIcon(wxDC& dc, bool is_open, int x, int y)
-{
-    auto muted = theme_engine().color(core::ThemeColorToken::TextMuted);
-    // 70% opacity blend with background
-    auto bg = theme_engine().color(core::ThemeColorToken::BgPanel);
-    wxColour icon_color(static_cast<unsigned char>((muted.Red() * 179 + bg.Red() * 76) / 255),
-                        static_cast<unsigned char>((muted.Green() * 179 + bg.Green() * 76) / 255),
-                        static_cast<unsigned char>((muted.Blue() * 179 + bg.Blue() * 76) / 255));
-
-    dc.SetPen(wxPen(icon_color, 1));
-    dc.SetBrush(wxBrush(icon_color));
-
-    if (is_open)
-    {
-        // Open folder: tab on top-left, body angled
-        wxPoint tab[] = {
-            wxPoint(x, y + 3), wxPoint(x, y + 1), wxPoint(x + 5, y + 1), wxPoint(x + 7, y + 3)};
-        dc.DrawPolygon(4, tab);
-
-        wxPoint body[] = {wxPoint(x, y + 3),
-                          wxPoint(x + kIconSize - 1, y + 3),
-                          wxPoint(x + kIconSize - 3, y + kIconSize - 1),
-                          wxPoint(x + 2, y + kIconSize - 1)};
-        dc.DrawPolygon(4, body);
-    }
-    else
-    {
-        // Closed folder: tab on top, simple rectangle body
-        wxPoint tab[] = {
-            wxPoint(x, y + 3), wxPoint(x, y + 1), wxPoint(x + 5, y + 1), wxPoint(x + 7, y + 3)};
-        dc.DrawPolygon(4, tab);
-
-        dc.DrawRectangle(x, y + 3, kIconSize, kIconSize - 4);
-    }
-}
-
-void FileTreeCtrl::DrawFileIcon(wxDC& dc, int x, int y)
-{
-    auto muted = theme_engine().color(core::ThemeColorToken::TextMuted);
-    auto bg = theme_engine().color(core::ThemeColorToken::BgPanel);
-    wxColour icon_color(static_cast<unsigned char>((muted.Red() * 179 + bg.Red() * 76) / 255),
-                        static_cast<unsigned char>((muted.Green() * 179 + bg.Green() * 76) / 255),
-                        static_cast<unsigned char>((muted.Blue() * 179 + bg.Blue() * 76) / 255));
-
-    dc.SetPen(wxPen(icon_color, 1));
-    dc.SetBrush(*wxTRANSPARENT_BRUSH);
-
-    // Document with folded corner
-    int w = 10;
-    int h = kIconSize;
-    int fold = 3;
-    int bx = x + (kIconSize - w) / 2;
-
-    // Main outline (minus the folded corner)
-    wxPoint outline[] = {wxPoint(bx, y),
-                         wxPoint(bx + w - fold, y),
-                         wxPoint(bx + w, y + fold),
-                         wxPoint(bx + w, y + h),
-                         wxPoint(bx, y + h)};
-    dc.DrawPolygon(5, outline);
-
-    // Fold line
-    dc.DrawLine(bx + w - fold, y, bx + w - fold, y + fold);
-    dc.DrawLine(bx + w - fold, y + fold, bx + w, y + fold);
-}
-
-void FileTreeCtrl::DrawChevron(wxDC& dc, bool is_open, int x, int y)
-{
-    auto muted = theme_engine().color(core::ThemeColorToken::TextMuted);
-    // 50% opacity
-    auto bg = theme_engine().color(core::ThemeColorToken::BgPanel);
-    wxColour chevron_color(
-        static_cast<unsigned char>((muted.Red() * 128 + bg.Red() * 127) / 255),
-        static_cast<unsigned char>((muted.Green() * 128 + bg.Green() * 127) / 255),
-        static_cast<unsigned char>((muted.Blue() * 128 + bg.Blue() * 127) / 255));
-
-    dc.SetPen(wxPen(chevron_color, 1));
-    dc.SetBrush(*wxTRANSPARENT_BRUSH);
-
-    int cx = x + kChevronSize / 2;
-    int cy = y + kChevronSize / 2;
-
-    if (is_open)
-    {
-        // Down chevron: v shape
-        dc.DrawLine(cx - 3, cy - 2, cx, cy + 2);
-        dc.DrawLine(cx, cy + 2, cx + 3, cy - 2);
-    }
-    else
-    {
-        // Right chevron: > shape
-        dc.DrawLine(cx - 2, cy - 3, cx + 2, cy);
-        dc.DrawLine(cx + 2, cy, cx - 2, cy + 3);
     }
 }
 
@@ -357,8 +337,6 @@ auto FileTreeCtrl::HitTestRecursive(const wxPoint& point,
                                     int depth,
                                     int& y_offset) -> HitResult
 {
-    auto sz = GetClientSize();
-
     for (auto& node : nodes)
     {
         int row_top = y_offset;
@@ -369,8 +347,15 @@ auto FileTreeCtrl::HitTestRecursive(const wxPoint& point,
             bool on_chevron = false;
             if (node.is_folder())
             {
-                int chevron_x = sz.GetWidth() - kLeftPadding - kChevronSize;
-                on_chevron = (point.x >= chevron_x);
+                // VS Code style: Click anywhere on the twistie area to toggle
+                // Twistie is at: kLeftPadding + depth * kIndentWidth
+                int twistie_x = kLeftPadding + depth * kIndentWidth;
+
+                // Allow clicking slightly wider area for usability?
+                // VS Code allows clicking the icon to select, twistie to toggle.
+                // Twistie width is 16px.
+
+                on_chevron = (point.x >= twistie_x && point.x < twistie_x + kTwistieSize);
             }
             return {&node, on_chevron};
         }
@@ -434,6 +419,7 @@ void FileTreeCtrl::OnScroll(wxMouseEvent& event)
 void FileTreeCtrl::OnThemeChanged(const core::Theme& new_theme)
 {
     ThemeAwareWindow::OnThemeChanged(new_theme);
+    LoadIcons();
     Refresh();
 }
 

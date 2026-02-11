@@ -2,6 +2,7 @@
 
 #include "ThemeAwareWindow.h"
 #include "core/EventBus.h"
+#include "core/FileNode.h"
 #include "core/ThemeEngine.h"
 
 #include <wx/sizer.h>
@@ -37,6 +38,10 @@ public:
     [[nodiscard]] auto sidebar_container() -> wxPanel*;
     [[nodiscard]] auto content_container() -> wxPanel*;
     [[nodiscard]] auto statusbar_container() -> StatusBarPanel*;
+
+    // Data
+    void setFileTree(const std::vector<core::FileNode>& roots);
+    void SaveFile(const std::string& path);
 
     // Sidebar control
     void toggle_sidebar();

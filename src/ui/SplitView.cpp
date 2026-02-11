@@ -8,6 +8,7 @@
 #include "core/Logger.h"
 
 #include <algorithm>
+#include <fstream>
 
 namespace markamp::ui
 {
@@ -164,6 +165,47 @@ void SplitView::SetSplitRatio(double ratio)
 auto SplitView::GetSplitRatio() const -> double
 {
     return split_ratio_;
+}
+
+// ═══════════════════════════════════════════════════════
+// File Operations
+// ═══════════════════════════════════════════════════════
+
+void SplitView::SaveFile(const std::string& path)
+{
+    if (path.empty() || !editor_panel_)
+    {
+        return;
+    }
+
+    // Item 16: Trim Trailing Whitespace
+    bool trim = false;
+    if (config_ != nullptr)
+    {
+        trim = config_->get_bool("editor.trim_trailing_whitespace", false);
+    }
+
+    if (trim)
+    {
+        editor_panel_->TrimTrailingWhitespace();
+    }
+
+    std::string content = editor_panel_->GetContent();
+
+    std::ofstream out(path);
+    if (out.is_open())
+    {
+        out << content;
+        out.close();
+        MARKAMP_LOG_INFO("Saved file: {}", path);
+        // Optional: Reset modified flag in editor?
+        // editor_panel_->SetSavePoint(); // If Scintilla
+    }
+    else
+    {
+        MARKAMP_LOG_ERROR("Failed to save file: {}", path);
+        wxMessageBox("Failed to save file: " + path, "Error", wxICON_ERROR);
+    }
 }
 
 // ═══════════════════════════════════════════════════════

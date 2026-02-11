@@ -1,0 +1,5 @@
+// Styling updates will be applied here.
+// Specifically:
+// - Custom background painting (grid lines?)
+// - Custom button styling (if possible with wxButton, or custom control)
+// - Better list item formatting

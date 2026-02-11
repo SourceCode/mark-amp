@@ -1,0 +1,100 @@
+import { Theme } from '@/types/index';
+
+import { createDefaultEditorTheme } from './utils';
+
+export const synthwave: Theme = {
+    colors: {
+    accent: '#f9c80e',
+    border: '#ff2a6d',
+    chromeBg: 'linear-gradient(90deg, #ff2a6d, #05d9e8)',
+    chromeText: '#ffffff',
+    error: '#ff2a6d',
+    primary: '#ff2a6d',
+    primaryText: '#ffffff',
+    secondary: '#241734',
+    success: '#05d9e8',
+    surface: 'rgba(255, 42, 109, 0.1)',
+    surfaceHighlight: 'rgba(5, 217, 232, 0.1)',
+    text: '#05d9e8',
+    textMuted: '#d1f7ff',
+    wallpaper: 'linear-gradient(to bottom, #241734, #2c003e)',
+    wallpaperOverlay: 'linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px)',
+    warning: '#f9c80e',
+    windowBg: 'rgba(36, 23, 52, 0.9)',
+    windowBorder: '#ff2a6d'
+},
+    description: 'Dark purple, golden grid, sunset gradients.',
+    editor: createDefaultEditorTheme({
+        background: 'rgba(36, 23, 52, 0.9)',
+        caret: '#f9c80e',
+        comment: '#d1f7ff',
+        gutter: 'rgba(36, 23, 52, 0.9)',
+        keyword: '#ff2a6d',
+        line: '#d1f7ff',
+        number: '#ff2a6d',
+        selection: 'rgba(5, 217, 232, 0.1)',
+        selectionText: '#05d9e8',
+        string: '#05d9e8',
+        text: '#05d9e8'
+}),
+    elevation: {
+        level1: '0px 1px 2px rgba(0, 0, 0, 0.3), 0px 1px 3px 1px rgba(0, 0, 0, 0.15)',
+        level2: '0px 1px 2px rgba(0, 0, 0, 0.3), 0px 2px 6px 2px rgba(0, 0, 0, 0.15)',
+        level3: '0px 1px 3px rgba(0, 0, 0, 0.3), 0px 4px 8px 3px rgba(0, 0, 0, 0.15)',
+        level4: '0px 2px 3px rgba(0, 0, 0, 0.3), 0px 6px 10px 4px rgba(0, 0, 0, 0.15)',
+        level5: '0px 4px 4px rgba(0, 0, 0, 0.3), 0px 8px 12px 6px rgba(0, 0, 0, 0.15)',
+    },
+    id: 'synthwave',
+    motion: {
+        duration: {
+            extraLong1: '700ms', extraLong2: '800ms', extraLong3: '900ms', extraLong4: '1000ms',
+            long1: '450ms', long2: '500ms', long3: '550ms', long4: '600ms',
+            medium1: '250ms', medium2: '300ms', medium3: '350ms', medium4: '400ms',
+            short1: '50ms', short2: '100ms', short3: '150ms', short4: '200ms',
+        },
+        easing: {
+            emphasized: 'cubic-bezier(0.2, 0, 0, 1)',
+            emphasizedAccelerate: 'cubic-bezier(0.3, 0, 0.8, 0.15)',
+            emphasizedDecelerate: 'cubic-bezier(0.05, 0.7, 0.1, 1)',
+            linear: 'cubic-bezier(0, 0, 1, 1)',
+            standard: 'cubic-bezier(0.2, 0, 0, 1)',
+            standardAccelerate: 'cubic-bezier(0.3, 0, 1, 1)',
+            standardDecelerate: 'cubic-bezier(0, 0, 0, 1)',
+        },
+    },
+    name: 'Synthwave',
+    states: {
+        dragged: '0.16',
+        focus: '0.12',
+        hover: '0.08',
+        pressed: '0.12',
+    },
+    type: 'dark',
+    
+    typography: {
+        bodyLarge: { lineHeight: '24px', size: '16px', tracking: '0.5px', weight: '400' },
+        bodyMedium: { lineHeight: '20px', size: '14px', tracking: '0.25px', weight: '400' },
+        bodySmall: { lineHeight: '16px', size: '12px', tracking: '0.4px', weight: '400' },
+        displayLarge: { lineHeight: '64px', size: '57px', tracking: '-0.25px', weight: '400' },
+        displayMedium: { lineHeight: '52px', size: '45px', tracking: '0px', weight: '400' },
+        displaySmall: { lineHeight: '44px', size: '36px', tracking: '0px', weight: '400' },
+        fontFamily: '"Orbitron", sans-serif',
+        headlineLarge: { lineHeight: '40px', size: '32px', tracking: '0px', weight: '400' },
+        headlineMedium: { lineHeight: '36px', size: '28px', tracking: '0px', weight: '400' },
+        headlineSmall: { lineHeight: '32px', size: '24px', tracking: '0px', weight: '400' },
+        labelLarge: { lineHeight: '20px', size: '14px', tracking: '0.1px', weight: '500' },
+        labelMedium: { lineHeight: '16px', size: '12px', tracking: '0.5px', weight: '500' },
+        labelSmall: { lineHeight: '16px', size: '11px', tracking: '0.5px', weight: '500' },
+        titleLarge: { lineHeight: '28px', size: '22px', tracking: '0px', weight: '400' },
+        titleMedium: { lineHeight: '24px', size: '16px', tracking: '0.15px', weight: '500' },
+        titleSmall: { lineHeight: '20px', size: '14px', tracking: '0.1px', weight: '500' },
+    },
+    window: {
+    backdropBlur: '4px',
+    borderWidth: '2px',
+    controlsLayout: 'right',
+    radius: '0px',
+    shadow: '0 0 20px #ff2a6d',
+    titleBarHeight: '36px'
+},
+};

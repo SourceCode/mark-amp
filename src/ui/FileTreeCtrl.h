@@ -5,6 +5,11 @@
 #include "core/FileNode.h"
 #include "core/ThemeEngine.h"
 
+#include <wx/bitmap.h>
+#include <wx/bmpbndl.h>
+#include <wx/event.h>
+#include <wx/panel.h>
+
 #include <functional>
 #include <string>
 #include <vector>
@@ -26,12 +31,12 @@ public:
     void SetOnFileSelect(FileSelectCallback callback);
 
     // Layout constants
-    static constexpr int kRowHeight = 28;
+    static constexpr int kRowHeight = 22;
     static constexpr int kIndentWidth = 16;
-    static constexpr int kLeftPadding = 8;
-    static constexpr int kIconSize = 14;
-    static constexpr int kChevronSize = 12;
-    static constexpr int kIconTextGap = 8;
+    static constexpr int kLeftPadding = 6;
+    static constexpr int kIconSize = 16;
+    static constexpr int kTwistieSize = 16; // Width of the twistie/chevron area
+    static constexpr int kIconTextGap = 6;
 
 protected:
     void OnThemeChanged(const core::Theme& new_theme) override;
@@ -40,9 +45,15 @@ private:
     // Rendering
     void OnPaint(wxPaintEvent& event);
     void DrawNode(wxDC& dc, const core::FileNode& node, int depth, int& y_offset);
-    void DrawFolderIcon(wxDC& dc, bool is_open, int x, int y);
-    void DrawFileIcon(wxDC& dc, int x, int y);
-    void DrawChevron(wxDC& dc, bool is_open, int x, int y);
+
+    // Icons
+    void LoadIcons();
+    wxBitmapBundle icon_folder_;
+    wxBitmapBundle icon_folder_open_;
+    wxBitmapBundle icon_file_;
+    wxBitmapBundle icon_file_text_;
+    wxBitmapBundle icon_chevron_right_;
+    wxBitmapBundle icon_chevron_down_;
 
     // Interaction
     void OnMouseMove(wxMouseEvent& event);

@@ -1,0 +1,100 @@
+import { Theme } from '@/types/index';
+
+import { createDefaultEditorTheme } from './utils';
+
+export const hacker: Theme = {
+    colors: {
+    accent: '#00aa00',
+    border: '#00ff00',
+    chromeBg: '#000000',
+    chromeText: '#00ff00',
+    error: '#ff0000',
+    primary: '#00ff00',
+    primaryText: '#000000',
+    secondary: '#001100',
+    success: '#00ff00',
+    surface: '#001100',
+    surfaceHighlight: '#002200',
+    text: '#00ff00',
+    textMuted: '#008800',
+    wallpaper: '#000000',
+    wallpaperOverlay: 'linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06))',
+    warning: '#ffff00',
+    windowBg: '#000000',
+    windowBorder: '#00ff00'
+},
+    description: 'Pure black, green text, scanlines.',
+    editor: createDefaultEditorTheme({
+        background: '#000000',
+        caret: '#00aa00',
+        comment: '#008800',
+        gutter: '#000000',
+        keyword: '#00ff00',
+        line: '#008800',
+        number: '#ff0000',
+        selection: '#002200',
+        selectionText: '#00ff00',
+        string: '#00ff00',
+        text: '#00ff00'
+}),
+    elevation: {
+        level1: '0px 1px 2px rgba(0, 0, 0, 0.3), 0px 1px 3px 1px rgba(0, 0, 0, 0.15)',
+        level2: '0px 1px 2px rgba(0, 0, 0, 0.3), 0px 2px 6px 2px rgba(0, 0, 0, 0.15)',
+        level3: '0px 1px 3px rgba(0, 0, 0, 0.3), 0px 4px 8px 3px rgba(0, 0, 0, 0.15)',
+        level4: '0px 2px 3px rgba(0, 0, 0, 0.3), 0px 6px 10px 4px rgba(0, 0, 0, 0.15)',
+        level5: '0px 4px 4px rgba(0, 0, 0, 0.3), 0px 8px 12px 6px rgba(0, 0, 0, 0.15)',
+    },
+    id: 'hacker',
+    motion: {
+        duration: {
+            extraLong1: '700ms', extraLong2: '800ms', extraLong3: '900ms', extraLong4: '1000ms',
+            long1: '450ms', long2: '500ms', long3: '550ms', long4: '600ms',
+            medium1: '250ms', medium2: '300ms', medium3: '350ms', medium4: '400ms',
+            short1: '50ms', short2: '100ms', short3: '150ms', short4: '200ms',
+        },
+        easing: {
+            emphasized: 'cubic-bezier(0.2, 0, 0, 1)',
+            emphasizedAccelerate: 'cubic-bezier(0.3, 0, 0.8, 0.15)',
+            emphasizedDecelerate: 'cubic-bezier(0.05, 0.7, 0.1, 1)',
+            linear: 'cubic-bezier(0, 0, 1, 1)',
+            standard: 'cubic-bezier(0.2, 0, 0, 1)',
+            standardAccelerate: 'cubic-bezier(0.3, 0, 1, 1)',
+            standardDecelerate: 'cubic-bezier(0, 0, 0, 1)',
+        },
+    },
+    name: 'Hacker Terminal',
+    states: {
+        dragged: '0.16',
+        focus: '0.12',
+        hover: '0.08',
+        pressed: '0.12',
+    },
+    type: 'dark',
+    
+    typography: {
+        bodyLarge: { lineHeight: '24px', size: '16px', tracking: '0.5px', weight: '400' },
+        bodyMedium: { lineHeight: '20px', size: '14px', tracking: '0.25px', weight: '400' },
+        bodySmall: { lineHeight: '16px', size: '12px', tracking: '0.4px', weight: '400' },
+        displayLarge: { lineHeight: '64px', size: '57px', tracking: '-0.25px', weight: '400' },
+        displayMedium: { lineHeight: '52px', size: '45px', tracking: '0px', weight: '400' },
+        displaySmall: { lineHeight: '44px', size: '36px', tracking: '0px', weight: '400' },
+        fontFamily: '"Courier New", monospace',
+        headlineLarge: { lineHeight: '40px', size: '32px', tracking: '0px', weight: '400' },
+        headlineMedium: { lineHeight: '36px', size: '28px', tracking: '0px', weight: '400' },
+        headlineSmall: { lineHeight: '32px', size: '24px', tracking: '0px', weight: '400' },
+        labelLarge: { lineHeight: '20px', size: '14px', tracking: '0.1px', weight: '500' },
+        labelMedium: { lineHeight: '16px', size: '12px', tracking: '0.5px', weight: '500' },
+        labelSmall: { lineHeight: '16px', size: '11px', tracking: '0.5px', weight: '500' },
+        titleLarge: { lineHeight: '28px', size: '22px', tracking: '0px', weight: '400' },
+        titleMedium: { lineHeight: '24px', size: '16px', tracking: '0.15px', weight: '500' },
+        titleSmall: { lineHeight: '20px', size: '14px', tracking: '0.1px', weight: '500' },
+    },
+    window: {
+    backdropBlur: '0px',
+    borderWidth: '1px',
+    controlsLayout: 'right',
+    radius: '0px',
+    shadow: '0 0 10px #00ff00',
+    titleBarHeight: '28px'
+},
+};

@@ -44,6 +44,14 @@ LayoutManager::LayoutManager(wxWindow* parent,
         "LayoutManager created (sidebar={}px, visible={})", sidebar_width_, sidebar_visible_);
 }
 
+void LayoutManager::SaveFile(const std::string& path)
+{
+    if (split_view_)
+    {
+        split_view_->SaveFile(path);
+    }
+}
+
 void LayoutManager::CreateLayout()
 {
     // --- Sidebar panel ---
@@ -150,6 +158,14 @@ auto LayoutManager::content_container() -> wxPanel*
 auto LayoutManager::statusbar_container() -> StatusBarPanel*
 {
     return statusbar_panel_;
+}
+
+void LayoutManager::setFileTree(const std::vector<core::FileNode>& roots)
+{
+    if (file_tree_ != nullptr)
+    {
+        file_tree_->SetFileTree(roots);
+    }
 }
 
 // --- Sidebar control ---

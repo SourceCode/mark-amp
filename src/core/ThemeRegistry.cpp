@@ -3,6 +3,7 @@
 #include "BuiltinThemes.h"
 #include "Logger.h"
 #include "ThemeValidator.h"
+#include "loader/ThemeLoader.h"
 
 #include <nlohmann/json.hpp>
 
@@ -108,13 +109,30 @@ auto ThemeRegistry::load_user_themes() -> std::expected<void, std::string>
         }
 
         auto ext = entry.path().extension().string();
-        if (ext != ".json")
+        std::expected<Theme, std::string> result = std::unexpected("Unknown file type");
+
+        if (ext == ".json")
+        {
+            // Legacy JSON loading
+            // We can keep the old import_theme for JSON or refactor it.
+            // For now, let's keep the old logic but invoke it here.
+            result = import_theme(entry.path());
+        }
+        else if (ext == ".md")
+        {
+            // New Markdown/YAML loading
+            result = ThemeLoader::load_from_file(entry.path());
+        }
+        else
         {
             continue;
         }
 
-        auto result = import_theme(entry.path());
-        if (!result)
+        if (result)
+        {
+            themes_.push_back(*result);
+        }
+        else
         {
             MARKAMP_LOG_WARN("Skipping invalid theme file {}: {}",
                              entry.path().filename().string(),
