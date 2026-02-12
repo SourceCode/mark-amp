@@ -9,6 +9,11 @@
 #include <wx/textctrl.h>
 #include <wx/timer.h>
 
+#include <filesystem>
+#include <string>
+#include <unordered_map>
+#include <vector>
+
 namespace markamp::core
 {
 class Config;
@@ -22,6 +27,7 @@ class PreviewPanel;
 class SplitterBar;
 class SplitView;
 class StatusBarPanel;
+class TabBar;
 class Toolbar;
 
 /// Orchestrates the three-zone layout below CustomChrome:
@@ -43,6 +49,22 @@ public:
     // Data
     void setFileTree(const std::vector<core::FileNode>& roots);
     void SaveFile(const std::string& path);
+
+    // Multi-file tab management (QoL features 1-5)
+    void OpenFileInTab(const std::string& path);
+    void CloseTab(const std::string& path);
+    void SwitchToTab(const std::string& path);
+    void SaveActiveFile();
+    void SaveActiveFileAs();
+    [[nodiscard]] auto GetActiveFilePath() const -> std::string;
+    [[nodiscard]] auto GetTabBar() -> TabBar*;
+
+    // Auto-save (feature 12)
+    void StartAutoSave();
+    void StopAutoSave();
+
+    // File reload (feature 13)
+    void CheckExternalFileChanges();
 
     // Sidebar control
     void toggle_sidebar();
@@ -74,6 +96,7 @@ private:
     StatusBarPanel* statusbar_panel_{nullptr};
     SplitterBar* splitter_{nullptr};
     FileTreeCtrl* file_tree_{nullptr};
+    TabBar* tab_bar_{nullptr};
     wxTextCtrl* search_field_{nullptr};
     SplitView* split_view_{nullptr};
     Toolbar* toolbar_{nullptr};
@@ -105,6 +128,32 @@ private:
     void UpdateSidebarSize(int width);
     void SaveLayoutState();
     void RestoreLayoutState();
+
+    // Multi-file state
+    struct FileBuffer
+    {
+        std::string content;
+        bool is_modified{false};
+        int cursor_position{0};
+        int first_visible_line{0};
+        std::filesystem::file_time_type last_write_time{};
+    };
+    std::unordered_map<std::string, FileBuffer> file_buffers_;
+    std::string active_file_path_;
+
+    // Event subscriptions for tabs
+    core::Subscription tab_switched_sub_;
+    core::Subscription tab_close_sub_;
+    core::Subscription tab_save_sub_;
+    core::Subscription tab_save_as_sub_;
+    core::Subscription content_changed_sub_;
+    core::Subscription file_reload_sub_;
+    core::Subscription goto_line_sub_;
+
+    // Auto-save
+    wxTimer auto_save_timer_;
+    static constexpr int kAutoSaveIntervalMs = 30000; // 30 seconds
+    void OnAutoSaveTimer(wxTimerEvent& event);
 
     // Sidebar custom painting
     void OnSidebarPaint(wxPaintEvent& event);

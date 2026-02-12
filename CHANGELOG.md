@@ -5,6 +5,33 @@ All notable changes to MarkAmp are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.6] - 2026-02-12
+
+### Added
+
+- TabBar component: horizontally scrollable tab bar for multi-file editing with active indicator, modified dot, close buttons, tab cycling, and batch close operations
+- File tree context menu: Open, Reveal in Finder, Copy Path, Copy Relative Path
+- File tree keyboard navigation: arrow keys, Enter/Space to open, Left/Right to expand/collapse
+- Tab events: TabSwitchedEvent, TabCloseRequestEvent, TabSaveRequestEvent, TabSaveAsRequestEvent, FileReloadRequestEvent, GoToLineRequestEvent
+- Multi-file buffer management in LayoutManager with cursor/scroll state persistence
+- Tab keyboard shortcuts: Cmd+W (close tab), Ctrl+Tab / Ctrl+Shift+Tab (cycle tabs)
+- Window title shows filename and modification status (● prefix)
+- Auto-save and external file change detection
+- Crash regression tests (test_crash_regressions)
+
+### Changed
+
+- Expanded src/CMakeLists.txt with TabBar.cpp source
+- Expanded tests/CMakeLists.txt with test_crash_regressions target
+- Enhanced LayoutManager with 460+ lines of multi-file tab management
+- Extended MainFrame with tab management methods and 3 new shortcuts
+- Added file open callback, workspace root, and keyboard/context-menu handlers to FileTreeCtrl
+
+### Fixed
+
+- StartupPanel assertion: SetBackgroundStyle called before Create()
+- PreviewPanel redundant FootnotePreprocessor::process() causing heading crash
+
 ## [1.2.5] - 2026-02-11
 
 ### Added

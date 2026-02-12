@@ -3,12 +3,16 @@
 #include "core/Events.h"
 #include "core/Logger.h"
 
+#include <wx/clipbrd.h>
 #include <wx/dcbuffer.h>
 #include <wx/filename.h>
 #include <wx/graphics.h>
+#include <wx/menu.h>
+#include <wx/process.h>
 
 #include <algorithm>
 #include <cctype>
+#include <filesystem>
 #include <fstream>
 #include <sstream>
 
@@ -27,8 +31,14 @@ FileTreeCtrl::FileTreeCtrl(wxWindow* parent,
     Bind(wxEVT_PAINT, &FileTreeCtrl::OnPaint, this);
     Bind(wxEVT_MOTION, &FileTreeCtrl::OnMouseMove, this);
     Bind(wxEVT_LEFT_DOWN, &FileTreeCtrl::OnMouseDown, this);
+    Bind(wxEVT_LEFT_DCLICK, &FileTreeCtrl::OnDoubleClick, this);
+    Bind(wxEVT_RIGHT_DOWN, &FileTreeCtrl::OnRightClick, this);
     Bind(wxEVT_LEAVE_WINDOW, &FileTreeCtrl::OnMouseLeave, this);
     Bind(wxEVT_MOUSEWHEEL, &FileTreeCtrl::OnScroll, this);
+    Bind(wxEVT_KEY_DOWN, &FileTreeCtrl::OnKeyDown, this);
+
+    // Allow focus for keyboard events
+    SetCanFocus(true);
 
     LoadIcons();
 }
@@ -52,6 +62,16 @@ void FileTreeCtrl::SetActiveFileId(const std::string& file_id)
 void FileTreeCtrl::SetOnFileSelect(FileSelectCallback callback)
 {
     on_file_select_ = std::move(callback);
+}
+
+void FileTreeCtrl::SetOnFileOpen(FileOpenCallback callback)
+{
+    on_file_open_ = std::move(callback);
+}
+
+void FileTreeCtrl::SetWorkspaceRoot(const std::string& root_path)
+{
+    workspace_root_ = root_path;
 }
 
 // --- Filtering ---
@@ -527,6 +547,257 @@ void FileTreeCtrl::OnThemeChanged(const core::Theme& new_theme)
     ThemeAwareWindow::OnThemeChanged(new_theme);
     LoadIcons();
     Refresh();
+}
+
+// --- Double-click to open (QoL feature 2) ---
+
+void FileTreeCtrl::OnDoubleClick(wxMouseEvent& event)
+{
+    auto hit = HitTest(event.GetPosition());
+    if (hit.node == nullptr)
+    {
+        return;
+    }
+
+    if (hit.node->is_folder())
+    {
+        // Double-click on folder toggles it (same as single click)
+        hit.node->is_open = !hit.node->is_open;
+        UpdateVirtualHeight();
+        Refresh();
+    }
+    else
+    {
+        // Double-click on file: open in tab
+        if (on_file_open_)
+        {
+            on_file_open_(*hit.node);
+        }
+        MARKAMP_LOG_DEBUG("File double-clicked (open): {}", hit.node->name);
+    }
+}
+
+// --- Right-click context menu (QoL feature 6) ---
+
+namespace
+{
+constexpr int kCtxOpen = 100;
+constexpr int kCtxRevealInFinder = 101;
+constexpr int kCtxCopyPath = 102;
+constexpr int kCtxCopyRelativePath = 103;
+} // namespace
+
+void FileTreeCtrl::OnRightClick(wxMouseEvent& event)
+{
+    auto hit = HitTest(event.GetPosition());
+    if (hit.node == nullptr)
+    {
+        return;
+    }
+
+    // Select the node
+    active_file_id_ = hit.node->id;
+    Refresh();
+
+    ShowFileContextMenu(*hit.node);
+}
+
+void FileTreeCtrl::ShowFileContextMenu(core::FileNode& node)
+{
+    wxMenu menu;
+
+    if (node.is_file())
+    {
+        menu.Append(kCtxOpen, "Open");
+        menu.AppendSeparator();
+    }
+
+    menu.Append(kCtxRevealInFinder, "Reveal in Finder");
+    menu.AppendSeparator();
+    menu.Append(kCtxCopyPath, "Copy Path");
+    menu.Append(kCtxCopyRelativePath, "Copy Relative Path");
+
+    const std::string node_path = node.id;
+    const bool is_file = node.is_file();
+
+    menu.Bind(wxEVT_MENU,
+              [this, node_path, is_file, &node](wxCommandEvent& cmd_event)
+              {
+                  switch (cmd_event.GetId())
+                  {
+                      case kCtxOpen:
+                          if (is_file && on_file_open_)
+                          {
+                              on_file_open_(node);
+                          }
+                          break;
+                      case kCtxRevealInFinder:
+                      {
+#ifdef __APPLE__
+                          wxExecute(wxString::Format("open -R \"%s\"", node_path));
+#elif defined(__linux__)
+                      wxExecute(wxString::Format("xdg-open \"%s\"",
+                                                 std::filesystem::path(node_path)
+                                                     .parent_path()
+                                                     .string()));
+#endif
+                          break;
+                      }
+                      case kCtxCopyPath:
+                          if (wxTheClipboard->Open())
+                          {
+                              wxTheClipboard->SetData(new wxTextDataObject(node_path));
+                              wxTheClipboard->Close();
+                          }
+                          break;
+                      case kCtxCopyRelativePath:
+                      {
+                          std::string relative_path = node_path;
+                          if (!workspace_root_.empty())
+                          {
+                              const auto rel =
+                                  std::filesystem::relative(node_path, workspace_root_);
+                              relative_path = rel.string();
+                          }
+                          if (wxTheClipboard->Open())
+                          {
+                              wxTheClipboard->SetData(new wxTextDataObject(relative_path));
+                              wxTheClipboard->Close();
+                          }
+                          break;
+                      }
+                      default:
+                          break;
+                  }
+              });
+
+    PopupMenu(&menu);
+}
+
+// --- Keyboard navigation (QoL feature 7) ---
+
+void FileTreeCtrl::OnKeyDown(wxKeyEvent& event)
+{
+    const int key_code = event.GetKeyCode();
+    auto visible_nodes = GetVisibleNodes();
+
+    if (visible_nodes.empty())
+    {
+        event.Skip();
+        return;
+    }
+
+    // Clamp focused index
+    if (focused_node_index_ < 0)
+    {
+        focused_node_index_ = 0;
+    }
+    if (focused_node_index_ >= static_cast<int>(visible_nodes.size()))
+    {
+        focused_node_index_ = static_cast<int>(visible_nodes.size()) - 1;
+    }
+
+    switch (key_code)
+    {
+        case WXK_UP:
+            if (focused_node_index_ > 0)
+            {
+                --focused_node_index_;
+                active_file_id_ = visible_nodes[static_cast<size_t>(focused_node_index_)]->id;
+                Refresh();
+            }
+            break;
+
+        case WXK_DOWN:
+            if (focused_node_index_ < static_cast<int>(visible_nodes.size()) - 1)
+            {
+                ++focused_node_index_;
+                active_file_id_ = visible_nodes[static_cast<size_t>(focused_node_index_)]->id;
+                Refresh();
+            }
+            break;
+
+        case WXK_RETURN:
+        case WXK_NUMPAD_ENTER:
+        {
+            auto* node = visible_nodes[static_cast<size_t>(focused_node_index_)];
+            if (node->is_folder())
+            {
+                node->is_open = !node->is_open;
+                UpdateVirtualHeight();
+                Refresh();
+            }
+            else if (on_file_open_)
+            {
+                on_file_open_(*node);
+            }
+            break;
+        }
+
+        case WXK_SPACE:
+        {
+            auto* node = visible_nodes[static_cast<size_t>(focused_node_index_)];
+            if (node->is_folder())
+            {
+                node->is_open = !node->is_open;
+                UpdateVirtualHeight();
+                Refresh();
+            }
+            break;
+        }
+
+        case WXK_RIGHT:
+        {
+            auto* node = visible_nodes[static_cast<size_t>(focused_node_index_)];
+            if (node->is_folder() && !node->is_open)
+            {
+                node->is_open = true;
+                UpdateVirtualHeight();
+                Refresh();
+            }
+            break;
+        }
+
+        case WXK_LEFT:
+        {
+            auto* node = visible_nodes[static_cast<size_t>(focused_node_index_)];
+            if (node->is_folder() && node->is_open)
+            {
+                node->is_open = false;
+                UpdateVirtualHeight();
+                Refresh();
+            }
+            break;
+        }
+
+        default:
+            event.Skip();
+            break;
+    }
+}
+
+auto FileTreeCtrl::GetVisibleNodes() -> std::vector<core::FileNode*>
+{
+    std::vector<core::FileNode*> result;
+    CollectVisibleNodes(result, roots_);
+    return result;
+}
+
+void FileTreeCtrl::CollectVisibleNodes(std::vector<core::FileNode*>& result,
+                                       std::vector<core::FileNode>& nodes)
+{
+    for (auto& node : nodes)
+    {
+        if (!node.filter_visible)
+        {
+            continue;
+        }
+        result.push_back(&node);
+        if (node.is_folder() && node.is_open)
+        {
+            CollectVisibleNodes(result, node.children);
+        }
+    }
 }
 
 } // namespace markamp::ui

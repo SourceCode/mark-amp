@@ -671,11 +671,8 @@ void PreviewPanel::RenderContent(const std::string& markdown)
         html_view_->GetViewStart(&scroll_x, &scroll_y);
     }
 
-    // Pre-process footnotes (Improvement 12: reuse member)
-    auto footnote_result = footnote_proc_.process(markdown);
-
-    // Parse (using footnote-processed markdown)
-    auto doc_result = parser_.parse(footnote_result.processed_markdown);
+    // Parse markdown (handles footnote preprocessing internally)
+    auto doc_result = parser_.parse(markdown);
     if (!doc_result.has_value())
     {
         DisplayError(doc_result.error());
@@ -695,12 +692,11 @@ void PreviewPanel::RenderContent(const std::string& markdown)
         renderer_.set_base_path(base_path_);
     }
 
-    // Render with footnotes
+    // Render with footnotes (using data from parser result)
     std::string body_html;
-    if (footnote_result.has_footnotes)
+    if (doc_result->has_footnotes_)
     {
-        body_html =
-            renderer_.render_with_footnotes(*doc_result, footnote_result.footnote_section_html);
+        body_html = renderer_.render_with_footnotes(*doc_result, doc_result->footnote_section_html);
     }
     else
     {

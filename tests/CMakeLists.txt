@@ -164,3 +164,14 @@ target_link_libraries(test_visual_polish PRIVATE
     markamp_dependencies
 )
 add_test(NAME test_visual_polish COMMAND test_visual_polish)
+
+# --- Crash regression tests ---
+add_executable(test_crash_regressions
+    unit/test_crash_regressions.cpp
+)
+target_include_directories(test_crash_regressions PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_crash_regressions PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_crash_regressions COMMAND test_crash_regressions)

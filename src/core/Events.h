@@ -267,4 +267,93 @@ struct ThemeGalleryRequestEvent : Event
     }
 };
 
+// --- Tab events ---
+struct TabSwitchedEvent : Event
+{
+    std::string file_path;
+
+    TabSwitchedEvent() = default;
+    explicit TabSwitchedEvent(std::string path)
+        : file_path(std::move(path))
+    {
+    }
+
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "TabSwitchedEvent";
+    }
+};
+
+struct TabCloseRequestEvent : Event
+{
+    std::string file_path;
+
+    TabCloseRequestEvent() = default;
+    explicit TabCloseRequestEvent(std::string path)
+        : file_path(std::move(path))
+    {
+    }
+
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "TabCloseRequestEvent";
+    }
+};
+
+struct TabSaveRequestEvent : Event
+{
+    std::string file_path;
+
+    TabSaveRequestEvent() = default;
+    explicit TabSaveRequestEvent(std::string path)
+        : file_path(std::move(path))
+    {
+    }
+
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "TabSaveRequestEvent";
+    }
+};
+
+struct TabSaveAsRequestEvent : Event
+{
+    std::string file_path;
+
+    TabSaveAsRequestEvent() = default;
+    explicit TabSaveAsRequestEvent(std::string path)
+        : file_path(std::move(path))
+    {
+    }
+
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "TabSaveAsRequestEvent";
+    }
+};
+
+struct FileReloadRequestEvent : Event
+{
+    std::string file_path;
+
+    FileReloadRequestEvent() = default;
+    explicit FileReloadRequestEvent(std::string path)
+        : file_path(std::move(path))
+    {
+    }
+
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "FileReloadRequestEvent";
+    }
+};
+
+struct GoToLineRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "GoToLineRequestEvent";
+    }
+};
+
 } // namespace markamp::core::events

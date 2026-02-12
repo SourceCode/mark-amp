@@ -198,7 +198,7 @@ void StartupPanel::createRecentList(wxSizer* parent)
 
     // List container (transparent background, holds workspace items)
     recent_list_container_ = new wxPanel(this, wxID_ANY);
-    recent_list_container_->SetBackgroundStyle(wxBG_STYLE_TRANSPARENT);
+    recent_list_container_->SetBackgroundStyle(wxBG_STYLE_PAINT);
     recent_list_sizer_ = new wxBoxSizer(wxVERTICAL);
     recent_list_container_->SetSizer(recent_list_sizer_);
 

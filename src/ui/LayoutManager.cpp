@@ -5,6 +5,7 @@
 #include "SplitView.h"
 #include "SplitterBar.h"
 #include "StatusBarPanel.h"
+#include "TabBar.h"
 #include "ThemeGallery.h"
 #include "Toolbar.h"
 #include "core/Config.h"
@@ -13,11 +14,14 @@
 #include "core/SampleFiles.h"
 
 #include <wx/dcbuffer.h>
+#include <wx/filedlg.h>
+#include <wx/msgdlg.h>
 #include <wx/sizer.h>
 
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <fstream>
 
 namespace markamp::ui
 {
@@ -39,8 +43,45 @@ LayoutManager::LayoutManager(wxWindow* parent,
     sidebar_toggle_sub_ = event_bus_.subscribe<core::events::SidebarToggleEvent>(
         [this](const core::events::SidebarToggleEvent& /*evt*/) { toggle_sidebar(); });
 
+    // Tab event subscriptions
+    tab_switched_sub_ = event_bus_.subscribe<core::events::TabSwitchedEvent>(
+        [this](const core::events::TabSwitchedEvent& evt) { SwitchToTab(evt.file_path); });
+
+    tab_close_sub_ = event_bus_.subscribe<core::events::TabCloseRequestEvent>(
+        [this](const core::events::TabCloseRequestEvent& evt) { CloseTab(evt.file_path); });
+
+    tab_save_sub_ = event_bus_.subscribe<core::events::TabSaveRequestEvent>(
+        [this](const core::events::TabSaveRequestEvent& /*evt*/) { SaveActiveFile(); });
+
+    tab_save_as_sub_ = event_bus_.subscribe<core::events::TabSaveAsRequestEvent>(
+        [this](const core::events::TabSaveAsRequestEvent& /*evt*/) { SaveActiveFileAs(); });
+
+    content_changed_sub_ = event_bus_.subscribe<core::events::EditorContentChangedEvent>(
+        [this](const core::events::EditorContentChangedEvent& evt)
+        {
+            if (!active_file_path_.empty())
+            {
+                auto buf_it = file_buffers_.find(active_file_path_);
+                if (buf_it != file_buffers_.end())
+                {
+                    buf_it->second.content = evt.content;
+                    buf_it->second.is_modified = true;
+                    if (tab_bar_ != nullptr)
+                    {
+                        tab_bar_->SetTabModified(active_file_path_, true);
+                    }
+                }
+            }
+        });
+
+    // Auto-save timer
+    Bind(wxEVT_TIMER, &LayoutManager::OnAutoSaveTimer, this, auto_save_timer_.GetId());
+
     // Bind animation timer
     Bind(wxEVT_TIMER, &LayoutManager::OnSidebarAnimTimer, this, sidebar_anim_timer_.GetId());
+
+    // Start auto-save
+    StartAutoSave();
 
     MARKAMP_LOG_INFO(
         "LayoutManager created (sidebar={}px, visible={})", sidebar_width_, sidebar_visible_);
@@ -144,6 +185,10 @@ void LayoutManager::CreateLayout()
             gallery.ShowGallery();
         });
     content_sizer->Add(toolbar_, 0, wxEXPAND);
+
+    // Tab bar (QoL feature 1)
+    tab_bar_ = new TabBar(content_panel_, theme_engine(), event_bus_);
+    content_sizer->Add(tab_bar_, 0, wxEXPAND);
 
     split_view_ = new SplitView(content_panel_, theme_engine(), event_bus_, config_);
     content_sizer->Add(split_view_, 1, wxEXPAND);
@@ -391,6 +436,424 @@ void LayoutManager::ToggleEditorMinimap()
         {
             editor->ToggleMinimap();
         }
+    }
+}
+
+// --- Multi-file tab management ---
+
+void LayoutManager::OpenFileInTab(const std::string& path)
+{
+    // If file is already open, just switch to it
+    if (tab_bar_ != nullptr && tab_bar_->HasTab(path))
+    {
+        SwitchToTab(path);
+        return;
+    }
+
+    // Save current editor state before switching
+    if (!active_file_path_.empty() && split_view_ != nullptr)
+    {
+        auto buf_it = file_buffers_.find(active_file_path_);
+        if (buf_it != file_buffers_.end())
+        {
+            auto* editor = split_view_->GetEditorPanel();
+            if (editor != nullptr)
+            {
+                buf_it->second.content = editor->GetContent();
+                auto session = editor->GetSessionState();
+                buf_it->second.cursor_position = session.cursor_position;
+                buf_it->second.first_visible_line = session.first_visible_line;
+            }
+        }
+    }
+
+    // Read file content
+    std::string content;
+    try
+    {
+        std::ifstream file_stream(path);
+        if (file_stream.is_open())
+        {
+            content.assign(std::istreambuf_iterator<char>(file_stream),
+                           std::istreambuf_iterator<char>());
+        }
+        else
+        {
+            MARKAMP_LOG_ERROR("Failed to open file: {}", path);
+            return;
+        }
+    }
+    catch (const std::exception& ex)
+    {
+        MARKAMP_LOG_ERROR("Error reading file {}: {}", path, ex.what());
+        return;
+    }
+
+    // Store in buffer
+    FileBuffer buffer;
+    buffer.content = content;
+    buffer.is_modified = false;
+    buffer.cursor_position = 0;
+    buffer.first_visible_line = 0;
+    try
+    {
+        buffer.last_write_time = std::filesystem::last_write_time(path);
+    }
+    catch (const std::filesystem::filesystem_error& ex)
+    {
+        MARKAMP_LOG_WARN("Could not get last write time for {}: {}", path, ex.what());
+    }
+    file_buffers_[path] = std::move(buffer);
+
+    // Extract display name from path
+    const std::string display_name = std::filesystem::path(path).filename().string();
+
+    // Add tab
+    if (tab_bar_ != nullptr)
+    {
+        tab_bar_->AddTab(path, display_name);
+    }
+
+    // Load content into editor
+    active_file_path_ = path;
+    if (split_view_ != nullptr)
+    {
+        auto* editor = split_view_->GetEditorPanel();
+        if (editor != nullptr)
+        {
+            editor->SetContent(content);
+            editor->ClearModified();
+        }
+    }
+
+    MARKAMP_LOG_INFO("Opened file in tab: {}", path);
+}
+
+void LayoutManager::CloseTab(const std::string& path)
+{
+    const auto buf_it = file_buffers_.find(path);
+    if (buf_it == file_buffers_.end())
+    {
+        // Not in our buffers, just remove the tab
+        if (tab_bar_ != nullptr)
+        {
+            tab_bar_->RemoveTab(path);
+        }
+        return;
+    }
+
+    // Check if modified — prompt user
+    if (buf_it->second.is_modified)
+    {
+        const std::string display_name = std::filesystem::path(path).filename().string();
+        const int result = wxMessageBox(
+            wxString::Format("'%s' has unsaved changes. Save before closing?", display_name),
+            "Unsaved Changes",
+            wxYES_NO | wxCANCEL | wxICON_QUESTION,
+            this);
+
+        if (result == wxCANCEL)
+        {
+            return;
+        }
+        if (result == wxYES)
+        {
+            SaveFile(path);
+        }
+    }
+
+    // Remove from buffer
+    file_buffers_.erase(buf_it);
+
+    // Remove tab (TabBar handles activating adjacent tab)
+    if (tab_bar_ != nullptr)
+    {
+        tab_bar_->RemoveTab(path);
+    }
+
+    // Update active path
+    if (active_file_path_ == path)
+    {
+        if (tab_bar_ != nullptr)
+        {
+            active_file_path_ = tab_bar_->GetActiveTabPath();
+        }
+        else
+        {
+            active_file_path_.clear();
+        }
+
+        // Load the new active file if any
+        if (!active_file_path_.empty())
+        {
+            SwitchToTab(active_file_path_);
+        }
+        else if (split_view_ != nullptr)
+        {
+            auto* editor = split_view_->GetEditorPanel();
+            if (editor != nullptr)
+            {
+                editor->SetContent("");
+            }
+        }
+    }
+
+    MARKAMP_LOG_INFO("Closed tab: {}", path);
+}
+
+void LayoutManager::SwitchToTab(const std::string& path)
+{
+    if (path == active_file_path_)
+    {
+        return;
+    }
+
+    // Save current editor state
+    if (!active_file_path_.empty() && split_view_ != nullptr)
+    {
+        auto buf_it = file_buffers_.find(active_file_path_);
+        if (buf_it != file_buffers_.end())
+        {
+            auto* editor = split_view_->GetEditorPanel();
+            if (editor != nullptr)
+            {
+                buf_it->second.content = editor->GetContent();
+                auto session = editor->GetSessionState();
+                buf_it->second.cursor_position = session.cursor_position;
+                buf_it->second.first_visible_line = session.first_visible_line;
+            }
+        }
+    }
+
+    // Load target file from buffer
+    const auto buf_it = file_buffers_.find(path);
+    if (buf_it == file_buffers_.end())
+    {
+        MARKAMP_LOG_WARN("SwitchToTab: file not in buffer: {}", path);
+        return;
+    }
+
+    active_file_path_ = path;
+
+    // Update tab bar
+    if (tab_bar_ != nullptr)
+    {
+        tab_bar_->SetActiveTab(path);
+    }
+
+    // Load content
+    if (split_view_ != nullptr)
+    {
+        auto* editor = split_view_->GetEditorPanel();
+        if (editor != nullptr)
+        {
+            editor->SetContent(buf_it->second.content);
+            EditorPanel::SessionState restore_state;
+            restore_state.cursor_position = buf_it->second.cursor_position;
+            restore_state.first_visible_line = buf_it->second.first_visible_line;
+            editor->RestoreSessionState(restore_state);
+
+            if (!buf_it->second.is_modified)
+            {
+                editor->ClearModified();
+            }
+        }
+    }
+
+    MARKAMP_LOG_DEBUG("Switched to tab: {}", path);
+}
+
+void LayoutManager::SaveActiveFile()
+{
+    if (!active_file_path_.empty())
+    {
+        SaveFile(active_file_path_);
+
+        // Mark as not modified
+        auto buf_it = file_buffers_.find(active_file_path_);
+        if (buf_it != file_buffers_.end())
+        {
+            buf_it->second.is_modified = false;
+            try
+            {
+                buf_it->second.last_write_time =
+                    std::filesystem::last_write_time(active_file_path_);
+            }
+            catch (const std::filesystem::filesystem_error& /*ex*/)
+            {
+            }
+        }
+        if (tab_bar_ != nullptr)
+        {
+            tab_bar_->SetTabModified(active_file_path_, false);
+        }
+    }
+}
+
+void LayoutManager::SaveActiveFileAs()
+{
+    wxFileDialog dialog(this,
+                        "Save As",
+                        wxEmptyString,
+                        wxEmptyString,
+                        "Markdown files (*.md)|*.md|All files (*.*)|*.*",
+                        wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+
+    if (dialog.ShowModal() == wxID_CANCEL)
+    {
+        return;
+    }
+
+    const std::string new_path = dialog.GetPath().ToStdString();
+
+    // Save content to new path
+    if (split_view_ != nullptr)
+    {
+        split_view_->SaveFile(new_path);
+    }
+
+    // Update buffer
+    if (!active_file_path_.empty())
+    {
+        auto buf_it = file_buffers_.find(active_file_path_);
+        if (buf_it != file_buffers_.end())
+        {
+            FileBuffer new_buf = std::move(buf_it->second);
+            new_buf.is_modified = false;
+            file_buffers_.erase(buf_it);
+            file_buffers_[new_path] = std::move(new_buf);
+        }
+
+        // Update tab
+        if (tab_bar_ != nullptr)
+        {
+            const std::string display_name = std::filesystem::path(new_path).filename().string();
+            tab_bar_->RenameTab(active_file_path_, new_path, display_name);
+            tab_bar_->SetTabModified(new_path, false);
+        }
+
+        active_file_path_ = new_path;
+    }
+}
+
+auto LayoutManager::GetActiveFilePath() const -> std::string
+{
+    return active_file_path_;
+}
+
+auto LayoutManager::GetTabBar() -> TabBar*
+{
+    return tab_bar_;
+}
+
+// --- Auto-save ---
+
+void LayoutManager::StartAutoSave()
+{
+    auto_save_timer_.SetOwner(this);
+    auto_save_timer_.Start(kAutoSaveIntervalMs);
+    MARKAMP_LOG_INFO("Auto-save started (interval={}ms)", kAutoSaveIntervalMs);
+}
+
+void LayoutManager::StopAutoSave()
+{
+    auto_save_timer_.Stop();
+    MARKAMP_LOG_INFO("Auto-save stopped");
+}
+
+void LayoutManager::OnAutoSaveTimer(wxTimerEvent& /*event*/)
+{
+    for (auto& [path, buffer] : file_buffers_)
+    {
+        if (buffer.is_modified)
+        {
+            const std::string draft_path = path + ".markamp-draft";
+            try
+            {
+                std::ofstream draft(draft_path);
+                if (draft.is_open())
+                {
+                    draft << buffer.content;
+                    MARKAMP_LOG_DEBUG("Auto-saved draft: {}", draft_path);
+                }
+            }
+            catch (const std::exception& ex)
+            {
+                MARKAMP_LOG_WARN("Auto-save failed for {}: {}", path, ex.what());
+            }
+        }
+    }
+}
+
+// --- External file change detection ---
+
+void LayoutManager::CheckExternalFileChanges()
+{
+    if (active_file_path_.empty())
+    {
+        return;
+    }
+
+    auto buf_it = file_buffers_.find(active_file_path_);
+    if (buf_it == file_buffers_.end())
+    {
+        return;
+    }
+
+    try
+    {
+        const auto current_write_time = std::filesystem::last_write_time(active_file_path_);
+        if (current_write_time > buf_it->second.last_write_time)
+        {
+            const std::string display_name =
+                std::filesystem::path(active_file_path_).filename().string();
+            const int result = wxMessageBox(
+                wxString::Format("'%s' has been modified externally. Reload?", display_name),
+                "File Changed",
+                wxYES_NO | wxICON_QUESTION,
+                this);
+
+            if (result == wxYES)
+            {
+                // Re-read file
+                std::ifstream file_stream(active_file_path_);
+                if (file_stream.is_open())
+                {
+                    std::string content((std::istreambuf_iterator<char>(file_stream)),
+                                        std::istreambuf_iterator<char>());
+
+                    buf_it->second.content = content;
+                    buf_it->second.is_modified = false;
+                    buf_it->second.last_write_time = current_write_time;
+
+                    if (split_view_ != nullptr)
+                    {
+                        auto* editor = split_view_->GetEditorPanel();
+                        if (editor != nullptr)
+                        {
+                            editor->SetContent(content);
+                            editor->ClearModified();
+                        }
+                    }
+
+                    if (tab_bar_ != nullptr)
+                    {
+                        tab_bar_->SetTabModified(active_file_path_, false);
+                    }
+
+                    MARKAMP_LOG_INFO("Reloaded file from disk: {}", active_file_path_);
+                }
+            }
+            else
+            {
+                // User declined — update timestamp to avoid re-prompting
+                buf_it->second.last_write_time = current_write_time;
+            }
+        }
+    }
+    catch (const std::filesystem::filesystem_error& ex)
+    {
+        MARKAMP_LOG_WARN("Error checking file changes: {}", ex.what());
     }
 }
 

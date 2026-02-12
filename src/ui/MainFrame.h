@@ -88,6 +88,11 @@ private:
     void toggleZenMode();
     void onSave(wxCommandEvent& event);
 
+    // Tab management (QoL features 9-11)
+    void onCloseActiveTab();
+    void onCycleTab(bool forward);
+    void updateWindowTitle();
+
     // State
     std::string last_active_file_;
     bool zen_mode_{false};

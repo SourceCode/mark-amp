@@ -32,7 +32,12 @@ public:
 
     // Callbacks
     using FileSelectCallback = std::function<void(const core::FileNode&)>;
+    using FileOpenCallback = std::function<void(const core::FileNode&)>;
     void SetOnFileSelect(FileSelectCallback callback);
+    void SetOnFileOpen(FileOpenCallback callback);
+
+    // Workspace root for relative path calculation
+    void SetWorkspaceRoot(const std::string& root_path);
 
     // Layout constants
     static constexpr int kRowHeight = 22;
@@ -63,6 +68,18 @@ private:
     void OnMouseMove(wxMouseEvent& event);
     void OnMouseDown(wxMouseEvent& event);
     void OnMouseLeave(wxMouseEvent& event);
+    void OnDoubleClick(wxMouseEvent& event);
+    void OnRightClick(wxMouseEvent& event);
+    void OnKeyDown(wxKeyEvent& event);
+
+    // Context menu
+    void ShowFileContextMenu(core::FileNode& node);
+
+    // Keyboard navigation
+    int focused_node_index_{-1};
+    auto GetVisibleNodes() -> std::vector<core::FileNode*>;
+    void CollectVisibleNodes(std::vector<core::FileNode*>& result,
+                             std::vector<core::FileNode>& nodes);
 
     // Hit testing
     struct HitResult
@@ -89,7 +106,9 @@ private:
     std::string active_file_id_;
     std::string hovered_node_id_;
     std::string filter_text_;
+    std::string workspace_root_;
     FileSelectCallback on_file_select_;
+    FileOpenCallback on_file_open_;
     core::EventBus& event_bus_;
 
     int scroll_offset_{0};

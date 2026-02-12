@@ -25,6 +25,7 @@ add_executable(markamp
     ui/LinkPreviewPopover.cpp
     ui/ImagePreviewPopover.cpp
     ui/TableEditorOverlay.cpp
+    ui/TabBar.cpp
     core/Logger.cpp
     core/EventBus.cpp
     core/AppState.cpp

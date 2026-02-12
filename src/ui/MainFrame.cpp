@@ -5,6 +5,7 @@
 #include "ShortcutOverlay.h"
 #include "StartupPanel.h"
 #include "StatusBarPanel.h"
+#include "TabBar.h"
 #include "app/MarkAmpApp.h"
 #include "core/Config.h"
 #include "core/EventBus.h"
@@ -1054,6 +1055,19 @@ void MainFrame::RegisterDefaultShortcuts()
     shortcut_manager_.register_shortcut(
         {"tools.shortcuts", "Keyboard Shortcuts", WXK_F1, wxMOD_NONE, "global", "Tools", {}});
 
+    // Tab management shortcuts (QoL features 9-10)
+    shortcut_manager_.register_shortcut(
+        {"tab.close", "Close Tab", 'W', kCmd, "global", "File", {}});
+    shortcut_manager_.register_shortcut(
+        {"tab.next", "Next Tab", WXK_TAB, wxMOD_CONTROL, "global", "Navigation", {}});
+    shortcut_manager_.register_shortcut({"tab.prev",
+                                         "Previous Tab",
+                                         WXK_TAB,
+                                         wxMOD_CONTROL | wxMOD_SHIFT,
+                                         "global",
+                                         "Navigation",
+                                         {}});
+
     MARKAMP_LOG_DEBUG("Registered {} default shortcuts",
                       shortcut_manager_.get_all_shortcuts().size());
 }
@@ -1222,6 +1236,80 @@ void MainFrame::ToggleShortcutOverlay()
     else
     {
         shortcut_overlay_->ShowOverlay();
+    }
+}
+
+// --- Tab Management (QoL features 9-11) ---
+
+void MainFrame::onCloseActiveTab()
+{
+    if (layout_ == nullptr || event_bus_ == nullptr)
+    {
+        return;
+    }
+
+    const std::string active_path = layout_->GetActiveFilePath();
+    if (!active_path.empty())
+    {
+        core::events::TabCloseRequestEvent evt(active_path);
+        event_bus_->publish(evt);
+    }
+}
+
+void MainFrame::onCycleTab(bool forward)
+{
+    if (layout_ == nullptr)
+    {
+        return;
+    }
+
+    auto* tab_bar = layout_->GetTabBar();
+    if (tab_bar == nullptr)
+    {
+        return;
+    }
+
+    if (forward)
+    {
+        tab_bar->ActivateNextTab();
+    }
+    else
+    {
+        tab_bar->ActivatePreviousTab();
+    }
+}
+
+void MainFrame::updateWindowTitle()
+{
+    if (layout_ == nullptr)
+    {
+        return;
+    }
+
+    const std::string active_path = layout_->GetActiveFilePath();
+    if (active_path.empty())
+    {
+        SetTitle("MarkAmp");
+        return;
+    }
+
+    const std::string filename = std::filesystem::path(active_path).filename().string();
+
+    // Check if modified via tab bar
+    bool is_modified = false;
+    auto* tab_bar = layout_->GetTabBar();
+    if (tab_bar != nullptr)
+    {
+        is_modified = tab_bar->IsTabModified(active_path);
+    }
+
+    if (is_modified)
+    {
+        SetTitle(wxString::Format("\u25CF %s - MarkAmp", filename));
+    }
+    else
+    {
+        SetTitle(wxString::Format("%s - MarkAmp", filename));
     }
 }
 

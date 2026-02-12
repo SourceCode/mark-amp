@@ -80,7 +80,6 @@ private:
     mutable std::string cached_css_;
     std::string last_rendered_html_;   // Improvement 25: cached HTML body for DisplayError
     rendering::HtmlRenderer renderer_; // Improvement 11: reused across renders
-    rendering::FootnotePreprocessor footnote_proc_; // Improvement 12: reused across renders
     void OnRenderTimer(wxTimerEvent& event);
 
     // Improvement 24: resize debounce

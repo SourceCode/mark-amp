@@ -1,5 +1,39 @@
 # MarkAmp Release History
 
+## v1.3.6 — 2026-02-12
+
+### Highlights
+
+Multi-file tab management, file tree QoL improvements, and crash regression tests. Adds a horizontally scrollable TabBar component with themed rendering, close buttons, and modified-dot indicators. Introduces file tree context menus (open, reveal in Finder, copy path), keyboard navigation, multi-file buffer state management with auto-save and external change detection, and window title modification status display.
+
+### Added
+
+- **TabBar Component**: `TabBar.h/.cpp` — horizontally scrollable tab bar for multi-file editing with active indicator, modified dot (●), hoverable close (×) buttons, right-click context menu, tab cycling, and batch close operations (close all, close others, close to left/right)
+- **File Tree Context Menu**: Right-click context menu with Open, Reveal in Finder/File Manager, Copy Path, Copy Relative Path actions
+- **File Tree Keyboard Navigation**: Arrow key navigation (Up/Down to move, Enter/Space to open/toggle folders, Left/Right to collapse/expand)
+- **Tab Events**: `TabSwitchedEvent`, `TabCloseRequestEvent`, `TabSaveRequestEvent`, `TabSaveAsRequestEvent`, `FileReloadRequestEvent`, `GoToLineRequestEvent` in `Events.h`
+- **Multi-File Buffer Management**: `LayoutManager` multi-file state with per-file buffers tracking content, cursor position, scroll position, and external modification timestamps
+- **Tab Keyboard Shortcuts**: Cmd+W (close tab), Ctrl+Tab / Ctrl+Shift+Tab (cycle tabs)
+- **Window Title Tracking**: Dynamic window title showing filename and modification status (● prefix for unsaved changes)
+- **Auto-Save Support**: `LayoutManager::StartAutoSave()` / `StopAutoSave()` for periodic auto-save
+- **External Change Detection**: `LayoutManager::CheckExternalFileChanges()` for detecting and reloading externally modified files
+- **Crash Regression Tests**: `test_crash_regressions.cpp` — regression tests for StartupPanel assertion failure and editor heading crash
+
+### Changed
+
+- Expanded `src/CMakeLists.txt` with `TabBar.cpp` source file
+- Expanded `tests/CMakeLists.txt` with `test_crash_regressions` test target
+- Enhanced `LayoutManager` with 460+ lines of multi-file tab management, file open/close/save/switch, auto-save timer, and external change detection
+- Extended `MainFrame` with tab management methods (`onCloseActiveTab`, `onCycleTab`, `updateWindowTitle`) and 3 new keyboard shortcuts
+- Added `FileOpenCallback`, `SetWorkspaceRoot`, and keyboard/context-menu event handlers to `FileTreeCtrl`
+
+### Fixed
+
+- **StartupPanel assertion**: Fixed `SetBackgroundStyle(wxBG_STYLE_TRANSPARENT)` being called before `Create()` in `StartupPanel.cpp`
+- **PreviewPanel redundant preprocessing**: Removed duplicate `FootnotePreprocessor::process()` call from `PreviewPanel.cpp` that caused editor crash on heading input
+
+---
+
 ## v1.2.5 — 2026-02-11
 
 ### Highlights
