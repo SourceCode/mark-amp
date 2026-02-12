@@ -8,6 +8,7 @@
 #include "core/ServiceRegistry.h"
 #include "rendering/HtmlRenderer.h"
 
+#include <wx/clipbrd.h>
 #include <wx/sizer.h>
 
 #include <fmt/format.h>
@@ -559,6 +560,46 @@ summary::marker {{
     text-align: center;
     font-size: 14px;
 }}
+/* ── Phase 6B: Line highlight ── */
+.line-highlight {{
+    background-color: {accent_bg_20};
+    display: inline-block;
+    width: 100%;
+    border-left: 3px solid {accent};
+    padding-left: 4px;
+    margin-left: -4px;
+}}
+/* ── Phase 6C: Copy button ── */
+.copy-btn {{
+    font-size: 12px;
+    color: {text_muted};
+    text-decoration: none;
+    margin-left: 12px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    opacity: 0.5;
+    cursor: pointer;
+}}
+.copy-btn:hover {{
+    opacity: 1;
+    background-color: {accent_bg_20};
+    color: {accent};
+}}
+/* ── Phase 6E: Enhanced inline vs block code contrast ── */
+.code-block-wrapper {{
+    position: relative;
+    margin: 24px 0;
+    border-left: 3px solid {accent};
+}}
+code {{
+    background-color: {accent_bg_20};
+    color: {accent};
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
+    font-size: 12px;
+    border: 1px solid {border_30};
+}}
 )",
                               fmt::arg("bg_app", c.bg_app.to_hex()),
                               fmt::arg("bg_panel", c.bg_panel.to_hex()),
@@ -722,6 +763,23 @@ void PreviewPanel::OnRenderTimer(wxTimerEvent& /*event*/)
 void PreviewPanel::OnLinkClicked(wxHtmlLinkEvent& event)
 {
     auto href = event.GetLinkInfo().GetHref().ToStdString();
+
+    // Phase 6C: Copy code block to clipboard
+    if (href.starts_with("markamp://copy/"))
+    {
+        auto block_id_str = href.substr(15); // after "markamp://copy/"
+        int block_id = std::stoi(block_id_str);
+        auto source = renderer_.code_renderer().get_block_source(block_id);
+        if (!source.empty())
+        {
+            if (wxTheClipboard->Open())
+            {
+                wxTheClipboard->SetData(new wxTextDataObject(source));
+                wxTheClipboard->Close();
+            }
+        }
+        return;
+    }
 
     // External link: open in system browser
     if (href.starts_with("http://") || href.starts_with("https://"))

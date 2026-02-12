@@ -1,5 +1,6 @@
 #pragma once
 
+#include "CodeBlockRenderer.h"
 #include "core/Types.h"
 
 #include <filesystem>
@@ -66,6 +67,12 @@ public:
     /// Set base path for resolving relative image paths.
     void set_base_path(const std::filesystem::path& base_path);
 
+    /// Access the code block renderer (e.g. for clipboard copy).
+    [[nodiscard]] auto code_renderer() const -> const CodeBlockRenderer&
+    {
+        return code_renderer_;
+    }
+
 private:
     void render_node(const core::MdNode& node, std::string& output);
     void render_children(const core::MdNode& node, std::string& output);
@@ -88,6 +95,7 @@ private:
 
     core::IMermaidRenderer* mermaid_renderer_{nullptr};
     std::filesystem::path base_path_;
+    mutable CodeBlockRenderer code_renderer_;
 
     /// Max image file size: 10 MB
     static constexpr size_t kMaxImageFileSize = 10 * 1024 * 1024;

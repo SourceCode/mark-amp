@@ -117,4 +117,153 @@ auto MermaidBlockRenderer::escape_html(std::string_view text) -> std::string
     return core::escape_html(text);
 }
 
+// ---------------------------------------------------------------------------
+// Phase 3: Enhanced container with controls
+// ---------------------------------------------------------------------------
+
+auto MermaidBlockRenderer::container_styles() -> std::string
+{
+    return R"(<style>
+.mermaid-enhanced {
+    position: relative;
+    border: 1px solid #333;
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 12px 0;
+    background: #1A1A2E;
+}
+.mermaid-viewport {
+    overflow: auto;
+    cursor: grab;
+    padding: 16px;
+    max-height: 600px;
+}
+.mermaid-viewport:active { cursor: grabbing; }
+.mermaid-viewport img {
+    display: block;
+    margin: 0 auto;
+    transition: transform 0.2s ease;
+}
+.mermaid-controls {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    gap: 4px;
+    z-index: 10;
+}
+.mermaid-btn {
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 4px;
+    background: rgba(40,40,60,0.85);
+    color: #E0E0E0;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.mermaid-btn:hover { background: rgba(80,80,120,0.9); }
+.mermaid-diag {
+    padding: 8px 12px;
+    border-top: 1px solid #333;
+    background: #1E1020;
+    font-family: monospace;
+    font-size: 12px;
+}
+.mermaid-diag-error { color: #FF6B6B; }
+.mermaid-diag-warning { color: #FFD93D; }
+.mermaid-diag-info { color: #6BCBFF; }
+</style>)";
+}
+
+auto MermaidBlockRenderer::render_with_controls(std::string_view mermaid_source,
+                                                core::IMermaidRenderer& renderer) -> std::string
+{
+    auto result = renderer.render(mermaid_source);
+
+    std::string html;
+
+    // Include styles once per render call
+    html += container_styles();
+
+    html += "<div class=\"mermaid-enhanced\">\n";
+
+    // Control buttons: zoom in, zoom out, fullscreen, export
+    html += R"(<div class="mermaid-controls">
+    <button class="mermaid-btn" title="Zoom In">+</button>
+    <button class="mermaid-btn" title="Zoom Out">&minus;</button>
+    <button class="mermaid-btn" title="Fullscreen">&#x2922;</button>
+    <button class="mermaid-btn" title="Export SVG">&#x2B07;</button>
+</div>
+)";
+
+    html += "<div class=\"mermaid-viewport\">\n";
+
+    if (result.has_value())
+    {
+        auto b64 = base64_encode(*result);
+        html += fmt::format(
+            "<img src=\"data:image/svg+xml;base64,{}\" alt=\"Mermaid diagram\" />\n", b64);
+    }
+    else
+    {
+        html += "<div class=\"mermaid-error\"><strong>Mermaid Error:</strong> ";
+        html += escape_html(result.error());
+        html += "</div>\n";
+    }
+
+    html += "</div>\n"; // close viewport
+    html += "</div>\n"; // close enhanced container
+    return html;
+}
+
+auto MermaidBlockRenderer::render_diagnostics(const std::vector<core::DiagnosticInfo>& diagnostics)
+    -> std::string
+{
+    if (diagnostics.empty())
+    {
+        return {};
+    }
+
+    std::string html;
+    html += "<div class=\"mermaid-diag\">\n";
+
+    for (const auto& diag : diagnostics)
+    {
+        std::string css_class;
+        std::string label;
+        switch (diag.severity)
+        {
+            case core::DiagnosticSeverity::Error:
+                css_class = "mermaid-diag-error";
+                label = "ERROR";
+                break;
+            case core::DiagnosticSeverity::Warning:
+                css_class = "mermaid-diag-warning";
+                label = "WARN";
+                break;
+            case core::DiagnosticSeverity::Info:
+                css_class = "mermaid-diag-info";
+                label = "INFO";
+                break;
+        }
+
+        html += fmt::format("<div class=\"{}\"><strong>[{}]</strong> ", css_class, label);
+
+        if (diag.line > 0)
+        {
+            html += fmt::format("Line {}: ", diag.line);
+        }
+
+        html += escape_html(diag.message);
+        html += "</div>\n";
+    }
+
+    html += "</div>\n";
+    return html;
+}
+
 } // namespace markamp::rendering

@@ -4,6 +4,8 @@
 #include "core/ShortcutManager.h"
 #include "core/ThemeEngine.h"
 
+#include <wx/textctrl.h>
+
 #include <string>
 #include <vector>
 
@@ -33,6 +35,10 @@ private:
     const core::ShortcutManager& shortcut_manager_;
     bool is_visible_{false};
 
+    // Search filter (Phase 7B)
+    wxTextCtrl* filter_input_{nullptr};
+    std::string filter_text_;
+
     /// Category groupings for display.
     struct ShortcutCategory
     {
@@ -41,10 +47,13 @@ private:
     };
 
     std::vector<ShortcutCategory> categories_;
+    std::vector<ShortcutCategory> filtered_categories_;
 
     void BuildCategories();
+    void FilterCategories();
     void OnPaint(wxPaintEvent& event);
     void OnKeyDown(wxKeyEvent& event);
+    void OnFilterChanged(wxCommandEvent& event);
 };
 
 } // namespace markamp::ui

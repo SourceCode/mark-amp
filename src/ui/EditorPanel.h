@@ -8,11 +8,22 @@
 #include <wx/stc/stc.h>
 #include <wx/timer.h>
 
+#include <filesystem>
 #include <functional>
+#include <optional>
 #include <string>
+#include <utility>
 
 class wxTextCtrl;
 class wxStaticText;
+
+namespace markamp::ui
+{
+class FloatingFormatBar;
+class LinkPreviewPopover;
+class ImagePreviewPopover;
+class TableEditorOverlay;
+} // namespace markamp::ui
 
 namespace markamp::core
 {
@@ -113,6 +124,17 @@ public:
     };
     /// Insert a snippet at the current cursor position
     void InsertSnippet(const Snippet& snippet);
+
+    // ── Phase 5: Contextual Inline Tools ──
+    void InsertBlockquote();
+    void CycleHeading();
+    void InsertTable();
+    void ShowTableEditor();
+    void HideTableEditor();
+    void SetDocumentBasePath(const std::filesystem::path& base_path);
+
+    // ── Phase 6D: Minimap ──
+    void ToggleMinimap();
 
     /// Session state for save/restore
     struct SessionState
@@ -267,6 +289,40 @@ private:
     bool trailing_ws_visible_{true};
     bool auto_trim_trailing_ws_{false};
     std::string last_highlighted_word_;
+
+    // ── Phase 5: Contextual Inline Tools state ──
+    FloatingFormatBar* format_bar_{nullptr};
+    LinkPreviewPopover* link_popover_{nullptr};
+    ImagePreviewPopover* image_popover_{nullptr};
+    TableEditorOverlay* table_overlay_{nullptr};
+    wxTimer format_bar_timer_;
+    std::filesystem::path document_base_path_;
+
+    void ShowFormatBar();
+    void HideFormatBar();
+    void UpdateFormatBarPosition();
+    void HandleFormatBarAction(int action);
+
+    // Link/image detection at a character position
+    struct LinkInfo
+    {
+        std::string text;
+        std::string url;
+    };
+    auto DetectLinkAtPosition(int pos) -> std::optional<LinkInfo>;
+    auto DetectImageAtPosition(int pos) -> std::optional<LinkInfo>;
+    auto DetectTableAtCursor() -> std::optional<std::pair<int, int>>;
+
+    void OnDwellStart(wxStyledTextEvent& event);
+    void OnDwellEnd(wxStyledTextEvent& event);
+    void OnFormatBarTimer(wxTimerEvent& event);
+
+    // ── Phase 6D: Minimap ──
+    wxStyledTextCtrl* minimap_{nullptr};
+    bool minimap_visible_{false};
+    void CreateMinimap();
+    void UpdateMinimapContent();
+    void OnMinimapClick(wxMouseEvent& event);
 };
 
 } // namespace markamp::ui

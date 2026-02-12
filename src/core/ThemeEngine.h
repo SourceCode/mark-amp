@@ -39,6 +39,26 @@ enum class ThemeColorToken
     ScrollbarTrack,
     ScrollbarThumb,
     ScrollbarHover,
+
+    // Phase 4: Syntax tokens
+    SyntaxKeyword,
+    SyntaxString,
+    SyntaxComment,
+    SyntaxNumber,
+    SyntaxType,
+    SyntaxFunction,
+    SyntaxOperator,
+    SyntaxPreprocessor,
+
+    // Phase 4: Render/preview tokens
+    RenderHeading,
+    RenderLink,
+    RenderCodeBg,
+    RenderCodeFg,
+    RenderBlockquoteBorder,
+    RenderBlockquoteBg,
+    RenderTableBorder,
+    RenderTableHeaderBg,
 };
 
 /// Font tokens for themed text rendering.
@@ -85,6 +105,14 @@ public:
     [[nodiscard]] auto
     subscribe_theme_change(std::function<void(const std::string& theme_id)> handler)
         -> Subscription;
+
+    // Phase 4: Layered theme application
+    /// Apply only chrome (UI) tokens from the current theme.
+    void apply_chrome_theme();
+    /// Apply only syntax (editor highlighting) tokens from the current theme.
+    void apply_syntax_theme();
+    /// Apply only render (preview) tokens from the current theme.
+    void apply_render_theme();
 
 private:
     EventBus& event_bus_;

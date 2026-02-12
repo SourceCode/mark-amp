@@ -6,6 +6,7 @@
 #include "core/ThemeEngine.h"
 
 #include <wx/sizer.h>
+#include <wx/textctrl.h>
 #include <wx/timer.h>
 
 namespace markamp::core
@@ -52,6 +53,9 @@ public:
     void set_sidebar_width(int width);
     [[nodiscard]] auto sidebar_width() const -> int;
 
+    // Phase 6D/7A: Forward minimap toggle to editor
+    void ToggleEditorMinimap();
+
     static constexpr int kDefaultSidebarWidth = 256;
     static constexpr int kMinSidebarWidth = 180;
     static constexpr int kMaxSidebarWidth = 400;
@@ -70,6 +74,7 @@ private:
     StatusBarPanel* statusbar_panel_{nullptr};
     SplitterBar* splitter_{nullptr};
     FileTreeCtrl* file_tree_{nullptr};
+    wxTextCtrl* search_field_{nullptr};
     SplitView* split_view_{nullptr};
     Toolbar* toolbar_{nullptr};
 

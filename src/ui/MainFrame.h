@@ -2,6 +2,7 @@
 
 #include "CustomChrome.h"
 #include "core/FileNode.h"
+#include "core/ShortcutManager.h"
 #include "platform/PlatformAbstraction.h"
 
 #include <wx/filename.h>
@@ -23,6 +24,8 @@ namespace markamp::ui
 
 class LayoutManager;
 class StartupPanel;
+class CommandPalette;
+class ShortcutOverlay;
 
 class MainFrame : public wxFrame
 {
@@ -98,5 +101,15 @@ private:
     static constexpr int kMenuOpenRecentMax = 6010;
 
     StartupPanel* startup_panel_{nullptr};
+
+    // ── Phase 7: Command Palette & Keyboard UX ──
+    CommandPalette* command_palette_{nullptr};
+    ShortcutOverlay* shortcut_overlay_{nullptr};
+    core::ShortcutManager shortcut_manager_;
+
+    void RegisterPaletteCommands();
+    void RegisterDefaultShortcuts();
+    void ShowCommandPalette();
+    void ToggleShortcutOverlay();
 };
 } // namespace markamp::ui

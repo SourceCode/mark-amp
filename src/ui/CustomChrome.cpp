@@ -242,9 +242,135 @@ void CustomChrome::OnPaint(wxPaintEvent& /*event*/)
     // Recompute layout
     computeLayout(w);
 
-    // Background — themed
-    dc.SetBackground(wxBrush(chromeBg()));
-    dc.Clear();
+    // Background — gradient if configured, otherwise flat themed
+    bool gradient_painted = false;
+    if (theme_engine_ != nullptr)
+    {
+        const auto& gradient = theme_engine_->current_theme().title_bar_gradient;
+        if (gradient.is_enabled())
+        {
+            auto start_color = core::Color::from_string(*gradient.start);
+            auto end_color = core::Color::from_string(*gradient.end);
+            if (start_color && end_color)
+            {
+                wxGraphicsContext* gc_ptr = wxGraphicsContext::Create(dc);
+                if (gc_ptr != nullptr)
+                {
+                    gc_ptr->SetBrush(gc_ptr->CreateLinearGradientBrush(0,
+                                                                       0,
+                                                                       static_cast<wxDouble>(w),
+                                                                       0,
+                                                                       start_color->to_wx_colour(),
+                                                                       end_color->to_wx_colour()));
+                    gc_ptr->DrawRectangle(0, 0, w, h);
+                    delete gc_ptr;
+                    gradient_painted = true;
+                }
+            }
+        }
+    }
+    if (!gradient_painted)
+    {
+        dc.SetBackground(wxBrush(chromeBg()));
+        dc.Clear();
+    }
+
+    // Phase 4D+: Window Effects rendering
+    if (theme_engine_ != nullptr)
+    {
+        const auto& effects = theme_engine_->current_theme().effects;
+
+        // Edge glow — configurable color, width, and alpha
+        if (effects.edge_glow)
+        {
+            auto glow_color = effects.edge_glow_color.to_wx_colour();
+            const int glow_width = std::clamp(effects.edge_glow_width, 1, 4);
+            const uint8_t glow_alpha = effects.edge_glow_alpha;
+
+            for (int layer = 0; layer < glow_width; ++layer)
+            {
+                // Fade alpha outward: outermost layer = full alpha, inner layers dim
+                auto layer_alpha =
+                    static_cast<uint8_t>(glow_alpha * (glow_width - layer) / glow_width);
+                wxColour layer_color(
+                    glow_color.Red(), glow_color.Green(), glow_color.Blue(), layer_alpha);
+                dc.SetPen(wxPen(layer_color, 1));
+                dc.DrawLine(layer, layer, w - layer, layer);                 // top
+                dc.DrawLine(layer, layer, layer, h - layer);                 // left
+                dc.DrawLine(w - 1 - layer, layer, w - 1 - layer, h - layer); // right
+                dc.DrawLine(layer, h - 1 - layer, w - layer, h - 1 - layer); // bottom
+            }
+        }
+
+        // Inner shadow — concentric rects with decreasing alpha
+        if (effects.inner_shadow)
+        {
+            const int radius = std::clamp(effects.inner_shadow_radius, 1, 8);
+            const uint8_t base_alpha = effects.inner_shadow_alpha;
+
+            for (int layer = 0; layer < radius; ++layer)
+            {
+                auto shadow_alpha = static_cast<uint8_t>(base_alpha * (radius - layer) / radius);
+                wxColour shadow_color(0, 0, 0, shadow_alpha);
+                dc.SetPen(wxPen(shadow_color, 1));
+                dc.SetBrush(*wxTRANSPARENT_BRUSH);
+                dc.DrawRectangle(layer, layer, w - 2 * layer, h - 2 * layer);
+            }
+        }
+
+        // Vignette — radial gradient darkening at window edges
+        if (effects.vignette)
+        {
+            wxGraphicsContext* gc_ptr = wxGraphicsContext::Create(dc);
+            if (gc_ptr != nullptr)
+            {
+                const uint8_t strength = effects.vignette_strength;
+
+                // Draw semi-transparent black rectangles along edges
+                // Top vignette strip
+                gc_ptr->SetBrush(gc_ptr->CreateLinearGradientBrush(0,
+                                                                   0,
+                                                                   0,
+                                                                   static_cast<wxDouble>(h) / 6.0,
+                                                                   wxColour(0, 0, 0, strength),
+                                                                   wxColour(0, 0, 0, 0)));
+                gc_ptr->DrawRectangle(0, 0, w, static_cast<wxDouble>(h) / 6.0);
+
+                // Bottom vignette strip
+                gc_ptr->SetBrush(
+                    gc_ptr->CreateLinearGradientBrush(0,
+                                                      static_cast<wxDouble>(h) * 5.0 / 6.0,
+                                                      0,
+                                                      static_cast<wxDouble>(h),
+                                                      wxColour(0, 0, 0, 0),
+                                                      wxColour(0, 0, 0, strength)));
+                gc_ptr->DrawRectangle(
+                    0, static_cast<wxDouble>(h) * 5.0 / 6.0, w, static_cast<wxDouble>(h) / 6.0);
+
+                // Left vignette strip
+                gc_ptr->SetBrush(gc_ptr->CreateLinearGradientBrush(0,
+                                                                   0,
+                                                                   static_cast<wxDouble>(w) / 8.0,
+                                                                   0,
+                                                                   wxColour(0, 0, 0, strength),
+                                                                   wxColour(0, 0, 0, 0)));
+                gc_ptr->DrawRectangle(0, 0, static_cast<wxDouble>(w) / 8.0, h);
+
+                // Right vignette strip
+                gc_ptr->SetBrush(
+                    gc_ptr->CreateLinearGradientBrush(static_cast<wxDouble>(w) * 7.0 / 8.0,
+                                                      0,
+                                                      static_cast<wxDouble>(w),
+                                                      0,
+                                                      wxColour(0, 0, 0, 0),
+                                                      wxColour(0, 0, 0, strength)));
+                gc_ptr->DrawRectangle(
+                    static_cast<wxDouble>(w) * 7.0 / 8.0, 0, static_cast<wxDouble>(w) / 8.0, h);
+
+                delete gc_ptr;
+            }
+        }
+    }
 
     // --- Left section: Logo dot + "MARKAMP v1.0.0" ---
     // Only show logo and title if NOT using native controls (per user request for macOS)

@@ -26,6 +26,10 @@ public:
     void SetFileTree(const std::vector<core::FileNode>& roots);
     void SetActiveFileId(const std::string& file_id);
 
+    // Filtering
+    void ApplyFilter(const std::string& filter);
+    void ClearFilter();
+
     // Callbacks
     using FileSelectCallback = std::function<void(const core::FileNode&)>;
     void SetOnFileSelect(FileSelectCallback callback);
@@ -76,10 +80,15 @@ private:
     void UpdateVirtualHeight();
     void OnScroll(wxMouseEvent& event);
 
+    // Filtering
+    auto MatchesFilter(const core::FileNode& node, const std::string& lower_filter) const -> bool;
+    void ApplyFilterRecursive(std::vector<core::FileNode>& nodes, const std::string& lower_filter);
+
     // State
     std::vector<core::FileNode> roots_;
     std::string active_file_id_;
     std::string hovered_node_id_;
+    std::string filter_text_;
     FileSelectCallback on_file_select_;
     core::EventBus& event_bus_;
 

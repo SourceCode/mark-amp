@@ -41,6 +41,56 @@ struct Token
 };
 
 // ═══════════════════════════════════════════════════════
+// Structure-of-Arrays (SoA) token layout
+// ═══════════════════════════════════════════════════════
+
+/// Cache-friendly token storage using parallel arrays.
+/// Iteration over token types or positions without loading the text
+/// is significantly faster due to data locality.
+///
+/// Pattern implemented: #10 Cache-friendly data layout
+struct TokenArraySoA
+{
+    std::vector<TokenType> types;
+    std::vector<size_t> starts;
+    std::vector<size_t> lengths;
+    std::vector<uint16_t> scope_ids; // compact identifier for scope/language
+
+    void push_back(TokenType type, size_t start, size_t length, uint16_t scope_id = 0)
+    {
+        types.push_back(type);
+        starts.push_back(start);
+        lengths.push_back(length);
+        scope_ids.push_back(scope_id);
+    }
+
+    void reserve(size_t count)
+    {
+        types.reserve(count);
+        starts.reserve(count);
+        lengths.reserve(count);
+        scope_ids.reserve(count);
+    }
+
+    [[nodiscard]] auto size() const noexcept -> size_t
+    {
+        return types.size();
+    }
+    [[nodiscard]] auto empty() const noexcept -> bool
+    {
+        return types.empty();
+    }
+
+    void clear()
+    {
+        types.clear();
+        starts.clear();
+        lengths.clear();
+        scope_ids.clear();
+    }
+};
+
+// ═══════════════════════════════════════════════════════
 // Language definition
 // ═══════════════════════════════════════════════════════
 
@@ -76,6 +126,10 @@ public:
     /// Tokenize source code in the given language.
     [[nodiscard]] auto tokenize(std::string_view source, const std::string& language)
         -> std::vector<Token>;
+
+    /// Tokenize into SoA layout for cache-friendly iteration (Pattern #10).
+    [[nodiscard]] auto tokenize_soa(std::string_view source, const std::string& language)
+        -> TokenArraySoA;
 
     /// Render source code as HTML with <span class="token-*"> tags.
     [[nodiscard]] auto render_html(std::string_view source, const std::string& language)

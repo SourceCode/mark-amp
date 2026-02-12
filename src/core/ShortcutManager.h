@@ -2,6 +2,7 @@
 
 #include "EventBus.h"
 
+#include <filesystem>
 #include <functional>
 #include <optional>
 #include <string>
@@ -78,6 +79,14 @@ public:
 
     /// Reset all shortcuts to their default bindings.
     void reset_to_defaults();
+
+    // --- Persistence (keybindings.md) ---
+
+    /// Save all remapped keybindings to a keybindings.md file.
+    void save_keybindings(const std::filesystem::path& config_dir) const;
+
+    /// Load keybindings from a keybindings.md file and apply remaps.
+    void load_keybindings(const std::filesystem::path& config_dir);
 
     // --- Formatting ---
 

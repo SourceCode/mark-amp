@@ -1,6 +1,8 @@
 #include "MainFrame.h"
 
+#include "CommandPalette.h"
 #include "LayoutManager.h"
+#include "ShortcutOverlay.h"
 #include "StartupPanel.h"
 #include "StatusBarPanel.h"
 #include "app/MarkAmpApp.h"
@@ -8,6 +10,7 @@
 #include "core/EventBus.h"
 #include "core/Events.h"
 #include "core/Logger.h"
+#include "core/ShortcutManager.h"
 #include "core/ThemeEngine.h"
 
 #include <wx/aboutdlg.h>
@@ -86,6 +89,7 @@ MainFrame::MainFrame(const wxString& title,
     , recent_workspaces_(recent_workspaces)
     , platform_(platform)
     , theme_engine_(theme_engine)
+    , shortcut_manager_(*event_bus)
 {
     // Minimum size constraints
     SetMinSize(wxSize(app::MarkAmpApp::kMinWidth, app::MarkAmpApp::kMinHeight));
@@ -172,12 +176,41 @@ MainFrame::MainFrame(const wxString& title,
     // Log DPI info
     logDpiInfo();
 
+    // Phase 7: Command Palette & Keyboard UX
+    if (theme_engine_ != nullptr)
+    {
+        command_palette_ = new CommandPalette(this, *theme_engine_);
+        shortcut_overlay_ = new ShortcutOverlay(this, *theme_engine_, shortcut_manager_);
+    }
+    RegisterDefaultShortcuts();
+    shortcut_manager_.load_keybindings(core::Config::config_directory());
+    RegisterPaletteCommands();
+
+    // Accelerator: Cmd+Shift+P → Command Palette
+    wxAcceleratorEntry accel_entries[2];
+    accel_entries[0].Set(wxACCEL_CMD | wxACCEL_SHIFT, 'P', wxID_HIGHEST + 100);
+    accel_entries[1].Set(wxACCEL_NORMAL, WXK_F1, wxID_HIGHEST + 101);
+    wxAcceleratorTable accel_table(2, accel_entries);
+    SetAcceleratorTable(accel_table);
+
+    Bind(
+        wxEVT_MENU,
+        [this]([[maybe_unused]] wxCommandEvent& evt) { ShowCommandPalette(); },
+        wxID_HIGHEST + 100);
+    Bind(
+        wxEVT_MENU,
+        [this]([[maybe_unused]] wxCommandEvent& evt) { ToggleShortcutOverlay(); },
+        wxID_HIGHEST + 101);
+
     MARKAMP_LOG_INFO("MainFrame created: {}x{} (frameless)", size.GetWidth(), size.GetHeight());
 }
 
 void MainFrame::onClose(wxCloseEvent& event)
 {
     MARKAMP_LOG_INFO("MainFrame closing.");
+    // Save keybindings before closing
+    shortcut_manager_.save_keybindings(core::Config::config_directory());
+
     saveWindowState();
     Destroy();
     event.Skip();
@@ -968,6 +1001,228 @@ void MainFrame::toggleZenMode()
     // Optional: Enter/Exit fullscreen for true Zen
     // ShowFullScreen(zen_mode_, wxFULLSCREEN_NOBORDER | wxFULLSCREEN_NOCAPTION);
     // For now, let's keep it strictly UI element toggling as requested.
+}
+
+// ═══════════════════════════════════════════════════════
+// Phase 7A: Command Palette Registration
+// ═══════════════════════════════════════════════════════
+
+void MainFrame::RegisterDefaultShortcuts()
+{
+    using core::Shortcut;
+    constexpr int kCmd = wxMOD_CMD;
+    constexpr int kCmdShift = wxMOD_CMD | wxMOD_SHIFT;
+
+    // File shortcuts
+    shortcut_manager_.register_shortcut(
+        {"file.open", "Open Folder", 'O', kCmd, "global", "File", {}});
+    shortcut_manager_.register_shortcut({"file.save", "Save", 'S', kCmd, "global", "File", {}});
+    shortcut_manager_.register_shortcut({"file.new", "New File", 'N', kCmd, "global", "File", {}});
+
+    // View shortcuts
+    shortcut_manager_.register_shortcut(
+        {"view.editor", "Editor Mode", '1', kCmd, "global", "View", {}});
+    shortcut_manager_.register_shortcut(
+        {"view.split", "Split Mode", '2', kCmd, "global", "View", {}});
+    shortcut_manager_.register_shortcut(
+        {"view.preview", "Preview Mode", '3', kCmd, "global", "View", {}});
+    shortcut_manager_.register_shortcut(
+        {"view.sidebar", "Toggle Sidebar", 'B', kCmd, "global", "View", {}});
+    shortcut_manager_.register_shortcut(
+        {"view.zen", "Toggle Zen Mode", 'K', kCmd, "global", "View", {}});
+    shortcut_manager_.register_shortcut(
+        {"view.fullscreen", "Toggle Fullscreen", WXK_F11, wxMOD_NONE, "global", "View", {}});
+
+    // Edit shortcuts
+    shortcut_manager_.register_shortcut({"edit.undo", "Undo", 'Z', kCmd, "editor", "Edit", {}});
+    shortcut_manager_.register_shortcut(
+        {"edit.redo", "Redo", 'Z', kCmdShift, "editor", "Edit", {}});
+    shortcut_manager_.register_shortcut({"edit.find", "Find", 'F', kCmd, "editor", "Edit", {}});
+
+    // Markdown formatting (editor context)
+    shortcut_manager_.register_shortcut({"md.bold", "Bold", 'B', kCmd, "editor", "Markdown", {}});
+    shortcut_manager_.register_shortcut(
+        {"md.italic", "Italic", 'I', kCmd, "editor", "Markdown", {}});
+    shortcut_manager_.register_shortcut(
+        {"md.code", "Inline Code", 'E', kCmd, "editor", "Markdown", {}});
+    shortcut_manager_.register_shortcut(
+        {"md.link", "Insert Link", 'K', kCmdShift, "editor", "Markdown", {}});
+
+    // Tools
+    shortcut_manager_.register_shortcut(
+        {"tools.palette", "Command Palette", 'P', kCmdShift, "global", "Tools", {}});
+    shortcut_manager_.register_shortcut(
+        {"tools.shortcuts", "Keyboard Shortcuts", WXK_F1, wxMOD_NONE, "global", "Tools", {}});
+
+    MARKAMP_LOG_DEBUG("Registered {} default shortcuts",
+                      shortcut_manager_.get_all_shortcuts().size());
+}
+
+void MainFrame::RegisterPaletteCommands()
+{
+    if (command_palette_ == nullptr)
+    {
+        return;
+    }
+
+    command_palette_->ClearCommands();
+
+    // ── File commands ──
+    command_palette_->RegisterCommand({"Open Folder...",
+                                       "File",
+                                       shortcut_manager_.get_shortcut_text("file.open"),
+                                       [this]()
+                                       {
+                                           wxCommandEvent dummy;
+                                           onOpenFolder(dummy);
+                                       }});
+    command_palette_->RegisterCommand({"Save",
+                                       "File",
+                                       shortcut_manager_.get_shortcut_text("file.save"),
+                                       [this]()
+                                       {
+                                           wxCommandEvent dummy;
+                                           onSave(dummy);
+                                       }});
+
+    // ── View commands ──
+    command_palette_->RegisterCommand({"Editor Mode",
+                                       "View",
+                                       shortcut_manager_.get_shortcut_text("view.editor"),
+                                       [this]()
+                                       {
+                                           if (event_bus_ != nullptr)
+                                           {
+                                               core::events::ViewModeChangedEvent evt{
+                                                   core::events::ViewMode::Editor};
+                                               event_bus_->publish(evt);
+                                           }
+                                       }});
+    command_palette_->RegisterCommand({"Split Mode",
+                                       "View",
+                                       shortcut_manager_.get_shortcut_text("view.split"),
+                                       [this]()
+                                       {
+                                           if (event_bus_ != nullptr)
+                                           {
+                                               core::events::ViewModeChangedEvent evt{
+                                                   core::events::ViewMode::Split};
+                                               event_bus_->publish(evt);
+                                           }
+                                       }});
+    command_palette_->RegisterCommand({"Preview Mode",
+                                       "View",
+                                       shortcut_manager_.get_shortcut_text("view.preview"),
+                                       [this]()
+                                       {
+                                           if (event_bus_ != nullptr)
+                                           {
+                                               core::events::ViewModeChangedEvent evt{
+                                                   core::events::ViewMode::Preview};
+                                               event_bus_->publish(evt);
+                                           }
+                                       }});
+    command_palette_->RegisterCommand({"Toggle Sidebar",
+                                       "View",
+                                       shortcut_manager_.get_shortcut_text("view.sidebar"),
+                                       [this]()
+                                       {
+                                           if (event_bus_ != nullptr)
+                                           {
+                                               core::events::SidebarToggleEvent evt;
+                                               evt.visible = true;
+                                               event_bus_->publish(evt);
+                                           }
+                                       }});
+    command_palette_->RegisterCommand(
+        {"Toggle Zen Mode", "View", shortcut_manager_.get_shortcut_text("view.zen"), [this]() {
+             toggleZenMode();
+         }});
+    command_palette_->RegisterCommand({"Toggle Fullscreen",
+                                       "View",
+                                       shortcut_manager_.get_shortcut_text("view.fullscreen"),
+                                       [this]()
+                                       {
+                                           if (IsFullScreen())
+                                           {
+                                               if (platform_ != nullptr)
+                                               {
+                                                   platform_->exit_fullscreen(this);
+                                               }
+                                               else
+                                               {
+                                                   ShowFullScreen(false);
+                                               }
+                                           }
+                                           else
+                                           {
+                                               if (platform_ != nullptr)
+                                               {
+                                                   platform_->enter_fullscreen(this);
+                                               }
+                                               else
+                                               {
+                                                   ShowFullScreen(true);
+                                               }
+                                           }
+                                       }});
+    command_palette_->RegisterCommand({"Toggle Minimap",
+                                       "View",
+                                       "",
+                                       [this]()
+                                       {
+                                           if (layout_ != nullptr)
+                                           {
+                                               layout_->ToggleEditorMinimap();
+                                           }
+                                       }});
+
+    // ── Theme commands ──
+    command_palette_->RegisterCommand({"Theme Gallery...",
+                                       "Theme",
+                                       shortcut_manager_.get_shortcut_text("view.theme_gallery"),
+                                       [this]()
+                                       {
+                                           if (event_bus_ != nullptr)
+                                           {
+                                               core::events::ThemeGalleryRequestEvent evt;
+                                               event_bus_->publish(evt);
+                                           }
+                                       }});
+
+    // ── Tools commands ──
+    command_palette_->RegisterCommand({"Keyboard Shortcuts",
+                                       "Tools",
+                                       shortcut_manager_.get_shortcut_text("tools.shortcuts"),
+                                       [this]() { ToggleShortcutOverlay(); }});
+
+    MARKAMP_LOG_DEBUG("Registered {} palette commands",
+                      shortcut_manager_.get_all_shortcuts().size());
+}
+
+void MainFrame::ShowCommandPalette()
+{
+    if (command_palette_ != nullptr)
+    {
+        command_palette_->ShowPalette();
+    }
+}
+
+void MainFrame::ToggleShortcutOverlay()
+{
+    if (shortcut_overlay_ == nullptr)
+    {
+        return;
+    }
+
+    if (shortcut_overlay_->IsOverlayVisible())
+    {
+        shortcut_overlay_->HideOverlay();
+    }
+    else
+    {
+        shortcut_overlay_->ShowOverlay();
+    }
 }
 
 } // namespace markamp::ui

@@ -200,4 +200,79 @@ auto MacPlatform::get_content_scale_factor() const -> double {
   }
 }
 
+// ── Window Effects ──
+
+void MacPlatform::enable_vibrancy(wxFrame *frame, bool enable) {
+  auto *nsWindow = static_cast<NSWindow *>(frame->GetWXWindow());
+  if (nsWindow == nil) {
+    return;
+  }
+
+  NSView *contentView = [nsWindow contentView];
+  static NSString *const kVibrancyId = @"markamp.vibrancy";
+
+  // Check if we already have a vibrancy view
+  NSVisualEffectView *existingVEV = nil;
+  for (NSView *subview in [contentView subviews]) {
+    if ([subview isKindOfClass:[NSVisualEffectView class]] &&
+        [[subview identifier] isEqualToString:kVibrancyId]) {
+      existingVEV = static_cast<NSVisualEffectView *>(subview);
+      break;
+    }
+  }
+
+  if (enable && existingVEV == nil) {
+    NSVisualEffectView *vev =
+        [[NSVisualEffectView alloc] initWithFrame:[contentView bounds]];
+    vev.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+    vev.blendingMode = NSVisualEffectBlendingModeBehindWindow;
+    vev.material = NSVisualEffectMaterialHUDWindow;
+    vev.state = NSVisualEffectStateActive;
+    vev.identifier = kVibrancyId;
+
+    // Insert behind all other subviews
+    [contentView addSubview:vev positioned:NSWindowBelow relativeTo:nil];
+    MARKAMP_LOG_INFO("MacPlatform: frosted glass vibrancy enabled");
+  } else if (!enable && existingVEV != nil) {
+    [existingVEV removeFromSuperview];
+    MARKAMP_LOG_INFO("MacPlatform: frosted glass vibrancy disabled");
+  }
+}
+
+void MacPlatform::enable_surface_blur(wxFrame *frame, bool enable) {
+  auto *nsWindow = static_cast<NSWindow *>(frame->GetWXWindow());
+  if (nsWindow == nil) {
+    return;
+  }
+
+  // Surface blur uses a within-window blending vibrancy view
+  NSView *contentView = [nsWindow contentView];
+  static NSString *const kSurfaceBlurId = @"markamp.surfaceblur";
+
+  NSVisualEffectView *existingVEV = nil;
+  for (NSView *subview in [contentView subviews]) {
+    if ([subview isKindOfClass:[NSVisualEffectView class]] &&
+        [[subview identifier] isEqualToString:kSurfaceBlurId]) {
+      existingVEV = static_cast<NSVisualEffectView *>(subview);
+      break;
+    }
+  }
+
+  if (enable && existingVEV == nil) {
+    NSVisualEffectView *vev =
+        [[NSVisualEffectView alloc] initWithFrame:[contentView bounds]];
+    vev.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+    vev.blendingMode = NSVisualEffectBlendingModeWithinWindow;
+    vev.material = NSVisualEffectMaterialSidebar;
+    vev.state = NSVisualEffectStateActive;
+    vev.identifier = kSurfaceBlurId;
+
+    [contentView addSubview:vev positioned:NSWindowBelow relativeTo:nil];
+    MARKAMP_LOG_INFO("MacPlatform: surface blur enabled");
+  } else if (!enable && existingVEV != nil) {
+    [existingVEV removeFromSuperview];
+    MARKAMP_LOG_INFO("MacPlatform: surface blur disabled");
+  }
+}
+
 } // namespace markamp::platform

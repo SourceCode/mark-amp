@@ -3,6 +3,8 @@
 #include "Logger.h"
 
 #include <algorithm>
+#include <fstream>
+#include <sstream>
 
 namespace markamp::core
 {
@@ -321,6 +323,144 @@ auto ShortcutManager::format_shortcut(int key_code, int modifiers) -> std::strin
 
     result += format_key_name(key_code);
     return result;
+}
+
+// ═══════════════════════════════════════════════════════
+//  Persistence (keybindings.md)
+// ═══════════════════════════════════════════════════════
+
+void ShortcutManager::save_keybindings(const std::filesystem::path& config_dir) const
+{
+    const auto file_path = config_dir / "keybindings.md";
+
+    // Only save if there are custom remaps (default_shortcuts_ non-empty)
+    if (default_shortcuts_.empty())
+    {
+        // No remaps have been made — remove file if it exists
+        std::error_code error_code;
+        std::filesystem::remove(file_path, error_code);
+        return;
+    }
+
+    std::ofstream out_file(file_path);
+    if (!out_file.is_open())
+    {
+        MARKAMP_LOG_WARN("Failed to write keybindings.md: {}", file_path.string());
+        return;
+    }
+
+    out_file << "---\n";
+    out_file << "title: Custom Keybindings\n";
+    out_file << "description: User-defined keyboard shortcut remappings\n";
+    out_file << "---\n\n";
+    out_file << "# Keybindings\n\n";
+    out_file << "Custom keyboard shortcut mappings. Each line is `id: key_code,modifiers`.\n\n";
+    out_file << "```keybindings\n";
+
+    // Write shortcuts that differ from their defaults
+    for (const auto& shortcut : shortcuts_)
+    {
+        // Find corresponding default
+        auto default_iter = std::find_if(default_shortcuts_.begin(),
+                                         default_shortcuts_.end(),
+                                         [&shortcut](const Shortcut& def_shortcut)
+                                         { return def_shortcut.id == shortcut.id; });
+
+        if (default_iter != default_shortcuts_.end())
+        {
+            // Only write if key or modifiers differ from default
+            if (shortcut.key_code != default_iter->key_code ||
+                shortcut.modifiers != default_iter->modifiers)
+            {
+                out_file << shortcut.id << ": " << shortcut.key_code << "," << shortcut.modifiers
+                         << "\n";
+            }
+        }
+    }
+
+    out_file << "```\n";
+    out_file.close();
+
+    MARKAMP_LOG_INFO("Saved keybindings to {}", file_path.string());
+}
+
+void ShortcutManager::load_keybindings(const std::filesystem::path& config_dir)
+{
+    const auto file_path = config_dir / "keybindings.md";
+
+    if (!std::filesystem::exists(file_path))
+    {
+        return; // No custom keybindings file
+    }
+
+    std::ifstream in_file(file_path);
+    if (!in_file.is_open())
+    {
+        MARKAMP_LOG_WARN("Failed to read keybindings.md: {}", file_path.string());
+        return;
+    }
+
+    bool in_block = false;
+    std::string line;
+    int remap_count = 0;
+
+    while (std::getline(in_file, line))
+    {
+        // Detect the start/end of the keybindings code block
+        if (line.starts_with("```keybindings"))
+        {
+            in_block = true;
+            continue;
+        }
+        if (in_block && line.starts_with("```"))
+        {
+            break; // End of block
+        }
+
+        if (!in_block || line.empty())
+        {
+            continue;
+        }
+
+        // Parse "id: key_code,modifiers"
+        const auto colon_pos = line.find(':');
+        if (colon_pos == std::string::npos)
+        {
+            continue;
+        }
+
+        const std::string binding_id = line.substr(0, colon_pos);
+        std::string value = line.substr(colon_pos + 1);
+
+        // Trim leading whitespace
+        const auto first_non_space = value.find_first_not_of(' ');
+        if (first_non_space == std::string::npos)
+        {
+            continue;
+        }
+        value = value.substr(first_non_space);
+
+        const auto comma_pos = value.find(',');
+        if (comma_pos == std::string::npos)
+        {
+            continue;
+        }
+
+        try
+        {
+            const int key_code = std::stoi(value.substr(0, comma_pos));
+            const int modifiers = std::stoi(value.substr(comma_pos + 1));
+            remap_shortcut(binding_id, key_code, modifiers);
+            ++remap_count;
+        }
+        catch (const std::exception& parse_error)
+        {
+            MARKAMP_LOG_WARN("Invalid keybinding entry '{}': {}", binding_id, parse_error.what());
+        }
+    }
+
+    in_file.close();
+    MARKAMP_LOG_INFO("Loaded {} keybinding remaps from {}", remap_count, file_path.string());
 }
 
 } // namespace markamp::core

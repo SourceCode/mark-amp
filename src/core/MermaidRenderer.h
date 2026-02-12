@@ -3,6 +3,7 @@
 #include "IMermaidRenderer.h"
 #include "Theme.h"
 
+#include <cstdint>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -13,6 +14,23 @@ namespace markamp::core
 
 /// MermaidRenderer converts Mermaid diagram source to SVG using the mmdc CLI tool.
 /// Implements IMermaidRenderer. Uses temp files for I/O and caches PATH availability.
+
+/// Severity level for Mermaid diagram diagnostics.
+enum class DiagnosticSeverity
+{
+    Error,
+    Warning,
+    Info
+};
+
+/// Diagnostic information for a Mermaid diagram validation error.
+struct DiagnosticInfo
+{
+    int line{0};
+    std::string message;
+    DiagnosticSeverity severity{DiagnosticSeverity::Error};
+};
+
 class MermaidRenderer : public IMermaidRenderer
 {
 public:
@@ -40,6 +58,25 @@ public:
     /// Sanitize SVG output: strip <script>, <foreignObject>, on* attributes.
     [[nodiscard]] static auto sanitize_svg(const std::string& svg) -> std::string;
 
+    // --- Phase 3: Mermaid First-Class Experience ---
+
+    /// Validate Mermaid source and return diagnostics.
+    [[nodiscard]] auto validate(std::string_view mermaid_source) -> std::vector<DiagnosticInfo>;
+
+    /// Export rendered SVG as raw string.
+    [[nodiscard]] auto export_svg(std::string_view mermaid_source)
+        -> std::expected<std::string, std::string>;
+
+    /// Export rendered diagram as PNG bytes.
+    [[nodiscard]] auto export_png(std::string_view mermaid_source, int width = 800)
+        -> std::expected<std::vector<uint8_t>, std::string>;
+
+    /// Set diagram theme independently of editor theme.
+    void set_diagram_theme(const std::string& theme_name);
+
+    /// Get the current diagram theme name.
+    [[nodiscard]] auto diagram_theme() const -> const std::string&;
+
 private:
     /// Execute mmdc CLI to render Mermaid source to SVG.
     [[nodiscard]] auto render_via_mmdc(std::string_view source)
@@ -60,6 +97,9 @@ private:
     std::string line_color_{"#999999"};
     std::string secondary_color_{"#FF6B9D"};
     std::string tertiary_color_{"#1A1A2E"};
+
+    /// Diagram theme override (independent of editor theme)
+    std::string diagram_theme_override_;
 
     /// SVG cache: hash(source + theme) -> rendered SVG
     std::unordered_map<size_t, std::string> svg_cache_;

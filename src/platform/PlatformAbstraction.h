@@ -92,6 +92,23 @@ public:
     {
         return 1.0;
     }
+
+    // ── Window Effects ──
+
+    /// Enable or disable frosted-glass vibrancy behind the window content.
+    /// On macOS this uses NSVisualEffectView with a behind-window blending mode.
+    virtual void enable_vibrancy(wxFrame* frame, bool enable)
+    {
+        (void)frame;
+        (void)enable;
+    }
+
+    /// Enable or disable surface blur on panel dividers.
+    virtual void enable_surface_blur(wxFrame* frame, bool enable)
+    {
+        (void)frame;
+        (void)enable;
+    }
 };
 
 /// Factory: creates the correct platform implementation for the current OS.

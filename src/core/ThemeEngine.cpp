@@ -164,12 +164,15 @@ void ThemeEngine::rebuild_cache()
     cache_.colours.clear();
 
     // Helper to cache a color token
-    auto cache_color = [this](ThemeColorToken token, const Color& c)
+    auto cache_color = [this](ThemeColorToken token, const Color& clr)
     {
-        wxColour wx = c.to_wx_colour();
-        cache_.colours[token] = wx;
-        cache_.brushes[token] = wxBrush(wx);
+        wxColour wx_clr = clr.to_wx_colour();
+        cache_.colours[token] = wx_clr;
+        cache_.brushes[token] = wxBrush(wx_clr);
     };
+
+    // Sync layers from flat colors
+    current_theme_.sync_layers_from_colors();
 
     // 10 base tokens
     cache_color(ThemeColorToken::BgApp, current_theme_.colors.bg_app);
@@ -191,6 +194,26 @@ void ThemeEngine::rebuild_cache()
     cache_color(ThemeColorToken::ScrollbarTrack, current_theme_.scrollbar_track());
     cache_color(ThemeColorToken::ScrollbarThumb, current_theme_.scrollbar_thumb());
     cache_color(ThemeColorToken::ScrollbarHover, current_theme_.scrollbar_hover());
+
+    // Phase 4: Syntax tokens
+    cache_color(ThemeColorToken::SyntaxKeyword, current_theme_.syntax.keyword);
+    cache_color(ThemeColorToken::SyntaxString, current_theme_.syntax.string_literal);
+    cache_color(ThemeColorToken::SyntaxComment, current_theme_.syntax.comment);
+    cache_color(ThemeColorToken::SyntaxNumber, current_theme_.syntax.number);
+    cache_color(ThemeColorToken::SyntaxType, current_theme_.syntax.type_name);
+    cache_color(ThemeColorToken::SyntaxFunction, current_theme_.syntax.function_name);
+    cache_color(ThemeColorToken::SyntaxOperator, current_theme_.syntax.operator_tok);
+    cache_color(ThemeColorToken::SyntaxPreprocessor, current_theme_.syntax.preprocessor);
+
+    // Phase 4: Render tokens
+    cache_color(ThemeColorToken::RenderHeading, current_theme_.render.heading);
+    cache_color(ThemeColorToken::RenderLink, current_theme_.render.link);
+    cache_color(ThemeColorToken::RenderCodeBg, current_theme_.render.code_bg);
+    cache_color(ThemeColorToken::RenderCodeFg, current_theme_.render.code_fg);
+    cache_color(ThemeColorToken::RenderBlockquoteBorder, current_theme_.render.blockquote_border);
+    cache_color(ThemeColorToken::RenderBlockquoteBg, current_theme_.render.blockquote_bg);
+    cache_color(ThemeColorToken::RenderTableBorder, current_theme_.render.table_border);
+    cache_color(ThemeColorToken::RenderTableHeaderBg, current_theme_.render.table_header_bg);
 
     // Rebuild fonts
     build_fonts();
@@ -225,6 +248,67 @@ void ThemeEngine::build_fonts()
     cache_.fonts[ThemeFontToken::UISmall] = wxFont(wxFontInfo(10).FaceName(kSansFace));
     cache_.fonts[ThemeFontToken::UILabel] = wxFont(wxFontInfo(12).FaceName(kSansFace));
     cache_.fonts[ThemeFontToken::UIHeading] = wxFont(wxFontInfo(14).FaceName(kSansFace).Bold());
+}
+
+// --- Phase 4: Layered theme application ---
+
+void ThemeEngine::apply_chrome_theme()
+{
+    current_theme_.sync_layers_from_colors();
+
+    auto cache_color = [this](ThemeColorToken token, const Color& clr)
+    {
+        wxColour wx_clr = clr.to_wx_colour();
+        cache_.colours[token] = wx_clr;
+        cache_.brushes[token] = wxBrush(wx_clr);
+    };
+
+    cache_color(ThemeColorToken::BgApp, current_theme_.chrome.bg_app);
+    cache_color(ThemeColorToken::BgPanel, current_theme_.chrome.bg_panel);
+    cache_color(ThemeColorToken::BgHeader, current_theme_.chrome.bg_header);
+    cache_color(ThemeColorToken::BgInput, current_theme_.chrome.bg_input);
+    cache_color(ThemeColorToken::BorderLight, current_theme_.chrome.border_light);
+    cache_color(ThemeColorToken::BorderDark, current_theme_.chrome.border_dark);
+    cache_color(ThemeColorToken::AccentPrimary, current_theme_.chrome.accent_primary);
+    cache_color(ThemeColorToken::AccentSecondary, current_theme_.chrome.accent_secondary);
+}
+
+void ThemeEngine::apply_syntax_theme()
+{
+    auto cache_color = [this](ThemeColorToken token, const Color& clr)
+    {
+        wxColour wx_clr = clr.to_wx_colour();
+        cache_.colours[token] = wx_clr;
+        cache_.brushes[token] = wxBrush(wx_clr);
+    };
+
+    cache_color(ThemeColorToken::SyntaxKeyword, current_theme_.syntax.keyword);
+    cache_color(ThemeColorToken::SyntaxString, current_theme_.syntax.string_literal);
+    cache_color(ThemeColorToken::SyntaxComment, current_theme_.syntax.comment);
+    cache_color(ThemeColorToken::SyntaxNumber, current_theme_.syntax.number);
+    cache_color(ThemeColorToken::SyntaxType, current_theme_.syntax.type_name);
+    cache_color(ThemeColorToken::SyntaxFunction, current_theme_.syntax.function_name);
+    cache_color(ThemeColorToken::SyntaxOperator, current_theme_.syntax.operator_tok);
+    cache_color(ThemeColorToken::SyntaxPreprocessor, current_theme_.syntax.preprocessor);
+}
+
+void ThemeEngine::apply_render_theme()
+{
+    auto cache_color = [this](ThemeColorToken token, const Color& clr)
+    {
+        wxColour wx_clr = clr.to_wx_colour();
+        cache_.colours[token] = wx_clr;
+        cache_.brushes[token] = wxBrush(wx_clr);
+    };
+
+    cache_color(ThemeColorToken::RenderHeading, current_theme_.render.heading);
+    cache_color(ThemeColorToken::RenderLink, current_theme_.render.link);
+    cache_color(ThemeColorToken::RenderCodeBg, current_theme_.render.code_bg);
+    cache_color(ThemeColorToken::RenderCodeFg, current_theme_.render.code_fg);
+    cache_color(ThemeColorToken::RenderBlockquoteBorder, current_theme_.render.blockquote_border);
+    cache_color(ThemeColorToken::RenderBlockquoteBg, current_theme_.render.blockquote_bg);
+    cache_color(ThemeColorToken::RenderTableBorder, current_theme_.render.table_border);
+    cache_color(ThemeColorToken::RenderTableHeaderBg, current_theme_.render.table_header_bg);
 }
 
 // --- Recursive propagation ---

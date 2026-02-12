@@ -91,6 +91,42 @@ auto Theme::is_dark() const -> bool
     return colors.bg_app.luminance() < 0.2f;
 }
 
+void Theme::sync_layers_from_colors()
+{
+    // Chrome layer — from base + UI tokens
+    chrome.bg_app = colors.bg_app;
+    chrome.bg_panel = colors.bg_panel;
+    chrome.bg_header = colors.bg_header;
+    chrome.bg_input = colors.bg_input;
+    chrome.border_light = colors.border_light;
+    chrome.border_dark = colors.border_dark;
+    chrome.accent_primary = colors.accent_primary;
+    chrome.accent_secondary = colors.accent_secondary;
+    chrome.list_hover = colors.list_hover;
+    chrome.list_selected = colors.list_selected;
+    chrome.scrollbar_thumb = colors.scrollbar_thumb;
+    chrome.scrollbar_track = colors.scrollbar_track;
+
+    // Syntax layer — from editor tokens
+    syntax.editor_bg = colors.editor_bg;
+    syntax.editor_fg = colors.editor_fg;
+    syntax.editor_selection = colors.editor_selection;
+    syntax.editor_line_number = colors.editor_line_number;
+    syntax.editor_cursor = colors.editor_cursor;
+    syntax.editor_gutter = colors.editor_gutter;
+    // keyword/string/comment/etc. keep their defaults from ThemeSyntaxColors
+
+    // Render layer keeps its defaults from ThemeRenderColors
+    // (heading, link, code_bg, etc.)
+
+    // Backward compat: migrate neon_edge → effects.edge_glow
+    if (neon_edge && !effects.edge_glow)
+    {
+        effects.edge_glow = true;
+        effects.edge_glow_color = colors.accent_primary;
+    }
+}
+
 // --- JSON serialization ---
 
 void to_json(nlohmann::json& j, const Color& c)
@@ -210,10 +246,24 @@ void from_json(const nlohmann::json& j, ThemeColors& tc)
 
 void to_json(nlohmann::json& j, const Theme& t)
 {
+    nlohmann::json effects_json;
+    effects_json["frosted_glass"] = t.effects.frosted_glass;
+    effects_json["inner_shadow"] = t.effects.inner_shadow;
+    effects_json["inner_shadow_radius"] = t.effects.inner_shadow_radius;
+    effects_json["inner_shadow_alpha"] = t.effects.inner_shadow_alpha;
+    effects_json["edge_glow"] = t.effects.edge_glow;
+    effects_json["edge_glow_color"] = t.effects.edge_glow_color;
+    effects_json["edge_glow_width"] = t.effects.edge_glow_width;
+    effects_json["edge_glow_alpha"] = t.effects.edge_glow_alpha;
+    effects_json["vignette"] = t.effects.vignette;
+    effects_json["vignette_strength"] = t.effects.vignette_strength;
+    effects_json["surface_blur"] = t.effects.surface_blur;
+
     j = nlohmann::json{
         {"id", t.id},
         {"name", t.name},
         {"colors", t.colors},
+        {"effects", effects_json},
     };
 }
 
@@ -222,6 +272,40 @@ void from_json(const nlohmann::json& j, Theme& t)
     j.at("id").get_to(t.id);
     j.at("name").get_to(t.name);
     j.at("colors").get_to(t.colors);
+
+    // Parse WindowEffects if present
+    if (j.contains("effects"))
+    {
+        const auto& eff = j.at("effects");
+        if (eff.contains("frosted_glass"))
+            eff.at("frosted_glass").get_to(t.effects.frosted_glass);
+        if (eff.contains("inner_shadow"))
+            eff.at("inner_shadow").get_to(t.effects.inner_shadow);
+        if (eff.contains("inner_shadow_radius"))
+            eff.at("inner_shadow_radius").get_to(t.effects.inner_shadow_radius);
+        if (eff.contains("inner_shadow_alpha"))
+            eff.at("inner_shadow_alpha").get_to(t.effects.inner_shadow_alpha);
+        if (eff.contains("edge_glow"))
+            eff.at("edge_glow").get_to(t.effects.edge_glow);
+        if (eff.contains("edge_glow_color"))
+            eff.at("edge_glow_color").get_to(t.effects.edge_glow_color);
+        if (eff.contains("edge_glow_width"))
+            eff.at("edge_glow_width").get_to(t.effects.edge_glow_width);
+        if (eff.contains("edge_glow_alpha"))
+            eff.at("edge_glow_alpha").get_to(t.effects.edge_glow_alpha);
+        if (eff.contains("vignette"))
+            eff.at("vignette").get_to(t.effects.vignette);
+        if (eff.contains("vignette_strength"))
+            eff.at("vignette_strength").get_to(t.effects.vignette_strength);
+        if (eff.contains("surface_blur"))
+            eff.at("surface_blur").get_to(t.effects.surface_blur);
+    }
+
+    // Backward compat: read legacy neon_edge
+    if (j.contains("neon_edge"))
+    {
+        j.at("neon_edge").get_to(t.neon_edge);
+    }
 }
 
 } // namespace markamp::core

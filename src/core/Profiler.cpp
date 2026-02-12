@@ -186,4 +186,28 @@ auto Profiler::memory_usage_mb() -> double
 #endif
 }
 
+// ═══════════════════════════════════════════════════════
+// BudgetGuard implementation
+// ═══════════════════════════════════════════════════════
+
+BudgetGuard::BudgetGuard(std::string_view name, std::chrono::microseconds budget)
+    : name_(name)
+    , budget_(budget)
+    , start_(std::chrono::high_resolution_clock::now())
+{
+}
+
+BudgetGuard::~BudgetGuard()
+{
+    auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::high_resolution_clock::now() - start_);
+    if (elapsed > budget_)
+    {
+        spdlog::warn("BudgetGuard '{}' exceeded: {:.1f}us actual vs {:.1f}us budget",
+                     name_,
+                     static_cast<double>(elapsed.count()),
+                     static_cast<double>(budget_.count()));
+    }
+}
+
 } // namespace markamp::core

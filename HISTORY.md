@@ -1,5 +1,42 @@
 # MarkAmp Release History
 
+## v1.1.4 — 2026-02-11
+
+### Highlights
+
+Performance infrastructure, visual polish, and crash fixes. Adds 20+ performance primitives (arena allocators, object pools, SPSC queues, frame schedulers, viewport caching, dirty region tracking), visual polish with gradient surfaces and micro-animations, and comprehensive test coverage improvements.
+
+### Added
+
+- **Performance Infrastructure**: FrameArena monotonic allocator, ObjectPool with free-list recycling, SPSCQueue lock-free single-producer-single-consumer queue, FrameScheduler with priority-based task execution, DocumentSnapshot atomic publish/consume, FrameHistogram for latency percentile tracking
+- **Data Structures**: PieceTable for O(log n) text editing, LineIndex for offset↔line/column mapping, IncrementalSearcher for progressive text search, AsyncFileLoader and AsyncHighlighter for background processing
+- **Rendering Primitives**: DirtyRegionAccumulator for rect-based invalidation, LRUCache (ViewportCache) for viewport line caching, LazyCache for deferred computation, LineLayoutCache for per-line measurement caching, ViewportState with prefetch margin support
+- **Visual Polish (Phase 8)**: Layered surface gradients on Toolbar, StatusBar, and Sidebar panels; graduated drop shadows on sidebar and ShortcutOverlay; soft alpha-blended separators; SplitterBar hover micro-animation with wxTimer; 8px spacing grid normalization
+- **UI Components**: FloatingFormatBar, LinkPreviewPopover, ImagePreviewPopover, TableEditorOverlay, ThemeTokenEditor, StartupPanel, RecentWorkspaces
+- **Mermaid Diagram Rendering**: MermaidRenderer and MermaidBlockRenderer for inline diagram support
+- **CoalescingTask**: Debounced background task execution for UI update coalescing
+- **Test Coverage**: test_visual_polish (14 cases), test_performance_infra (20+ cases), test_theme_phase4, test_mermaid_phase3, test_split_view_advanced, test_sidebar_filter
+- **Documentation**: WINDOW_VISUAL_FX.md, sublime_performance_patterns.md
+
+### Changed
+
+- Expanded `src/CMakeLists.txt` with new source files for all added components
+- Refactored `tests/CMakeLists.txt` for correct linking of all 8 test targets
+- Enhanced `EditorPanel` with dwell-start previews, format bar, and table editor integration
+- Extended `ThemeEngine` with brush/pen helpers and font token support
+- Expanded `Events.h` with new event types for all added features
+- Expanded `EventBus` with thread-safe subscription management
+
+### Fixed
+
+- **Crash: Unsigned char gradient overflow** — Fixed arithmetic underflow in gradient paint code (`Toolbar.cpp`, `StatusBarPanel.cpp`, `LayoutManager.cpp`) that caused crashes on dark themes. Replaced raw unsigned subtraction with safe int lerp + `std::clamp`
+- **FrameArena::reset() compile error** — Fixed deleted `operator=` on `std::pmr::monotonic_buffer_resource` by using placement new destroy-reconstruct pattern
+- **test_performance_infra build failures** — Switched to direct source linking instead of markamp_core to avoid unresolved UI symbols
+- **test_editor_qol linker errors** — Added missing UI source files (FloatingFormatBar, LinkPreviewPopover, TableEditorOverlay, ImagePreviewPopover)
+- **test_performance_infra nodiscard warnings** — Fixed unused `[[nodiscard]]` return values
+
+---
+
 ## v1.1.3 — 2026-02-11
 
 ### Highlights

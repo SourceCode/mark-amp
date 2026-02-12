@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/IMermaidRenderer.h"
+#include "core/MermaidRenderer.h"
 
 #include <string>
 #include <string_view>
@@ -31,9 +32,22 @@ public:
     /// Encode a string as base64 (for SVG data URIs).
     [[nodiscard]] static auto base64_encode(std::string_view input) -> std::string;
 
+    // --- Phase 3: Enhanced container with controls ---
+
+    /// Render SVG with zoom/pan/fullscreen/export overlay controls.
+    [[nodiscard]] auto render_with_controls(std::string_view mermaid_source,
+                                            core::IMermaidRenderer& renderer) -> std::string;
+
+    /// Render inline diagnostics below a diagram.
+    [[nodiscard]] static auto
+    render_diagnostics(const std::vector<core::DiagnosticInfo>& diagnostics) -> std::string;
+
 private:
     /// Escape HTML special characters in text.
     [[nodiscard]] static auto escape_html(std::string_view text) -> std::string;
+
+    /// Generate CSS styles for the Mermaid container controls.
+    [[nodiscard]] static auto container_styles() -> std::string;
 };
 
 } // namespace markamp::rendering

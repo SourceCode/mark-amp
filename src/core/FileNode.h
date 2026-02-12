@@ -21,6 +21,7 @@ struct FileNode
     std::optional<std::string> content; // Only for files
     std::vector<FileNode> children;     // Only for folders
     bool is_open{false};                // Folder toggle state
+    bool filter_visible{true};          // Sidebar filter visibility
 
     // Helpers
     [[nodiscard]] auto is_folder() const -> bool;

@@ -44,7 +44,7 @@ private:
         std::string label;
         bool is_active{false};
         bool is_hovered{false};
-        int icon_type{0}; // 0=code, 1=columns, 2=eye, 3=save, 4=palette, 5=gear
+        int icon_type{0}; // 0=code, 1=columns, 2=eye, 3=save, 4=palette, 5=gear, 6=focus
     };
 
     std::vector<ButtonInfo> left_buttons_;  // View mode toggles
@@ -59,6 +59,7 @@ private:
     void DrawSaveIcon(wxGraphicsContext& gc, double x, double y, double size) const;
     void DrawPaletteIcon(wxGraphicsContext& gc, double x, double y, double size) const;
     void DrawGearIcon(wxGraphicsContext& gc, double x, double y, double size) const;
+    void DrawFocusIcon(wxGraphicsContext& gc, double x, double y, double size) const;
 
     // Mouse
     void OnMouseMove(wxMouseEvent& event);
@@ -69,8 +70,12 @@ private:
     void RecalculateButtonRects();
     void OnSize(wxSizeEvent& event);
 
-    // Event subscription
+    // Focus mode
+    bool focus_mode_active_{false};
+
+    // Event subscriptions
     core::Subscription view_mode_sub_;
+    core::Subscription focus_mode_sub_;
     ThemeGalleryCallback on_theme_gallery_click_;
 };
 

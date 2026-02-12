@@ -1,5 +1,6 @@
 #include "LayoutManager.h"
 
+#include "EditorPanel.h"
 #include "FileTreeCtrl.h"
 #include "SplitView.h"
 #include "SplitterBar.h"
@@ -15,6 +16,7 @@
 #include <wx/sizer.h>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 
 namespace markamp::ui
@@ -67,9 +69,38 @@ void LayoutManager::CreateLayout()
     header_panel->SetBackgroundColour(theme_engine().color(core::ThemeColorToken::BgHeader));
     sidebar_sizer->Add(header_panel, 0, wxEXPAND);
 
+    // Search field: filter bar between header and file tree
+    auto* search_sizer = new wxBoxSizer(wxHORIZONTAL);
+    search_field_ = new wxTextCtrl(sidebar_panel_,
+                                   wxID_ANY,
+                                   wxEmptyString,
+                                   wxDefaultPosition,
+                                   wxSize(-1, 28),
+                                   wxTE_PROCESS_ENTER | wxNO_BORDER);
+    search_field_->SetHint("Filter files\u2026");
+    search_field_->SetBackgroundColour(
+        theme_engine().color(core::ThemeColorToken::BgPanel).ChangeLightness(110));
+    search_field_->SetForegroundColour(theme_engine().color(core::ThemeColorToken::TextMain));
+    search_field_->SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular));
+
+    search_sizer->AddSpacer(8);
+    search_sizer->Add(search_field_, 1, wxALIGN_CENTER_VERTICAL);
+    search_sizer->AddSpacer(8);
+    sidebar_sizer->Add(search_sizer, 0, wxEXPAND | wxTOP | wxBOTTOM, 8); // 8E: was 4
+
     // Spacer content area -> FileTreeCtrl
     file_tree_ = new FileTreeCtrl(sidebar_panel_, theme_engine(), event_bus_);
     sidebar_sizer->Add(file_tree_, 1, wxEXPAND);
+
+    // Bind search field text changes to filter
+    search_field_->Bind(wxEVT_TEXT,
+                        [this](wxCommandEvent& /*evt*/)
+                        {
+                            if (file_tree_ != nullptr)
+                            {
+                                file_tree_->ApplyFilter(search_field_->GetValue().ToStdString());
+                            }
+                        });
 
     // Load sample file tree
     auto sample_root = core::get_sample_file_tree();
@@ -267,28 +298,64 @@ void LayoutManager::OnThemeChanged(const core::Theme& new_theme)
 
     content_panel_->SetBackgroundColour(theme_engine().color(core::ThemeColorToken::BgApp));
     content_panel_->Refresh();
+
+    if (search_field_ != nullptr)
+    {
+        search_field_->SetBackgroundColour(
+            theme_engine().color(core::ThemeColorToken::BgPanel).ChangeLightness(110));
+        search_field_->SetForegroundColour(theme_engine().color(core::ThemeColorToken::TextMain));
+        search_field_->Refresh();
+    }
+
     sidebar_panel_->Refresh();
 }
 
 void LayoutManager::OnSidebarPaint(wxPaintEvent& /*event*/)
 {
-    wxAutoBufferedPaintDC dc(sidebar_panel_);
-    auto sz = sidebar_panel_->GetClientSize();
-    int w = sz.GetWidth();
-    int h = sz.GetHeight();
+    wxAutoBufferedPaintDC paint_dc(sidebar_panel_);
+    auto client_sz = sidebar_panel_->GetClientSize();
+    const int panel_width = client_sz.GetWidth();
+    const int panel_height = client_sz.GetHeight();
 
-    // Background
-    dc.SetBrush(theme_engine().brush(core::ThemeColorToken::BgPanel));
-    dc.SetPen(*wxTRANSPARENT_PEN);
-    dc.DrawRectangle(sz);
+    // 8D: Subtle top-to-bottom gradient (BgPanel → 3% darker)
+    {
+        auto base_col = theme_engine().color(core::ThemeColorToken::BgPanel);
+        auto darker = base_col.ChangeLightness(97);
+        for (int row = 0; row < panel_height; ++row)
+        {
+            const double frac =
+                static_cast<double>(row) / static_cast<double>(std::max(panel_height - 1, 1));
+            auto lerp = [](int from, int to, double ratio) -> unsigned char
+            {
+                return static_cast<unsigned char>(
+                    std::clamp(static_cast<int>(from + ratio * (to - from)), 0, 255));
+            };
+            paint_dc.SetPen(wxPen(wxColour(lerp(base_col.Red(), darker.Red(), frac),
+                                           lerp(base_col.Green(), darker.Green(), frac),
+                                           lerp(base_col.Blue(), darker.Blue(), frac)),
+                                  1));
+            paint_dc.DrawLine(0, row, panel_width, row);
+        }
+    }
 
-    // Right border: 2px border_dark
-    dc.SetPen(theme_engine().pen(core::ThemeColorToken::BorderDark, 2));
-    dc.DrawLine(w - 1, 0, w - 1, h);
+    // 8A: Drop shadow on right edge (4 graduated bands: 8%→4%→2%→1% black)
+    {
+        constexpr int kShadowBands = 4;
+        constexpr std::array<unsigned char, kShadowBands> kShadowAlphas = {20, 10, 5, 3};
+        for (int band = 0; band < kShadowBands; ++band)
+        {
+            paint_dc.SetPen(
+                wxPen(wxColour(0, 0, 0, kShadowAlphas.at(static_cast<size_t>(band))), 1));
+            paint_dc.DrawLine(panel_width - 1 - band, 0, panel_width - 1 - band, panel_height);
+        }
+    }
 
-    // Left border: 1px border_light (bevel)
-    dc.SetPen(theme_engine().pen(core::ThemeColorToken::BorderLight, 1));
-    dc.DrawLine(0, 0, 0, h);
+    // 8B: Soft left highlight — 1px BgPanel lighter
+    {
+        auto highlight = theme_engine().color(core::ThemeColorToken::BgPanel).ChangeLightness(108);
+        paint_dc.SetPen(wxPen(highlight, 1));
+        paint_dc.DrawLine(0, 0, 0, panel_height);
+    }
 }
 
 // --- Persistence ---
@@ -313,6 +380,18 @@ void LayoutManager::RestoreLayoutState()
     sidebar_width_ = config_->get_int("layout.sidebar_width", kDefaultSidebarWidth);
     sidebar_width_ = std::clamp(sidebar_width_, kMinSidebarWidth, kMaxSidebarWidth);
     sidebar_current_width_ = sidebar_visible_ ? sidebar_width_ : 0;
+}
+
+void LayoutManager::ToggleEditorMinimap()
+{
+    if (split_view_ != nullptr)
+    {
+        auto* editor = split_view_->GetEditorPanel();
+        if (editor != nullptr)
+        {
+            editor->ToggleMinimap();
+        }
+    }
 }
 
 } // namespace markamp::ui

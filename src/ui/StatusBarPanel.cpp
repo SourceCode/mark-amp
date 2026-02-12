@@ -221,19 +221,38 @@ void StatusBarPanel::OnPaint(wxPaintEvent& /*event*/)
     int width = client_size.GetWidth();
     int height = client_size.GetHeight();
 
-    // Background
-    dc.SetBrush(theme_engine().brush(core::ThemeColorToken::BgPanel));
-    dc.SetPen(*wxTRANSPARENT_PEN);
-    dc.DrawRectangle(client_size);
+    // Background with 8D gradient: slightly darker at bottom
+    {
+        auto base_col = theme_engine().color(core::ThemeColorToken::BgPanel);
+        auto darker = base_col.ChangeLightness(97);
+        for (int row = 0; row < height; ++row)
+        {
+            const double frac =
+                static_cast<double>(row) / static_cast<double>(std::max(height - 1, 1));
+            auto lerp = [](int from, int to, double ratio) -> unsigned char
+            {
+                return static_cast<unsigned char>(
+                    std::clamp(static_cast<int>(from + ratio * (to - from)), 0, 255));
+            };
+            dc.SetPen(wxPen(wxColour(lerp(base_col.Red(), darker.Red(), frac),
+                                     lerp(base_col.Green(), darker.Green(), frac),
+                                     lerp(base_col.Blue(), darker.Blue(), frac)),
+                            1));
+            dc.DrawLine(0, row, width, row);
+        }
+    }
 
-    // Top border: 1px border_light
-    dc.SetPen(theme_engine().pen(core::ThemeColorToken::BorderLight, 1));
-    dc.DrawLine(0, 0, width, 0);
+    // 8B: Soft top border — BorderLight at 60% alpha
+    {
+        auto border_col = theme_engine().color(core::ThemeColorToken::BorderLight);
+        dc.SetPen(wxPen(wxColour(border_col.Red(), border_col.Green(), border_col.Blue(), 153), 1));
+        dc.DrawLine(0, 0, width, 0);
+    }
 
     // Font: 10px monospace, uppercase
     dc.SetFont(theme_engine().font(core::ThemeFontToken::UISmall));
 
-    const int padding = 12;
+    const int padding = 16; // 8E: was 12
     const int text_y = (height - dc.GetCharHeight()) / 2;
     const int separator_gap = 16;
 

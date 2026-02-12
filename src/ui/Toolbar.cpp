@@ -14,11 +14,11 @@ namespace markamp::ui
 namespace
 {
 constexpr int kButtonPadH = 8;
-constexpr int kButtonPadV = 6;
+constexpr int kButtonPadV = 8; // 8E: was 6
 constexpr int kIconSize = 14;
-constexpr int kButtonGap = 4;
-constexpr int kRightMargin = 12;
-constexpr int kLeftMargin = 12;
+constexpr int kButtonGap = 8;    // 8E: was 4
+constexpr int kRightMargin = 16; // 8E: was 12
+constexpr int kLeftMargin = 16;  // 8E: was 12
 constexpr double kFontSizeLabel = 11.0;
 } // namespace
 
@@ -31,10 +31,11 @@ Toolbar::Toolbar(wxWindow* parent, core::ThemeEngine& theme_engine, core::EventB
 
     SetBackgroundStyle(wxBG_STYLE_PAINT);
 
-    // --- Left buttons: SRC, SPLIT, VIEW ---
+    // --- Left buttons: SRC, SPLIT, VIEW, FOCUS ---
     left_buttons_.push_back({{}, "SRC", false, false, 0});
     left_buttons_.push_back({{}, "SPLIT", true, false, 1}); // default active
     left_buttons_.push_back({{}, "VIEW", false, false, 2});
+    left_buttons_.push_back({{}, "FOCUS", false, false, 6}); // focus mode
 
     // --- Right buttons: Save, THEMES, Settings ---
     right_buttons_.push_back({{}, "", false, false, 3});       // Save (icon only)
@@ -51,6 +52,18 @@ Toolbar::Toolbar(wxWindow* parent, core::ThemeEngine& theme_engine, core::EventB
     // Subscribe to view mode changes from external sources
     view_mode_sub_ = event_bus_.subscribe<core::events::ViewModeChangedEvent>(
         [this](const core::events::ViewModeChangedEvent& evt) { SetActiveViewMode(evt.mode); });
+
+    // Subscribe to focus mode changes
+    focus_mode_sub_ = event_bus_.subscribe<core::events::FocusModeChangedEvent>(
+        [this](const core::events::FocusModeChangedEvent& evt)
+        {
+            focus_mode_active_ = evt.active;
+            if (left_buttons_.size() > 3)
+            {
+                left_buttons_[3].is_active = evt.active;
+            }
+            Refresh();
+        });
 
     RecalculateButtonRects();
 }
@@ -199,6 +212,13 @@ void Toolbar::OnMouseDown(wxMouseEvent& event)
     {
         if (left_buttons_[i].rect.Contains(pos))
         {
+            // Focus mode button (index 3)
+            if (i == 3)
+            {
+                event_bus_.publish(core::events::FocusModeChangedEvent{!focus_mode_active_});
+                return;
+            }
+
             core::events::ViewMode mode{};
             switch (i)
             {
@@ -253,8 +273,34 @@ void Toolbar::OnPaint(wxPaintEvent& /*event*/)
     dc.SetBackground(wxBrush(wxColour(t.colors.bg_panel.to_rgba_string())));
     dc.Clear();
 
-    // Bottom border
-    dc.SetPen(wxPen(wxColour(t.colors.border_dark.to_rgba_string()), 1));
+    // 8D: subtle gradient overlay — lighter at bottom
+    {
+        auto base_col = wxColour(t.colors.bg_panel.to_rgba_string());
+        auto lighter = base_col.ChangeLightness(103);
+        int bar_h = GetClientSize().GetHeight();
+        int bar_w = GetClientSize().GetWidth();
+        for (int row = 0; row < bar_h - 1; ++row)
+        {
+            const double frac =
+                static_cast<double>(row) / static_cast<double>(std::max(bar_h - 1, 1));
+            auto lerp = [](int from, int to, double ratio) -> unsigned char
+            {
+                return static_cast<unsigned char>(
+                    std::clamp(static_cast<int>(from + ratio * (to - from)), 0, 255));
+            };
+            dc.SetPen(wxPen(wxColour(lerp(base_col.Red(), lighter.Red(), frac),
+                                     lerp(base_col.Green(), lighter.Green(), frac),
+                                     lerp(base_col.Blue(), lighter.Blue(), frac)),
+                            1));
+            dc.DrawLine(0, row, bar_w, row);
+        }
+    }
+
+    // 8B: soft bottom border — BorderLight at 40% alpha
+    {
+        auto border_col = wxColour(t.colors.border_light.to_rgba_string());
+        dc.SetPen(wxPen(wxColour(border_col.Red(), border_col.Green(), border_col.Blue(), 102), 1));
+    }
     int bottom_y = GetClientSize().GetHeight() - 1;
     dc.DrawLine(0, bottom_y, GetClientSize().GetWidth(), bottom_y);
 
@@ -343,6 +389,9 @@ void Toolbar::DrawButton(wxGraphicsContext& gc, const ButtonInfo& btn, const cor
             break;
         case 5:
             DrawGearIcon(gc, icon_x, icon_y, kIconSize);
+            break;
+        case 6:
+            DrawFocusIcon(gc, icon_x, icon_y, kIconSize);
             break;
         default:
             break;
@@ -532,6 +581,42 @@ void Toolbar::DrawGearIcon(wxGraphicsContext& gc, double x, double y, double siz
         path.AddLineToPoint(x2, y2);
         gc.StrokePath(path);
     }
+}
+
+void Toolbar::DrawFocusIcon(wxGraphicsContext& gc, double x, double y, double size) const
+{
+    // Center-align icon: 3 horizontal lines, center one wider
+    double cx = x + size / 2.0;
+    double line_h = size * 0.15;
+    double short_w = size * 0.5;
+    double long_w = size * 0.8;
+
+    // Determine fill color based on state
+    wxColour fill_color;
+    if (left_buttons_.size() > 3 && left_buttons_[3].is_active)
+    {
+        fill_color = wxColour(theme().colors.accent_primary.to_rgba_string());
+    }
+    else if (left_buttons_.size() > 3 && left_buttons_[3].is_hovered)
+    {
+        fill_color = wxColour(theme().colors.text_main.to_rgba_string());
+    }
+    else
+    {
+        fill_color = wxColour(theme().colors.text_muted.to_rgba_string());
+    }
+
+    gc.SetBrush(gc.CreateBrush(wxBrush(fill_color)));
+    gc.SetPen(*wxTRANSPARENT_PEN);
+
+    // Top line (short, centered)
+    gc.DrawRoundedRectangle(cx - short_w / 2, y + 2, short_w, line_h, 1.0);
+    // Middle line (longer, centered)
+    gc.DrawRoundedRectangle(cx - long_w / 2, y + size / 2 - line_h / 2, long_w, line_h, 1.0);
+    // Bottom line (short, centered)
+    gc.DrawRoundedRectangle(cx - short_w / 2, y + size - 2 - line_h, short_w, line_h, 1.0);
+
+    gc.SetBrush(*wxTRANSPARENT_BRUSH);
 }
 
 // ═══════════════════════════════════════════════════════

@@ -8,6 +8,7 @@
 #include <wx/graphics.h>
 
 #include <algorithm>
+#include <cctype>
 #include <fstream>
 #include <sstream>
 
@@ -53,6 +54,96 @@ void FileTreeCtrl::SetOnFileSelect(FileSelectCallback callback)
     on_file_select_ = std::move(callback);
 }
 
+// --- Filtering ---
+
+void FileTreeCtrl::ApplyFilter(const std::string& filter)
+{
+    filter_text_ = filter;
+
+    if (filter.empty())
+    {
+        ClearFilter();
+        return;
+    }
+
+    // Lowercase the filter for case-insensitive match
+    std::string lower_filter = filter;
+    std::transform(lower_filter.begin(),
+                   lower_filter.end(),
+                   lower_filter.begin(),
+                   [](unsigned char chr) { return static_cast<char>(std::tolower(chr)); });
+
+    ApplyFilterRecursive(roots_, lower_filter);
+    scroll_offset_ = 0;
+    UpdateVirtualHeight();
+    Refresh();
+}
+
+void FileTreeCtrl::ClearFilter()
+{
+    filter_text_.clear();
+
+    // Mark all nodes visible
+    std::function<void(std::vector<core::FileNode>&)> reset_visible;
+    reset_visible = [&](std::vector<core::FileNode>& nodes)
+    {
+        for (auto& node : nodes)
+        {
+            node.filter_visible = true;
+            if (node.is_folder())
+            {
+                reset_visible(node.children);
+            }
+        }
+    };
+
+    reset_visible(roots_);
+    UpdateVirtualHeight();
+    Refresh();
+}
+
+auto FileTreeCtrl::MatchesFilter(const core::FileNode& node, const std::string& lower_filter) const
+    -> bool
+{
+    std::string lower_name = node.name;
+    std::transform(lower_name.begin(),
+                   lower_name.end(),
+                   lower_name.begin(),
+                   [](unsigned char chr) { return static_cast<char>(std::tolower(chr)); });
+    return lower_name.find(lower_filter) != std::string::npos;
+}
+
+void FileTreeCtrl::ApplyFilterRecursive(std::vector<core::FileNode>& nodes,
+                                        const std::string& lower_filter)
+{
+    for (auto& node : nodes)
+    {
+        if (node.is_folder())
+        {
+            // Recurse into children first
+            ApplyFilterRecursive(node.children, lower_filter);
+
+            // Folder is visible if it matches OR any child is visible
+            bool has_visible_child =
+                std::any_of(node.children.begin(),
+                            node.children.end(),
+                            [](const core::FileNode& child) { return child.filter_visible; });
+
+            node.filter_visible = MatchesFilter(node, lower_filter) || has_visible_child;
+
+            // Auto-expand folders with visible children during filtering
+            if (has_visible_child)
+            {
+                node.is_open = true;
+            }
+        }
+        else
+        {
+            node.filter_visible = MatchesFilter(node, lower_filter);
+        }
+    }
+}
+
 // --- Rendering ---
 
 void FileTreeCtrl::OnPaint(wxPaintEvent& /*event*/)
@@ -74,7 +165,10 @@ void FileTreeCtrl::OnPaint(wxPaintEvent& /*event*/)
     int y_offset = -scroll_offset_;
     for (const auto& node : roots_)
     {
-        DrawNode(dc, node, 0, y_offset);
+        if (node.filter_visible)
+        {
+            DrawNode(dc, node, 0, y_offset);
+        }
     }
 }
 
@@ -257,7 +351,10 @@ void FileTreeCtrl::DrawNode(wxDC& dc, const core::FileNode& node, int depth, int
     {
         for (const auto& child : node.children)
         {
-            DrawNode(dc, child, depth + 1, y_offset);
+            if (child.filter_visible)
+            {
+                DrawNode(dc, child, depth + 1, y_offset);
+            }
         }
     }
 }
@@ -339,6 +436,11 @@ auto FileTreeCtrl::HitTestRecursive(const wxPoint& point,
 {
     for (auto& node : nodes)
     {
+        if (!node.filter_visible)
+        {
+            continue;
+        }
+
         int row_top = y_offset;
         y_offset += kRowHeight;
 
@@ -384,6 +486,10 @@ void FileTreeCtrl::UpdateVirtualHeight()
         int count = 0;
         for (const auto& node : nodes)
         {
+            if (!node.filter_visible)
+            {
+                continue;
+            }
             count += 1;
             if (node.is_folder() && node.is_open)
             {

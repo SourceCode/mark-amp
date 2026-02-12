@@ -46,9 +46,18 @@ void EventBus::process_queued()
         std::lock_guard lock(mutex_);
         events_to_process.swap(queued_events_);
     }
-    for (const auto& fn : events_to_process)
+    for (const auto& func : events_to_process)
     {
-        fn();
+        func();
+    }
+}
+
+void EventBus::drain_fast_queue()
+{
+    std::function<void()> func;
+    while (fast_queue_.try_pop(func))
+    {
+        func();
     }
 }
 

@@ -218,4 +218,53 @@ struct WorkspaceOpenRequestEvent : Event
     }
 };
 
+// --- Focus mode events ---
+struct FocusModeChangedEvent : Event
+{
+    bool active{false};
+
+    FocusModeChangedEvent() = default;
+    explicit FocusModeChangedEvent(bool is_active)
+        : active(is_active)
+    {
+    }
+
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "FocusModeChangedEvent";
+    }
+};
+
+// --- Scroll sync mode ---
+enum class ScrollSyncMode
+{
+    Proportional,
+    HeadingAnchor
+};
+
+struct ScrollSyncModeChangedEvent : Event
+{
+    ScrollSyncMode mode{ScrollSyncMode::Proportional};
+
+    ScrollSyncModeChangedEvent() = default;
+    explicit ScrollSyncModeChangedEvent(ScrollSyncMode sync_mode)
+        : mode(sync_mode)
+    {
+    }
+
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ScrollSyncModeChangedEvent";
+    }
+};
+
+/// Request to open the theme gallery.
+struct ThemeGalleryRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ThemeGalleryRequestEvent";
+    }
+};
+
 } // namespace markamp::core::events

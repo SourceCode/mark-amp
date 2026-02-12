@@ -1,5 +1,9 @@
 #include "EditorPanel.h"
 
+#include "FloatingFormatBar.h"
+#include "ImagePreviewPopover.h"
+#include "LinkPreviewPopover.h"
+#include "TableEditorOverlay.h"
 #include "core/Config.h"
 #include "core/Events.h"
 #include "core/Logger.h"
@@ -44,6 +48,9 @@ EditorPanel::EditorPanel(wxWindow* parent,
 
     // Bind debounce timer
     Bind(wxEVT_TIMER, &EditorPanel::OnDebounceTimer, this, debounce_timer_.GetId());
+
+    // Phase 5: Format bar show timer
+    Bind(wxEVT_TIMER, &EditorPanel::OnFormatBarTimer, this, format_bar_timer_.GetId());
 
     ApplyThemeToEditor();
 }
@@ -428,6 +435,11 @@ void EditorPanel::CreateEditor()
     editor_->Bind(wxEVT_STC_CHARADDED, &EditorPanel::OnCharAdded, this);
     editor_->Bind(wxEVT_KEY_DOWN, &EditorPanel::OnKeyDown, this);
     editor_->Bind(wxEVT_MOUSEWHEEL, &EditorPanel::OnMouseWheel, this);
+
+    // Phase 5: Dwell events for link/image preview
+    editor_->SetMouseDwellTime(500);
+    editor_->Bind(wxEVT_STC_DWELLSTART, &EditorPanel::OnDwellStart, this);
+    editor_->Bind(wxEVT_STC_DWELLEND, &EditorPanel::OnDwellEnd, this);
 }
 
 void EditorPanel::CreateFindBar()
@@ -1616,6 +1628,24 @@ void EditorPanel::OnEditorUpdateUI(wxStyledTextEvent& /*event*/)
     {
         HighlightTrailingWhitespace();
     }
+
+    // Phase 5: Show/hide floating format bar based on selection
+    {
+        int sel_len = std::abs(editor_->GetSelectionEnd() - editor_->GetSelectionStart());
+        if (sel_len > 0)
+        {
+            // Start debounce timer — 200ms delay to avoid flicker during click-drags
+            if (!format_bar_timer_.IsRunning())
+            {
+                format_bar_timer_.StartOnce(200);
+            }
+        }
+        else
+        {
+            format_bar_timer_.Stop();
+            HideFormatBar();
+        }
+    }
 }
 
 void EditorPanel::OnCharAdded(wxStyledTextEvent& event)
@@ -2773,6 +2803,618 @@ void EditorPanel::CalculateAndPublishStats()
     evt.selection_length = std::abs(editor_->GetSelectionEnd() - editor_->GetSelectionStart());
 
     event_bus_.publish(evt);
+}
+
+// ═══════════════════════════════════════════════════════
+// Phase 5: Contextual Inline Markdown Tools
+// ═══════════════════════════════════════════════════════
+
+void EditorPanel::InsertBlockquote()
+{
+    if (editor_ == nullptr)
+    {
+        return;
+    }
+    int sel_start = editor_->GetSelectionStart();
+    int sel_end = editor_->GetSelectionEnd();
+
+    if (sel_start == sel_end)
+    {
+        // No selection: insert "> " at the start of the current line
+        int line = editor_->GetCurrentLine();
+        int line_start = editor_->PositionFromLine(line);
+        editor_->InsertText(line_start, "> ");
+    }
+    else
+    {
+        // Prefix each selected line with "> "
+        int start_line = editor_->LineFromPosition(sel_start);
+        int end_line = editor_->LineFromPosition(sel_end);
+        editor_->BeginUndoAction();
+        for (int ln = end_line; ln >= start_line; --ln)
+        {
+            int pos = editor_->PositionFromLine(ln);
+            editor_->InsertText(pos, "> ");
+        }
+        editor_->EndUndoAction();
+    }
+}
+
+void EditorPanel::CycleHeading()
+{
+    if (editor_ == nullptr)
+    {
+        return;
+    }
+    int line = editor_->GetCurrentLine();
+    auto line_text = editor_->GetLine(line).ToStdString();
+
+    // Count existing # prefix
+    int hash_count = 0;
+    while (hash_count < static_cast<int>(line_text.size()) &&
+           line_text[static_cast<size_t>(hash_count)] == '#')
+    {
+        ++hash_count;
+    }
+
+    int line_start = editor_->PositionFromLine(line);
+
+    editor_->BeginUndoAction();
+
+    // Remove existing heading prefix
+    if (hash_count > 0)
+    {
+        // Remove "# " or "## " etc.
+        int remove_len = hash_count;
+        if (hash_count < static_cast<int>(line_text.size()) &&
+            line_text[static_cast<size_t>(hash_count)] == ' ')
+        {
+            remove_len++;
+        }
+        editor_->SetTargetStart(line_start);
+        editor_->SetTargetEnd(line_start + remove_len);
+        editor_->ReplaceTarget("");
+    }
+
+    // Cycle: 0 -> # -> ## -> ### -> (nothing)
+    int new_level = (hash_count < 3) ? hash_count + 1 : 0;
+    if (new_level > 0)
+    {
+        std::string prefix(static_cast<size_t>(new_level), '#');
+        prefix += ' ';
+        editor_->InsertText(line_start, prefix);
+    }
+
+    editor_->EndUndoAction();
+}
+
+void EditorPanel::InsertTable()
+{
+    if (editor_ == nullptr)
+    {
+        return;
+    }
+    int pos = editor_->GetCurrentPos();
+    std::string table_template = "| Column 1 | Column 2 | Column 3 |\n"
+                                 "| -------- | -------- | -------- |\n"
+                                 "| cell 1   | cell 2   | cell 3   |\n";
+
+    editor_->InsertText(pos, table_template);
+    // Position cursor in first cell
+    editor_->GotoPos(pos + 2); // after "| "
+}
+
+void EditorPanel::SetDocumentBasePath(const std::filesystem::path& base_path)
+{
+    document_base_path_ = base_path;
+}
+
+void EditorPanel::ShowFormatBar()
+{
+    if (editor_ == nullptr)
+    {
+        return;
+    }
+
+    int sel_start = editor_->GetSelectionStart();
+    int sel_end = editor_->GetSelectionEnd();
+    if (sel_start == sel_end)
+    {
+        return; // No selection
+    }
+
+    if (format_bar_ == nullptr)
+    {
+        format_bar_ = new FloatingFormatBar(this,
+                                            theme_engine(),
+                                            [this](FloatingFormatBar::Action action)
+                                            { HandleFormatBarAction(static_cast<int>(action)); });
+    }
+
+    UpdateFormatBarPosition();
+    format_bar_->Popup();
+}
+
+void EditorPanel::HideFormatBar()
+{
+    if (format_bar_ != nullptr && format_bar_->IsShown())
+    {
+        format_bar_->Dismiss();
+    }
+}
+
+void EditorPanel::UpdateFormatBarPosition()
+{
+    if (format_bar_ == nullptr || editor_ == nullptr)
+    {
+        return;
+    }
+
+    int sel_start = editor_->GetSelectionStart();
+    wxPoint pos = editor_->PointFromPosition(sel_start);
+
+    // Convert to screen coordinates
+    wxPoint screen_pos = editor_->ClientToScreen(pos);
+
+    // Position 4px above the selection
+    wxSize bar_size = format_bar_->GetSize();
+    screen_pos.y -= bar_size.GetHeight() + 4;
+
+    // Clamp to screen bounds
+    wxRect screen_rect = wxGetClientDisplayRect();
+    if (screen_pos.x + bar_size.GetWidth() > screen_rect.GetRight())
+    {
+        screen_pos.x = screen_rect.GetRight() - bar_size.GetWidth();
+    }
+    if (screen_pos.x < screen_rect.GetLeft())
+    {
+        screen_pos.x = screen_rect.GetLeft();
+    }
+    if (screen_pos.y < screen_rect.GetTop())
+    {
+        // If no room above, show below
+        screen_pos.y = editor_->ClientToScreen(pos).y + editor_->TextHeight(0) + 4;
+    }
+
+    format_bar_->SetPosition(screen_pos);
+}
+
+void EditorPanel::HandleFormatBarAction(int action)
+{
+    auto typed_action = static_cast<FloatingFormatBar::Action>(action);
+    switch (typed_action)
+    {
+        case FloatingFormatBar::Action::Bold:
+            ToggleBold();
+            break;
+        case FloatingFormatBar::Action::Italic:
+            ToggleItalic();
+            break;
+        case FloatingFormatBar::Action::InlineCode:
+            ToggleInlineCode();
+            break;
+        case FloatingFormatBar::Action::Link:
+            InsertLink();
+            break;
+        case FloatingFormatBar::Action::Blockquote:
+            InsertBlockquote();
+            break;
+        case FloatingFormatBar::Action::Heading:
+            CycleHeading();
+            break;
+        case FloatingFormatBar::Action::Table:
+            InsertTable();
+            break;
+    }
+}
+
+void EditorPanel::OnFormatBarTimer(wxTimerEvent& /*event*/)
+{
+    ShowFormatBar();
+}
+
+// ── Dwell handlers for link/image preview ──
+
+void EditorPanel::OnDwellStart(wxStyledTextEvent& event)
+{
+    int pos = event.GetPosition();
+    if (pos < 0)
+    {
+        return;
+    }
+
+    // Check for image first (superset pattern: ![alt](path))
+    auto image_info = DetectImageAtPosition(pos);
+    if (image_info.has_value())
+    {
+        if (image_popover_ == nullptr)
+        {
+            image_popover_ = new ImagePreviewPopover(this, theme_engine());
+        }
+
+        // Resolve relative path
+        std::filesystem::path img_path(image_info->url);
+        if (img_path.is_relative() && !document_base_path_.empty())
+        {
+            img_path = document_base_path_ / img_path;
+        }
+
+        if (image_popover_->SetImage(img_path, image_info->text))
+        {
+            wxPoint screen_pos = editor_->ClientToScreen(editor_->PointFromPosition(pos));
+            screen_pos.y += editor_->TextHeight(0) + 4;
+            image_popover_->SetPosition(screen_pos);
+            image_popover_->Popup();
+        }
+        return;
+    }
+
+    // Check for link pattern: [text](url)
+    auto link_info = DetectLinkAtPosition(pos);
+    if (link_info.has_value())
+    {
+        if (link_popover_ == nullptr)
+        {
+            link_popover_ = new LinkPreviewPopover(this, theme_engine());
+        }
+
+        link_popover_->SetLink(link_info->text, link_info->url);
+
+        wxPoint screen_pos = editor_->ClientToScreen(editor_->PointFromPosition(pos));
+        screen_pos.y += editor_->TextHeight(0) + 4;
+        link_popover_->SetPosition(screen_pos);
+        link_popover_->Popup();
+    }
+}
+
+void EditorPanel::OnDwellEnd(wxStyledTextEvent& /*event*/)
+{
+    if (link_popover_ != nullptr && link_popover_->IsShown())
+    {
+        link_popover_->Dismiss();
+    }
+    if (image_popover_ != nullptr && image_popover_->IsShown())
+    {
+        image_popover_->Dismiss();
+    }
+}
+
+// ── Link/image/table detection ──
+
+auto EditorPanel::DetectLinkAtPosition(int pos) -> std::optional<LinkInfo>
+{
+    if (editor_ == nullptr || pos < 0)
+    {
+        return std::nullopt;
+    }
+
+    int line = editor_->LineFromPosition(pos);
+    auto line_text = editor_->GetLine(line).ToStdString();
+    int col = pos - editor_->PositionFromLine(line);
+
+    // Search for [text](url) pattern containing the cursor position
+    std::regex link_re(R"(\[([^\]]*?)\]\(([^\)]+?)\))");
+    std::smatch match;
+    std::string search_str = line_text;
+    int search_offset = 0;
+
+    while (std::regex_search(search_str, match, link_re))
+    {
+        int match_start = search_offset + static_cast<int>(match.position());
+        int match_end = match_start + static_cast<int>(match.length());
+
+        if (col >= match_start && col <= match_end)
+        {
+            // Don't match image links (they start with !)
+            if (match_start > 0 && line_text[static_cast<size_t>(match_start - 1)] == '!')
+            {
+                search_str = match.suffix().str();
+                search_offset = match_end;
+                continue;
+            }
+            return LinkInfo{match[1].str(), match[2].str()};
+        }
+
+        search_str = match.suffix().str();
+        search_offset = match_end;
+    }
+
+    return std::nullopt;
+}
+
+auto EditorPanel::DetectImageAtPosition(int pos) -> std::optional<LinkInfo>
+{
+    if (editor_ == nullptr || pos < 0)
+    {
+        return std::nullopt;
+    }
+
+    int line = editor_->LineFromPosition(pos);
+    auto line_text = editor_->GetLine(line).ToStdString();
+    int col = pos - editor_->PositionFromLine(line);
+
+    // Search for ![alt](path) pattern
+    std::regex image_re(R"(!\[([^\]]*?)\]\(([^\)]+?)\))");
+    std::smatch match;
+    std::string search_str = line_text;
+    int search_offset = 0;
+
+    while (std::regex_search(search_str, match, image_re))
+    {
+        int match_start = search_offset + static_cast<int>(match.position());
+        int match_end = match_start + static_cast<int>(match.length());
+
+        if (col >= match_start && col <= match_end)
+        {
+            return LinkInfo{match[1].str(), match[2].str()};
+        }
+
+        search_str = match.suffix().str();
+        search_offset = match_end;
+    }
+
+    return std::nullopt;
+}
+
+auto EditorPanel::DetectTableAtCursor() -> std::optional<std::pair<int, int>>
+{
+    if (editor_ == nullptr)
+    {
+        return std::nullopt;
+    }
+
+    int current_line = editor_->GetCurrentLine();
+    auto line_text = editor_->GetLine(current_line).ToStdString();
+
+    // Check if current line looks like a table row (starts with |)
+    auto trimmed = line_text;
+    while (!trimmed.empty() && trimmed.front() == ' ')
+    {
+        trimmed.erase(trimmed.begin());
+    }
+    if (trimmed.empty() || trimmed.front() != '|')
+    {
+        return std::nullopt;
+    }
+
+    // Scan upward to find the start of the table
+    int start_line = current_line;
+    while (start_line > 0)
+    {
+        auto prev_text = editor_->GetLine(start_line - 1).ToStdString();
+        while (!prev_text.empty() && prev_text.front() == ' ')
+        {
+            prev_text.erase(prev_text.begin());
+        }
+        if (prev_text.empty() || prev_text.front() != '|')
+        {
+            break;
+        }
+        start_line--;
+    }
+
+    // Scan downward to find the end of the table
+    int end_line = current_line;
+    int total_lines = editor_->GetLineCount();
+    while (end_line < total_lines - 1)
+    {
+        auto next_text = editor_->GetLine(end_line + 1).ToStdString();
+        while (!next_text.empty() && next_text.front() == ' ')
+        {
+            next_text.erase(next_text.begin());
+        }
+        if (next_text.empty() || next_text.front() != '|')
+        {
+            break;
+        }
+        end_line++;
+    }
+
+    if (start_line == end_line)
+    {
+        return std::nullopt; // Single line isn't a valid table
+    }
+
+    return std::make_pair(start_line, end_line);
+}
+
+void EditorPanel::ShowTableEditor()
+{
+    auto table_range = DetectTableAtCursor();
+    if (!table_range.has_value())
+    {
+        return;
+    }
+
+    auto [start_line, end_line] = table_range.value();
+
+    // Collect table lines
+    std::vector<std::string> lines;
+    for (int ln = start_line; ln <= end_line; ++ln)
+    {
+        lines.push_back(editor_->GetLine(ln).ToStdString());
+    }
+
+    if (table_overlay_ == nullptr)
+    {
+        table_overlay_ =
+            new TableEditorOverlay(this,
+                                   theme_engine(),
+                                   [this](const std::string& markdown, int start_ln, int end_ln)
+                                   {
+                                       // Replace the table lines in the editor
+                                       int start_pos = editor_->PositionFromLine(start_ln);
+                                       int end_pos = (end_ln + 1 < editor_->GetLineCount())
+                                                         ? editor_->PositionFromLine(end_ln + 1)
+                                                         : editor_->GetLength();
+
+                                       editor_->BeginUndoAction();
+                                       editor_->SetTargetStart(start_pos);
+                                       editor_->SetTargetEnd(end_pos);
+                                       editor_->ReplaceTarget(markdown);
+                                       editor_->EndUndoAction();
+                                   });
+    }
+
+    if (!table_overlay_->LoadTable(lines, start_line, end_line))
+    {
+        return;
+    }
+
+    // Position overlay over the editor
+    auto sizer = GetSizer();
+    if (sizer != nullptr)
+    {
+        table_overlay_->Show();
+        sizer->Layout();
+    }
+}
+
+void EditorPanel::HideTableEditor()
+{
+    if (table_overlay_ != nullptr)
+    {
+        table_overlay_->Hide();
+    }
+}
+
+// ═══════════════════════════════════════════════════════
+// Phase 6D: Document Minimap
+// ═══════════════════════════════════════════════════════
+
+void EditorPanel::CreateMinimap()
+{
+    if (minimap_ != nullptr)
+    {
+        return;
+    }
+
+    minimap_ = new wxStyledTextCtrl(this, wxID_ANY);
+
+    // Read-only, no visible chrome
+    minimap_->SetReadOnly(true);
+    minimap_->SetUseHorizontalScrollBar(false);
+    minimap_->SetUseVerticalScrollBar(false);
+    minimap_->SetMarginWidth(0, 0);
+    minimap_->SetMarginWidth(1, 0);
+    minimap_->SetMarginWidth(2, 0);
+
+    // Very small font for overview
+    minimap_->StyleSetSize(wxSTC_STYLE_DEFAULT, 1);
+    minimap_->StyleClearAll();
+
+    // Fixed width
+    minimap_->SetMinSize(wxSize(120, -1));
+    minimap_->SetMaxSize(wxSize(120, -1));
+
+    // Disable caret
+    minimap_->SetCaretWidth(0);
+
+    // No cursor in minimap
+    minimap_->SetCursor(wxCURSOR_HAND);
+
+    // Click handler
+    minimap_->Bind(wxEVT_LEFT_DOWN, &EditorPanel::OnMinimapClick, this);
+
+    // Theme: match editor bg/fg
+    const auto& theme_colors = theme().colors;
+    minimap_->StyleSetBackground(wxSTC_STYLE_DEFAULT, theme_colors.bg_app.to_wx_colour());
+    minimap_->StyleSetForeground(wxSTC_STYLE_DEFAULT, theme_colors.text_muted.to_wx_colour());
+    minimap_->StyleClearAll();
+
+    // Add to sizer
+    auto sizer = GetSizer();
+    if (sizer != nullptr)
+    {
+        sizer->Add(minimap_, 0, wxEXPAND);
+        sizer->Layout();
+    }
+
+    minimap_->Hide();
+}
+
+void EditorPanel::ToggleMinimap()
+{
+    if (minimap_ == nullptr)
+    {
+        CreateMinimap();
+    }
+
+    minimap_visible_ = !minimap_visible_;
+
+    if (minimap_visible_)
+    {
+        UpdateMinimapContent();
+        minimap_->Show();
+    }
+    else
+    {
+        minimap_->Hide();
+    }
+
+    auto sizer = GetSizer();
+    if (sizer != nullptr)
+    {
+        sizer->Layout();
+    }
+}
+
+void EditorPanel::UpdateMinimapContent()
+{
+    if (minimap_ == nullptr || editor_ == nullptr || !minimap_visible_)
+    {
+        return;
+    }
+
+    auto content = editor_->GetText().ToStdString();
+
+    minimap_->SetReadOnly(false);
+    minimap_->SetText(content);
+    minimap_->SetReadOnly(true);
+
+    // Scroll minimap proportionally to the editor's scroll position
+    int first_line = editor_->GetFirstVisibleLine();
+    int total_lines = editor_->GetLineCount();
+    int minimap_total = minimap_->GetLineCount();
+
+    if (total_lines > 0)
+    {
+        int minimap_line = first_line * minimap_total / total_lines;
+        minimap_->SetFirstVisibleLine(minimap_line);
+    }
+}
+
+void EditorPanel::OnMinimapClick(wxMouseEvent& event)
+{
+    if (minimap_ == nullptr || editor_ == nullptr)
+    {
+        event.Skip();
+        return;
+    }
+
+    // Get click position in minimap coordinates
+    int click_y = event.GetPosition().y;
+    int minimap_height = minimap_->GetClientSize().GetHeight();
+
+    if (minimap_height <= 0)
+    {
+        event.Skip();
+        return;
+    }
+
+    // Calculate proportional position
+    double fraction = static_cast<double>(click_y) / static_cast<double>(minimap_height);
+    int total_lines = editor_->GetLineCount();
+    int target_line = static_cast<int>(fraction * total_lines);
+
+    // Scroll editor to the target line, centering it
+    int visible_lines = editor_->LinesOnScreen();
+    int first_line = std::max(0, target_line - visible_lines / 2);
+    editor_->SetFirstVisibleLine(first_line);
+
+    // Move cursor to that line
+    int target_pos = editor_->PositionFromLine(target_line);
+    editor_->GotoPos(target_pos);
 }
 
 } // namespace markamp::ui

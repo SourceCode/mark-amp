@@ -380,5 +380,234 @@ auto MermaidRenderer::sanitize_svg(const std::string& svg) -> std::string
 
     return result;
 }
+// ---------------------------------------------------------------------------
+// Phase 3: Mermaid First-Class Experience
+// ---------------------------------------------------------------------------
+
+auto MermaidRenderer::validate(std::string_view mermaid_source) -> std::vector<DiagnosticInfo>
+{
+    std::vector<DiagnosticInfo> diagnostics;
+
+    if (mermaid_source.empty())
+    {
+        diagnostics.push_back({0, "Empty Mermaid source", DiagnosticSeverity::Error});
+        return diagnostics;
+    }
+
+    if (!mmdc_available_)
+    {
+        diagnostics.push_back(
+            {0, "Mermaid CLI (mmdc) is not available", DiagnosticSeverity::Warning});
+        return diagnostics;
+    }
+
+    // Write source to temp file and attempt to render; capture stderr
+    auto input_path = make_temp_path("mmd");
+    auto output_path = make_temp_path("svg");
+    auto config_path = make_temp_path("json");
+    auto stderr_path = make_temp_path("txt");
+
+    TempFileGuard input_guard(input_path);
+    TempFileGuard output_guard(output_path);
+    TempFileGuard config_guard(config_path);
+    TempFileGuard stderr_guard(stderr_path);
+
+    if (!write_file(input_path, mermaid_source))
+    {
+        diagnostics.push_back(
+            {0, "Failed to write source for validation", DiagnosticSeverity::Error});
+        return diagnostics;
+    }
+
+    auto config = get_mermaid_config();
+    write_file(config_path, config);
+
+    auto cmd = fmt::format("mmdc -i \"{}\" -o \"{}\" -c \"{}\" 2>\"{}\"",
+                           input_path.string(),
+                           output_path.string(),
+                           config_path.string(),
+                           stderr_path.string());
+
+    auto exit_code = execute_command(cmd);
+    if (exit_code != 0)
+    {
+        // Read stderr to extract error details
+        auto stderr_result = read_file(stderr_path);
+        std::string error_text = stderr_result
+                                     ? *stderr_result
+                                     : fmt::format("Rendering failed (exit code {})", exit_code);
+
+        // Try to extract line numbers from error messages (pattern: "line N" or "Parse error on
+        // line N")
+        std::string remaining = error_text;
+        size_t search_pos = 0;
+        bool found_line = false;
+
+        while (search_pos < remaining.size())
+        {
+            auto line_pos = remaining.find("line ", search_pos);
+            if (line_pos == std::string::npos)
+            {
+                break;
+            }
+
+            // Extract line number
+            size_t num_start = line_pos + 5;
+            size_t num_end = num_start;
+            while (num_end < remaining.size() &&
+                   std::isdigit(static_cast<unsigned char>(remaining[num_end])) != 0)
+            {
+                ++num_end;
+            }
+
+            if (num_end > num_start)
+            {
+                int line_num = std::stoi(remaining.substr(num_start, num_end - num_start));
+                diagnostics.push_back({line_num, error_text, DiagnosticSeverity::Error});
+                found_line = true;
+            }
+            search_pos = num_end;
+        }
+
+        if (!found_line)
+        {
+            // Generic error without line info
+            diagnostics.push_back({0, error_text, DiagnosticSeverity::Error});
+        }
+    }
+
+    return diagnostics;
+}
+
+auto MermaidRenderer::export_svg(std::string_view mermaid_source)
+    -> std::expected<std::string, std::string>
+{
+    // Same as render, but bypasses sanitization to return raw SVG for export
+    if (mermaid_source.empty())
+    {
+        return std::unexpected(std::string("Empty Mermaid source"));
+    }
+
+    if (!mmdc_available_)
+    {
+        return std::unexpected(std::string("Mermaid CLI (mmdc) is not available"));
+    }
+
+    auto input_path = make_temp_path("mmd");
+    auto output_path = make_temp_path("svg");
+    auto config_path = make_temp_path("json");
+
+    TempFileGuard input_guard(input_path);
+    TempFileGuard output_guard(output_path);
+    TempFileGuard config_guard(config_path);
+
+    if (!write_file(input_path, mermaid_source))
+    {
+        return std::unexpected(std::string("Failed to write Mermaid source"));
+    }
+
+    auto config = get_mermaid_config();
+    if (!write_file(config_path, config))
+    {
+        return std::unexpected(std::string("Failed to write config"));
+    }
+
+    auto cmd = fmt::format("mmdc -i \"{}\" -o \"{}\" -c \"{}\" --quiet 2>&1",
+                           input_path.string(),
+                           output_path.string(),
+                           config_path.string());
+
+    auto exit_code = execute_command(cmd);
+    if (exit_code != 0)
+    {
+        return std::unexpected(fmt::format("SVG export failed (exit code {})", exit_code));
+    }
+
+    return read_file(output_path);
+}
+
+auto MermaidRenderer::export_png(std::string_view mermaid_source, int width)
+    -> std::expected<std::vector<uint8_t>, std::string>
+{
+    if (mermaid_source.empty())
+    {
+        return std::unexpected(std::string("Empty Mermaid source"));
+    }
+
+    if (!mmdc_available_)
+    {
+        return std::unexpected(std::string("Mermaid CLI (mmdc) is not available"));
+    }
+
+    auto input_path = make_temp_path("mmd");
+    auto output_path = make_temp_path("png");
+    auto config_path = make_temp_path("json");
+
+    TempFileGuard input_guard(input_path);
+    TempFileGuard output_guard(output_path);
+    TempFileGuard config_guard(config_path);
+
+    if (!write_file(input_path, mermaid_source))
+    {
+        return std::unexpected(std::string("Failed to write Mermaid source"));
+    }
+
+    auto config = get_mermaid_config();
+    if (!write_file(config_path, config))
+    {
+        return std::unexpected(std::string("Failed to write config"));
+    }
+
+    auto cmd = fmt::format("mmdc -i \"{}\" -o \"{}\" -c \"{}\" -w {} --quiet 2>&1",
+                           input_path.string(),
+                           output_path.string(),
+                           config_path.string(),
+                           width);
+
+    auto exit_code = execute_command(cmd);
+    if (exit_code != 0)
+    {
+        return std::unexpected(fmt::format("PNG export failed (exit code {})", exit_code));
+    }
+
+    // Read PNG binary data
+    std::ifstream file(output_path, std::ios::binary | std::ios::ate);
+    if (!file.is_open())
+    {
+        return std::unexpected(fmt::format("Failed to read PNG: {}", output_path.string()));
+    }
+    auto size = file.tellg();
+    if (size <= 0)
+    {
+        return std::unexpected(std::string("PNG export produced empty file"));
+    }
+
+    file.seekg(0, std::ios::beg);
+    std::vector<uint8_t> png_data(static_cast<size_t>(size));
+    if (!file.read(reinterpret_cast<char*>(png_data.data()), size))
+    {
+        return std::unexpected(std::string("Failed to read PNG data"));
+    }
+
+    return png_data;
+}
+
+void MermaidRenderer::set_diagram_theme(const std::string& theme_name)
+{
+    diagram_theme_override_ = theme_name;
+
+    // Apply the override to the internal mermaid theme
+    if (!theme_name.empty())
+    {
+        mermaid_theme_ = theme_name;
+    }
+
+    clear_cache();
+}
+
+auto MermaidRenderer::diagram_theme() const -> const std::string&
+{
+    return diagram_theme_override_.empty() ? mermaid_theme_ : diagram_theme_override_;
+}
 
 } // namespace markamp::core

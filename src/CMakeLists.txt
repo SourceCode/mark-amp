@@ -15,11 +15,16 @@ add_executable(markamp
     ui/SplitView.cpp
     ui/Toolbar.cpp
     ui/ThemeGallery.cpp
+    ui/ThemeTokenEditor.cpp
     ui/ThemePreviewCard.cpp
     ui/ShortcutOverlay.cpp
     ui/CommandPalette.cpp
     ui/StartupPanel.cpp
     ui/BreadcrumbBar.cpp
+    ui/FloatingFormatBar.cpp
+    ui/LinkPreviewPopover.cpp
+    ui/ImagePreviewPopover.cpp
+    ui/TableEditorOverlay.cpp
     core/Logger.cpp
     core/EventBus.cpp
     core/AppState.cpp
@@ -46,6 +51,11 @@ add_executable(markamp
     core/Profiler.cpp
     core/MermaidRenderer.cpp
     core/HtmlSanitizer.cpp
+    core/PieceTable.cpp
+    core/LineIndex.cpp
+    core/AsyncHighlighter.cpp
+    core/AsyncFileLoader.cpp
+    core/IncrementalSearcher.cpp
     core/loader/ThemeLoader.cpp
     rendering/HtmlRenderer.cpp
     rendering/CodeBlockRenderer.cpp
@@ -97,6 +107,8 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "Src" FILES
     ui/ThemeGallery.cpp
     ui/ThemePreviewCard.h
     ui/ThemePreviewCard.cpp
+    ui/ThemeTokenEditor.h
+    ui/ThemeTokenEditor.cpp
     ui/StartupPanel.h
     ui/StartupPanel.cpp
     core/Logger.h

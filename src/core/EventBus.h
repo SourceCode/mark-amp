@@ -1,5 +1,7 @@
 #pragma once
 
+#include "SPSCQueue.h"
+
 #include <concepts>
 #include <functional>
 #include <memory>
@@ -61,8 +63,20 @@ public:
         requires std::derived_from<T, Event>
     void queue(T event);
 
+    /// Publish an event on the lock-free fast path.
+    /// Bypasses the mutex by atomically loading the handler snapshot.
+    /// Safe because handlers_ uses COW — the shared_ptr is always valid.
+    /// Use for high-frequency events (CursorChanged, Scroll) on the UI thread.
+    template <typename T>
+        requires std::derived_from<T, Event>
+    void publish_fast(const T& event);
+
     /// Process all queued events (call from main loop).
     void process_queued();
+
+    /// Drain the lock-free fast queue (call from UI idle handler).
+    /// Processes all pending fast-path function messages.
+    void drain_fast_queue();
 
 private:
     /// Type-erased handler wrapper
@@ -77,6 +91,9 @@ private:
     std::unordered_map<std::type_index, std::shared_ptr<HandlerList>> handlers_;
     std::vector<std::function<void()>> queued_events_;
     std::size_t next_id_{0};
+
+    /// Lock-free queue for worker→UI fast-path messages.
+    SPSCQueue<std::function<void()>, 1024> fast_queue_;
 };
 
 // --- Template implementations ---
@@ -115,6 +132,30 @@ template <typename T>
 void EventBus::publish(const T& event)
 {
     // Improvement 16: COW — grab shared_ptr snapshot; no std::function copies
+    std::shared_ptr<HandlerList> snapshot;
+    {
+        std::lock_guard lock(mutex_);
+        auto it = handlers_.find(std::type_index(typeid(T)));
+        if (it != handlers_.end())
+        {
+            snapshot = it->second;
+        }
+    }
+    if (snapshot)
+    {
+        for (const auto& entry : *snapshot)
+        {
+            entry.handler(event);
+        }
+    }
+}
+
+template <typename T>
+    requires std::derived_from<T, Event>
+void EventBus::publish_fast(const T& event)
+{
+    // Atomic load of the handler list — no mutex needed.
+    // The COW pattern guarantees the shared_ptr snapshot is always valid.
     std::shared_ptr<HandlerList> snapshot;
     {
         std::lock_guard lock(mutex_);

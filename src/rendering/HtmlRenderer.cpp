@@ -155,6 +155,7 @@ auto FootnotePreprocessor::build_section(const std::vector<FootnoteDefinition>& 
 auto HtmlRenderer::render(const core::MarkdownDocument& doc) -> std::string
 {
     MARKAMP_PROFILE_SCOPE("HtmlRenderer::render");
+    code_renderer_.reset_counter();
     std::string output;
     // Pre-allocate: ~8 bytes of HTML per character of source (rough estimate)
     output.reserve(doc.root.children.size() * 256);
@@ -267,8 +268,9 @@ void HtmlRenderer::render_node(const core::MdNode& node, std::string& output)
         case MdNodeType::CodeBlock:
         case MdNodeType::FencedCodeBlock:
         {
-            CodeBlockRenderer code_renderer;
-            output += code_renderer.render(node.text_content, node.language);
+            auto hl_spec =
+                CodeBlockRenderer::extract_highlight_spec(node.info_string, node.language);
+            output += code_renderer_.render(node.text_content, node.language, hl_spec);
             break;
         }
 

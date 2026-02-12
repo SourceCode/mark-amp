@@ -31,6 +31,10 @@ public:
 
     // Display
     [[nodiscard]] auto get_content_scale_factor() const -> double override;
+
+    // Window Effects
+    void enable_vibrancy(wxFrame* frame, bool enable) override;
+    void enable_surface_blur(wxFrame* frame, bool enable) override;
 };
 
 } // namespace markamp::platform

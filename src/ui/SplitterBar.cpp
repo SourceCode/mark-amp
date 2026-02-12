@@ -4,6 +4,8 @@
 
 #include <wx/dcbuffer.h>
 
+#include <algorithm>
+
 namespace markamp::ui
 {
 
@@ -13,6 +15,7 @@ SplitterBar::SplitterBar(wxWindow* parent,
     : ThemeAwareWindow(
           parent, theme_engine, wxID_ANY, wxDefaultPosition, wxSize(kHitWidth, -1), wxNO_BORDER)
     , layout_manager_(layout_manager)
+    , hover_timer_(this, kHoverTimerId)
 {
     SetBackgroundStyle(wxBG_STYLE_PAINT);
     SetMinSize(wxSize(kHitWidth, -1));
@@ -24,6 +27,7 @@ SplitterBar::SplitterBar(wxWindow* parent,
     Bind(wxEVT_LEFT_DOWN, &SplitterBar::OnMouseDown, this);
     Bind(wxEVT_MOTION, &SplitterBar::OnMouseMove, this);
     Bind(wxEVT_LEFT_UP, &SplitterBar::OnMouseUp, this);
+    Bind(wxEVT_TIMER, &SplitterBar::OnHoverTimer, this, kHoverTimerId);
 }
 
 void SplitterBar::OnThemeChanged(const core::Theme& new_theme)
@@ -34,23 +38,46 @@ void SplitterBar::OnThemeChanged(const core::Theme& new_theme)
 
 void SplitterBar::OnPaint(wxPaintEvent& /*event*/)
 {
-    wxAutoBufferedPaintDC dc(this);
-    auto sz = GetClientSize();
+    wxAutoBufferedPaintDC paint_dc(this);
+    auto client_sz = GetClientSize();
+    const int bar_width = client_sz.GetWidth();
+    const int bar_height = client_sz.GetHeight();
 
-    // Background — transparent / BgApp
-    dc.SetBrush(theme_engine().brush(core::ThemeColorToken::BgApp));
-    dc.SetPen(*wxTRANSPARENT_PEN);
-    dc.DrawRectangle(sz);
+    // Background — BgApp
+    paint_dc.SetBrush(theme_engine().brush(core::ThemeColorToken::BgApp));
+    paint_dc.SetPen(*wxTRANSPARENT_PEN);
+    paint_dc.DrawRectangle(client_sz);
 
-    // Center line — 1px border_dark
-    int cx = sz.GetWidth() / 2;
-    dc.SetPen(theme_engine().pen(core::ThemeColorToken::BorderDark, 1));
-    dc.DrawLine(cx, 0, cx, sz.GetHeight());
+    // 8B + 8C: Soft center line — blend between BorderLight and AccentPrimary
+    const int center_x = bar_width / 2;
+
+    if (hover_alpha_ > 0.01F)
+    {
+        // Draw accent line at hover_alpha_ opacity
+        auto accent = theme_engine().color(core::ThemeColorToken::AccentPrimary);
+        auto alpha_val =
+            static_cast<unsigned char>(std::clamp(static_cast<int>(hover_alpha_ * 180.0F), 0, 255));
+        paint_dc.SetPen(wxPen(wxColour(accent.Red(), accent.Green(), accent.Blue(), alpha_val), 2));
+        paint_dc.DrawLine(center_x, 0, center_x, bar_height);
+    }
+    else
+    {
+        // Default: subtle BorderLight at 30% alpha
+        auto border_col = theme_engine().color(core::ThemeColorToken::BorderLight);
+        paint_dc.SetPen(
+            wxPen(wxColour(border_col.Red(), border_col.Green(), border_col.Blue(), 77), 1));
+        paint_dc.DrawLine(center_x, 0, center_x, bar_height);
+    }
 }
 
 void SplitterBar::OnMouseEnter(wxMouseEvent& /*event*/)
 {
     SetCursor(wxCursor(wxCURSOR_SIZEWE));
+    is_hovered_ = true;
+    if (!hover_timer_.IsRunning())
+    {
+        hover_timer_.Start(16); // ~60fps
+    }
 }
 
 void SplitterBar::OnMouseLeave(wxMouseEvent& /*event*/)
@@ -58,6 +85,11 @@ void SplitterBar::OnMouseLeave(wxMouseEvent& /*event*/)
     if (!is_dragging_)
     {
         SetCursor(wxNullCursor);
+        is_hovered_ = false;
+        if (!hover_timer_.IsRunning())
+        {
+            hover_timer_.Start(16);
+        }
     }
 }
 
@@ -88,6 +120,27 @@ void SplitterBar::OnMouseUp(wxMouseEvent& /*event*/)
         {
             ReleaseMouse();
         }
+    }
+}
+
+void SplitterBar::OnHoverTimer(wxTimerEvent& /*event*/)
+{
+    if (is_hovered_ || is_dragging_)
+    {
+        hover_alpha_ = std::min(hover_alpha_ + kHoverFadeStep, 1.0F);
+    }
+    else
+    {
+        hover_alpha_ = std::max(hover_alpha_ - kHoverFadeStep, 0.0F);
+    }
+
+    Refresh();
+
+    // Stop timer when animation settles
+    if ((!is_hovered_ && !is_dragging_ && hover_alpha_ <= 0.0F) ||
+        ((is_hovered_ || is_dragging_) && hover_alpha_ >= 1.0F))
+    {
+        hover_timer_.Stop();
     }
 }
 

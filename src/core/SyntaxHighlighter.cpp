@@ -45,6 +45,19 @@ auto SyntaxHighlighter::tokenize(std::string_view source, const std::string& lan
     return tokenize_with_def(source, *def);
 }
 
+auto SyntaxHighlighter::tokenize_soa(std::string_view source, const std::string& language)
+    -> TokenArraySoA
+{
+    auto tokens = tokenize(source, language);
+    TokenArraySoA soa;
+    soa.reserve(tokens.size());
+    for (const auto& tok : tokens)
+    {
+        soa.push_back(tok.type, tok.start, tok.length);
+    }
+    return soa;
+}
+
 auto SyntaxHighlighter::render_html(std::string_view source, const std::string& language)
     -> std::string
 {
