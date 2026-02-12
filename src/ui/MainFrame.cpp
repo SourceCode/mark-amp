@@ -16,6 +16,7 @@
 
 #include <wx/aboutdlg.h>
 #include <wx/display.h>
+#include <wx/dnd.h>
 #include <wx/filedlg.h>
 #include <wx/filename.h>
 #include <wx/icon.h>
@@ -171,6 +172,34 @@ MainFrame::MainFrame(const wxString& title,
     Bind(wxEVT_MOTION, &MainFrame::onFrameMouseMove, this);
     Bind(wxEVT_LEFT_DOWN, &MainFrame::onFrameMouseDown, this);
 
+    // Fix 18: Enable drag-and-drop file opening
+    class FileDropTarget : public wxFileDropTarget
+    {
+    public:
+        explicit FileDropTarget(MainFrame* frame)
+            : frame_(frame)
+        {
+        }
+        auto OnDropFiles(wxCoord /*x_pos*/, wxCoord /*y_pos*/, const wxArrayString& filenames)
+            -> bool override
+        {
+            if (frame_->layout_ == nullptr)
+            {
+                return false;
+            }
+            frame_->showEditor();
+            for (const auto& file : filenames)
+            {
+                frame_->layout_->OpenFileInTab(file.ToStdString());
+            }
+            return true;
+        }
+
+    private:
+        MainFrame* frame_;
+    };
+    SetDropTarget(new FileDropTarget(this));
+
     // Restore saved window state, then center if no saved state
     restoreWindowState();
 
@@ -209,6 +238,27 @@ MainFrame::MainFrame(const wxString& title,
 void MainFrame::onClose(wxCloseEvent& event)
 {
     MARKAMP_LOG_INFO("MainFrame closing.");
+
+    // Fix 12: Prompt if unsaved files exist
+    if (layout_ != nullptr && layout_->HasUnsavedFiles())
+    {
+        const int result = wxMessageBox("You have unsaved changes. Save all before closing?",
+                                        "Unsaved Changes",
+                                        wxYES_NO | wxCANCEL | wxICON_WARNING,
+                                        this);
+
+        if (result == wxCANCEL)
+        {
+            event.Veto();
+            return;
+        }
+        if (result == wxYES)
+        {
+            layout_->SaveActiveFile();
+        }
+        // wxNO = discard and close
+    }
+
     // Save keybindings before closing
     shortcut_manager_.save_keybindings(core::Config::config_directory());
 
@@ -440,7 +490,6 @@ void MainFrame::logDpiInfo()
 
 enum MenuId : int
 {
-    kMenuOpenFile = wxID_OPEN,
     kMenuOpenFolder = wxID_HIGHEST + 10,
     kMenuSave = wxID_SAVE,
     kMenuSaveAs = wxID_SAVEAS,
@@ -459,7 +508,13 @@ enum MenuId : int
     kMenuToggleSidebar,
     kMenuToggleZenMode,
     kMenuThemeGallery,
-    kMenuFullscreen
+    kMenuFullscreen,
+    kMenuOpenFile, // Fix 15: dedicated ID for Open File
+    kMenuCloseTab, // Fix 17: dedicated ID for Close Tab
+    // R2 Fixes 15-17
+    kMenuSaveAll,
+    kMenuRevertFile,
+    kMenuCloseAllTabs
 };
 
 // (Moved logic to end of file to fix redefinition and structure)
@@ -472,11 +527,23 @@ void MainFrame::createMenuBar()
     auto* fileMenu = new wxMenu;
     fileMenu->Append(wxID_NEW, "&New\tCtrl+N");
     fileMenu->Append(wxID_OPEN, "&Open Folder...\tCtrl+O");
+    fileMenu->Append(kMenuOpenFile, "Open &File...\tCtrl+Shift+O");
 
     auto* recentMenu = new wxMenu;
     fileMenu->AppendSubMenu(recentMenu, "Open &Recent");
 
     fileMenu->Append(wxID_SAVE, "&Save\tCtrl+S");
+    fileMenu->Append(kMenuSaveAs, "Save &As...\tCtrl+Shift+S");
+    // R2 Fix 15: Save All
+    fileMenu->Append(kMenuSaveAll, "Save A&ll\tCtrl+Alt+S");
+    fileMenu->AppendSeparator();
+    // R2 Fix 16: Revert File
+    fileMenu->Append(kMenuRevertFile, "Re&vert File");
+    fileMenu->AppendSeparator();
+    // Fix 17: Close Tab shortcut
+    fileMenu->Append(kMenuCloseTab, "&Close Tab\tCtrl+W");
+    // R2 Fix 17: Close All Tabs
+    fileMenu->Append(kMenuCloseAllTabs, "Close All Ta&bs\tCtrl+Shift+W");
     fileMenu->AppendSeparator();
     fileMenu->Append(wxID_EXIT, "E&xit\tAlt+F4");
     menu_bar->Append(fileMenu, "&File");
@@ -485,6 +552,80 @@ void MainFrame::createMenuBar()
     Bind(wxEVT_MENU, &MainFrame::onOpenFolder, this, wxID_OPEN);
     Bind(
         wxEVT_MENU, [this](wxCommandEvent& /*event*/) { Close(true); }, wxID_EXIT);
+
+    // Fix 19: File → New creates a new untitled tab + showEditor transition
+    Bind(
+        wxEVT_MENU,
+        [this]([[maybe_unused]] wxCommandEvent& evt)
+        {
+            showEditor();
+            if (layout_ != nullptr)
+            {
+                static int untitled_count = 1;
+                std::string untitled_path = "Untitled-" + std::to_string(untitled_count++) + ".md";
+                layout_->OpenFileInTab(untitled_path);
+            }
+        },
+        wxID_NEW);
+
+    // Fix 20: File → Open File dialog + showEditor transition
+    Bind(
+        wxEVT_MENU,
+        [this]([[maybe_unused]] wxCommandEvent& evt)
+        {
+            wxFileDialog dialog(this,
+                                "Open File",
+                                wxEmptyString,
+                                wxEmptyString,
+                                "Markdown files (*.md)|*.md|All files (*.*)|*.*",
+                                wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+            if (dialog.ShowModal() == wxID_OK)
+            {
+                showEditor();
+                const std::string path = dialog.GetPath().ToStdString();
+                if (layout_ != nullptr)
+                {
+                    layout_->OpenFileInTab(path);
+                }
+            }
+        },
+        kMenuOpenFile);
+
+    // R2 Fix 15: Save All binding
+    Bind(
+        wxEVT_MENU,
+        [this]([[maybe_unused]] wxCommandEvent& evt)
+        {
+            if (layout_ != nullptr)
+            {
+                layout_->SaveAllFiles();
+            }
+        },
+        kMenuSaveAll);
+
+    // R2 Fix 16: Revert File binding
+    Bind(
+        wxEVT_MENU,
+        [this]([[maybe_unused]] wxCommandEvent& evt)
+        {
+            if (layout_ != nullptr)
+            {
+                layout_->RevertActiveFile();
+            }
+        },
+        kMenuRevertFile);
+
+    // R2 Fix 17: Close All Tabs binding
+    Bind(
+        wxEVT_MENU,
+        [this]([[maybe_unused]] wxCommandEvent& evt)
+        {
+            if (layout_ != nullptr)
+            {
+                layout_->CloseAllTabs();
+            }
+        },
+        kMenuCloseAllTabs);
 
     // Initial population of recent menu
     rebuildRecentMenu();
@@ -533,6 +674,35 @@ void MainFrame::createMenuBar()
 
     Bind(wxEVT_MENU, &MainFrame::onOpenFolder, this, kMenuOpenFolder);
     Bind(wxEVT_MENU, &MainFrame::onSave, this, kMenuSave);
+
+    // Fix 18: Save As binding
+    Bind(
+        wxEVT_MENU,
+        [this]([[maybe_unused]] wxCommandEvent& evt)
+        {
+            if (layout_ != nullptr)
+            {
+                layout_->SaveActiveFileAs();
+            }
+        },
+        kMenuSaveAs);
+
+    // Fix 17: Close Tab binding (Cmd+W / Ctrl+W)
+    Bind(
+        wxEVT_MENU,
+        [this]([[maybe_unused]] wxCommandEvent& evt)
+        {
+            if (layout_ != nullptr && event_bus_ != nullptr)
+            {
+                const std::string active = layout_->GetActiveFilePath();
+                if (!active.empty())
+                {
+                    const core::events::TabCloseRequestEvent close_evt(active);
+                    event_bus_->publish(close_evt);
+                }
+            }
+        },
+        kMenuCloseTab);
 
     Bind(
         wxEVT_MENU,
@@ -677,16 +847,19 @@ void MainFrame::createMenuBar()
             [this](const core::events::ActiveFileChangedEvent& evt)
             {
                 last_active_file_ = evt.file_id;
-                // Update Title Bar (Item 19)
-                if (!evt.file_id.empty())
-                {
-                    wxFileName fname(evt.file_id);
-                    SetTitle(fname.GetFullName() + " - MarkAmp");
-                }
-                else
-                {
-                    SetTitle("MarkAmp");
-                }
+                updateWindowTitle();
+            }));
+
+        // Fix 19: Update window title on tab switch and close
+        subscriptions_.push_back(event_bus_->subscribe<core::events::TabSwitchedEvent>(
+            [this](const core::events::TabSwitchedEvent& /*evt*/) { updateWindowTitle(); }));
+
+        subscriptions_.push_back(event_bus_->subscribe<core::events::TabCloseRequestEvent>(
+            [this](const core::events::TabCloseRequestEvent& /*evt*/)
+            {
+                // Delay title update to next event loop iteration
+                // so the tab is actually closed before we query the active path
+                CallAfter([this]() { updateWindowTitle(); });
             }));
     }
 }
@@ -710,7 +883,14 @@ void MainFrame::onOpenFolder(wxCommandEvent& /*event*/)
     if (layout_ != nullptr)
     {
         layout_->setFileTree(nodes);
+        // Fix 15: Set workspace root for relative path computation
+        layout_->SetWorkspaceRoot(path.ToStdString());
         showEditor();
+
+        // Fix 17: Show workspace name in title bar immediately
+        const std::string folder_name =
+            std::filesystem::path(path.ToStdString()).filename().string();
+        SetTitle(wxString::Format("%s \u2014 MarkAmp", folder_name));
     }
 
     if (recent_workspaces_ != nullptr)
@@ -752,20 +932,15 @@ void MainFrame::scanDirectory(const std::string& path, std::vector<core::FileNod
 
             if (entry.is_directory())
             {
+                node.type = core::FileNodeType::Folder;
                 // Recursively scan directories
                 scanDirectory(p.string(), node.children);
                 folders.push_back(node);
             }
             else if (entry.is_regular_file())
             {
-                // Filter for Markdown-related files
-                std::string ext = p.extension().string();
-                std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
-
-                if (ext == ".md" || ext == ".markdown" || ext == ".txt")
-                {
-                    files.push_back(node);
-                }
+                node.type = core::FileNodeType::File;
+                files.push_back(node);
             }
         }
 
@@ -820,7 +995,8 @@ void MainFrame::showEditor()
         layout_->Show();
     }
     Layout();
-    updateMenuBarForStartup();
+    // Fix 16: Was calling updateMenuBarForStartup — should be editor
+    updateMenuBarForEditor();
 }
 
 void MainFrame::updateMenuBarForStartup()
@@ -931,32 +1107,17 @@ void MainFrame::onSave(wxCommandEvent& /*event*/)
         return;
     }
 
-    // If no active file, prompt for Save As
-    if (last_active_file_.empty())
+    // Fix 20: If the active file is untitled or no file is active, use Save As
+    const std::string active_path = layout_->GetActiveFilePath();
+    if (active_path.empty() || active_path.find("Untitled") != std::string::npos)
     {
-        wxFileDialog dlg(this,
-                         "Save As",
-                         "",
-                         "Untitled.md",
-                         "Markdown files (*.md)|*.md|All files (*.*)|*.*",
-                         wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
-
-        if (dlg.ShowModal() == wxID_CANCEL)
-        {
-            return;
-        }
-
-        last_active_file_ = dlg.GetPath().ToStdString();
-
-        // Update Title (Item 19) - or wait for event?
-        // Let's set it now for responsiveness, event will confirm later
-        SetTitle(dlg.GetFilename() + " - MarkAmp");
-
-        // Notify others that file changed?
-        // For now just save to it.
+        layout_->SaveActiveFileAs();
     }
-
-    layout_->SaveFile(last_active_file_);
+    else
+    {
+        layout_->SaveActiveFile();
+    }
+    updateWindowTitle();
 }
 
 void MainFrame::toggleZenMode()
@@ -1310,6 +1471,16 @@ void MainFrame::updateWindowTitle()
     else
     {
         SetTitle(wxString::Format("%s - MarkAmp", filename));
+    }
+
+    // Fix 18: Update status bar with active filename
+    if (layout_ != nullptr)
+    {
+        auto* status_bar = layout_->statusbar_container();
+        if (status_bar != nullptr)
+        {
+            status_bar->set_ready_state(filename);
+        }
     }
 }
 

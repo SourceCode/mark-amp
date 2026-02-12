@@ -25,6 +25,8 @@ constexpr int kContextCloseToRight = 5;
 constexpr int kContextSave = 6;
 constexpr int kContextSaveAs = 7;
 constexpr int kContextCopyPath = 8;
+constexpr int kContextCopyRelativePath = 9;
+constexpr int kContextRevealInFinder = 10;
 } // namespace
 
 TabBar::TabBar(wxWindow* parent, core::ThemeEngine& theme_engine, core::EventBus& event_bus)
@@ -39,8 +41,10 @@ TabBar::TabBar(wxWindow* parent, core::ThemeEngine& theme_engine, core::EventBus
     Bind(wxEVT_PAINT, &TabBar::OnPaint, this);
     Bind(wxEVT_MOTION, &TabBar::OnMouseMove, this);
     Bind(wxEVT_LEFT_DOWN, &TabBar::OnMouseDown, this);
+    Bind(wxEVT_LEFT_DCLICK, &TabBar::OnDoubleClick, this);
     Bind(wxEVT_LEAVE_WINDOW, &TabBar::OnMouseLeave, this);
     Bind(wxEVT_RIGHT_DOWN, &TabBar::OnRightDown, this);
+    Bind(wxEVT_MIDDLE_DOWN, &TabBar::OnMiddleDown, this);
     Bind(wxEVT_MOUSEWHEEL, &TabBar::OnMouseWheel, this);
     Bind(wxEVT_SIZE, &TabBar::OnSize, this);
 }
@@ -92,6 +96,20 @@ void TabBar::RemoveTab(const std::string& file_path)
     }
 
     RecalculateTabRects();
+
+    // Fix 9: Clamp scroll offset after removing a tab to prevent blank gap
+    if (!tabs_.empty())
+    {
+        const int total_width = tabs_.back().rect.GetRight();
+        const int client_width = GetClientSize().GetWidth();
+        const int max_scroll = std::max(0, total_width - client_width);
+        scroll_offset_ = std::clamp(scroll_offset_, 0, max_scroll);
+    }
+    else
+    {
+        scroll_offset_ = 0;
+    }
+
     Refresh();
 }
 
@@ -307,6 +325,23 @@ void TabBar::OnPaint(wxPaintEvent& /*event*/)
     gc->SetPen(gc->CreatePen(wxPen(theme_engine().color(core::ThemeColorToken::BorderDark), 1)));
     gc->StrokeLine(0, sz.GetHeight() - 1, sz.GetWidth(), sz.GetHeight() - 1);
 
+    // Fix 10: Empty state hint when no tabs are open
+    if (tabs_.empty())
+    {
+        wxFont hint_font = theme_engine().font(core::ThemeFontToken::MonoRegular);
+        hint_font.SetPointSize(9);
+        gc->SetFont(hint_font, theme_engine().color(core::ThemeColorToken::TextMuted));
+        wxDouble hint_w = 0;
+        wxDouble hint_h = 0;
+        const wxString hint_text = "Open a file to start editing";
+        gc->GetTextExtent(hint_text, &hint_w, &hint_h);
+        gc->DrawText(hint_text,
+                     (sz.GetWidth() - static_cast<int>(hint_w)) / 2,
+                     (sz.GetHeight() - static_cast<int>(hint_h)) / 2);
+        delete gc;
+        return;
+    }
+
     // Draw tabs with scroll offset
     gc->Clip(0, 0, sz.GetWidth(), sz.GetHeight());
 
@@ -318,6 +353,22 @@ void TabBar::OnPaint(wxPaintEvent& /*event*/)
         {
             DrawTab(*gc, tab, theme);
         }
+    }
+
+    // Fix 11: Draw tab count badge right-aligned
+    if (!tabs_.empty())
+    {
+        const std::string count_text =
+            std::to_string(tabs_.size()) + (tabs_.size() == 1 ? " tab" : " tabs");
+        wxFont count_font = theme_engine().font(core::ThemeFontToken::MonoRegular);
+        count_font.SetPointSize(9);
+        gc->SetFont(count_font, theme_engine().color(core::ThemeColorToken::TextMuted));
+        wxDouble count_w = 0;
+        wxDouble count_h = 0;
+        gc->GetTextExtent(count_text, &count_w, &count_h);
+        gc->DrawText(count_text,
+                     sz.GetWidth() - static_cast<int>(count_w) - 12,
+                     (kHeight - static_cast<int>(count_h)) / 2);
     }
 
     delete gc;
@@ -415,39 +466,57 @@ void TabBar::DrawTab(wxGraphicsContext& gc, const TabInfo& tab, const core::Them
     int text_y = tab_y + (tab_h - static_cast<int>(text_h)) / 2;
     gc.DrawText(display, text_x, text_y);
 
-    // Close button (×)
+    // Close button (×) — Fix 12: show modified dot (●) instead of × when not hovered
     int close_x = tab_x + tab_w - kCloseButtonSize - kCloseButtonMargin;
     int close_y = tab_y + (tab_h - kCloseButtonSize) / 2;
 
-    // Show close button on hover or if tab is active
-    if (tab.is_active ||
+    const bool is_tab_hovered =
         (hovered_tab_index_ >= 0 &&
-         tabs_[static_cast<size_t>(hovered_tab_index_)].file_path == tab.file_path))
-    {
-        // Close button hover background
-        if (tab.close_hovered)
-        {
-            gc.SetBrush(gc.CreateBrush(
-                wxBrush(theme_engine().color(core::ThemeColorToken::BgPanel).ChangeLightness(85))));
-            gc.SetPen(wxNullPen);
-            gc.DrawRoundedRectangle(
-                close_x - 2, close_y - 2, kCloseButtonSize + 4, kCloseButtonSize + 4, 3);
-        }
+         tabs_[static_cast<size_t>(hovered_tab_index_)].file_path == tab.file_path);
 
-        // Draw × glyph
-        gc.SetPen(gc.CreatePen(wxPen(tab.close_hovered
-                                         ? theme_engine().color(core::ThemeColorToken::TextMain)
-                                         : theme_engine().color(core::ThemeColorToken::TextMuted),
-                                     1)));
-        int margin = 3;
-        gc.StrokeLine(close_x + margin,
-                      close_y + margin,
-                      close_x + kCloseButtonSize - margin,
-                      close_y + kCloseButtonSize - margin);
-        gc.StrokeLine(close_x + kCloseButtonSize - margin,
-                      close_y + margin,
-                      close_x + margin,
-                      close_y + kCloseButtonSize - margin);
+    // Show close button area on hover or if tab is active
+    if (tab.is_active || is_tab_hovered)
+    {
+        // Fix 12: If modified and close NOT hovered, draw dot instead of ×
+        if (tab.is_modified && !tab.close_hovered)
+        {
+            int dot_cx = close_x + kCloseButtonSize / 2;
+            int dot_cy = close_y + kCloseButtonSize / 2;
+            gc.SetBrush(gc.CreateBrush(
+                wxBrush(theme_engine().color(core::ThemeColorToken::AccentSecondary))));
+            gc.SetPen(wxNullPen);
+            gc.DrawEllipse(dot_cx - kModifiedDotSize / 2,
+                           dot_cy - kModifiedDotSize / 2,
+                           kModifiedDotSize,
+                           kModifiedDotSize);
+        }
+        else
+        {
+            // Close button hover background
+            if (tab.close_hovered)
+            {
+                gc.SetBrush(gc.CreateBrush(wxBrush(
+                    theme_engine().color(core::ThemeColorToken::BgPanel).ChangeLightness(85))));
+                gc.SetPen(wxNullPen);
+                gc.DrawRoundedRectangle(
+                    close_x - 2, close_y - 2, kCloseButtonSize + 4, kCloseButtonSize + 4, 3);
+            }
+
+            // Draw × glyph
+            gc.SetPen(gc.CreatePen(
+                wxPen(tab.close_hovered ? theme_engine().color(core::ThemeColorToken::TextMain)
+                                        : theme_engine().color(core::ThemeColorToken::TextMuted),
+                      1)));
+            int margin = 3;
+            gc.StrokeLine(close_x + margin,
+                          close_y + margin,
+                          close_x + kCloseButtonSize - margin,
+                          close_y + kCloseButtonSize - margin);
+            gc.StrokeLine(close_x + kCloseButtonSize - margin,
+                          close_y + margin,
+                          close_x + margin,
+                          close_y + kCloseButtonSize - margin);
+        }
     }
 }
 
@@ -469,6 +538,19 @@ void TabBar::OnMouseMove(wxMouseEvent& event)
         if (tabs_[idx].close_hovered != was_hovered)
         {
             close_state_changed = true;
+        }
+    }
+
+    // Fix 8: Show full file path tooltip on tab hover
+    if (new_hovered != hovered_tab_index_)
+    {
+        if (new_hovered >= 0)
+        {
+            SetToolTip(tabs_[static_cast<size_t>(new_hovered)].file_path);
+        }
+        else
+        {
+            UnsetToolTip();
         }
     }
 
@@ -530,10 +612,45 @@ void TabBar::OnRightDown(wxMouseEvent& event)
     }
 }
 
+void TabBar::OnMiddleDown(wxMouseEvent& event)
+{
+    const int tab_index = HitTestTab(event.GetPosition());
+    if (tab_index >= 0)
+    {
+        const core::events::TabCloseRequestEvent evt(
+            tabs_[static_cast<size_t>(tab_index)].file_path);
+        event_bus_.publish(evt);
+    }
+}
+
+void TabBar::OnDoubleClick(wxMouseEvent& event)
+{
+    // Fix 10: Double-click on empty area (no tab hit) creates a new untitled file
+    const int tab_index = HitTestTab(event.GetPosition());
+    if (tab_index < 0)
+    {
+        // Publish a new-tab event by creating a unique untitled path
+        static int untitled_counter = 1;
+        const std::string untitled_path = "Untitled-" + std::to_string(untitled_counter++) + ".md";
+        AddTab(untitled_path, untitled_path);
+
+        const core::events::TabSwitchedEvent evt(untitled_path);
+        event_bus_.publish(evt);
+    }
+}
+
 void TabBar::OnMouseWheel(wxMouseEvent& event)
 {
     int delta = event.GetWheelRotation();
     int scroll_amount = 40;
+
+    // Fix 9: Calculate max scroll before applying delta
+    int total_width = 0;
+    for (const auto& tab : tabs_)
+    {
+        total_width = std::max(total_width, tab.rect.GetRight());
+    }
+    const int max_scroll = std::max(0, total_width - GetClientSize().GetWidth());
 
     if (delta > 0)
     {
@@ -541,15 +658,11 @@ void TabBar::OnMouseWheel(wxMouseEvent& event)
     }
     else if (delta < 0)
     {
-        // Calculate max scroll
-        int total_width = 0;
-        for (const auto& tab : tabs_)
-        {
-            total_width = std::max(total_width, tab.rect.GetRight());
-        }
-        int max_scroll = std::max(0, total_width - GetClientSize().GetWidth());
         scroll_offset_ = std::min(max_scroll, scroll_offset_ + scroll_amount);
     }
+
+    // Ensure we never exceed bounds
+    scroll_offset_ = std::clamp(scroll_offset_, 0, max_scroll);
 
     Refresh();
 }
@@ -578,6 +691,9 @@ void TabBar::ShowTabContextMenu(int tab_index)
     menu.Append(kContextSaveAs, "Save As…");
     menu.AppendSeparator();
     menu.Append(kContextCopyPath, "Copy Path");
+    menu.Append(kContextCopyRelativePath, "Copy Relative Path");
+    menu.AppendSeparator();
+    menu.Append(kContextRevealInFinder, "Reveal in Finder");
 
     // Disable close to left/right if not applicable
     menu.Enable(kContextCloseToLeft, tab_index > 0);
@@ -626,6 +742,37 @@ void TabBar::ShowTabContextMenu(int tab_index)
                               wxTheClipboard->SetData(new wxTextDataObject(target_path));
                               wxTheClipboard->Close();
                           }
+                          break;
+                      }
+                      // R2 Fix 8: Copy Relative Path
+                      case kContextCopyRelativePath:
+                      {
+                          std::string relative_path = target_path;
+                          if (!workspace_root_.empty())
+                          {
+                              const auto rel =
+                                  std::filesystem::relative(target_path, workspace_root_);
+                              relative_path = rel.string();
+                          }
+                          if (wxTheClipboard->Open())
+                          {
+                              wxTheClipboard->SetData(new wxTextDataObject(relative_path));
+                              wxTheClipboard->Close();
+                          }
+                          break;
+                      }
+                      // R2 Fix 9: Reveal in Finder
+                      case kContextRevealInFinder:
+                      {
+#ifdef __APPLE__
+                          wxExecute(wxString::Format("open -R \"%s\"", target_path));
+#elif defined(__linux__)
+                          wxExecute(wxString::Format(
+                              "xdg-open \"%s\"",
+                              std::filesystem::path(target_path)
+                                  .parent_path()
+                                  .string()));
+#endif
                           break;
                       }
                       default:

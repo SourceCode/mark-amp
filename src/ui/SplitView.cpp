@@ -228,6 +228,12 @@ void SplitView::OnTransitionTimer(wxTimerEvent& /*event*/)
         // Final visibility
         editor_panel_->Show(transition_show_editor_);
         preview_panel_->Show(transition_show_preview_);
+
+        // R2 Fix 20: Editor focus on view mode change
+        if (transition_show_editor_ && editor_panel_ != nullptr)
+        {
+            editor_panel_->SetFocus();
+        }
     }
 
     // Interpolate ratio with easing

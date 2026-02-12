@@ -6,6 +6,7 @@
 #include "core/ThemeEngine.h"
 
 #include <wx/sizer.h>
+#include <wx/stattext.h>
 #include <wx/textctrl.h>
 #include <wx/timer.h>
 
@@ -48,6 +49,7 @@ public:
 
     // Data
     void setFileTree(const std::vector<core::FileNode>& roots);
+    void SetWorkspaceRoot(const std::string& root_path);
     void SaveFile(const std::string& path);
 
     // Multi-file tab management (QoL features 1-5)
@@ -58,6 +60,13 @@ public:
     void SaveActiveFileAs();
     [[nodiscard]] auto GetActiveFilePath() const -> std::string;
     [[nodiscard]] auto GetTabBar() -> TabBar*;
+    [[nodiscard]] auto HasUnsavedFiles() const -> bool;
+    [[nodiscard]] auto GetOpenFileCount() const -> size_t;
+
+    // R2 Fixes 15-17: Save All, Revert, Close All
+    void SaveAllFiles();
+    void RevertActiveFile();
+    void CloseAllTabs();
 
     // Auto-save (feature 12)
     void StartAutoSave();
@@ -100,6 +109,7 @@ private:
     wxTextCtrl* search_field_{nullptr};
     SplitView* split_view_{nullptr};
     Toolbar* toolbar_{nullptr};
+    wxStaticText* file_count_label_{nullptr};
 
     // Sizer management
     wxBoxSizer* main_sizer_{nullptr};

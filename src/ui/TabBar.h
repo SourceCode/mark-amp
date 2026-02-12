@@ -47,6 +47,12 @@ public:
     void CloseTabsToLeft(const std::string& of_path);
     void CloseTabsToRight(const std::string& of_path);
 
+    // Workspace root for relative path calculation
+    void SetWorkspaceRoot(const std::string& root_path)
+    {
+        workspace_root_ = root_path;
+    }
+
     // Constants
     static constexpr int kHeight = 32;
     static constexpr int kMaxTabWidth = 200;
@@ -82,6 +88,7 @@ private:
     // Tab state
     std::vector<TabInfo> tabs_;
     int scroll_offset_{0};
+    std::string workspace_root_;
 
     // Interaction state
     int hovered_tab_index_{-1};
@@ -93,8 +100,10 @@ private:
     // Mouse interaction
     void OnMouseMove(wxMouseEvent& event);
     void OnMouseDown(wxMouseEvent& event);
+    void OnDoubleClick(wxMouseEvent& event);
     void OnMouseLeave(wxMouseEvent& event);
     void OnRightDown(wxMouseEvent& event);
+    void OnMiddleDown(wxMouseEvent& event);
     void OnMouseWheel(wxMouseEvent& event);
 
     // Context menu

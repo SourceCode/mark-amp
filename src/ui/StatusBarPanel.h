@@ -30,6 +30,11 @@ public:
     void set_file_modified(bool modified);
     void set_view_mode(core::events::ViewMode mode);
 
+    // R2 Fixes 13, 14, 19: Filename, language, and file size
+    void set_filename(const std::string& filename);
+    void set_language(const std::string& language);
+    void set_file_size(std::size_t size_bytes);
+
     // Accessors for testing
     [[nodiscard]] auto ready_state() const -> const std::string&
     {
@@ -128,6 +133,9 @@ private:
     int selection_len_{0};
     bool file_modified_{false};
     core::events::ViewMode view_mode_{core::events::ViewMode::Split};
+    std::string filename_;
+    std::string language_;
+    std::size_t file_size_bytes_{0};
 
     // Layout items
     std::vector<StatusItem> left_items_;

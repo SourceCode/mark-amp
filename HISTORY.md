@@ -1,5 +1,58 @@
 # MarkAmp Release History
 
+## v1.5.8 — 2026-02-12
+
+### Highlights
+
+20+ usability fixes bringing MarkAmp's file tree, tab management, status bar, and editor UX to VS Code parity. Adds auto-scroll file tree, indent guide lines, enriched context menus (new file, delete, collapse/expand all), file-type icon expansion for 30+ extensions, tooltips with file size/child count, drag-and-drop file opening, Save All/Revert File/Close All commands, status bar filename/language/file-size display, and "EXPLORER" header branding.
+
+### Added
+
+- **Workspace Events**: `WorkspaceRefreshRequestEvent` and `ShowStartupRequestEvent` in `Events.h` for file tree refresh and startup screen transitions
+- **File Tree — Auto-scroll**: `FileTreeCtrl::EnsureNodeVisible()` scrolls to keep the active file node visible in the sidebar
+- **File Tree — Indent Guide Lines**: VS Code-style vertical guide lines at each indent level for nested folders
+- **File Tree — Enriched Tooltips**: Hover tooltip showing full file path, file size (B/KB/MB), or child count for folders
+- **File Tree — Context Menu Enhancements**: New File, Delete File/Folder (with confirmation dialog), Collapse All, Expand All actions via context menu
+- **File Tree — 30+ File-Type Icons**: Extended icon matching for `.json`, `.yml`, `.yaml`, `.toml`, `.xml`, `.html`, `.css`, `.js`, `.ts`, `.jsx`, `.tsx`, `.sh`, `.py`, `.rb`, `.go`, `.rs`, `.c`, `.cpp`, `.h`, `.hpp`, `.java`, `.swift`, `.kt`, `.cfg`, `.ini`, `.env`, `.log`, `.csv`, `.sql`, and more
+- **File Tree — Empty Folder Placeholder**: Open folders with no visible children display an "(empty)" placeholder
+- **File Tree — EXPLORER Header**: Sidebar displays an "EXPLORER" label in the header section
+- **File Tree — Footer File Count**: Sidebar footer shows total file count in workspace
+- **Drag-and-Drop File Opening**: MainFrame accepts drag-and-drop files from Finder to open in the editor
+- **Save All Command**: `LayoutManager::SaveAll()` saves all modified open files (Cmd+Shift+S / Ctrl+Shift+S)
+- **Revert File Command**: `LayoutManager::RevertFile()` reloads active file from disk discarding changes (bound to File menu)
+- **Close All Tabs Command**: `LayoutManager::CloseAllTabs()` closes every open tab (bound to File menu)
+- **File → New**: Creates a new untitled tab and transitions from startup panel to editor
+- **File → Open File**: Opens a file dialog and transitions from startup panel to editor
+- **File → Save As**: Save the current document under a new name (Cmd+Shift+S)
+- **Close Tab shortcut**: Cmd+W / Ctrl+W now closes the current tab
+- **Status Bar — Filename**: Status bar shows the active file's basename
+- **Status Bar — Language**: Status bar displays inferred language based on file extension
+- **Status Bar — File Size**: Status bar shows file size in human-readable format
+- **Unsaved Changes Prompt**: On application close, prompts the user if any unsaved files exist with save/discard/cancel options
+
+### Changed
+
+- Updated `FileTreeCtrl` with `EnsureNodeVisible()` method, indent guide rendering, expanded icon matching, empty-folder placeholder, tooltips, and enhanced context menu with 5 new actions
+- Updated `LayoutManager` with Save All, Revert File, Close All Tabs, sidebar header/footer, workspace root forwarding, empty-state placeholder, and startup screen return on last tab close
+- Updated `MainFrame` with File → New/Open/Save As/Close Tab/Close All menu items, drag-and-drop support, unsaved-changes prompt on close, workspace root propagation, and status bar enrichments
+- Updated `TabBar` with improved tab close UX and focus handling
+- Updated `StatusBarPanel` with filename, language, and file size segments
+- Updated `SplitView` with improved sash handling
+
+### Fixed
+
+- **File tree selection**: Active file highlighting now works on both files and folders (was file-only)
+- **Selected file text color**: Uses accent-primary tint instead of plain TextMain for better visibility
+- **Normal file text color**: Uses TextMuted for non-selected, non-hovered items for reduced visual noise
+- **Context menu click handler**: Refactored to use consistent 4-space indentation and added new menu item IDs
+- **Editor focus after file open**: Editor panel now receives focus automatically after opening a file from the file tree
+- **Editor focus after tab switch**: Editor panel receives focus automatically when switching tabs
+- **Preview refresh on tab switch**: Content change event published on tab switch to refresh the preview panel
+- **Status bar cursor position**: Cursor position updates correctly when switching between tabs
+- **Window title update**: Title bar updates reliably on both tab switch and tab close events
+
+---
+
 ## v1.4.7 — 2026-02-12
 
 ### Highlights

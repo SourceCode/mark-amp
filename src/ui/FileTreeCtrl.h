@@ -25,6 +25,7 @@ public:
     // Data
     void SetFileTree(const std::vector<core::FileNode>& roots);
     void SetActiveFileId(const std::string& file_id);
+    void EnsureNodeVisible(const std::string& node_id);
 
     // Filtering
     void ApplyFilter(const std::string& filter);
@@ -74,12 +75,14 @@ private:
 
     // Context menu
     void ShowFileContextMenu(core::FileNode& node);
+    void ShowEmptyAreaContextMenu();
 
     // Keyboard navigation
     int focused_node_index_{-1};
     auto GetVisibleNodes() -> std::vector<core::FileNode*>;
     void CollectVisibleNodes(std::vector<core::FileNode*>& result,
                              std::vector<core::FileNode>& nodes);
+    auto FindParentIndex(const std::vector<core::FileNode*>& visible, int child_index) -> int;
 
     // Hit testing
     struct HitResult

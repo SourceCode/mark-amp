@@ -8,7 +8,9 @@
 #include <wx/filename.h>
 #include <wx/graphics.h>
 #include <wx/menu.h>
+#include <wx/msgdlg.h>
 #include <wx/process.h>
+#include <wx/textdlg.h>
 
 #include <algorithm>
 #include <cctype>
@@ -55,7 +57,35 @@ void FileTreeCtrl::SetActiveFileId(const std::string& file_id)
     if (active_file_id_ != file_id)
     {
         active_file_id_ = file_id;
+        EnsureNodeVisible(file_id);
         Refresh();
+    }
+}
+
+// Fix 1: Auto-scroll so node_id is visible
+void FileTreeCtrl::EnsureNodeVisible(const std::string& node_id)
+{
+    auto visible = GetVisibleNodes();
+    int row_index = 0;
+    for (const auto* node : visible)
+    {
+        if (node->id == node_id)
+        {
+            const int node_top = row_index * kRowHeight;
+            const int node_bottom = node_top + kRowHeight;
+            const int client_height = GetClientSize().GetHeight();
+
+            if (node_top < scroll_offset_)
+            {
+                scroll_offset_ = node_top;
+            }
+            else if (node_bottom > scroll_offset_ + client_height)
+            {
+                scroll_offset_ = node_bottom - client_height;
+            }
+            return;
+        }
+        ++row_index;
     }
 }
 
@@ -264,8 +294,20 @@ void FileTreeCtrl::DrawNode(wxDC& dc, const core::FileNode& node, int depth, int
         int icon_y = row_top + (kRowHeight - kIconSize) / 2;
         int twistie_y = row_top + (kRowHeight - kTwistieSize) / 2;
 
-        bool is_selected = (node.id == active_file_id_ && node.is_file());
+        bool is_selected = (node.id == active_file_id_);
         bool is_hovered = (node.id == hovered_node_id_);
+
+        // Fix 6: Draw indent guide lines (VS Code style vertical lines at each indent level)
+        if (depth > 0)
+        {
+            dc.SetPen(wxPen(
+                theme_engine().color(core::ThemeColorToken::BorderLight).ChangeLightness(90), 1));
+            for (int guide_depth = 1; guide_depth <= depth; ++guide_depth)
+            {
+                const int guide_x = kLeftPadding + guide_depth * kIndentWidth - (kIndentWidth / 2);
+                dc.DrawLine(guide_x, row_top, guide_x, row_top + kRowHeight);
+            }
+        }
 
         // Row background
         // VS Code uses full row selection
@@ -307,9 +349,21 @@ void FileTreeCtrl::DrawNode(wxDC& dc, const core::FileNode& node, int depth, int
         }
         else
         {
-            // Simple extension check
-            if (node.name.find(".md") != std::string::npos ||
-                node.name.find(".txt") != std::string::npos)
+            // Fix 5: Expanded text-file extension check for common editable formats
+            const auto& name = node.name;
+            const auto has_ext = [&name](const char* ext)
+            {
+                return name.size() >= std::strlen(ext) &&
+                       name.compare(name.size() - std::strlen(ext), std::strlen(ext), ext) == 0;
+            };
+            if (has_ext(".md") || has_ext(".txt") || has_ext(".json") || has_ext(".yml") ||
+                has_ext(".yaml") || has_ext(".toml") || has_ext(".xml") || has_ext(".html") ||
+                has_ext(".htm") || has_ext(".css") || has_ext(".js") || has_ext(".ts") ||
+                has_ext(".jsx") || has_ext(".tsx") || has_ext(".sh") || has_ext(".py") ||
+                has_ext(".rb") || has_ext(".go") || has_ext(".rs") || has_ext(".c") ||
+                has_ext(".cpp") || has_ext(".h") || has_ext(".hpp") || has_ext(".java") ||
+                has_ext(".swift") || has_ext(".kt") || has_ext(".cfg") || has_ext(".ini") ||
+                has_ext(".env") || has_ext(".log") || has_ext(".csv") || has_ext(".sql"))
             {
                 icon_bundle = &icon_file_text_;
             }
@@ -326,10 +380,11 @@ void FileTreeCtrl::DrawNode(wxDC& dc, const core::FileNode& node, int depth, int
         }
 
         // 3. Draw Text
+        // Fix 4: Distinct colors for selected vs hovered vs normal
         if (is_selected)
         {
-            // Selected text color often contrasts
-            dc.SetTextForeground(theme_engine().color(core::ThemeColorToken::TextMain));
+            dc.SetTextForeground(
+                theme_engine().color(core::ThemeColorToken::AccentPrimary).ChangeLightness(80));
         }
         else if (is_hovered)
         {
@@ -337,9 +392,7 @@ void FileTreeCtrl::DrawNode(wxDC& dc, const core::FileNode& node, int depth, int
         }
         else
         {
-            // Muted for normal state if consistent with theme, or TextMain
-            dc.SetTextForeground(theme_engine().color(
-                core::ThemeColorToken::TextMain)); // VS Code usually uses main text color
+            dc.SetTextForeground(theme_engine().color(core::ThemeColorToken::TextMuted));
         }
 
         // Truncate text with ellipsis if it overflows
@@ -369,12 +422,24 @@ void FileTreeCtrl::DrawNode(wxDC& dc, const core::FileNode& node, int depth, int
     // Draw children if folder is open
     if (node.is_folder() && node.is_open)
     {
+        bool has_visible_children = false;
         for (const auto& child : node.children)
         {
             if (child.filter_visible)
             {
+                has_visible_children = true;
                 DrawNode(dc, child, depth + 1, y_offset);
             }
+        }
+
+        // Fix 8: Show placeholder for empty open folders
+        if (!has_visible_children)
+        {
+            int empty_x = kLeftPadding + (depth + 1) * kIndentWidth + kTwistieSize;
+            int empty_y = y_offset + (kRowHeight - dc.GetCharHeight()) / 2;
+            dc.SetTextForeground(theme_engine().color(core::ThemeColorToken::TextMuted));
+            dc.DrawText("(empty)", empty_x, empty_y);
+            y_offset += kRowHeight;
         }
     }
 }
@@ -389,24 +454,97 @@ void FileTreeCtrl::OnMouseMove(wxMouseEvent& event)
     if (new_hovered != hovered_node_id_)
     {
         hovered_node_id_ = new_hovered;
+
+        // Fix 6: Show file size / child count tooltip on hover
+        if (hit.node != nullptr)
+        {
+            std::string tip = hit.node->id;
+            if (hit.node->is_file())
+            {
+                try
+                {
+                    const auto file_size = std::filesystem::file_size(hit.node->id);
+                    if (file_size < 1024)
+                    {
+                        tip += "  (" + std::to_string(file_size) + " B)";
+                    }
+                    else if (file_size < 1024 * 1024)
+                    {
+                        tip += "  (" + std::to_string(file_size / 1024) + " KB)";
+                    }
+                    else
+                    {
+                        tip += "  (" + std::to_string(file_size / (1024 * 1024)) + " MB)";
+                    }
+                }
+                catch (const std::filesystem::filesystem_error& /*err*/)
+                {
+                    // File may not exist on disk (e.g., untitled)
+                }
+            }
+            else
+            {
+                const auto num_children = hit.node->children.size();
+                tip += "  (" + std::to_string(num_children) + " items)";
+            }
+            SetToolTip(tip);
+        }
+        else
+        {
+            UnsetToolTip();
+        }
+
+        // Fix 4: Cursor feedback — hand for folders, arrow for files
+        if (hit.node != nullptr && hit.node->is_folder())
+        {
+            SetCursor(wxCURSOR_HAND);
+        }
+        else
+        {
+            SetCursor(wxCURSOR_DEFAULT);
+        }
+
         Refresh();
     }
 }
 
 void FileTreeCtrl::OnMouseDown(wxMouseEvent& event)
 {
+    // Fix 1: Acquire focus so keyboard navigation works immediately
+    SetFocus();
+
     auto hit = HitTest(event.GetPosition());
 
+    // Fix 7: Click empty area below nodes deselects
     if (hit.node == nullptr)
     {
+        active_file_id_.clear();
+        focused_node_index_ = -1;
+        Refresh();
         return;
+    }
+
+    // Sync focused_node_index_ with clicked node
+    auto visible = GetVisibleNodes();
+    for (size_t idx = 0; idx < visible.size(); ++idx)
+    {
+        if (visible[idx]->id == hit.node->id)
+        {
+            focused_node_index_ = static_cast<int>(idx);
+            break;
+        }
     }
 
     if (hit.node->is_folder())
     {
-        // Toggle folder expand/collapse
-        hit.node->is_open = !hit.node->is_open;
-        UpdateVirtualHeight();
+        // Fix 3: Only toggle folder on chevron click; clicking the row just selects
+        if (hit.on_chevron)
+        {
+            hit.node->is_open = !hit.node->is_open;
+            UpdateVirtualHeight();
+        }
+        // Always select/highlight the folder
+        active_file_id_ = hit.node->id;
         Refresh();
     }
     else
@@ -437,6 +575,8 @@ void FileTreeCtrl::OnMouseLeave(wxMouseEvent& /*event*/)
     if (!hovered_node_id_.empty())
     {
         hovered_node_id_.clear();
+        // Fix 4: Reset cursor on leave
+        SetCursor(wxCURSOR_DEFAULT);
         Refresh();
     }
 }
@@ -585,13 +725,24 @@ constexpr int kCtxOpen = 100;
 constexpr int kCtxRevealInFinder = 101;
 constexpr int kCtxCopyPath = 102;
 constexpr int kCtxCopyRelativePath = 103;
+constexpr int kCtxCollapseAll = 104;
+constexpr int kCtxExpandAll = 105;
+constexpr int kCtxNewFile = 106;
+constexpr int kCtxDeleteFile = 107;
+constexpr int kCtxRename = 108;
+constexpr int kCtxNewFolder = 109;
 } // namespace
 
 void FileTreeCtrl::OnRightClick(wxMouseEvent& event)
 {
+    // Fix 1: Acquire focus on right-click too
+    SetFocus();
+
     auto hit = HitTest(event.GetPosition());
     if (hit.node == nullptr)
     {
+        // R2 Fix 1: Show workspace-level context menu on empty area
+        ShowEmptyAreaContextMenu();
         return;
     }
 
@@ -611,7 +762,22 @@ void FileTreeCtrl::ShowFileContextMenu(core::FileNode& node)
         menu.Append(kCtxOpen, "Open");
         menu.AppendSeparator();
     }
+    else
+    {
+        menu.Append(kCtxExpandAll, "Expand All");
+        menu.Append(kCtxCollapseAll, "Collapse All");
+        menu.AppendSeparator();
+    }
 
+    // R2 Fix 6: "New Folder…" option
+    menu.Append(kCtxNewFile, "New File\u2026");
+    menu.Append(kCtxNewFolder, "New Folder\u2026");
+    menu.AppendSeparator();
+    // R2 Fix 3: "Rename…" option
+    menu.Append(kCtxRename, "Rename\u2026");
+    // R2 Fix 2: "Delete File…" option
+    menu.Append(kCtxDeleteFile, "Delete\u2026");
+    menu.AppendSeparator();
     menu.Append(kCtxRevealInFinder, "Reveal in Finder");
     menu.AppendSeparator();
     menu.Append(kCtxCopyPath, "Copy Path");
@@ -620,56 +786,214 @@ void FileTreeCtrl::ShowFileContextMenu(core::FileNode& node)
     const std::string node_path = node.id;
     const bool is_file = node.is_file();
 
-    menu.Bind(wxEVT_MENU,
-              [this, node_path, is_file, &node](wxCommandEvent& cmd_event)
-              {
-                  switch (cmd_event.GetId())
-                  {
-                      case kCtxOpen:
-                          if (is_file && on_file_open_)
-                          {
-                              on_file_open_(node);
-                          }
-                          break;
-                      case kCtxRevealInFinder:
-                      {
+    menu.Bind(
+        wxEVT_MENU,
+        [this, node_path, is_file, &node](wxCommandEvent& cmd_event)
+        {
+            switch (cmd_event.GetId())
+            {
+                case kCtxOpen:
+                    if (is_file && on_file_open_)
+                    {
+                        on_file_open_(node);
+                    }
+                    break;
+                case kCtxRevealInFinder:
+                {
 #ifdef __APPLE__
-                          wxExecute(wxString::Format("open -R \"%s\"", node_path));
+                    wxExecute(wxString::Format("open -R \"%s\"", node_path));
 #elif defined(__linux__)
-                      wxExecute(wxString::Format("xdg-open \"%s\"",
-                                                 std::filesystem::path(node_path)
-                                                     .parent_path()
-                                                     .string()));
+                    wxExecute(
+                        wxString::Format("xdg-open \"%s\"",
+                                         std::filesystem::path(node_path).parent_path().string()));
 #endif
-                          break;
-                      }
-                      case kCtxCopyPath:
-                          if (wxTheClipboard->Open())
-                          {
-                              wxTheClipboard->SetData(new wxTextDataObject(node_path));
-                              wxTheClipboard->Close();
-                          }
-                          break;
-                      case kCtxCopyRelativePath:
-                      {
-                          std::string relative_path = node_path;
-                          if (!workspace_root_.empty())
-                          {
-                              const auto rel =
-                                  std::filesystem::relative(node_path, workspace_root_);
-                              relative_path = rel.string();
-                          }
-                          if (wxTheClipboard->Open())
-                          {
-                              wxTheClipboard->SetData(new wxTextDataObject(relative_path));
-                              wxTheClipboard->Close();
-                          }
-                          break;
-                      }
-                      default:
-                          break;
-                  }
-              });
+                    break;
+                }
+                case kCtxCopyPath:
+                    if (wxTheClipboard->Open())
+                    {
+                        wxTheClipboard->SetData(new wxTextDataObject(node_path));
+                        wxTheClipboard->Close();
+                    }
+                    break;
+                case kCtxCopyRelativePath:
+                {
+                    std::string relative_path = node_path;
+                    if (!workspace_root_.empty())
+                    {
+                        const auto rel = std::filesystem::relative(node_path, workspace_root_);
+                        relative_path = rel.string();
+                    }
+                    if (wxTheClipboard->Open())
+                    {
+                        wxTheClipboard->SetData(new wxTextDataObject(relative_path));
+                        wxTheClipboard->Close();
+                    }
+                    break;
+                }
+                case kCtxCollapseAll:
+                {
+                    // Recursively collapse all folders
+                    std::function<void(core::FileNode&)> collapse_all;
+                    collapse_all = [&collapse_all](core::FileNode& target)
+                    {
+                        if (target.is_folder())
+                        {
+                            target.is_open = false;
+                            for (auto& child : target.children)
+                            {
+                                collapse_all(child);
+                            }
+                        }
+                    };
+                    collapse_all(node);
+                    UpdateVirtualHeight();
+                    Refresh();
+                    break;
+                }
+                case kCtxNewFile:
+                {
+                    wxTextEntryDialog name_dlg(this, "Enter file name:", "New File", "untitled.md");
+                    if (name_dlg.ShowModal() == wxID_OK)
+                    {
+                        const std::string file_name = name_dlg.GetValue().ToStdString();
+                        std::string dir_path = node_path;
+                        if (is_file)
+                        {
+                            dir_path = std::filesystem::path(node_path).parent_path().string();
+                        }
+                        const std::string new_file_path =
+                            (std::filesystem::path(dir_path) / file_name).string();
+
+                        // Create the file on disk
+                        std::ofstream new_stream(new_file_path);
+                        new_stream.close();
+
+                        // Open in tab via the file open callback
+                        if (on_file_open_)
+                        {
+                            core::FileNode new_node;
+                            new_node.id = new_file_path;
+                            new_node.name = file_name;
+                            new_node.type = core::FileNodeType::File;
+                            on_file_open_(new_node);
+                        }
+
+                        // R2 Fix 5: Trigger workspace refresh
+                        core::events::WorkspaceRefreshRequestEvent refresh_evt;
+                        event_bus_.publish(refresh_evt);
+                    }
+                    break;
+                }
+                case kCtxExpandAll:
+                {
+                    // Recursively expand all folders
+                    std::function<void(core::FileNode&)> expand_all;
+                    expand_all = [&expand_all](core::FileNode& target)
+                    {
+                        if (target.is_folder())
+                        {
+                            target.is_open = true;
+                            for (auto& child : target.children)
+                            {
+                                expand_all(child);
+                            }
+                        }
+                    };
+                    expand_all(node);
+                    UpdateVirtualHeight();
+                    Refresh();
+                    break;
+                }
+                // R2 Fix 2: Delete file/folder
+                case kCtxDeleteFile:
+                {
+                    const std::string display_name =
+                        std::filesystem::path(node_path).filename().string();
+                    const wxString confirm_msg =
+                        is_file ? wxString::Format("Delete file '%s'?", display_name)
+                                : wxString::Format("Delete folder '%s' and all its contents?",
+                                                   display_name);
+
+                    const int result = wxMessageBox(
+                        confirm_msg, "Confirm Delete", wxYES_NO | wxICON_WARNING, this);
+
+                    if (result == wxYES)
+                    {
+                        std::error_code err_code;
+                        if (is_file)
+                        {
+                            std::filesystem::remove(node_path, err_code);
+                        }
+                        else
+                        {
+                            std::filesystem::remove_all(node_path, err_code);
+                        }
+
+                        if (!err_code)
+                        {
+                            core::events::WorkspaceRefreshRequestEvent refresh_evt;
+                            event_bus_.publish(refresh_evt);
+                        }
+                    }
+                    break;
+                }
+                // R2 Fix 3: Rename file/folder
+                case kCtxRename:
+                {
+                    const std::string current_name =
+                        std::filesystem::path(node_path).filename().string();
+                    wxTextEntryDialog rename_dlg(
+                        this, "New name:", "Rename", wxString(current_name));
+                    if (rename_dlg.ShowModal() == wxID_OK)
+                    {
+                        const std::string new_name = rename_dlg.GetValue().ToStdString();
+                        if (!new_name.empty() && new_name != current_name)
+                        {
+                            const std::string new_path =
+                                (std::filesystem::path(node_path).parent_path() / new_name)
+                                    .string();
+                            std::error_code err_code;
+                            std::filesystem::rename(node_path, new_path, err_code);
+                            if (!err_code)
+                            {
+                                core::events::WorkspaceRefreshRequestEvent refresh_evt;
+                                event_bus_.publish(refresh_evt);
+                            }
+                        }
+                    }
+                    break;
+                }
+                // R2 Fix 6: New Folder
+                case kCtxNewFolder:
+                {
+                    wxTextEntryDialog folder_dlg(
+                        this, "Enter folder name:", "New Folder", "new-folder");
+                    if (folder_dlg.ShowModal() == wxID_OK)
+                    {
+                        const std::string folder_name = folder_dlg.GetValue().ToStdString();
+                        std::string dir_path = node_path;
+                        if (is_file)
+                        {
+                            dir_path = std::filesystem::path(node_path).parent_path().string();
+                        }
+                        const std::string new_dir_path =
+                            (std::filesystem::path(dir_path) / folder_name).string();
+
+                        std::error_code err_code;
+                        std::filesystem::create_directory(new_dir_path, err_code);
+                        if (!err_code)
+                        {
+                            core::events::WorkspaceRefreshRequestEvent refresh_evt;
+                            event_bus_.publish(refresh_evt);
+                        }
+                    }
+                    break;
+                }
+                default:
+                    break;
+            }
+        });
 
     PopupMenu(&menu);
 }
@@ -703,8 +1027,15 @@ void FileTreeCtrl::OnKeyDown(wxKeyEvent& event)
             if (focused_node_index_ > 0)
             {
                 --focused_node_index_;
-                active_file_id_ = visible_nodes[static_cast<size_t>(focused_node_index_)]->id;
+                auto* up_node = visible_nodes[static_cast<size_t>(focused_node_index_)];
+                active_file_id_ = up_node->id;
+                EnsureNodeVisible(active_file_id_);
                 Refresh();
+                // Fix 2: Fire select callback so keyboard nav opens files
+                if (up_node->is_file() && on_file_select_)
+                {
+                    on_file_select_(*up_node);
+                }
             }
             break;
 
@@ -712,8 +1043,15 @@ void FileTreeCtrl::OnKeyDown(wxKeyEvent& event)
             if (focused_node_index_ < static_cast<int>(visible_nodes.size()) - 1)
             {
                 ++focused_node_index_;
-                active_file_id_ = visible_nodes[static_cast<size_t>(focused_node_index_)]->id;
+                auto* down_node = visible_nodes[static_cast<size_t>(focused_node_index_)];
+                active_file_id_ = down_node->id;
+                EnsureNodeVisible(active_file_id_);
                 Refresh();
+                // Fix 2: Fire select callback so keyboard nav opens files
+                if (down_node->is_file() && on_file_select_)
+                {
+                    on_file_select_(*down_node);
+                }
             }
             break;
 
@@ -763,8 +1101,46 @@ void FileTreeCtrl::OnKeyDown(wxKeyEvent& event)
             auto* node = visible_nodes[static_cast<size_t>(focused_node_index_)];
             if (node->is_folder() && node->is_open)
             {
+                // Collapse open folder
                 node->is_open = false;
                 UpdateVirtualHeight();
+                Refresh();
+            }
+            else
+            {
+                // Fix 3: Navigate to parent folder (like VS Code)
+                const int parent_idx = FindParentIndex(visible_nodes, focused_node_index_);
+                if (parent_idx >= 0)
+                {
+                    focused_node_index_ = parent_idx;
+                    active_file_id_ = visible_nodes[static_cast<size_t>(parent_idx)]->id;
+                    EnsureNodeVisible(active_file_id_);
+                    Refresh();
+                }
+            }
+            break;
+        }
+
+        // Fix 8: Home/End keys jump to first/last node
+        case WXK_HOME:
+        {
+            if (!visible_nodes.empty())
+            {
+                focused_node_index_ = 0;
+                active_file_id_ = visible_nodes[0]->id;
+                EnsureNodeVisible(active_file_id_);
+                Refresh();
+            }
+            break;
+        }
+
+        case WXK_END:
+        {
+            if (!visible_nodes.empty())
+            {
+                focused_node_index_ = static_cast<int>(visible_nodes.size()) - 1;
+                active_file_id_ = visible_nodes[static_cast<size_t>(focused_node_index_)]->id;
+                EnsureNodeVisible(active_file_id_);
                 Refresh();
             }
             break;
@@ -798,6 +1174,149 @@ void FileTreeCtrl::CollectVisibleNodes(std::vector<core::FileNode*>& result,
             CollectVisibleNodes(result, node.children);
         }
     }
+}
+
+// Fix 3: Find the parent folder index in the visible node list
+auto FileTreeCtrl::FindParentIndex(const std::vector<core::FileNode*>& visible, int child_index)
+    -> int
+{
+    if (child_index <= 0 || child_index >= static_cast<int>(visible.size()))
+    {
+        return -1;
+    }
+
+    // The child's id contains the parent directory path
+    const std::string child_path = visible[static_cast<size_t>(child_index)]->id;
+    const std::string parent_dir = std::filesystem::path(child_path).parent_path().string();
+
+    // Walk backward to find a folder whose id matches the parent directory
+    for (int idx = child_index - 1; idx >= 0; --idx)
+    {
+        if (visible[static_cast<size_t>(idx)]->id == parent_dir &&
+            visible[static_cast<size_t>(idx)]->is_folder())
+        {
+            return idx;
+        }
+    }
+    return -1;
+}
+
+// R2 Fix 1: Show context menu when right-clicking empty area below the tree
+void FileTreeCtrl::ShowEmptyAreaContextMenu()
+{
+    wxMenu menu;
+    menu.Append(kCtxNewFile, "New File\u2026");
+    menu.Append(kCtxNewFolder, "New Folder\u2026");
+    menu.AppendSeparator();
+    menu.Append(kCtxExpandAll, "Expand All");
+    menu.Append(kCtxCollapseAll, "Collapse All");
+
+    menu.Bind(
+        wxEVT_MENU,
+        [this](wxCommandEvent& cmd_event)
+        {
+            switch (cmd_event.GetId())
+            {
+                case kCtxNewFile:
+                {
+                    wxTextEntryDialog name_dlg(this, "Enter file name:", "New File", "untitled.md");
+                    if (name_dlg.ShowModal() == wxID_OK)
+                    {
+                        const std::string file_name = name_dlg.GetValue().ToStdString();
+                        if (!workspace_root_.empty())
+                        {
+                            const std::string new_file_path =
+                                (std::filesystem::path(workspace_root_) / file_name).string();
+                            std::ofstream new_stream(new_file_path);
+                            new_stream.close();
+
+                            if (on_file_open_)
+                            {
+                                core::FileNode new_node;
+                                new_node.id = new_file_path;
+                                new_node.name = file_name;
+                                new_node.type = core::FileNodeType::File;
+                                on_file_open_(new_node);
+                            }
+
+                            core::events::WorkspaceRefreshRequestEvent refresh_evt;
+                            event_bus_.publish(refresh_evt);
+                        }
+                    }
+                    break;
+                }
+                case kCtxNewFolder:
+                {
+                    wxTextEntryDialog folder_dlg(
+                        this, "Enter folder name:", "New Folder", "new-folder");
+                    if (folder_dlg.ShowModal() == wxID_OK)
+                    {
+                        const std::string folder_name = folder_dlg.GetValue().ToStdString();
+                        if (!workspace_root_.empty())
+                        {
+                            const std::string new_dir_path =
+                                (std::filesystem::path(workspace_root_) / folder_name).string();
+                            std::error_code err_code;
+                            std::filesystem::create_directory(new_dir_path, err_code);
+                            if (!err_code)
+                            {
+                                core::events::WorkspaceRefreshRequestEvent refresh_evt;
+                                event_bus_.publish(refresh_evt);
+                            }
+                        }
+                    }
+                    break;
+                }
+                case kCtxExpandAll:
+                {
+                    std::function<void(core::FileNode&)> expand_all;
+                    expand_all = [&expand_all](core::FileNode& target)
+                    {
+                        if (target.is_folder())
+                        {
+                            target.is_open = true;
+                            for (auto& child : target.children)
+                            {
+                                expand_all(child);
+                            }
+                        }
+                    };
+                    for (auto& root : roots_)
+                    {
+                        expand_all(root);
+                    }
+                    UpdateVirtualHeight();
+                    Refresh();
+                    break;
+                }
+                case kCtxCollapseAll:
+                {
+                    std::function<void(core::FileNode&)> collapse_all;
+                    collapse_all = [&collapse_all](core::FileNode& target)
+                    {
+                        if (target.is_folder())
+                        {
+                            target.is_open = false;
+                            for (auto& child : target.children)
+                            {
+                                collapse_all(child);
+                            }
+                        }
+                    };
+                    for (auto& root : roots_)
+                    {
+                        collapse_all(root);
+                    }
+                    UpdateVirtualHeight();
+                    Refresh();
+                    break;
+                }
+                default:
+                    break;
+            }
+        });
+
+    PopupMenu(&menu);
 }
 
 } // namespace markamp::ui

@@ -2,9 +2,9 @@
 
 ## Project Overview
 
-MarkAmp is a cross-platform, retro-futuristic Markdown editor built with **C++23** and **wxWidgets 3.2.9**. It features split-view editing, syntax highlighting, Mermaid diagram rendering, a theme system with 8 built-in themes, multi-file tab management, command palette, Zen Mode, performance infrastructure with arena allocators and viewport caching, advanced rendering primitives (glyph caching, hit-testing, double-buffered paint, scroll blitting), visual polish with gradient surfaces and micro-animations, native platform integration, a VS Code-inspired settings panel, toast notifications, activity bar navigation, and a plugin architecture with manifest-driven contribution points.
+MarkAmp is a cross-platform, retro-futuristic Markdown editor built with **C++23** and **wxWidgets 3.2.9**. It features split-view editing, syntax highlighting, Mermaid diagram rendering, a theme system with 8 built-in themes, multi-file tab management, command palette, Zen Mode, performance infrastructure with arena allocators and viewport caching, advanced rendering primitives (glyph caching, hit-testing, double-buffered paint, scroll blitting), visual polish with gradient surfaces and micro-animations, native platform integration, a VS Code-inspired settings panel, toast notifications, activity bar navigation, a plugin architecture with manifest-driven contribution points, and 20+ usability fixes for file tree, tab management, and status bar VS Code parity.
 
-**Current Version:** 1.4.7
+**Current Version:** 1.5.8
 
 ## Key Workflows
 
@@ -17,7 +17,7 @@ MarkAmp is a cross-platform, retro-futuristic Markdown editor built with **C++23
 
 - `src/app/` — Application entry point (`MarkAmpApp`)
 - `src/core/` — Core logic: Config (YAML), Theme, ThemeRegistry, Color, Events, EventBus, BuiltinThemes, RecentWorkspaces, ThemeLoader, PieceTable, LineIndex, FrameArena, FrameScheduler, Profiler, AsyncHighlighter, AsyncFileLoader, IncrementalSearcher, DocumentSnapshot, SPSCQueue, CoalescingTask, AdaptiveThrottle, AsyncPipeline, ChunkedStorage, CompilerHints, FrameBudgetToken, GenerationCounter, GraphemeBoundaryCache, IMECompositionOverlay, InputPriorityDispatcher, StableLineId, StyleRunStore, TextSpan, **IPlugin** (plugin interface), **PluginManager** (lifecycle management)
-- `src/ui/` — UI components: MainFrame, EditorPanel (60+ VS Code-inspired improvements), PreviewPanel, FileTreeCtrl, SplitView, StatusBarPanel, LayoutManager, TabBar, CommandPalette, BreadcrumbBar, StartupPanel, FloatingFormatBar, LinkPreviewPopover, ImagePreviewPopover, TableEditorOverlay, ThemeTokenEditor, SplitterBar, ShortcutOverlay, Toolbar, CustomChrome, **SettingsPanel** (settings editor), **NotificationManager** (toast notifications), **ActivityBar** (vertical icon rail)
+- `src/ui/` — UI components: MainFrame, EditorPanel (60+ VS Code-inspired improvements), PreviewPanel, FileTreeCtrl (auto-scroll, indent guides, 30+ file-type icons, enriched context menus, tooltips), SplitView, StatusBarPanel (filename, language, file size), LayoutManager (Save All, Revert File, Close All Tabs, drag-and-drop), TabBar, CommandPalette, BreadcrumbBar, StartupPanel, FloatingFormatBar, LinkPreviewPopover, ImagePreviewPopover, TableEditorOverlay, ThemeTokenEditor, SplitterBar, ShortcutOverlay, Toolbar, CustomChrome, **SettingsPanel** (settings editor), **NotificationManager** (toast notifications), **ActivityBar** (vertical icon rail)
 - `src/rendering/` — HtmlRenderer, CodeBlockRenderer, MermaidBlockRenderer, DirtyRegion, ViewportCache, CaretOverlay, DoubleBufferedPaint, GlyphAdvanceCache, HitTestAccelerator, IncrementalLineWrap, PrefetchManager, ScrollBlit, SelectionPainter
 - `src/platform/` — Platform abstractions: MacPlatform (Objective-C++ bridge)
 - `tests/unit/` — Catch2 unit tests (10 test targets, 100% pass rate)
@@ -61,6 +61,7 @@ MarkAmp is a cross-platform, retro-futuristic Markdown editor built with **C++23
 - Activity bar events: `ActivityBarSelectionEvent` (with `ActivityBarItem`)
 - Theme events: `ThemeChangedEvent`
 - Tab events: `TabSwitchedEvent`, `TabCloseRequestEvent`, `TabSaveRequestEvent`
+- Workspace events: `WorkspaceRefreshRequestEvent`, `ShowStartupRequestEvent`
 
 ### Editor Improvements (EditorPanel — 60+ features)
 

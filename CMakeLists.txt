@@ -10,7 +10,7 @@ elseif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/external/vcpkg/scripts/buildsystems/v
         CACHE STRING "vcpkg toolchain file")
 endif()
 
-project(MarkAmp VERSION 1.4.7 LANGUAGES CXX)
+project(MarkAmp VERSION 1.5.8 LANGUAGES CXX)
 
 # C++23 with C++26-forward patterns
 # Note: C++26 mode breaks spdlog/fmt's FMT_STRING consteval macro on Clang 21 and GCC 14.

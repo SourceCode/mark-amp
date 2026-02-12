@@ -108,6 +108,17 @@ void LayoutManager::CreateLayout()
     // Header: "EXPLORER"
     auto* header_panel = new wxPanel(sidebar_panel_, wxID_ANY, wxDefaultPosition, wxSize(-1, 40));
     header_panel->SetBackgroundColour(theme_engine().color(core::ThemeColorToken::BgHeader));
+
+    // Fix 11: Render "EXPLORER" label in header
+    auto* header_sizer = new wxBoxSizer(wxHORIZONTAL);
+    auto* header_label = new wxStaticText(header_panel, wxID_ANY, "EXPLORER");
+    header_label->SetFont(
+        theme_engine().font(core::ThemeFontToken::MonoRegular).Bold().Scaled(0.85f));
+    header_label->SetForegroundColour(theme_engine().color(core::ThemeColorToken::TextMuted));
+    header_sizer->AddSpacer(12);
+    header_sizer->Add(header_label, 0, wxALIGN_CENTER_VERTICAL);
+    header_panel->SetSizer(header_sizer);
+
     sidebar_sizer->Add(header_panel, 0, wxEXPAND);
 
     // Search field: filter bar between header and file tree
@@ -143,26 +154,56 @@ void LayoutManager::CreateLayout()
                             }
                         });
 
-    // Load sample file tree
-    auto sample_root = core::get_sample_file_tree();
-    file_tree_->SetFileTree(sample_root.children);
-
-    // Auto-select first file
-    if (!sample_root.children.empty())
-    {
-        for (const auto& child : sample_root.children)
+    // Wire file open callback — double-click or context menu "Open" (Fix 1)
+    file_tree_->SetOnFileOpen(
+        [this](const core::FileNode& node)
         {
-            if (child.is_file())
+            if (node.is_file())
             {
-                file_tree_->SetActiveFileId(child.id);
-                break;
+                OpenFileInTab(node.id);
+            }
+        });
+
+    // Wire file select callback — single-click opens file (Fix 2)
+    file_tree_->SetOnFileSelect(
+        [this](const core::FileNode& node)
+        {
+            if (node.is_file())
+            {
+                OpenFileInTab(node.id);
+            }
+        });
+
+    // Load sample file tree only when not restoring a workspace (Fix 14)
+    if (config_ == nullptr || config_->get_string("workspace.last_path", "").empty())
+    {
+        auto sample_root = core::get_sample_file_tree();
+        file_tree_->SetFileTree(sample_root.children);
+
+        // Auto-select first file
+        if (!sample_root.children.empty())
+        {
+            for (const auto& child : sample_root.children)
+            {
+                if (child.is_file())
+                {
+                    file_tree_->SetActiveFileId(child.id);
+                    break;
+                }
             }
         }
-    }
+    } // end: Fix 14 conditional sample tree
 
-    // Footer
-    auto* footer_panel = new wxPanel(sidebar_panel_, wxID_ANY, wxDefaultPosition, wxSize(-1, 48));
+    // Footer — Fix 13: show file count
+    auto* footer_panel = new wxPanel(sidebar_panel_, wxID_ANY, wxDefaultPosition, wxSize(-1, 28));
     footer_panel->SetBackgroundColour(theme_engine().color(core::ThemeColorToken::BgApp));
+    auto* footer_sizer = new wxBoxSizer(wxHORIZONTAL);
+    file_count_label_ = new wxStaticText(footer_panel, wxID_ANY, "");
+    file_count_label_->SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular).Scaled(0.8f));
+    file_count_label_->SetForegroundColour(theme_engine().color(core::ThemeColorToken::TextMuted));
+    footer_sizer->AddSpacer(12);
+    footer_sizer->Add(file_count_label_, 1, wxALIGN_CENTER_VERTICAL);
+    footer_panel->SetSizer(footer_sizer);
     sidebar_sizer->Add(footer_panel, 0, wxEXPAND);
 
     sidebar_panel_->SetSizer(sidebar_sizer);
@@ -241,6 +282,37 @@ void LayoutManager::setFileTree(const std::vector<core::FileNode>& roots)
     if (file_tree_ != nullptr)
     {
         file_tree_->SetFileTree(roots);
+    }
+
+    // Fix 13: Update sidebar footer file count
+    if (file_count_label_ != nullptr)
+    {
+        size_t total_files = 0;
+        size_t total_folders = 0;
+        for (const auto& root : roots)
+        {
+            total_files += root.file_count();
+            total_folders += root.folder_count();
+            if (root.is_folder())
+            {
+                ++total_folders;
+            }
+            else
+            {
+                ++total_files;
+            }
+        }
+        file_count_label_->SetLabel(
+            wxString::Format("%zu files, %zu folders", total_files, total_folders));
+    }
+}
+
+// Fix 15: Forward workspace root to file tree for relative path computation
+void LayoutManager::SetWorkspaceRoot(const std::string& root_path)
+{
+    if (file_tree_ != nullptr)
+    {
+        file_tree_->SetWorkspaceRoot(root_path);
     }
 }
 
@@ -413,6 +485,8 @@ void LayoutManager::SaveLayoutState()
     }
     config_->set("layout.sidebar_visible", sidebar_visible_);
     config_->set("layout.sidebar_width", sidebar_width_);
+    // Fix 15: Persist active file path for restore on next launch
+    config_->set("workspace.last_active_file", active_file_path_);
 }
 
 void LayoutManager::RestoreLayoutState()
@@ -523,6 +597,61 @@ void LayoutManager::OpenFileInTab(const std::string& path)
         {
             editor->SetContent(content);
             editor->ClearModified();
+            // R2 Fix 11: Editor gains focus after opening a file
+            editor->SetFocus();
+        }
+    }
+
+    // R2 Fix 13: Update status bar filename
+    if (statusbar_panel_ != nullptr)
+    {
+        statusbar_panel_->set_filename(display_name);
+        // R2 Fix 14: Language from extension
+        const std::string ext = std::filesystem::path(path).extension().string();
+        std::string language;
+        if (ext == ".md" || ext == ".markdown" || ext == ".mdx")
+            language = "Markdown";
+        else if (ext == ".json")
+            language = "JSON";
+        else if (ext == ".cpp" || ext == ".cc" || ext == ".cxx")
+            language = "C++";
+        else if (ext == ".h" || ext == ".hpp" || ext == ".hxx")
+            language = "C++ Header";
+        else if (ext == ".c")
+            language = "C";
+        else if (ext == ".py")
+            language = "Python";
+        else if (ext == ".js")
+            language = "JavaScript";
+        else if (ext == ".ts")
+            language = "TypeScript";
+        else if (ext == ".html" || ext == ".htm")
+            language = "HTML";
+        else if (ext == ".css")
+            language = "CSS";
+        else if (ext == ".yaml" || ext == ".yml")
+            language = "YAML";
+        else if (ext == ".xml")
+            language = "XML";
+        else if (ext == ".txt")
+            language = "Plain Text";
+        else if (ext == ".sh" || ext == ".zsh" || ext == ".bash")
+            language = "Shell";
+        else if (ext == ".cmake")
+            language = "CMake";
+        else
+            language = ext.empty() ? "Plain Text" : ext.substr(1);
+        statusbar_panel_->set_language(language);
+
+        // R2 Fix 19: File size
+        try
+        {
+            const auto file_size = std::filesystem::file_size(path);
+            statusbar_panel_->set_file_size(file_size);
+        }
+        catch (const std::filesystem::filesystem_error& /*err*/)
+        {
+            statusbar_panel_->set_file_size(0);
         }
     }
 
@@ -590,11 +719,17 @@ void LayoutManager::CloseTab(const std::string& path)
         }
         else if (split_view_ != nullptr)
         {
+            // Fix 12: Show empty-state placeholder when last tab closes
             auto* editor = split_view_->GetEditorPanel();
             if (editor != nullptr)
             {
                 editor->SetContent("");
+                editor->ClearModified();
             }
+
+            // R2 Fix 12: Return to startup screen when all tabs close
+            core::events::ShowStartupRequestEvent startup_evt;
+            event_bus_.publish(startup_evt);
         }
     }
 
@@ -657,6 +792,78 @@ void LayoutManager::SwitchToTab(const std::string& path)
             {
                 editor->ClearModified();
             }
+
+            // R2 Fix 10: Editor gains focus after tab switch
+            editor->SetFocus();
+        }
+    }
+
+    // Fix 7: Sync file tree selection with active tab
+    if (file_tree_ != nullptr)
+    {
+        file_tree_->SetActiveFileId(path);
+    }
+
+    // Fix 13: Publish content changed event to refresh preview panel
+    core::events::EditorContentChangedEvent content_evt;
+    content_evt.content = buf_it->second.content;
+    event_bus_.publish(content_evt);
+
+    // Fix 16: Update status bar cursor position on tab switch
+    if (statusbar_panel_ != nullptr)
+    {
+        statusbar_panel_->set_cursor_position(buf_it->second.first_visible_line + 1, 1);
+
+        // R2 Fix 13: Update filename in status bar
+        const std::string display_name = std::filesystem::path(path).filename().string();
+        statusbar_panel_->set_filename(display_name);
+
+        // R2 Fix 14: Update language in status bar
+        const std::string ext = std::filesystem::path(path).extension().string();
+        std::string language;
+        if (ext == ".md" || ext == ".markdown" || ext == ".mdx")
+            language = "Markdown";
+        else if (ext == ".json")
+            language = "JSON";
+        else if (ext == ".cpp" || ext == ".cc" || ext == ".cxx")
+            language = "C++";
+        else if (ext == ".h" || ext == ".hpp" || ext == ".hxx")
+            language = "C++ Header";
+        else if (ext == ".c")
+            language = "C";
+        else if (ext == ".py")
+            language = "Python";
+        else if (ext == ".js")
+            language = "JavaScript";
+        else if (ext == ".ts")
+            language = "TypeScript";
+        else if (ext == ".html" || ext == ".htm")
+            language = "HTML";
+        else if (ext == ".css")
+            language = "CSS";
+        else if (ext == ".yaml" || ext == ".yml")
+            language = "YAML";
+        else if (ext == ".xml")
+            language = "XML";
+        else if (ext == ".txt")
+            language = "Plain Text";
+        else if (ext == ".sh" || ext == ".zsh" || ext == ".bash")
+            language = "Shell";
+        else if (ext == ".cmake")
+            language = "CMake";
+        else
+            language = ext.empty() ? "Plain Text" : ext.substr(1);
+        statusbar_panel_->set_language(language);
+
+        // R2 Fix 19: Update file size in status bar
+        try
+        {
+            const auto file_size = std::filesystem::file_size(path);
+            statusbar_panel_->set_file_size(file_size);
+        }
+        catch (const std::filesystem::filesystem_error& /*err*/)
+        {
+            statusbar_panel_->set_file_size(0);
         }
     }
 
@@ -854,6 +1061,103 @@ void LayoutManager::CheckExternalFileChanges()
     catch (const std::filesystem::filesystem_error& ex)
     {
         MARKAMP_LOG_WARN("Error checking file changes: {}", ex.what());
+    }
+}
+
+auto LayoutManager::HasUnsavedFiles() const -> bool
+{
+    for (const auto& [path, buffer] : file_buffers_)
+    {
+        if (buffer.is_modified)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+auto LayoutManager::GetOpenFileCount() const -> size_t
+{
+    return file_buffers_.size();
+}
+
+// R2 Fix 15: Save all modified files
+void LayoutManager::SaveAllFiles()
+{
+    for (auto& [path, buffer] : file_buffers_)
+    {
+        if (buffer.is_modified)
+        {
+            SaveFile(path);
+        }
+    }
+}
+
+// R2 Fix 16: Revert active file to on-disk content
+void LayoutManager::RevertActiveFile()
+{
+    if (active_file_path_.empty())
+    {
+        return;
+    }
+
+    auto buf_it = file_buffers_.find(active_file_path_);
+    if (buf_it == file_buffers_.end())
+    {
+        return;
+    }
+
+    // Re-read from disk
+    try
+    {
+        std::ifstream file_stream(active_file_path_);
+        if (!file_stream.is_open())
+        {
+            return;
+        }
+        std::string content;
+        content.assign(std::istreambuf_iterator<char>(file_stream),
+                       std::istreambuf_iterator<char>());
+
+        buf_it->second.content = content;
+        buf_it->second.is_modified = false;
+
+        // Reload into editor
+        if (split_view_ != nullptr)
+        {
+            auto* editor = split_view_->GetEditorPanel();
+            if (editor != nullptr)
+            {
+                editor->SetContent(content);
+                editor->ClearModified();
+            }
+        }
+
+        // Update tab modified state
+        if (tab_bar_ != nullptr)
+        {
+            tab_bar_->SetTabModified(active_file_path_, false);
+        }
+    }
+    catch (const std::exception& ex)
+    {
+        MARKAMP_LOG_ERROR("Error reverting file {}: {}", active_file_path_, ex.what());
+    }
+}
+
+// R2 Fix 17: Close all open tabs
+void LayoutManager::CloseAllTabs()
+{
+    if (tab_bar_ == nullptr)
+    {
+        return;
+    }
+
+    // Copy paths because CloseTab mutates the container
+    const auto all_paths = tab_bar_->GetAllTabPaths();
+    for (const auto& path : all_paths)
+    {
+        CloseTab(path);
     }
 }
 

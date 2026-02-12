@@ -166,6 +166,30 @@ void StatusBarPanel::OnThemeChanged(const core::Theme& new_theme)
 
 // --- Layout ---
 
+// R2 Fix 13: Active filename setter
+void StatusBarPanel::set_filename(const std::string& filename)
+{
+    filename_ = filename;
+    RebuildItems();
+    Refresh();
+}
+
+// R2 Fix 14: Language setter
+void StatusBarPanel::set_language(const std::string& language)
+{
+    language_ = language;
+    RebuildItems();
+    Refresh();
+}
+
+// R2 Fix 19: File size setter
+void StatusBarPanel::set_file_size(std::size_t size_bytes)
+{
+    file_size_bytes_ = size_bytes;
+    RebuildItems();
+    Refresh();
+}
+
 void StatusBarPanel::RebuildItems()
 {
     left_items_.clear();
@@ -210,6 +234,45 @@ void StatusBarPanel::RebuildItems()
     right_items_.push_back({mermaid_text, {}, mermaid_is_accent, false, nullptr});
 
     right_items_.push_back({theme_name_, {}, false, false, nullptr});
+
+    // R2 Fix 13: Filename in left items
+    if (!filename_.empty())
+    {
+        left_items_.push_back({filename_, {}, false, false, nullptr});
+    }
+
+    // R2 Fix 14: Language in right items
+    if (!language_.empty())
+    {
+        right_items_.push_back({language_, {}, false, false, nullptr});
+    }
+
+    // R2 Fix 18: Line count
+    if (line_count_ > 0)
+    {
+        auto lines_text = fmt::format("{} LINES", line_count_);
+        right_items_.push_back({lines_text, {}, false, false, nullptr});
+    }
+
+    // R2 Fix 19: File size
+    if (file_size_bytes_ > 0)
+    {
+        std::string size_text;
+        if (file_size_bytes_ >= 1024 * 1024)
+        {
+            size_text =
+                fmt::format("{:.1f} MB", static_cast<double>(file_size_bytes_) / (1024.0 * 1024.0));
+        }
+        else if (file_size_bytes_ >= 1024)
+        {
+            size_text = fmt::format("{:.1f} KB", static_cast<double>(file_size_bytes_) / 1024.0);
+        }
+        else
+        {
+            size_text = fmt::format("{} B", file_size_bytes_);
+        }
+        right_items_.push_back({size_text, {}, false, false, nullptr});
+    }
 }
 
 // --- Drawing ---

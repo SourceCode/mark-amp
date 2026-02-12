@@ -460,4 +460,21 @@ struct ActivityBarSelectionEvent : Event
     }
 };
 
+// --- Workspace management events ---
+struct WorkspaceRefreshRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "WorkspaceRefreshRequestEvent";
+    }
+};
+
+struct ShowStartupRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ShowStartupRequestEvent";
+    }
+};
+
 } // namespace markamp::core::events
