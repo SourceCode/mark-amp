@@ -86,6 +86,21 @@ target_link_libraries(test_performance_infra PRIVATE
 )
 add_test(NAME test_performance_infra COMMAND test_performance_infra)
 
+# --- Performance Patterns #21-#40 test ---
+add_executable(test_perf_patterns_21_40
+    unit/test_perf_patterns_21_40.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/PieceTable.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/LineIndex.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/SyntaxHighlighter.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/Profiler.cpp
+)
+target_include_directories(test_perf_patterns_21_40 PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_perf_patterns_21_40 PRIVATE
+    Catch2::Catch2WithMain
+    markamp_dependencies
+)
+add_test(NAME test_perf_patterns_21_40 COMMAND test_perf_patterns_21_40)
+
 # --- Split View Advanced test ---
 add_executable(test_split_view_advanced
     unit/test_split_view_advanced.cpp

@@ -1,5 +1,27 @@
 # MarkAmp Release History
 
+## v1.2.5 — 2026-02-11
+
+### Highlights
+
+Advanced performance patterns #21-#40: Sublime Text-inspired rendering and editing primitives covering glyph caching, hit-testing, caret/selection painting, double-buffered paint, scroll blitting, incremental line wrapping, IME composition, and input priority dispatch. Adds comprehensive unit tests for all new primitives.
+
+### Added
+
+- **Core Primitives**: `AdaptiveThrottle` for frame-rate-adaptive update coalescing, `AsyncPipeline` for staged background processing, `ChunkedStorage` for cache-friendly contiguous block allocation, `CompilerHints` for branch-prediction and prefetch intrinsics, `FrameBudgetToken` for frame-time budget accounting, `GenerationCounter` for lock-free generation-based invalidation, `GraphemeBoundaryCache` for Unicode grapheme cluster lookups, `IMECompositionOverlay` for IME inline composition rendering, `InputPriorityDispatcher` for prioritized input event dispatch, `StableLineId` for content-addressed line identity across edits, `StyleRunStore` for run-length encoded style spans, `TextSpan` for zero-copy text range references
+- **Rendering Primitives**: `CaretOverlay` for phase-animated cursor blinking, `DoubleBufferedPaint` for flicker-free paint with damage-rect merging, `GlyphAdvanceCache` for per-font glyph width memoization, `HitTestAccelerator` for O(log n) column/line hit-testing, `IncrementalLineWrap` for incremental soft-wrap recomputation, `PrefetchManager` for viewport-aware line prefetching, `ScrollBlit` for bit-copy scroll blitting with damage tracking, `SelectionPainter` for multi-selection range rendering
+- **Test Coverage**: `test_perf_patterns_21_40` — 20 test cases covering all new core and rendering primitives
+
+### Changed
+
+- Expanded `tests/CMakeLists.txt` with the new `test_perf_patterns_21_40` test target and source linkage
+
+### Fixed
+
+- **HitTestAccelerator boundary case** — Fixed `column_at_x` to correctly handle x-coordinates landing exactly on a glyph's right edge using `lower_bound` with proper boundary condition checks
+
+---
+
 ## v1.1.4 — 2026-02-11
 
 ### Highlights

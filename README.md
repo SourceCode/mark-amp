@@ -1,6 +1,6 @@
 # MarkAmp
 
-**v1.1.3** — A powerful, cross-platform Markdown editor built with C++23 and wxWidgets.
+**v1.2.5** — A powerful, cross-platform Markdown editor built with C++23 and wxWidgets.
 
 ## Features
 

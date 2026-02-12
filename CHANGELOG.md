@@ -5,6 +5,41 @@ All notable changes to MarkAmp are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.5] - 2026-02-11
+
+### Added
+
+- 12 core primitives: AdaptiveThrottle, AsyncPipeline, ChunkedStorage, CompilerHints, FrameBudgetToken, GenerationCounter, GraphemeBoundaryCache, IMECompositionOverlay, InputPriorityDispatcher, StableLineId, StyleRunStore, TextSpan
+- 8 rendering primitives: CaretOverlay, DoubleBufferedPaint, GlyphAdvanceCache, HitTestAccelerator, IncrementalLineWrap, PrefetchManager, ScrollBlit, SelectionPainter
+- test_perf_patterns_21_40 test target (20 test cases)
+
+### Changed
+
+- Expanded tests/CMakeLists.txt with test_perf_patterns_21_40 target
+
+### Fixed
+
+- HitTestAccelerator boundary case in column_at_x for glyph right-edge hit detection
+
+## [1.1.4] - 2026-02-11
+
+### Added
+
+- Performance infrastructure: FrameArena, ObjectPool, SPSCQueue, FrameScheduler, DocumentSnapshot, FrameHistogram
+- Data structures: PieceTable, LineIndex, IncrementalSearcher, AsyncFileLoader, AsyncHighlighter
+- Rendering: DirtyRegionAccumulator, ViewportCache, LazyCache, LineLayoutCache, ViewportState
+- Visual polish: gradient surfaces, drop shadows, micro-animations, 8px spacing grid
+- UI components: FloatingFormatBar, LinkPreviewPopover, ImagePreviewPopover, TableEditorOverlay, ThemeTokenEditor, StartupPanel, RecentWorkspaces
+- Mermaid diagram rendering (MermaidRenderer, MermaidBlockRenderer)
+- CoalescingTask for debounced background task execution
+- 6 new test targets: test_visual_polish, test_performance_infra, test_theme_phase4, test_mermaid_phase3, test_split_view_advanced, test_sidebar_filter
+
+### Fixed
+
+- Unsigned char gradient overflow crash on dark themes
+- FrameArena::reset() compile error
+- test_performance_infra build and nodiscard warnings
+
 ## [1.1.3] - 2026-02-11
 
 ### Added
