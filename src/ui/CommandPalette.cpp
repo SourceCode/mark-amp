@@ -1,5 +1,7 @@
 #include "CommandPalette.h"
 
+#include "core/Events.h"
+
 #include <wx/sizer.h>
 
 #include <algorithm>
@@ -8,7 +10,9 @@
 namespace markamp::ui
 {
 
-CommandPalette::CommandPalette(wxWindow* parent, core::ThemeEngine& theme_engine)
+CommandPalette::CommandPalette(wxWindow* parent,
+                               core::ThemeEngine& theme_engine,
+                               core::EventBus& event_bus)
     : wxDialog(parent,
                wxID_ANY,
                wxEmptyString,
@@ -16,6 +20,7 @@ CommandPalette::CommandPalette(wxWindow* parent, core::ThemeEngine& theme_engine
                wxSize(500, 350),
                wxBORDER_NONE | wxSTAY_ON_TOP)
     , theme_engine_(theme_engine)
+    , event_bus_(event_bus)
 {
     auto* sizer = new wxBoxSizer(wxVERTICAL);
 
@@ -36,6 +41,9 @@ CommandPalette::CommandPalette(wxWindow* parent, core::ThemeEngine& theme_engine
     list_->Bind(wxEVT_KEY_DOWN, &CommandPalette::OnKeyDown, this);
 
     ApplyTheme();
+
+    theme_sub_ = event_bus_.subscribe<core::events::ThemeChangedEvent>(
+        [this](const core::events::ThemeChangedEvent& /*evt*/) { ApplyTheme(); });
 }
 
 void CommandPalette::RegisterCommand(PaletteCommand command)

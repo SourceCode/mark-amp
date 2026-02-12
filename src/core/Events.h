@@ -356,4 +356,108 @@ struct GoToLineRequestEvent : Event
     }
 };
 
+// --- Settings events ---
+struct SettingsOpenRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "SettingsOpenRequestEvent";
+    }
+};
+
+struct SettingChangedEvent : Event
+{
+    std::string key;
+    std::string value;
+
+    SettingChangedEvent() = default;
+    SettingChangedEvent(std::string key_name, std::string new_value)
+        : key(std::move(key_name))
+        , value(std::move(new_value))
+    {
+    }
+
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "SettingChangedEvent";
+    }
+};
+
+// --- Plugin events ---
+struct PluginActivatedEvent : Event
+{
+    std::string plugin_id;
+
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "PluginActivatedEvent";
+    }
+};
+
+struct PluginDeactivatedEvent : Event
+{
+    std::string plugin_id;
+
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "PluginDeactivatedEvent";
+    }
+};
+
+// --- Notification events ---
+enum class NotificationLevel
+{
+    Info,
+    Warning,
+    Error,
+    Success
+};
+
+struct NotificationEvent : Event
+{
+    std::string message;
+    NotificationLevel level{NotificationLevel::Info};
+    int duration_ms{3000}; // Auto-dismiss duration, 0 = sticky
+
+    NotificationEvent() = default;
+    explicit NotificationEvent(std::string msg,
+                               NotificationLevel lvl = NotificationLevel::Info,
+                               int dur = 3000)
+        : message(std::move(msg))
+        , level(lvl)
+        , duration_ms(dur)
+    {
+    }
+
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "NotificationEvent";
+    }
+};
+
+// --- Activity bar events ---
+enum class ActivityBarItem
+{
+    FileExplorer,
+    Search,
+    Settings,
+    Themes
+};
+
+struct ActivityBarSelectionEvent : Event
+{
+    ActivityBarItem item{ActivityBarItem::FileExplorer};
+
+    ActivityBarSelectionEvent() = default;
+    explicit ActivityBarSelectionEvent(ActivityBarItem item_id)
+        : item(item_id)
+    {
+    }
+
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ActivityBarSelectionEvent";
+    }
+};
+
 } // namespace markamp::core::events

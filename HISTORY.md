@@ -1,5 +1,40 @@
 # MarkAmp Release History
 
+## v1.4.7 — 2026-02-12
+
+### Highlights
+
+Settings panel, notification toasts, activity bar, plugin system, and 60+ VS Code-inspired editor improvements. Adds a fully-featured Settings panel with search/filter, collapsible groups, modified indicators, and export/import. Introduces a toast notification manager, a vertical activity bar rail, and a plugin architecture with manifest-driven contribution points. Implements four phases of editor enhancements covering multi-cursor, auto-closing brackets, folding, line operations, case transforms, smart select, and UX polish. Fixes theme subscription gaps across multiple UI components.
+
+### Added
+
+- **SettingsPanel**: `SettingsPanel.h/.cpp` — VS Code-inspired settings editor with searchable/filterable settings, collapsible category groups, per-setting modified indicator (●), reset-to-default buttons, and settings import/export
+- **NotificationManager**: `NotificationManager.h/.cpp` — toast notification system with Info/Warning/Error/Success levels, auto-dismiss with configurable duration, animated fade-in/out, and up to 3 stacked toasts
+- **ActivityBar**: `ActivityBar.h/.cpp` — vertical icon rail (File Explorer, Search, Settings, Themes) with painted icons, hover/active highlighting, and click-to-navigate via EventBus
+- **Plugin System**: `IPlugin.h` — plugin interface with manifest-driven contribution points (commands, keybindings, snippets, menus, settings, themes), `PluginContext` runtime context, `PluginManager.h/.cpp` — lifecycle management (register, activate, deactivate) with palette/shortcut wiring
+- **Events**: `SettingsOpenRequestEvent`, `SettingChangedEvent`, `PluginActivatedEvent`, `PluginDeactivatedEvent`, `NotificationEvent` (with `NotificationLevel` enum), `ActivityBarSelectionEvent` (with `ActivityBarItem` enum)
+- **Editor Phase 6 — VS Code Improvements (18 items)**: auto-closing brackets/quotes, multi-cursor above/below, sticky scroll, inline color preview, font ligatures, smooth caret, current-line highlight, font family config, auto-save with delay, insert final newline, whitespace boundary rendering, link auto-complete, drag-and-drop file insertion, edge column ruler, go-to-symbol heading navigation, toggle block comment, smart select expand/shrink
+- **Editor Phase 7 — UX/QoL (14 items)**: cursor surrounding lines, scroll beyond last line, smooth scrolling, copy-line-if-no-selection, join lines, reverse lines, delete duplicate lines, transpose characters, move selected text left/right, block indent/outdent, cursor undo/redo, select all occurrences, add selection to next find match, toggle word wrap
+- **Editor Phase 8 — More VS Code (20 items)**: fold/unfold current/all regions, expand line selection, delete current line, toggle render whitespace, toggle line numbers, jump-to/select-to/remove-surrounding brackets, duplicate selection or line, transform to upper/lower/title case, sort lines ascending/descending, insert line above, trim trailing whitespace, toggle minimap visibility
+- **Editor Phase 9 — Final VS Code Batch (14 items)**: copy line up/down, delete all left/right of cursor, add/remove line comment, toggle auto-indent/bracket-matching/code-folding/indentation-guides, select word at cursor, select current paragraph, toggle read-only mode, convert indentation spaces↔tabs
+- **Editor auto-pair markdown emphasis** (`*`, `**`, `` ` ``) and smart backspace for pair deletion
+
+### Changed
+
+- Expanded `src/CMakeLists.txt` with `SettingsPanel.cpp`, `NotificationManager.cpp`, `ActivityBar.cpp`, `PluginManager.cpp` source files and source_group entries
+- Expanded `src/core/Events.h` with 104 new lines of event types for settings, plugins, notifications, and activity bar
+- Updated `EditorPanel` with 2,000+ lines of new editor improvement implementations and 33 new private state members
+- Updated `CommandPalette`, `BreadcrumbBar` to accept `EventBus&` and subscribe to `ThemeChangedEvent`
+- Updated `FloatingFormatBar`, `ImagePreviewPopover`, `LinkPreviewPopover`, `TableEditorOverlay` to accept `EventBus&` and subscribe to `ThemeChangedEvent`
+- Updated `StartupPanel` to subscribe to `ThemeChangedEvent` for dynamic theme switching
+
+### Fixed
+
+- **Theme subscription gaps**: Added `ThemeChangedEvent` subscriptions to `NotificationManager`, `TableEditorOverlay`, `ImagePreviewPopover`, `LinkPreviewPopover`, `FloatingFormatBar`, `CommandPalette`, `BreadcrumbBar`, and `StartupPanel` ensuring all components respond to runtime theme changes
+- **EditorPanel::OnThemeChanged**: Now calls `ThemeAwareWindow::OnThemeChanged(new_theme)` before applying editor-specific theme updates
+
+---
+
 ## v1.3.6 — 2026-02-12
 
 ### Highlights

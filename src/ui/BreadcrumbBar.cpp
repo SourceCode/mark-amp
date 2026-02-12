@@ -1,13 +1,18 @@
 #include "BreadcrumbBar.h"
 
+#include "core/Events.h"
+
 #include <wx/sizer.h>
 
 namespace markamp::ui
 {
 
-BreadcrumbBar::BreadcrumbBar(wxWindow* parent, core::ThemeEngine& theme_engine)
+BreadcrumbBar::BreadcrumbBar(wxWindow* parent,
+                             core::ThemeEngine& theme_engine,
+                             core::EventBus& event_bus)
     : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxSize(-1, 24))
     , theme_engine_(theme_engine)
+    , event_bus_(event_bus)
 {
     auto* sizer = new wxBoxSizer(wxHORIZONTAL);
 
@@ -16,6 +21,9 @@ BreadcrumbBar::BreadcrumbBar(wxWindow* parent, core::ThemeEngine& theme_engine)
 
     SetSizer(sizer);
     ApplyTheme();
+
+    theme_sub_ = event_bus_.subscribe<core::events::ThemeChangedEvent>(
+        [this](const core::events::ThemeChangedEvent& /*evt*/) { ApplyTheme(); });
 }
 
 void BreadcrumbBar::SetFilePath(const std::vector<std::string>& segments)

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "core/EventBus.h"
+
 #include <wx/wx.h>
 
 #include <filesystem>
@@ -30,6 +32,7 @@ private:
     markamp::core::EventBus* event_bus_;
     markamp::core::RecentWorkspaces* recent_workspaces_;
     markamp::core::ThemeEngine* theme_engine_;
+    core::Subscription theme_sub_;
 
     // UI Components
     wxBoxSizer* main_sizer_{nullptr};

@@ -1,6 +1,7 @@
 #include "ImagePreviewPopover.h"
 
 #include "core/Color.h"
+#include "core/Events.h"
 
 #include <wx/image.h>
 #include <wx/sizer.h>
@@ -10,12 +11,18 @@
 namespace markamp::ui
 {
 
-ImagePreviewPopover::ImagePreviewPopover(wxWindow* parent, core::ThemeEngine& theme_engine)
+ImagePreviewPopover::ImagePreviewPopover(wxWindow* parent,
+                                         core::ThemeEngine& theme_engine,
+                                         core::EventBus& event_bus)
     : wxPopupTransientWindow(parent, wxBORDER_SIMPLE)
     , theme_engine_(theme_engine)
+    , event_bus_(event_bus)
 {
     CreateLayout();
     ApplyTheme();
+
+    theme_sub_ = event_bus_.subscribe<core::events::ThemeChangedEvent>(
+        [this](const core::events::ThemeChangedEvent& /*evt*/) { ApplyTheme(); });
 }
 
 void ImagePreviewPopover::CreateLayout()

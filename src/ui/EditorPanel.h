@@ -136,6 +136,220 @@ public:
     // ── Phase 6D: Minimap ──
     void ToggleMinimap();
 
+    // ── VS Code-Inspired Editor Improvements (20 items) ──
+
+    // #1 Auto-closing brackets/quotes
+    void SetAutoClosingBrackets(bool enabled);
+    [[nodiscard]] auto GetAutoClosingBrackets() const -> bool;
+
+    // #2 Multi-cursor editing
+    void AddCursorAbove();
+    void AddCursorBelow();
+    void AddCursorAtNextOccurrence();
+
+    // #3 Sticky scroll heading (enhanced)
+    void SetStickyScrollEnabled(bool enabled);
+    [[nodiscard]] auto GetStickyScrollEnabled() const -> bool;
+
+    // #4 Inline color preview decorations
+    void SetInlineColorPreview(bool enabled);
+    [[nodiscard]] auto GetInlineColorPreview() const -> bool;
+
+    // #5 Font ligature support
+    void SetFontLigatures(bool enabled);
+    [[nodiscard]] auto GetFontLigatures() const -> bool;
+
+    // #6 Smooth caret animation
+    void SetSmoothCaret(bool enabled);
+    [[nodiscard]] auto GetSmoothCaret() const -> bool;
+
+    // #7 Current line highlight
+    void SetHighlightCurrentLine(bool enabled);
+    [[nodiscard]] auto GetHighlightCurrentLine() const -> bool;
+
+    // #8 Editor font family configuration
+    void SetFontFamily(const std::string& family);
+    [[nodiscard]] auto GetFontFamily() const -> std::string;
+
+    // #9 Auto-save with configurable delay
+    void SetAutoSave(bool enabled, int delay_seconds = 30);
+    [[nodiscard]] auto GetAutoSave() const -> bool;
+    [[nodiscard]] auto GetAutoSaveDelay() const -> int;
+
+    // #10 Insert final newline on save
+    void SetInsertFinalNewline(bool enabled);
+    [[nodiscard]] auto GetInsertFinalNewline() const -> bool;
+    void EnsureFinalNewline();
+
+    // #11 Whitespace boundary rendering
+    void SetWhitespaceBoundary(bool enabled);
+    [[nodiscard]] auto GetWhitespaceBoundary() const -> bool;
+
+    // #12 Markdown link auto-complete
+    void SetLinkAutoComplete(bool enabled);
+    [[nodiscard]] auto GetLinkAutoComplete() const -> bool;
+    void SetWorkspaceFiles(const std::vector<std::string>& files);
+
+    // #13 Drag-and-drop file insertion
+    void SetDragDropEnabled(bool enabled);
+    [[nodiscard]] auto GetDragDropEnabled() const -> bool;
+
+    // #14 Word wrap column indicator (ruler)
+    void SetShowEdgeColumnRuler(bool enabled);
+    [[nodiscard]] auto GetShowEdgeColumnRuler() const -> bool;
+
+    // #15 Selection highlight occurrences count → published via EventBus
+
+    // #16 Go-to-symbol (heading navigation)
+    struct HeadingSymbol
+    {
+        std::string text;
+        int level{0};
+        int line{0};
+    };
+    [[nodiscard]] auto GetHeadingSymbols() const -> std::vector<HeadingSymbol>;
+    void GoToHeading(int line);
+
+    // #17 Toggle block comment (HTML)
+    void ToggleBlockComment();
+
+    // #18 Smart select (expand / shrink)
+    void ExpandSelection();
+    void ShrinkSelection();
+
+    // ── Phase 7: UX / Quality-of-Life Improvements (20 items) ──
+
+    // #1 Cursor surrounding lines — keep N context lines visible around cursor
+    void SetCursorSurroundingLines(int lines);
+    [[nodiscard]] auto GetCursorSurroundingLines() const -> int;
+
+    // #2 Scroll beyond last line — allow scrolling past EOF
+    void SetScrollBeyondLastLine(bool enabled);
+    [[nodiscard]] auto GetScrollBeyondLastLine() const -> bool;
+
+    // #3 Smooth scrolling — animated scroll transitions
+    void SetSmoothScrolling(bool enabled);
+    [[nodiscard]] auto GetSmoothScrolling() const -> bool;
+
+    // #4 Copy line (empty selection) — Ctrl+C with no selection copies whole line
+    void CopyLineIfNoSelection();
+    void SetEmptySelectionClipboard(bool enabled);
+    [[nodiscard]] auto GetEmptySelectionClipboard() const -> bool;
+
+    // #5 Join lines — merge selected lines into one
+    void JoinLines();
+
+    // #6 Reverse selected lines — reverse line order in selection
+    void ReverseSelectedLines();
+
+    // #7 Delete duplicate lines — remove duplicates from selection
+    void DeleteDuplicateLines();
+
+    // #8 Transpose characters — swap two characters around cursor
+    void TransposeCharacters();
+
+    // #9 Move selected text left/right — shift selection by one char
+    void MoveSelectedTextLeft();
+    void MoveSelectedTextRight();
+
+    // #10 Block indent/outdent — Tab/Shift+Tab for block indentation
+    void IndentSelection();
+    void OutdentSelection();
+
+    // #11 Cursor undo/redo — undo/redo cursor positions independently
+    void CursorUndo();
+    void CursorRedo();
+
+    // #12 Select all occurrences of current word/selection
+    void SelectAllOccurrences();
+
+    // #13 Add selection to next find match (incremental multi-cursor)
+    void AddSelectionToNextFindMatch();
+
+    // #14 Toggle word wrap via keyboard (Alt+Z)
+    void ToggleWordWrap();
+
+    // #19 Auto-pair markdown emphasis — wrap selection in *, **, or `
+    void AutoPairEmphasis(char emphasis_char);
+
+    // #20 Smart backspace in pairs — delete matching pair
+    void SmartBackspace();
+
+    // ── Phase 8: 20 More VS Code-Inspired Improvements ──
+
+    // #1–4 Folding actions (from folding/folding.ts)
+    void FoldCurrentRegion();
+    void UnfoldCurrentRegion();
+    void FoldAllRegions();
+    void UnfoldAllRegions();
+
+    // #5 Expand line selection — select entire current line (Ctrl+L)
+    void ExpandLineSelection();
+
+    // #6 Delete current line — remove the line the cursor is on
+    void DeleteCurrentLine();
+
+    // #7 Toggle render whitespace — cycle whitespace display mode
+    void ToggleRenderWhitespace();
+
+    // #8 Toggle line numbers — show/hide the line number gutter
+    void ToggleLineNumbers();
+
+    // #9–11 Bracket operations (from bracketMatching.ts)
+    void JumpToMatchingBracket();
+    void SelectToMatchingBracket();
+    void RemoveSurroundingBrackets();
+
+    // #12 Duplicate selection or current line
+    void DuplicateSelectionOrLine();
+
+    // #13–15 Case transforms (from linesOperations.ts)
+    void TransformToUppercase();
+    void TransformToLowercase();
+    void TransformToTitleCase();
+
+    // #16–17 Sort lines (from linesOperations.ts)
+    void SortLinesAscending();
+    void SortLinesDescending();
+
+    // #18–19 Insert blank line above cursor / Trim trailing whitespace
+    void InsertLineAbove();
+    void TrimTrailingWhitespaceNow();
+
+    // #20 Toggle minimap panel visibility
+    void ToggleMinimapVisibility();
+
+    // ── Phase 9: 20 More VS Code-Inspired Improvements ──
+
+    // #1–2 Copy line up/down (from linesOperations.ts)
+    void CopyLineUp();
+    void CopyLineDown();
+
+    // #3–4 Delete all left/right of cursor (from linesOperations.ts)
+    void DeleteAllLeft();
+    void DeleteAllRight();
+
+    // #5–6 Add/Remove line comment (from comment.ts)
+    void AddLineComment();
+    void RemoveLineComment();
+
+    // #7–10 Toggle editor features via settings
+    void ToggleAutoIndent();
+    void ToggleBracketMatching();
+    void ToggleCodeFolding();
+    void ToggleIndentationGuides();
+
+    // #11–12 Selection helpers
+    void SelectWordAtCursor();
+    void SelectCurrentParagraph();
+
+    // #13 Toggle read-only mode
+    void ToggleReadOnly();
+
+    // #14, #20 Indentation conversion
+    void ConvertIndentationToSpaces();
+    void ConvertIndentationToTabs();
+
     /// Session state for save/restore
     struct SessionState
     {
@@ -323,6 +537,39 @@ private:
     void CreateMinimap();
     void UpdateMinimapContent();
     void OnMinimapClick(wxMouseEvent& event);
+
+    // ── VS Code Improvements state ──
+    bool auto_closing_brackets_{true};
+    bool sticky_scroll_enabled_{false};
+    bool inline_color_preview_{false};
+    bool font_ligatures_{false};
+    bool smooth_caret_{false};
+    bool highlight_current_line_{true};
+    std::string font_family_{"Menlo"};
+    bool auto_save_{false};
+    int auto_save_delay_seconds_{30};
+    wxTimer auto_save_timer_;
+    bool insert_final_newline_{true};
+    bool whitespace_boundary_{false};
+    bool link_auto_complete_{false};
+    std::vector<std::string> workspace_files_;
+    bool drag_drop_enabled_{true};
+    bool show_edge_ruler_{false};
+    std::vector<std::pair<int, int>> selection_stack_; // For smart select expand/shrink
+
+    // ── Phase 7 UX/QoL state ──
+    int cursor_surrounding_lines_{5};
+    bool scroll_beyond_last_line_{true};
+    bool smooth_scrolling_{false};
+    bool empty_selection_clipboard_{true};
+    std::vector<int> cursor_position_history_; // For cursor undo/redo
+    int cursor_history_index_{-1};
+    int last_recorded_cursor_pos_{-1};
+
+    void OnAutoSaveTimer(wxTimerEvent& event);
+    void OnFileDrop(wxDropFilesEvent& event);
+    void UpdateSelectionCount();
+    void HandleLinkAutoComplete();
 };
 
 } // namespace markamp::ui

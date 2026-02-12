@@ -623,8 +623,9 @@ void Toolbar::DrawFocusIcon(wxGraphicsContext& gc, double x, double y, double si
 // Theme
 // ═══════════════════════════════════════════════════════
 
-void Toolbar::OnThemeChanged(const core::Theme& /*new_theme*/)
+void Toolbar::OnThemeChanged(const core::Theme& new_theme)
 {
+    ThemeAwareWindow::OnThemeChanged(new_theme);
     Refresh();
 }
 

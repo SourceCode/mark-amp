@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/EventBus.h"
 #include "core/ThemeEngine.h"
 
 #include <wx/wx.h>
@@ -20,7 +21,10 @@ public:
     using CommitCallback =
         std::function<void(const std::string& markdown, int start_line, int end_line)>;
 
-    TableEditorOverlay(wxWindow* parent, core::ThemeEngine& theme_engine, CommitCallback on_commit);
+    TableEditorOverlay(wxWindow* parent,
+                       core::ThemeEngine& theme_engine,
+                       core::EventBus& event_bus,
+                       CommitCallback on_commit);
 
     /// Parse markdown pipe-table lines and populate the grid.
     /// Returns false if lines don't form a valid table.
@@ -34,7 +38,9 @@ public:
 
 private:
     core::ThemeEngine& theme_engine_;
+    core::EventBus& event_bus_;
     CommitCallback on_commit_;
+    core::Subscription theme_sub_;
 
     int start_line_{0};
     int end_line_{0};

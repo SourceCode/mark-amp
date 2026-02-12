@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/EventBus.h"
 #include "core/ThemeEngine.h"
 
 #include <wx/panel.h>
@@ -16,7 +17,7 @@ namespace markamp::ui
 class BreadcrumbBar : public wxPanel
 {
 public:
-    BreadcrumbBar(wxWindow* parent, core::ThemeEngine& theme_engine);
+    BreadcrumbBar(wxWindow* parent, core::ThemeEngine& theme_engine, core::EventBus& event_bus);
 
     /// Set the file path segments (e.g. ["src", "ui", "EditorPanel.cpp"])
     void SetFilePath(const std::vector<std::string>& segments);
@@ -31,6 +32,9 @@ private:
     void Rebuild();
 
     core::ThemeEngine& theme_engine_;
+    core::EventBus& event_bus_;
+    core::Subscription theme_sub_;
+
     std::vector<std::string> file_segments_;
     std::vector<std::string> heading_segments_;
     wxStaticText* label_{nullptr};

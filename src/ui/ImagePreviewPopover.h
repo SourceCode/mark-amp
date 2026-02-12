@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/EventBus.h"
 #include "core/ThemeEngine.h"
 
 #include <wx/popupwin.h>
@@ -16,7 +17,9 @@ namespace markamp::ui
 class ImagePreviewPopover : public wxPopupTransientWindow
 {
 public:
-    ImagePreviewPopover(wxWindow* parent, core::ThemeEngine& theme_engine);
+    ImagePreviewPopover(wxWindow* parent,
+                        core::ThemeEngine& theme_engine,
+                        core::EventBus& event_bus);
 
     /// Load and display an image from the given path.
     /// Returns false if the image could not be loaded.
@@ -27,6 +30,8 @@ public:
 
 private:
     core::ThemeEngine& theme_engine_;
+    core::EventBus& event_bus_;
+    core::Subscription theme_sub_;
 
     wxStaticBitmap* thumbnail_{nullptr};
     wxStaticText* alt_label_{nullptr};

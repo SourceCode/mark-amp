@@ -58,6 +58,12 @@ StartupPanel::StartupPanel(wxWindow* parent,
     initUi();
 
     Bind(wxEVT_PAINT, &StartupPanel::onPaint, this);
+
+    if (event_bus_ != nullptr)
+    {
+        theme_sub_ = event_bus_->subscribe<core::events::ThemeChangedEvent>(
+            [this](const core::events::ThemeChangedEvent& /*evt*/) { Refresh(); });
+    }
 }
 
 void StartupPanel::initUi()

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/EventBus.h"
 #include "core/ThemeEngine.h"
 
 #include <wx/dialog.h>
@@ -27,7 +28,7 @@ struct PaletteCommand
 class CommandPalette : public wxDialog
 {
 public:
-    CommandPalette(wxWindow* parent, core::ThemeEngine& theme_engine);
+    CommandPalette(wxWindow* parent, core::ThemeEngine& theme_engine, core::EventBus& event_bus);
 
     /// Register a command in the palette
     void RegisterCommand(PaletteCommand command);
@@ -53,6 +54,9 @@ private:
     static auto FuzzyScore(const std::string& filter, const std::string& candidate) -> int;
 
     core::ThemeEngine& theme_engine_;
+    core::EventBus& event_bus_;
+    core::Subscription theme_sub_;
+
     wxTextCtrl* input_{nullptr};
     wxListBox* list_{nullptr};
 

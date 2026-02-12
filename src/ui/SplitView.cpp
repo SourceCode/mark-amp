@@ -713,8 +713,10 @@ void SplitView::RestoreEditorState(const EditorState& state)
 // Theme
 // ═══════════════════════════════════════════════════════
 
-void SplitView::OnThemeChanged(const core::Theme& /*new_theme*/)
+void SplitView::OnThemeChanged(const core::Theme& new_theme)
 {
+    ThemeAwareWindow::OnThemeChanged(new_theme);
+
     // Divider repaints itself using theme() in OnDividerPaint
     if (divider_panel_ != nullptr)
     {

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/EventBus.h"
 #include "core/ThemeEngine.h"
 
 #include <wx/popupwin.h>
@@ -30,13 +31,18 @@ public:
 
     using ActionCallback = std::function<void(Action)>;
 
-    FloatingFormatBar(wxWindow* parent, core::ThemeEngine& theme_engine, ActionCallback callback);
+    FloatingFormatBar(wxWindow* parent,
+                      core::ThemeEngine& theme_engine,
+                      core::EventBus& event_bus,
+                      ActionCallback callback);
 
     /// Update styling from theme.
     void ApplyTheme();
 
 private:
     core::ThemeEngine& theme_engine_;
+    core::EventBus& event_bus_;
+    core::Subscription theme_sub_;
     ActionCallback callback_;
 
     void CreateButtons();

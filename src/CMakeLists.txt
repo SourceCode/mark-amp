@@ -26,7 +26,11 @@ add_executable(markamp
     ui/ImagePreviewPopover.cpp
     ui/TableEditorOverlay.cpp
     ui/TabBar.cpp
+    ui/SettingsPanel.cpp
+    ui/NotificationManager.cpp
+    ui/ActivityBar.cpp
     core/Logger.cpp
+    core/PluginManager.cpp
     core/EventBus.cpp
     core/AppState.cpp
     core/Command.cpp
@@ -149,6 +153,15 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "Src" FILES
     core/Profiler.cpp
     core/ThemeEngine.h
     core/ThemeEngine.cpp
+    core/IPlugin.h
+    core/PluginManager.h
+    core/PluginManager.cpp
+    ui/SettingsPanel.h
+    ui/SettingsPanel.cpp
+    ui/NotificationManager.h
+    ui/NotificationManager.cpp
+    ui/ActivityBar.h
+    ui/ActivityBar.cpp
     platform/PlatformAbstraction.h
     platform/MacPlatform.h
 )

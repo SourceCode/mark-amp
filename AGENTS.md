@@ -2,9 +2,9 @@
 
 ## Project Overview
 
-MarkAmp is a cross-platform, retro-futuristic Markdown editor built with **C++23** and **wxWidgets 3.2.9**. It features split-view editing, syntax highlighting, Mermaid diagram rendering, a theme system with 8 built-in themes, multi-file tab management, command palette, Zen Mode, performance infrastructure with arena allocators and viewport caching, advanced rendering primitives (glyph caching, hit-testing, double-buffered paint, scroll blitting), visual polish with gradient surfaces and micro-animations, and native platform integration.
+MarkAmp is a cross-platform, retro-futuristic Markdown editor built with **C++23** and **wxWidgets 3.2.9**. It features split-view editing, syntax highlighting, Mermaid diagram rendering, a theme system with 8 built-in themes, multi-file tab management, command palette, Zen Mode, performance infrastructure with arena allocators and viewport caching, advanced rendering primitives (glyph caching, hit-testing, double-buffered paint, scroll blitting), visual polish with gradient surfaces and micro-animations, native platform integration, a VS Code-inspired settings panel, toast notifications, activity bar navigation, and a plugin architecture with manifest-driven contribution points.
 
-**Current Version:** 1.3.6
+**Current Version:** 1.4.7
 
 ## Key Workflows
 
@@ -16,8 +16,8 @@ MarkAmp is a cross-platform, retro-futuristic Markdown editor built with **C++23
 ## Codebase Structure
 
 - `src/app/` — Application entry point (`MarkAmpApp`)
-- `src/core/` — Core logic: Config (YAML), Theme, ThemeRegistry, Color, Events, BuiltinThemes, RecentWorkspaces, ThemeLoader, PieceTable, LineIndex, FrameArena, FrameScheduler, Profiler, AsyncHighlighter, AsyncFileLoader, IncrementalSearcher, DocumentSnapshot, SPSCQueue, CoalescingTask, AdaptiveThrottle, AsyncPipeline, ChunkedStorage, CompilerHints, FrameBudgetToken, GenerationCounter, GraphemeBoundaryCache, IMECompositionOverlay, InputPriorityDispatcher, StableLineId, StyleRunStore, TextSpan
-- `src/ui/` — UI components: MainFrame, EditorPanel, PreviewPanel, FileTreeCtrl, SplitView, StatusBarPanel, LayoutManager, TabBar, CommandPalette, BreadcrumbBar, StartupPanel, FloatingFormatBar, LinkPreviewPopover, ImagePreviewPopover, TableEditorOverlay, ThemeTokenEditor, SplitterBar, ShortcutOverlay, Toolbar, CustomChrome
+- `src/core/` — Core logic: Config (YAML), Theme, ThemeRegistry, Color, Events, EventBus, BuiltinThemes, RecentWorkspaces, ThemeLoader, PieceTable, LineIndex, FrameArena, FrameScheduler, Profiler, AsyncHighlighter, AsyncFileLoader, IncrementalSearcher, DocumentSnapshot, SPSCQueue, CoalescingTask, AdaptiveThrottle, AsyncPipeline, ChunkedStorage, CompilerHints, FrameBudgetToken, GenerationCounter, GraphemeBoundaryCache, IMECompositionOverlay, InputPriorityDispatcher, StableLineId, StyleRunStore, TextSpan, **IPlugin** (plugin interface), **PluginManager** (lifecycle management)
+- `src/ui/` — UI components: MainFrame, EditorPanel (60+ VS Code-inspired improvements), PreviewPanel, FileTreeCtrl, SplitView, StatusBarPanel, LayoutManager, TabBar, CommandPalette, BreadcrumbBar, StartupPanel, FloatingFormatBar, LinkPreviewPopover, ImagePreviewPopover, TableEditorOverlay, ThemeTokenEditor, SplitterBar, ShortcutOverlay, Toolbar, CustomChrome, **SettingsPanel** (settings editor), **NotificationManager** (toast notifications), **ActivityBar** (vertical icon rail)
 - `src/rendering/` — HtmlRenderer, CodeBlockRenderer, MermaidBlockRenderer, DirtyRegion, ViewportCache, CaretOverlay, DoubleBufferedPaint, GlyphAdvanceCache, HitTestAccelerator, IncrementalLineWrap, PrefetchManager, ScrollBlit, SelectionPainter
 - `src/platform/` — Platform abstractions: MacPlatform (Objective-C++ bridge)
 - `tests/unit/` — Catch2 unit tests (10 test targets, 100% pass rate)
@@ -25,6 +25,49 @@ MarkAmp is a cross-platform, retro-futuristic Markdown editor built with **C++23
 - `themes/` — Markdown-based theme definitions (YAML frontmatter)
 - `resources/icons/lucide/` — Lucide SVG icons for file tree
 - `docs/` — Architecture, API reference, user guide, security audit, performance patterns
+
+## Key Systems
+
+### Plugin Architecture (`IPlugin.h`, `PluginManager.h/.cpp`)
+
+- `IPlugin` — Abstract interface: `manifest()`, `activate(ctx)`, `deactivate()`
+- `PluginManifest` — Declares contribution points: commands, keybindings, snippets, menus, settings, themes
+- `PluginContext` — Runtime context providing `EventBus*`, `Config*`, and `register_command_handler`
+- `PluginManager` — Manages lifecycle (register → activate → deactivate), processes contributions, wires to CommandPalette and ShortcutManager
+
+### Settings System (`SettingsPanel.h/.cpp`)
+
+- Searchable/filterable settings with category grouping
+- `SettingDefinition` struct: id, label, description, category, type (Boolean/Integer/Double/String/Choice), default, choices
+- Import/export settings to Markdown YAML frontmatter
+- Collapsible category groups with modified indicators (●)
+
+### Notification System (`NotificationManager.h/.cpp`)
+
+- Toast notifications: Info, Warning, Error, Success levels
+- Auto-dismiss with configurable duration; sticky (duration=0) support
+- Animated fade-in/out with up to 3 stacked toasts
+
+### Activity Bar (`ActivityBar.h/.cpp`)
+
+- Vertical icon rail: File Explorer, Search, Settings, Themes
+- Fires `ActivityBarSelectionEvent` on click for sidebar panel switching
+
+### Event System (`Events.h`)
+
+- Settings events: `SettingsOpenRequestEvent`, `SettingChangedEvent`
+- Plugin events: `PluginActivatedEvent`, `PluginDeactivatedEvent`
+- Notification events: `NotificationEvent` (with `NotificationLevel`)
+- Activity bar events: `ActivityBarSelectionEvent` (with `ActivityBarItem`)
+- Theme events: `ThemeChangedEvent`
+- Tab events: `TabSwitchedEvent`, `TabCloseRequestEvent`, `TabSaveRequestEvent`
+
+### Editor Improvements (EditorPanel — 60+ features)
+
+- **Phase 6**: Auto-closing brackets, multi-cursor, sticky scroll, inline color preview, font ligatures, smooth caret, auto-save, link auto-complete, drag-and-drop, edge ruler, go-to-symbol, block comment, smart select
+- **Phase 7**: Cursor surrounding lines, scroll beyond last line, smooth scrolling, copy line, join/reverse/dedup lines, transpose chars, move text, block indent, cursor undo/redo, select all occurrences, add next match, toggle word wrap
+- **Phase 8**: Fold/unfold regions, expand line selection, delete line, toggle whitespace/line numbers, bracket operations, duplicate line, case transforms, sort lines, insert line above, trim whitespace, toggle minimap
+- **Phase 9**: Copy line up/down, delete left/right, add/remove line comment, toggle editor features, select word/paragraph, read-only mode, indentation conversion
 
 ## Dependencies (vcpkg)
 

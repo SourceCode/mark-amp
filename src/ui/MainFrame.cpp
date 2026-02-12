@@ -178,9 +178,9 @@ MainFrame::MainFrame(const wxString& title,
     logDpiInfo();
 
     // Phase 7: Command Palette & Keyboard UX
-    if (theme_engine_ != nullptr)
+    if (theme_engine_ != nullptr && event_bus_ != nullptr)
     {
-        command_palette_ = new CommandPalette(this, *theme_engine_);
+        command_palette_ = new CommandPalette(this, *theme_engine_, *event_bus_);
         shortcut_overlay_ = new ShortcutOverlay(this, *theme_engine_, shortcut_manager_);
     }
     RegisterDefaultShortcuts();

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/EventBus.h"
 #include "core/ThemeEngine.h"
 
 #include <wx/popupwin.h>
@@ -15,7 +16,9 @@ namespace markamp::ui
 class LinkPreviewPopover : public wxPopupTransientWindow
 {
 public:
-    LinkPreviewPopover(wxWindow* parent, core::ThemeEngine& theme_engine);
+    LinkPreviewPopover(wxWindow* parent,
+                       core::ThemeEngine& theme_engine,
+                       core::EventBus& event_bus);
 
     /// Set the link content to display.
     void SetLink(const std::string& link_text, const std::string& url);
@@ -25,6 +28,8 @@ public:
 
 private:
     core::ThemeEngine& theme_engine_;
+    core::EventBus& event_bus_;
+    core::Subscription theme_sub_;
 
     wxStaticText* link_label_{nullptr};
     wxStaticText* url_label_{nullptr};

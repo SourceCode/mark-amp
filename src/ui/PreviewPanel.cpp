@@ -837,6 +837,8 @@ void PreviewPanel::OnResizeTimer(wxTimerEvent& /*event*/)
 
 void PreviewPanel::OnThemeChanged(const core::Theme& new_theme)
 {
+    ThemeAwareWindow::OnThemeChanged(new_theme);
+
     auto bg = new_theme.colors.bg_app.to_wx_colour();
     SetBackgroundColour(bg);
     if (html_view_ != nullptr)

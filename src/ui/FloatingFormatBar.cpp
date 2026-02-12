@@ -1,6 +1,7 @@
 #include "FloatingFormatBar.h"
 
 #include "core/Color.h"
+#include "core/Events.h"
 
 #include <wx/button.h>
 #include <wx/sizer.h>
@@ -29,13 +30,18 @@ constexpr int kButtonSpacing = 2;
 
 FloatingFormatBar::FloatingFormatBar(wxWindow* parent,
                                      core::ThemeEngine& theme_engine,
+                                     core::EventBus& event_bus,
                                      ActionCallback callback)
     : wxPopupTransientWindow(parent, wxBORDER_NONE)
     , theme_engine_(theme_engine)
+    , event_bus_(event_bus)
     , callback_(std::move(callback))
 {
     CreateButtons();
     ApplyTheme();
+
+    theme_sub_ = event_bus_.subscribe<core::events::ThemeChangedEvent>(
+        [this](const core::events::ThemeChangedEvent& /*evt*/) { ApplyTheme(); });
 }
 
 void FloatingFormatBar::CreateButtons()

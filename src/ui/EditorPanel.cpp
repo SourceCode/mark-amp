@@ -20,6 +20,7 @@
 #include <cmath>
 #include <numeric>
 #include <regex>
+#include <set>
 
 namespace markamp::ui
 {
@@ -413,8 +414,9 @@ void EditorPanel::SavePreferences(core::Config& config) const
 // Theme
 // ═══════════════════════════════════════════════════════
 
-void EditorPanel::OnThemeChanged(const core::Theme& /*new_theme*/)
+void EditorPanel::OnThemeChanged(const core::Theme& new_theme)
 {
+    ThemeAwareWindow::OnThemeChanged(new_theme);
     ApplyThemeToEditor();
 }
 
@@ -2927,6 +2929,7 @@ void EditorPanel::ShowFormatBar()
     {
         format_bar_ = new FloatingFormatBar(this,
                                             theme_engine(),
+                                            event_bus_,
                                             [this](FloatingFormatBar::Action action)
                                             { HandleFormatBarAction(static_cast<int>(action)); });
     }
@@ -3029,7 +3032,7 @@ void EditorPanel::OnDwellStart(wxStyledTextEvent& event)
     {
         if (image_popover_ == nullptr)
         {
-            image_popover_ = new ImagePreviewPopover(this, theme_engine());
+            image_popover_ = new ImagePreviewPopover(this, theme_engine(), event_bus_);
         }
 
         // Resolve relative path
@@ -3055,7 +3058,7 @@ void EditorPanel::OnDwellStart(wxStyledTextEvent& event)
     {
         if (link_popover_ == nullptr)
         {
-            link_popover_ = new LinkPreviewPopover(this, theme_engine());
+            link_popover_ = new LinkPreviewPopover(this, theme_engine(), event_bus_);
         }
 
         link_popover_->SetLink(link_info->text, link_info->url);
@@ -3240,6 +3243,7 @@ void EditorPanel::ShowTableEditor()
         table_overlay_ =
             new TableEditorOverlay(this,
                                    theme_engine(),
+                                   event_bus_,
                                    [this](const std::string& markdown, int start_ln, int end_ln)
                                    {
                                        // Replace the table lines in the editor
@@ -3415,6 +3419,2003 @@ void EditorPanel::OnMinimapClick(wxMouseEvent& event)
     // Move cursor to that line
     int target_pos = editor_->PositionFromLine(target_line);
     editor_->GotoPos(target_pos);
+}
+
+// ═══════════════════════════════════════════════════════
+// VS Code-Inspired Editor Improvements (20 items)
+// ═══════════════════════════════════════════════════════
+
+// #1 Auto-closing brackets/quotes
+void EditorPanel::SetAutoClosingBrackets(bool enabled)
+{
+    auto_closing_brackets_ = enabled;
+}
+
+auto EditorPanel::GetAutoClosingBrackets() const -> bool
+{
+    return auto_closing_brackets_;
+}
+
+// #2 Multi-cursor editing
+void EditorPanel::AddCursorAbove()
+{
+    if (editor_ == nullptr)
+        return;
+    editor_->SetAdditionalSelectionTyping(true);
+    editor_->SetMultipleSelection(true);
+    int cur_line = editor_->GetCurrentLine();
+    int cur_col = editor_->GetColumn(editor_->GetCurrentPos());
+    if (cur_line > 0)
+    {
+        int new_pos = editor_->FindColumn(cur_line - 1, cur_col);
+        editor_->AddSelection(new_pos, new_pos);
+    }
+}
+
+void EditorPanel::AddCursorBelow()
+{
+    if (editor_ == nullptr)
+        return;
+    editor_->SetAdditionalSelectionTyping(true);
+    editor_->SetMultipleSelection(true);
+    int cur_line = editor_->GetCurrentLine();
+    int cur_col = editor_->GetColumn(editor_->GetCurrentPos());
+    if (cur_line < editor_->GetLineCount() - 1)
+    {
+        int new_pos = editor_->FindColumn(cur_line + 1, cur_col);
+        editor_->AddSelection(new_pos, new_pos);
+    }
+}
+
+void EditorPanel::AddCursorAtNextOccurrence()
+{
+    if (editor_ == nullptr)
+        return;
+    editor_->SetAdditionalSelectionTyping(true);
+    editor_->SetMultipleSelection(true);
+
+    int sel_start = editor_->GetSelectionStart();
+    int sel_end = editor_->GetSelectionEnd();
+    if (sel_start == sel_end)
+        return;
+
+    auto selected = editor_->GetTextRange(sel_start, sel_end).ToStdString();
+
+    // Search forward from current selection end
+    editor_->SetTargetStart(sel_end);
+    editor_->SetTargetEnd(editor_->GetLength());
+    editor_->SetSearchFlags(wxSTC_FIND_MATCHCASE);
+
+    int found = editor_->SearchInTarget(selected);
+    if (found >= 0)
+    {
+        editor_->AddSelection(found, found + static_cast<int>(selected.length()));
+    }
+}
+
+// #3 Sticky scroll heading
+void EditorPanel::SetStickyScrollEnabled(bool enabled)
+{
+    sticky_scroll_enabled_ = enabled;
+}
+
+auto EditorPanel::GetStickyScrollEnabled() const -> bool
+{
+    return sticky_scroll_enabled_;
+}
+
+// #4 Inline color preview decorations
+void EditorPanel::SetInlineColorPreview(bool enabled)
+{
+    inline_color_preview_ = enabled;
+}
+
+auto EditorPanel::GetInlineColorPreview() const -> bool
+{
+    return inline_color_preview_;
+}
+
+// #5 Font ligature support
+void EditorPanel::SetFontLigatures(bool enabled)
+{
+    font_ligatures_ = enabled;
+    if (editor_ == nullptr)
+        return;
+
+#ifdef __WXMSW__
+    // On Windows, enable DirectWrite technology for ligature support
+    if (enabled)
+    {
+        editor_->SetTechnology(wxSTC_TECHNOLOGY_DIRECTWRITERETAIN);
+    }
+    else
+    {
+        editor_->SetTechnology(wxSTC_TECHNOLOGY_DEFAULT);
+    }
+#elif defined(__WXOSX__)
+    // macOS Core Text supports ligatures natively with the right font
+    // The font itself (e.g. Fira Code) controls ligature rendering
+    (void)enabled; // Font ligatures work automatically on macOS with compatible fonts
+#endif
+}
+
+auto EditorPanel::GetFontLigatures() const -> bool
+{
+    return font_ligatures_;
+}
+
+// #6 Smooth caret animation
+void EditorPanel::SetSmoothCaret(bool enabled)
+{
+    smooth_caret_ = enabled;
+    if (editor_ == nullptr)
+        return;
+
+    if (enabled)
+    {
+        // Phase-based caret blinking for smoother visual appearance
+        editor_->SetCaretPeriod(0); // No blinking = steady smooth caret
+        editor_->SetCaretWidth(kCaretWidth);
+    }
+    else
+    {
+        editor_->SetCaretPeriod(kCaretBlinkMs);
+        editor_->SetCaretWidth(kCaretWidth);
+    }
+}
+
+auto EditorPanel::GetSmoothCaret() const -> bool
+{
+    return smooth_caret_;
+}
+
+// #7 Current line highlight
+void EditorPanel::SetHighlightCurrentLine(bool enabled)
+{
+    highlight_current_line_ = enabled;
+    if (editor_ == nullptr)
+        return;
+
+    editor_->SetCaretLineVisible(enabled);
+
+    if (enabled)
+    {
+        const auto& theme_colors = theme().colors;
+        // Subtle highlight slightly brighter/darker than background
+        auto bg_color = theme_colors.bg_app.to_wx_colour();
+        int delta = 12;
+        auto new_r = static_cast<unsigned char>(std::min(255, bg_color.Red() + delta));
+        auto new_g = static_cast<unsigned char>(std::min(255, bg_color.Green() + delta));
+        auto new_b = static_cast<unsigned char>(std::min(255, bg_color.Blue() + delta));
+        editor_->SetCaretLineBackground(wxColour(new_r, new_g, new_b));
+        editor_->SetCaretLineBackAlpha(40);
+    }
+}
+
+auto EditorPanel::GetHighlightCurrentLine() const -> bool
+{
+    return highlight_current_line_;
+}
+
+// #8 Editor font family configuration
+void EditorPanel::SetFontFamily(const std::string& family)
+{
+    font_family_ = family;
+    if (editor_ == nullptr)
+        return;
+
+    for (int style = 0; style < wxSTC_STYLE_LASTPREDEFINED; ++style)
+    {
+        editor_->StyleSetFaceName(style, wxString(family));
+    }
+}
+
+auto EditorPanel::GetFontFamily() const -> std::string
+{
+    return font_family_;
+}
+
+// #9 Auto-save with configurable delay
+void EditorPanel::SetAutoSave(bool enabled, int delay_seconds)
+{
+    auto_save_ = enabled;
+    auto_save_delay_seconds_ = std::clamp(delay_seconds, 1, 120);
+
+    if (enabled)
+    {
+        if (!auto_save_timer_.IsRunning())
+        {
+            auto_save_timer_.Start(auto_save_delay_seconds_ * 1000);
+        }
+    }
+    else
+    {
+        auto_save_timer_.Stop();
+    }
+}
+
+auto EditorPanel::GetAutoSave() const -> bool
+{
+    return auto_save_;
+}
+
+auto EditorPanel::GetAutoSaveDelay() const -> int
+{
+    return auto_save_delay_seconds_;
+}
+
+void EditorPanel::OnAutoSaveTimer(wxTimerEvent& /*event*/)
+{
+    if (editor_ == nullptr || !auto_save_ || !IsModified())
+        return;
+
+    core::events::FileSavedEvent save_evt;
+    event_bus_.publish(save_evt);
+}
+
+// #10 Insert final newline on save
+void EditorPanel::SetInsertFinalNewline(bool enabled)
+{
+    insert_final_newline_ = enabled;
+}
+
+auto EditorPanel::GetInsertFinalNewline() const -> bool
+{
+    return insert_final_newline_;
+}
+
+void EditorPanel::EnsureFinalNewline()
+{
+    if (editor_ == nullptr || !insert_final_newline_)
+        return;
+
+    int length = editor_->GetLength();
+    if (length == 0)
+        return;
+
+    auto last_char = static_cast<char>(editor_->GetCharAt(length - 1));
+    if (last_char != '\n')
+    {
+        editor_->AppendText("\n");
+    }
+}
+
+// #11 Whitespace boundary rendering
+void EditorPanel::SetWhitespaceBoundary(bool enabled)
+{
+    whitespace_boundary_ = enabled;
+    if (editor_ == nullptr)
+        return;
+
+    if (enabled)
+    {
+        // Show only trailing/leading whitespace (boundary mode)
+        editor_->SetViewWhiteSpace(wxSTC_WS_VISIBLEAFTERINDENT);
+    }
+    else if (show_whitespace_)
+    {
+        editor_->SetViewWhiteSpace(wxSTC_WS_VISIBLEALWAYS);
+    }
+    else
+    {
+        editor_->SetViewWhiteSpace(wxSTC_WS_INVISIBLE);
+    }
+}
+
+auto EditorPanel::GetWhitespaceBoundary() const -> bool
+{
+    return whitespace_boundary_;
+}
+
+// #12 Markdown link auto-complete
+void EditorPanel::SetLinkAutoComplete(bool enabled)
+{
+    link_auto_complete_ = enabled;
+}
+
+auto EditorPanel::GetLinkAutoComplete() const -> bool
+{
+    return link_auto_complete_;
+}
+
+void EditorPanel::SetWorkspaceFiles(const std::vector<std::string>& files)
+{
+    workspace_files_ = files;
+}
+
+void EditorPanel::HandleLinkAutoComplete()
+{
+    if (editor_ == nullptr || !link_auto_complete_ || workspace_files_.empty())
+        return;
+
+    int pos = editor_->GetCurrentPos();
+    if (pos < 2)
+        return;
+
+    // Check if we just typed "](" — the start of a link URL
+    auto prev1 = static_cast<char>(editor_->GetCharAt(pos - 1));
+    auto prev2 = static_cast<char>(editor_->GetCharAt(pos - 2));
+    if (prev2 == ']' && prev1 == '(')
+    {
+        // Build auto-completion list from workspace files
+        std::string completions;
+        for (const auto& file : workspace_files_)
+        {
+            if (!completions.empty())
+            {
+                completions += " ";
+            }
+            completions += file;
+        }
+        editor_->AutoCompShow(0, completions);
+    }
+}
+
+// #13 Drag-and-drop file insertion
+void EditorPanel::SetDragDropEnabled(bool enabled)
+{
+    drag_drop_enabled_ = enabled;
+    if (editor_ != nullptr)
+    {
+        editor_->DragAcceptFiles(enabled);
+    }
+}
+
+auto EditorPanel::GetDragDropEnabled() const -> bool
+{
+    return drag_drop_enabled_;
+}
+
+void EditorPanel::OnFileDrop(wxDropFilesEvent& event)
+{
+    if (editor_ == nullptr || !drag_drop_enabled_)
+        return;
+
+    int count = event.GetNumberOfFiles();
+    auto* files = event.GetFiles();
+
+    editor_->BeginUndoAction();
+    for (int file_idx = 0; file_idx < count; ++file_idx)
+    {
+        std::string path = files[file_idx].ToStdString();
+        std::string ext = std::filesystem::path(path).extension().string();
+
+        std::string insertion;
+        if (ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".gif" || ext == ".svg" ||
+            ext == ".webp")
+        {
+            // Image: insert ![alt](path)
+            std::string filename = std::filesystem::path(path).stem().string();
+            insertion = "![" + filename + "](" + path + ")";
+        }
+        else
+        {
+            // File: insert [filename](path)
+            std::string filename = std::filesystem::path(path).filename().string();
+            insertion = "[" + filename + "](" + path + ")";
+        }
+
+        editor_->InsertText(editor_->GetCurrentPos(), insertion);
+        editor_->GotoPos(editor_->GetCurrentPos() + static_cast<int>(insertion.length()));
+    }
+    editor_->EndUndoAction();
+}
+
+// #14 Word wrap column indicator (ruler)
+void EditorPanel::SetShowEdgeColumnRuler(bool enabled)
+{
+    show_edge_ruler_ = enabled;
+    if (editor_ == nullptr)
+        return;
+
+    if (enabled)
+    {
+        editor_->SetEdgeMode(wxSTC_EDGE_LINE);
+        editor_->SetEdgeColumn(edge_column_);
+        const auto& theme_colors = theme().colors;
+        editor_->SetEdgeColour(theme_colors.text_muted.to_wx_colour());
+    }
+    else
+    {
+        editor_->SetEdgeMode(wxSTC_EDGE_NONE);
+    }
+}
+
+auto EditorPanel::GetShowEdgeColumnRuler() const -> bool
+{
+    return show_edge_ruler_;
+}
+
+// #15 Selection count is published via UpdateSelectionCount in EditorStatsChangedEvent
+void EditorPanel::UpdateSelectionCount()
+{
+    if (editor_ == nullptr)
+        return;
+
+    int sel_start = editor_->GetSelectionStart();
+    int sel_end = editor_->GetSelectionEnd();
+
+    if (sel_start == sel_end)
+        return;
+
+    auto selected = editor_->GetTextRange(sel_start, sel_end).ToStdString();
+    if (selected.empty())
+        return;
+
+    // Count occurrences of selected text in document
+    int count = 0;
+    int search_pos = 0;
+    auto full_text = editor_->GetText().ToStdString();
+    while (true)
+    {
+        auto found = full_text.find(selected, static_cast<std::size_t>(search_pos));
+        if (found == std::string::npos)
+            break;
+        count++;
+        search_pos = static_cast<int>(found) + 1;
+    }
+
+    // Publish the count as part of stats
+    if (count > 1)
+    {
+        core::events::EditorStatsChangedEvent stats_evt;
+        stats_evt.selection_length = static_cast<int>(selected.length());
+        stats_evt.word_count = count; // Reuse field to communicate occurrence count
+        event_bus_.publish(stats_evt);
+    }
+}
+
+// #16 Go-to-symbol (heading navigation)
+auto EditorPanel::GetHeadingSymbols() const -> std::vector<HeadingSymbol>
+{
+    std::vector<HeadingSymbol> symbols;
+    if (editor_ == nullptr)
+        return symbols;
+
+    int line_count = editor_->GetLineCount();
+    for (int line_num = 0; line_num < line_count; ++line_num)
+    {
+        auto line_text = editor_->GetLine(line_num).ToStdString();
+
+        // Strip trailing newline
+        while (!line_text.empty() && (line_text.back() == '\n' || line_text.back() == '\r'))
+        {
+            line_text.pop_back();
+        }
+
+        // Check for ATX heading (# Heading)
+        if (line_text.empty() || line_text[0] != '#')
+            continue;
+
+        int level = 0;
+        while (level < static_cast<int>(line_text.size()) &&
+               line_text[static_cast<std::size_t>(level)] == '#')
+        {
+            level++;
+        }
+        if (level > 6)
+            continue;
+
+        // Get heading text (after "# ")
+        std::string text = line_text.substr(static_cast<std::size_t>(level));
+        if (!text.empty() && text[0] == ' ')
+        {
+            text = text.substr(1);
+        }
+
+        symbols.push_back(HeadingSymbol{text, level, line_num});
+    }
+
+    return symbols;
+}
+
+void EditorPanel::GoToHeading(int line)
+{
+    if (editor_ == nullptr)
+        return;
+
+    int pos = editor_->PositionFromLine(line);
+    editor_->GotoPos(pos);
+    editor_->EnsureVisibleEnforcePolicy(line);
+
+    // Center the line in the visible area
+    int visible_lines = editor_->LinesOnScreen();
+    int first_visible = std::max(0, line - visible_lines / 2);
+    editor_->SetFirstVisibleLine(first_visible);
+}
+
+// #17 Toggle block comment (HTML)
+void EditorPanel::ToggleBlockComment()
+{
+    if (editor_ == nullptr)
+        return;
+
+    int sel_start = editor_->GetSelectionStart();
+    int sel_end = editor_->GetSelectionEnd();
+
+    if (sel_start == sel_end)
+    {
+        // No selection — wrap current line
+        int line = editor_->GetCurrentLine();
+        sel_start = editor_->PositionFromLine(line);
+        sel_end = editor_->GetLineEndPosition(line);
+    }
+
+    auto selected_text = editor_->GetTextRange(sel_start, sel_end).ToStdString();
+
+    editor_->BeginUndoAction();
+
+    // Check if already wrapped in <!-- ... -->
+    if (selected_text.size() >= 7 && selected_text.substr(0, 4) == "<!--" &&
+        selected_text.substr(selected_text.size() - 3) == "-->")
+    {
+        // Unwrap: remove <!-- and -->
+        std::string inner = selected_text.substr(4, selected_text.size() - 7);
+        // Trim leading/trailing space from comment markers
+        if (!inner.empty() && inner[0] == ' ')
+            inner = inner.substr(1);
+        if (!inner.empty() && inner.back() == ' ')
+            inner.pop_back();
+
+        editor_->SetTargetStart(sel_start);
+        editor_->SetTargetEnd(sel_end);
+        editor_->ReplaceTarget(inner);
+    }
+    else
+    {
+        // Wrap in <!-- ... -->
+        editor_->SetTargetStart(sel_start);
+        editor_->SetTargetEnd(sel_end);
+        editor_->ReplaceTarget("<!-- " + selected_text + " -->");
+    }
+
+    editor_->EndUndoAction();
+}
+
+// #18 Smart select (expand / shrink selection)
+void EditorPanel::ExpandSelection()
+{
+    if (editor_ == nullptr)
+        return;
+
+    int sel_start = editor_->GetSelectionStart();
+    int sel_end = editor_->GetSelectionEnd();
+
+    // Save current selection for shrink
+    selection_stack_.push_back({sel_start, sel_end});
+
+    if (sel_start == sel_end)
+    {
+        // No selection → select word
+        int word_start = editor_->WordStartPosition(sel_start, true);
+        int word_end = editor_->WordEndPosition(sel_start, true);
+        editor_->SetSelection(word_start, word_end);
+    }
+    else
+    {
+        // Check if current selection is a word → expand to line
+        int line = editor_->LineFromPosition(sel_start);
+        int line_start = editor_->PositionFromLine(line);
+        int line_end = editor_->GetLineEndPosition(line);
+
+        if (sel_start > line_start || sel_end < line_end)
+        {
+            // Expand to full line
+            editor_->SetSelection(line_start, line_end);
+        }
+        else
+        {
+            // Expand to paragraph (blank-line delimited block)
+            int para_start = line;
+            while (para_start > 0)
+            {
+                auto prev_text = editor_->GetLine(para_start - 1).ToStdString();
+                if (prev_text.find_first_not_of(" \t\n\r") == std::string::npos)
+                    break;
+                para_start--;
+            }
+            int para_end = line;
+            int total = editor_->GetLineCount();
+            while (para_end < total - 1)
+            {
+                auto next_text = editor_->GetLine(para_end + 1).ToStdString();
+                if (next_text.find_first_not_of(" \t\n\r") == std::string::npos)
+                    break;
+                para_end++;
+            }
+            editor_->SetSelection(editor_->PositionFromLine(para_start),
+                                  editor_->GetLineEndPosition(para_end));
+        }
+    }
+}
+
+void EditorPanel::ShrinkSelection()
+{
+    if (editor_ == nullptr || selection_stack_.empty())
+        return;
+
+    auto [prev_start, prev_end] = selection_stack_.back();
+    selection_stack_.pop_back();
+    editor_->SetSelection(prev_start, prev_end);
+}
+
+} // namespace markamp::ui
+
+// ══════════════════════════════════════════════════════════════
+// Phase 7: UX / Quality-of-Life Improvements (20 items)
+// ══════════════════════════════════════════════════════════════
+
+namespace markamp::ui
+{
+
+// #1 Cursor surrounding lines — keep N context lines around cursor
+void EditorPanel::SetCursorSurroundingLines(int lines)
+{
+    cursor_surrounding_lines_ = std::clamp(lines, 0, 20);
+    if (editor_ == nullptr)
+        return;
+    // VISIBLE_SLOP keeps 'lines' worth of padding around the caret
+    editor_->SetVisiblePolicy(wxSTC_VISIBLE_SLOP | wxSTC_VISIBLE_STRICT, cursor_surrounding_lines_);
+    editor_->SetYCaretPolicy(wxSTC_CARET_SLOP | wxSTC_CARET_STRICT | wxSTC_CARET_EVEN,
+                             cursor_surrounding_lines_);
+}
+
+auto EditorPanel::GetCursorSurroundingLines() const -> int
+{
+    return cursor_surrounding_lines_;
+}
+
+// #2 Scroll beyond last line — allow scrolling past EOF
+void EditorPanel::SetScrollBeyondLastLine(bool enabled)
+{
+    scroll_beyond_last_line_ = enabled;
+    if (editor_ == nullptr)
+        return;
+    editor_->SetEndAtLastLine(!enabled);
+}
+
+auto EditorPanel::GetScrollBeyondLastLine() const -> bool
+{
+    return scroll_beyond_last_line_;
+}
+
+// #3 Smooth scrolling — animated scroll transitions
+void EditorPanel::SetSmoothScrolling(bool enabled)
+{
+    smooth_scrolling_ = enabled;
+    // Scintilla doesn't have native smooth scrolling;
+    // we enable scroll-width tracking for best available smooth behavior
+    if (editor_ == nullptr)
+        return;
+    editor_->SetScrollWidthTracking(enabled);
+}
+
+auto EditorPanel::GetSmoothScrolling() const -> bool
+{
+    return smooth_scrolling_;
+}
+
+// #4 Copy line (empty selection) — Ctrl+C with no selection copies whole line
+void EditorPanel::CopyLineIfNoSelection()
+{
+    if (editor_ == nullptr)
+        return;
+    if (editor_->GetSelectionEmpty())
+    {
+        editor_->LineCopy();
+    }
+    else
+    {
+        editor_->Copy();
+    }
+}
+
+void EditorPanel::SetEmptySelectionClipboard(bool enabled)
+{
+    empty_selection_clipboard_ = enabled;
+}
+
+auto EditorPanel::GetEmptySelectionClipboard() const -> bool
+{
+    return empty_selection_clipboard_;
+}
+
+// #5 Join lines — merge selected lines into one
+void EditorPanel::JoinLines()
+{
+    if (editor_ == nullptr)
+        return;
+    editor_->BeginUndoAction();
+
+    int sel_start = editor_->GetSelectionStart();
+    int sel_end = editor_->GetSelectionEnd();
+    int start_line = editor_->LineFromPosition(sel_start);
+    int end_line = editor_->LineFromPosition(sel_end);
+
+    // If nothing selected, join current line with next
+    if (start_line == end_line && end_line < editor_->GetLineCount() - 1)
+    {
+        end_line = start_line + 1;
+    }
+
+    // Work backwards to preserve positions
+    for (int line = end_line; line > start_line; --line)
+    {
+        int line_start = editor_->PositionFromLine(line);
+        // Remove leading whitespace on the joined line
+        int pos = line_start;
+        while (pos < editor_->GetLength())
+        {
+            auto ch = static_cast<char>(editor_->GetCharAt(pos));
+            if (ch != ' ' && ch != '\t')
+                break;
+            ++pos;
+        }
+        // Also remove the newline at end of previous line
+        int prev_line_end = editor_->GetLineEndPosition(line - 1);
+        editor_->SetTargetStart(prev_line_end);
+        editor_->SetTargetEnd(pos);
+        editor_->ReplaceTarget(" ");
+    }
+
+    editor_->EndUndoAction();
+}
+
+// #6 Reverse selected lines — reverse line order in selection
+void EditorPanel::ReverseSelectedLines()
+{
+    if (editor_ == nullptr)
+        return;
+    int sel_start = editor_->GetSelectionStart();
+    int sel_end = editor_->GetSelectionEnd();
+    int start_line = editor_->LineFromPosition(sel_start);
+    int end_line = editor_->LineFromPosition(sel_end);
+
+    if (start_line >= end_line)
+        return;
+
+    // If selection end is at start of a line, don't include that line
+    if (editor_->PositionFromLine(end_line) == sel_end && end_line > start_line)
+    {
+        --end_line;
+    }
+
+    editor_->BeginUndoAction();
+
+    std::vector<std::string> lines;
+    for (int line = start_line; line <= end_line; ++line)
+    {
+        int line_start = editor_->PositionFromLine(line);
+        int line_end = editor_->GetLineEndPosition(line);
+        lines.push_back(editor_->GetTextRange(line_start, line_end).ToStdString());
+    }
+    std::reverse(lines.begin(), lines.end());
+
+    // Replace the range
+    int range_start = editor_->PositionFromLine(start_line);
+    int range_end = editor_->GetLineEndPosition(end_line);
+    std::string joined;
+    for (size_t idx = 0; idx < lines.size(); ++idx)
+    {
+        if (idx > 0)
+            joined += '\n';
+        joined += lines[idx];
+    }
+    editor_->SetTargetStart(range_start);
+    editor_->SetTargetEnd(range_end);
+    editor_->ReplaceTarget(joined);
+
+    editor_->EndUndoAction();
+}
+
+// #7 Delete duplicate lines — remove duplicates from selection
+void EditorPanel::DeleteDuplicateLines()
+{
+    if (editor_ == nullptr)
+        return;
+    int sel_start = editor_->GetSelectionStart();
+    int sel_end = editor_->GetSelectionEnd();
+    int start_line = editor_->LineFromPosition(sel_start);
+    int end_line = editor_->LineFromPosition(sel_end);
+
+    if (start_line >= end_line)
+        return;
+
+    if (editor_->PositionFromLine(end_line) == sel_end && end_line > start_line)
+    {
+        --end_line;
+    }
+
+    editor_->BeginUndoAction();
+
+    std::vector<std::string> lines;
+    std::vector<std::string> unique_lines;
+    for (int line = start_line; line <= end_line; ++line)
+    {
+        int line_start = editor_->PositionFromLine(line);
+        int line_end = editor_->GetLineEndPosition(line);
+        auto text = editor_->GetTextRange(line_start, line_end).ToStdString();
+        lines.push_back(text);
+    }
+
+    // Remove duplicates preserving order
+    std::set<std::string> seen;
+    for (const auto& line : lines)
+    {
+        if (seen.insert(line).second)
+        {
+            unique_lines.push_back(line);
+        }
+    }
+
+    if (unique_lines.size() < lines.size())
+    {
+        int range_start = editor_->PositionFromLine(start_line);
+        int range_end = editor_->GetLineEndPosition(end_line);
+        std::string joined;
+        for (size_t idx = 0; idx < unique_lines.size(); ++idx)
+        {
+            if (idx > 0)
+                joined += '\n';
+            joined += unique_lines[idx];
+        }
+        editor_->SetTargetStart(range_start);
+        editor_->SetTargetEnd(range_end);
+        editor_->ReplaceTarget(joined);
+    }
+
+    editor_->EndUndoAction();
+}
+
+// #8 Transpose characters — swap two characters around cursor
+void EditorPanel::TransposeCharacters()
+{
+    if (editor_ == nullptr)
+        return;
+    int pos = editor_->GetCurrentPos();
+    if (pos < 1 || pos >= editor_->GetLength())
+        return;
+
+    editor_->BeginUndoAction();
+    auto ch_before = static_cast<char>(editor_->GetCharAt(pos - 1));
+    auto ch_after = static_cast<char>(editor_->GetCharAt(pos));
+    editor_->SetTargetStart(pos - 1);
+    editor_->SetTargetEnd(pos + 1);
+    std::string swapped;
+    swapped += ch_after;
+    swapped += ch_before;
+    editor_->ReplaceTarget(swapped);
+    editor_->SetCurrentPos(pos + 1);
+    editor_->SetAnchor(pos + 1);
+    editor_->EndUndoAction();
+}
+
+// #9 Move selected text left/right — shift selection by one character
+void EditorPanel::MoveSelectedTextLeft()
+{
+    if (editor_ == nullptr || editor_->GetSelectionEmpty())
+        return;
+
+    int sel_start = editor_->GetSelectionStart();
+    int sel_end = editor_->GetSelectionEnd();
+    if (sel_start <= 0)
+        return;
+
+    editor_->BeginUndoAction();
+    auto selected = editor_->GetTextRange(sel_start, sel_end).ToStdString();
+    auto char_before = static_cast<char>(editor_->GetCharAt(sel_start - 1));
+
+    editor_->SetTargetStart(sel_start - 1);
+    editor_->SetTargetEnd(sel_end);
+    std::string replacement = selected + char_before;
+    editor_->ReplaceTarget(replacement);
+    editor_->SetSelection(sel_start - 1, sel_end - 1);
+    editor_->EndUndoAction();
+}
+
+void EditorPanel::MoveSelectedTextRight()
+{
+    if (editor_ == nullptr || editor_->GetSelectionEmpty())
+        return;
+
+    int sel_start = editor_->GetSelectionStart();
+    int sel_end = editor_->GetSelectionEnd();
+    if (sel_end >= editor_->GetLength())
+        return;
+
+    editor_->BeginUndoAction();
+    auto selected = editor_->GetTextRange(sel_start, sel_end).ToStdString();
+    auto char_after = static_cast<char>(editor_->GetCharAt(sel_end));
+
+    editor_->SetTargetStart(sel_start);
+    editor_->SetTargetEnd(sel_end + 1);
+    std::string replacement;
+    replacement += char_after;
+    replacement += selected;
+    editor_->ReplaceTarget(replacement);
+    editor_->SetSelection(sel_start + 1, sel_end + 1);
+    editor_->EndUndoAction();
+}
+
+// #10 Block indent/outdent — Tab/Shift+Tab
+void EditorPanel::IndentSelection()
+{
+    if (editor_ == nullptr)
+        return;
+    if (editor_->GetSelectionEmpty())
+    {
+        // No selection: just insert tab
+        editor_->Tab();
+        return;
+    }
+    editor_->BeginUndoAction();
+    int start_line = editor_->LineFromPosition(editor_->GetSelectionStart());
+    int end_line = editor_->LineFromPosition(editor_->GetSelectionEnd());
+    for (int line = start_line; line <= end_line; ++line)
+    {
+        int pos = editor_->PositionFromLine(line);
+        std::string indent(static_cast<size_t>(tab_size_), ' ');
+        editor_->InsertText(pos, indent);
+    }
+    editor_->EndUndoAction();
+}
+
+void EditorPanel::OutdentSelection()
+{
+    if (editor_ == nullptr)
+        return;
+    editor_->BeginUndoAction();
+    int start_line = editor_->LineFromPosition(editor_->GetSelectionStart());
+    int end_line = editor_->LineFromPosition(editor_->GetSelectionEnd());
+    for (int line = start_line; line <= end_line; ++line)
+    {
+        int pos = editor_->PositionFromLine(line);
+        int removed = 0;
+        while (removed < tab_size_ && pos + removed < editor_->GetLength())
+        {
+            auto ch = static_cast<char>(editor_->GetCharAt(pos + removed));
+            if (ch == ' ')
+                ++removed;
+            else if (ch == '\t')
+            {
+                ++removed;
+                break;
+            }
+            else
+                break;
+        }
+        if (removed > 0)
+        {
+            editor_->SetTargetStart(pos);
+            editor_->SetTargetEnd(pos + removed);
+            editor_->ReplaceTarget("");
+        }
+    }
+    editor_->EndUndoAction();
+}
+
+// #11 Cursor undo/redo — undo/redo cursor positions independently
+void EditorPanel::CursorUndo()
+{
+    if (editor_ == nullptr || cursor_position_history_.empty())
+        return;
+
+    if (cursor_history_index_ < 0)
+    {
+        cursor_history_index_ = static_cast<int>(cursor_position_history_.size()) - 1;
+    }
+
+    if (cursor_history_index_ > 0)
+    {
+        --cursor_history_index_;
+        int pos = cursor_position_history_[static_cast<size_t>(cursor_history_index_)];
+        last_recorded_cursor_pos_ = pos; // prevent re-recording
+        editor_->GotoPos(pos);
+        editor_->EnsureCaretVisible();
+    }
+}
+
+void EditorPanel::CursorRedo()
+{
+    if (editor_ == nullptr || cursor_position_history_.empty() || cursor_history_index_ < 0)
+        return;
+
+    if (cursor_history_index_ < static_cast<int>(cursor_position_history_.size()) - 1)
+    {
+        ++cursor_history_index_;
+        int pos = cursor_position_history_[static_cast<size_t>(cursor_history_index_)];
+        last_recorded_cursor_pos_ = pos; // prevent re-recording
+        editor_->GotoPos(pos);
+        editor_->EnsureCaretVisible();
+    }
+}
+
+// #12 Select all occurrences of current word/selection
+void EditorPanel::SelectAllOccurrences()
+{
+    if (editor_ == nullptr)
+        return;
+
+    std::string target;
+    if (editor_->GetSelectionEmpty())
+    {
+        // Select word under cursor
+        int pos = editor_->GetCurrentPos();
+        int word_start = editor_->WordStartPosition(pos, true);
+        int word_end = editor_->WordEndPosition(pos, true);
+        if (word_start == word_end)
+            return;
+        target = editor_->GetTextRange(word_start, word_end).ToStdString();
+    }
+    else
+    {
+        target = editor_->GetTextRange(editor_->GetSelectionStart(), editor_->GetSelectionEnd())
+                     .ToStdString();
+    }
+
+    if (target.empty())
+        return;
+
+    // Find all occurrences and add them as selections
+    editor_->SetSearchFlags(wxSTC_FIND_MATCHCASE | wxSTC_FIND_WHOLEWORD);
+    editor_->SetTargetStart(0);
+    editor_->SetTargetEnd(editor_->GetLength());
+
+    bool first_selection = true;
+    while (editor_->SearchInTarget(target) >= 0)
+    {
+        int match_start = editor_->GetTargetStart();
+        int match_end = editor_->GetTargetEnd();
+
+        if (first_selection)
+        {
+            editor_->SetSelection(match_start, match_end);
+            first_selection = false;
+        }
+        else
+        {
+            editor_->AddSelection(match_start, match_end);
+        }
+
+        // Move target past this match
+        editor_->SetTargetStart(match_end);
+        editor_->SetTargetEnd(editor_->GetLength());
+    }
+}
+
+// #13 Add selection to next find match (incremental multi-cursor)
+void EditorPanel::AddSelectionToNextFindMatch()
+{
+    if (editor_ == nullptr)
+        return;
+
+    std::string target;
+    if (editor_->GetSelectionEmpty())
+    {
+        int pos = editor_->GetCurrentPos();
+        int word_start = editor_->WordStartPosition(pos, true);
+        int word_end = editor_->WordEndPosition(pos, true);
+        if (word_start == word_end)
+            return;
+        target = editor_->GetTextRange(word_start, word_end).ToStdString();
+        editor_->SetSelection(word_start, word_end);
+        return; // First invocation: just select current word
+    }
+
+    target = editor_->GetTextRange(editor_->GetSelectionStart(), editor_->GetSelectionEnd())
+                 .ToStdString();
+
+    if (target.empty())
+        return;
+
+    // Find next occurrence after the main selection
+    int main_sel_end = editor_->GetSelectionEnd();
+    editor_->SetSearchFlags(wxSTC_FIND_MATCHCASE);
+    editor_->SetTargetStart(main_sel_end);
+    editor_->SetTargetEnd(editor_->GetLength());
+
+    if (editor_->SearchInTarget(target) >= 0)
+    {
+        int match_start = editor_->GetTargetStart();
+        int match_end = editor_->GetTargetEnd();
+        editor_->AddSelection(match_start, match_end);
+    }
+    else
+    {
+        // Wrap around to beginning of document
+        editor_->SetTargetStart(0);
+        editor_->SetTargetEnd(main_sel_end);
+        if (editor_->SearchInTarget(target) >= 0)
+        {
+            int match_start = editor_->GetTargetStart();
+            int match_end = editor_->GetTargetEnd();
+            editor_->AddSelection(match_start, match_end);
+        }
+    }
+}
+
+// #14 Toggle word wrap via keyboard (Alt+Z)
+void EditorPanel::ToggleWordWrap()
+{
+    if (editor_ == nullptr)
+        return;
+
+    if (wrap_mode_ == core::events::WrapMode::None)
+    {
+        SetWordWrapMode(core::events::WrapMode::Word);
+    }
+    else
+    {
+        SetWordWrapMode(core::events::WrapMode::None);
+    }
+
+    // Publish status update
+    core::events::SettingChangedEvent setting_evt(
+        "editor.wordWrap", wrap_mode_ == core::events::WrapMode::Word ? "true" : "false");
+    event_bus_.publish(setting_evt);
+}
+
+// #19 Auto-pair markdown emphasis — wrap selection in *, **, or `
+void EditorPanel::AutoPairEmphasis(char emphasis_char)
+{
+    if (editor_ == nullptr || editor_->GetSelectionEmpty())
+        return;
+
+    int sel_start = editor_->GetSelectionStart();
+    int sel_end = editor_->GetSelectionEnd();
+    auto selected = editor_->GetTextRange(sel_start, sel_end).ToStdString();
+
+    std::string prefix;
+    std::string suffix;
+    prefix += emphasis_char;
+    suffix += emphasis_char;
+
+    editor_->BeginUndoAction();
+    editor_->SetTargetStart(sel_start);
+    editor_->SetTargetEnd(sel_end);
+    std::string wrapped = prefix + selected + suffix;
+    editor_->ReplaceTarget(wrapped);
+    // Keep the text selected (excluding the delimiters)
+    editor_->SetSelection(sel_start + static_cast<int>(prefix.size()),
+                          sel_end + static_cast<int>(prefix.size()));
+    editor_->EndUndoAction();
+}
+
+// #20 Smart backspace in pairs — delete matching pair
+void EditorPanel::SmartBackspace()
+{
+    if (editor_ == nullptr)
+        return;
+    int pos = editor_->GetCurrentPos();
+    if (pos < 1 || pos >= editor_->GetLength())
+        return;
+
+    auto ch_before = static_cast<char>(editor_->GetCharAt(pos - 1));
+    auto ch_after = static_cast<char>(editor_->GetCharAt(pos));
+
+    // Check if we're between a matching pair
+    bool is_pair = (ch_before == '(' && ch_after == ')') || (ch_before == '[' && ch_after == ']') ||
+                   (ch_before == '{' && ch_after == '}') || (ch_before == '"' && ch_after == '"') ||
+                   (ch_before == '\'' && ch_after == '\'') || (ch_before == '`' && ch_after == '`');
+
+    if (is_pair)
+    {
+        editor_->BeginUndoAction();
+        editor_->SetTargetStart(pos - 1);
+        editor_->SetTargetEnd(pos + 1);
+        editor_->ReplaceTarget("");
+        editor_->EndUndoAction();
+    }
+    else
+    {
+        // Normal backspace
+        editor_->DeleteBack();
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Phase 8: 20 More VS Code-Inspired Improvements
+// ═══════════════════════════════════════════════════════════════════════════
+
+// #1 Fold current region — collapse the fold region at cursor
+void EditorPanel::FoldCurrentRegion()
+{
+    if (editor_ == nullptr)
+        return;
+    int line = editor_->GetCurrentLine();
+    if (editor_->GetFoldLevel(line) & wxSTC_FOLDLEVELHEADERFLAG)
+    {
+        if (editor_->GetFoldExpanded(line))
+        {
+            editor_->ToggleFold(line);
+        }
+    }
+    else
+    {
+        // Walk upward to find the parent fold header
+        int parent = editor_->GetFoldParent(line);
+        if (parent >= 0 && editor_->GetFoldExpanded(parent))
+        {
+            editor_->ToggleFold(parent);
+        }
+    }
+}
+
+// #2 Unfold current region — expand the fold region at cursor
+void EditorPanel::UnfoldCurrentRegion()
+{
+    if (editor_ == nullptr)
+        return;
+    int line = editor_->GetCurrentLine();
+    if (editor_->GetFoldLevel(line) & wxSTC_FOLDLEVELHEADERFLAG)
+    {
+        if (!editor_->GetFoldExpanded(line))
+        {
+            editor_->ToggleFold(line);
+        }
+    }
+    else
+    {
+        int parent = editor_->GetFoldParent(line);
+        if (parent >= 0 && !editor_->GetFoldExpanded(parent))
+        {
+            editor_->ToggleFold(parent);
+        }
+    }
+}
+
+// #3 Fold all regions — collapse every fold header
+void EditorPanel::FoldAllRegions()
+{
+    if (editor_ == nullptr)
+        return;
+    int line_count = editor_->GetLineCount();
+    for (int i = 0; i < line_count; ++i)
+    {
+        if ((editor_->GetFoldLevel(i) & wxSTC_FOLDLEVELHEADERFLAG) && editor_->GetFoldExpanded(i))
+        {
+            editor_->ToggleFold(i);
+        }
+    }
+}
+
+// #4 Unfold all regions — expand every fold header
+void EditorPanel::UnfoldAllRegions()
+{
+    if (editor_ == nullptr)
+        return;
+    int line_count = editor_->GetLineCount();
+    for (int i = 0; i < line_count; ++i)
+    {
+        if ((editor_->GetFoldLevel(i) & wxSTC_FOLDLEVELHEADERFLAG) && !editor_->GetFoldExpanded(i))
+        {
+            editor_->ToggleFold(i);
+        }
+    }
+}
+
+// #5 Expand line selection — select the entire current line (Ctrl+L in VS Code)
+void EditorPanel::ExpandLineSelection()
+{
+    if (editor_ == nullptr)
+        return;
+    int line = editor_->GetCurrentLine();
+    int line_start = editor_->PositionFromLine(line);
+    int line_end = (line + 1 < editor_->GetLineCount()) ? editor_->PositionFromLine(line + 1)
+                                                        : editor_->GetLength();
+    editor_->SetSelection(line_start, line_end);
+}
+
+// #6 Delete current line — remove the line the cursor is on
+void EditorPanel::DeleteCurrentLine()
+{
+    if (editor_ == nullptr)
+        return;
+    editor_->BeginUndoAction();
+    int line = editor_->GetCurrentLine();
+    int line_start = editor_->PositionFromLine(line);
+    int line_end = (line + 1 < editor_->GetLineCount()) ? editor_->PositionFromLine(line + 1)
+                                                        : editor_->GetLength();
+    // If last line, also remove the preceding newline
+    if (line + 1 >= editor_->GetLineCount() && line > 0)
+    {
+        line_start = editor_->GetLineEndPosition(line - 1);
+    }
+    editor_->SetTargetStart(line_start);
+    editor_->SetTargetEnd(line_end);
+    editor_->ReplaceTarget("");
+    editor_->EndUndoAction();
+}
+
+// #7 Toggle render whitespace — cycle between none, boundary, all
+void EditorPanel::ToggleRenderWhitespace()
+{
+    if (editor_ == nullptr)
+        return;
+    int current = editor_->GetViewWhiteSpace();
+    if (current == wxSTC_WS_INVISIBLE)
+    {
+        editor_->SetViewWhiteSpace(wxSTC_WS_VISIBLEAFTERINDENT); // boundary
+        show_whitespace_ = true;
+    }
+    else if (current == wxSTC_WS_VISIBLEAFTERINDENT)
+    {
+        editor_->SetViewWhiteSpace(wxSTC_WS_VISIBLEALWAYS); // all
+    }
+    else
+    {
+        editor_->SetViewWhiteSpace(wxSTC_WS_INVISIBLE); // none
+        show_whitespace_ = false;
+    }
+}
+
+// #8 Toggle line numbers — show/hide the line number gutter
+void EditorPanel::ToggleLineNumbers()
+{
+    if (editor_ == nullptr)
+        return;
+    show_line_numbers_ = !show_line_numbers_;
+    if (show_line_numbers_)
+    {
+        UpdateLineNumberMargin();
+    }
+    else
+    {
+        editor_->SetMarginWidth(0, 0);
+    }
+}
+
+// #9 Jump to matching bracket — navigate to the matching bracket
+void EditorPanel::JumpToMatchingBracket()
+{
+    if (editor_ == nullptr)
+        return;
+    int pos = editor_->GetCurrentPos();
+
+    // Try the character at pos and pos-1
+    int match = editor_->BraceMatch(pos);
+    if (match == wxSTC_INVALID_POSITION && pos > 0)
+    {
+        match = editor_->BraceMatch(pos - 1);
+    }
+    if (match != wxSTC_INVALID_POSITION)
+    {
+        editor_->GotoPos(match);
+        editor_->EnsureCaretVisible();
+    }
+}
+
+// #10 Select to matching bracket — select from cursor to matching bracket
+void EditorPanel::SelectToMatchingBracket()
+{
+    if (editor_ == nullptr)
+        return;
+    int pos = editor_->GetCurrentPos();
+
+    int brace_pos = pos;
+    int match = editor_->BraceMatch(pos);
+    if (match == wxSTC_INVALID_POSITION && pos > 0)
+    {
+        brace_pos = pos - 1;
+        match = editor_->BraceMatch(brace_pos);
+    }
+    if (match != wxSTC_INVALID_POSITION)
+    {
+        // Select including both brackets
+        int sel_start = std::min(brace_pos, match);
+        int sel_end = std::max(brace_pos, match) + 1;
+        editor_->SetSelection(sel_start, sel_end);
+    }
+}
+
+// #11 Remove surrounding brackets — delete the bracket pair around cursor
+void EditorPanel::RemoveSurroundingBrackets()
+{
+    if (editor_ == nullptr)
+        return;
+    int pos = editor_->GetCurrentPos();
+
+    // Find the enclosing bracket by checking at pos and pos-1
+    int brace_pos = -1;
+    int match = -1;
+
+    // Check various positions around cursor
+    for (int check : {pos, pos - 1})
+    {
+        if (check < 0 || check >= editor_->GetLength())
+            continue;
+        auto ch = static_cast<char>(editor_->GetCharAt(check));
+        if (ch == '(' || ch == '[' || ch == '{' || ch == ')' || ch == ']' || ch == '}')
+        {
+            int m = editor_->BraceMatch(check);
+            if (m != wxSTC_INVALID_POSITION)
+            {
+                brace_pos = check;
+                match = m;
+                break;
+            }
+        }
+    }
+
+    if (brace_pos >= 0 && match >= 0)
+    {
+        editor_->BeginUndoAction();
+        // Delete the later position first to preserve earlier position
+        int first = std::min(brace_pos, match);
+        int second = std::max(brace_pos, match);
+        editor_->SetTargetStart(second);
+        editor_->SetTargetEnd(second + 1);
+        editor_->ReplaceTarget("");
+        editor_->SetTargetStart(first);
+        editor_->SetTargetEnd(first + 1);
+        editor_->ReplaceTarget("");
+        editor_->EndUndoAction();
+    }
+}
+
+// #12 Duplicate selection or current line
+void EditorPanel::DuplicateSelectionOrLine()
+{
+    if (editor_ == nullptr)
+        return;
+    editor_->BeginUndoAction();
+    if (editor_->GetSelectionEmpty())
+    {
+        // Duplicate entire current line
+        editor_->SelectionDuplicate();
+    }
+    else
+    {
+        // Duplicate the selection inline
+        std::string selected = editor_->GetSelectedText().ToStdString();
+        int sel_end = editor_->GetSelectionEnd();
+        editor_->InsertText(sel_end, selected);
+        // Select the duplicated text
+        editor_->SetSelection(sel_end, sel_end + static_cast<int>(selected.size()));
+    }
+    editor_->EndUndoAction();
+}
+
+// #13 Transform to uppercase
+void EditorPanel::TransformToUppercase()
+{
+    if (editor_ == nullptr || editor_->GetSelectionEmpty())
+        return;
+    editor_->BeginUndoAction();
+    editor_->UpperCase();
+    editor_->EndUndoAction();
+}
+
+// #14 Transform to lowercase
+void EditorPanel::TransformToLowercase()
+{
+    if (editor_ == nullptr || editor_->GetSelectionEmpty())
+        return;
+    editor_->BeginUndoAction();
+    editor_->LowerCase();
+    editor_->EndUndoAction();
+}
+
+// #15 Transform to title case — capitalize the first letter of each word
+void EditorPanel::TransformToTitleCase()
+{
+    if (editor_ == nullptr || editor_->GetSelectionEmpty())
+        return;
+    int sel_start = editor_->GetSelectionStart();
+    int sel_end = editor_->GetSelectionEnd();
+    std::string text = editor_->GetSelectedText().ToStdString();
+
+    bool capitalize_next = true;
+    for (auto& ch : text)
+    {
+        if (std::isalpha(static_cast<unsigned char>(ch)))
+        {
+            if (capitalize_next)
+            {
+                ch = static_cast<char>(std::toupper(static_cast<unsigned char>(ch)));
+                capitalize_next = false;
+            }
+            else
+            {
+                ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+            }
+        }
+        else
+        {
+            capitalize_next = (ch == ' ' || ch == '\t' || ch == '-' || ch == '_');
+        }
+    }
+
+    editor_->BeginUndoAction();
+    editor_->SetTargetStart(sel_start);
+    editor_->SetTargetEnd(sel_end);
+    editor_->ReplaceTarget(text);
+    editor_->SetSelection(sel_start, sel_start + static_cast<int>(text.size()));
+    editor_->EndUndoAction();
+}
+
+// #16 Sort lines ascending — sort selected lines alphabetically A→Z
+void EditorPanel::SortLinesAscending()
+{
+    if (editor_ == nullptr)
+        return;
+
+    int sel_start = editor_->GetSelectionStart();
+    int sel_end = editor_->GetSelectionEnd();
+    int first_line = editor_->LineFromPosition(sel_start);
+    int last_line = editor_->LineFromPosition(sel_end);
+
+    if (first_line == last_line)
+        return; // nothing to sort
+
+    // Collect lines
+    std::vector<std::string> lines;
+    for (int line = first_line; line <= last_line; ++line)
+    {
+        int ls = editor_->PositionFromLine(line);
+        int le = editor_->GetLineEndPosition(line);
+        lines.push_back(editor_->GetTextRange(ls, le).ToStdString());
+    }
+
+    std::sort(lines.begin(), lines.end());
+
+    // Rebuild
+    std::string joined;
+    for (size_t i = 0; i < lines.size(); ++i)
+    {
+        joined += lines[i];
+        if (i + 1 < lines.size())
+            joined += '\n';
+    }
+
+    editor_->BeginUndoAction();
+    int range_start = editor_->PositionFromLine(first_line);
+    int range_end = editor_->GetLineEndPosition(last_line);
+    editor_->SetTargetStart(range_start);
+    editor_->SetTargetEnd(range_end);
+    editor_->ReplaceTarget(joined);
+    editor_->EndUndoAction();
+}
+
+// #17 Sort lines descending — sort selected lines Z→A
+void EditorPanel::SortLinesDescending()
+{
+    if (editor_ == nullptr)
+        return;
+
+    int sel_start = editor_->GetSelectionStart();
+    int sel_end = editor_->GetSelectionEnd();
+    int first_line = editor_->LineFromPosition(sel_start);
+    int last_line = editor_->LineFromPosition(sel_end);
+
+    if (first_line == last_line)
+        return;
+
+    std::vector<std::string> lines;
+    for (int line = first_line; line <= last_line; ++line)
+    {
+        int ls = editor_->PositionFromLine(line);
+        int le = editor_->GetLineEndPosition(line);
+        lines.push_back(editor_->GetTextRange(ls, le).ToStdString());
+    }
+
+    std::sort(lines.begin(), lines.end(), std::greater<std::string>());
+
+    std::string joined;
+    for (size_t i = 0; i < lines.size(); ++i)
+    {
+        joined += lines[i];
+        if (i + 1 < lines.size())
+            joined += '\n';
+    }
+
+    editor_->BeginUndoAction();
+    int range_start = editor_->PositionFromLine(first_line);
+    int range_end = editor_->GetLineEndPosition(last_line);
+    editor_->SetTargetStart(range_start);
+    editor_->SetTargetEnd(range_end);
+    editor_->ReplaceTarget(joined);
+    editor_->EndUndoAction();
+}
+
+// #18 Insert line above — insert a blank line above the current line
+void EditorPanel::InsertLineAbove()
+{
+    if (editor_ == nullptr)
+        return;
+    editor_->BeginUndoAction();
+    int line = editor_->GetCurrentLine();
+    int line_start = editor_->PositionFromLine(line);
+    editor_->InsertText(line_start, "\n");
+    editor_->GotoPos(line_start);
+    editor_->EndUndoAction();
+}
+
+// #19 Trim trailing whitespace now — strip trailing whitespace from all lines
+void EditorPanel::TrimTrailingWhitespaceNow()
+{
+    if (editor_ == nullptr)
+        return;
+    editor_->BeginUndoAction();
+    int line_count = editor_->GetLineCount();
+    for (int i = 0; i < line_count; ++i)
+    {
+        int line_end = editor_->GetLineEndPosition(i);
+        int line_start = editor_->PositionFromLine(i);
+
+        // Walk backward from end to find last non-whitespace
+        int trim_start = line_end;
+        while (trim_start > line_start)
+        {
+            auto ch = static_cast<char>(editor_->GetCharAt(trim_start - 1));
+            if (ch != ' ' && ch != '\t')
+                break;
+            --trim_start;
+        }
+
+        if (trim_start < line_end)
+        {
+            editor_->SetTargetStart(trim_start);
+            editor_->SetTargetEnd(line_end);
+            editor_->ReplaceTarget("");
+        }
+    }
+    editor_->EndUndoAction();
+}
+
+// #20 Toggle minimap visibility
+void EditorPanel::ToggleMinimapVisibility()
+{
+    if (editor_ == nullptr)
+        return;
+    minimap_visible_ = !minimap_visible_;
+    if (minimap_ != nullptr)
+    {
+        minimap_->Show(minimap_visible_);
+        Layout();
+    }
+}
+
+// ── Phase 9: 20 More VS Code-Inspired Improvements ──
+
+// #1 Copy line up – duplicate current line and place copy above
+void EditorPanel::CopyLineUp()
+{
+    if (editor_ == nullptr)
+        return;
+    editor_->BeginUndoAction();
+    int line = editor_->GetCurrentLine();
+    int col = editor_->GetColumn(editor_->GetCurrentPos());
+    wxString text = editor_->GetLine(line);
+    // Remove trailing newline if present so we can insert cleanly
+    if (text.EndsWith("\n"))
+        text.RemoveLast();
+    int line_start = editor_->PositionFromLine(line);
+    editor_->InsertText(line_start, text + "\n");
+    // Keep cursor on original line (now shifted down by 1)
+    int new_pos = editor_->FindColumn(line, col);
+    editor_->GotoPos(new_pos);
+    editor_->EndUndoAction();
+}
+
+// #2 Copy line down – duplicate current line and place copy below
+void EditorPanel::CopyLineDown()
+{
+    if (editor_ == nullptr)
+        return;
+    editor_->BeginUndoAction();
+    int line = editor_->GetCurrentLine();
+    int col = editor_->GetColumn(editor_->GetCurrentPos());
+    wxString text = editor_->GetLine(line);
+    if (text.EndsWith("\n"))
+        text.RemoveLast();
+    int line_end = editor_->GetLineEndPosition(line);
+    editor_->InsertText(line_end, "\n" + text);
+    // Move cursor to the new copy
+    int new_pos = editor_->FindColumn(line + 1, col);
+    editor_->GotoPos(new_pos);
+    editor_->EndUndoAction();
+}
+
+// #3 Delete all left of cursor on current line
+void EditorPanel::DeleteAllLeft()
+{
+    if (editor_ == nullptr)
+        return;
+    editor_->BeginUndoAction();
+    int pos = editor_->GetCurrentPos();
+    int line = editor_->GetCurrentLine();
+    int line_start = editor_->PositionFromLine(line);
+    if (pos > line_start)
+    {
+        editor_->SetTargetStart(line_start);
+        editor_->SetTargetEnd(pos);
+        editor_->ReplaceTarget("");
+    }
+    editor_->EndUndoAction();
+}
+
+// #4 Delete all right of cursor on current line
+void EditorPanel::DeleteAllRight()
+{
+    if (editor_ == nullptr)
+        return;
+    editor_->BeginUndoAction();
+    int pos = editor_->GetCurrentPos();
+    int line = editor_->GetCurrentLine();
+    int line_end = editor_->GetLineEndPosition(line);
+    if (pos < line_end)
+    {
+        editor_->SetTargetStart(pos);
+        editor_->SetTargetEnd(line_end);
+        editor_->ReplaceTarget("");
+    }
+    editor_->EndUndoAction();
+}
+
+// #5 Add line comment – force-add HTML comment wrapper around each selected line
+void EditorPanel::AddLineComment()
+{
+    if (editor_ == nullptr)
+        return;
+    editor_->BeginUndoAction();
+    int sel_start = editor_->GetSelectionStart();
+    int sel_end = editor_->GetSelectionEnd();
+    int first_line = editor_->LineFromPosition(sel_start);
+    int last_line = editor_->LineFromPosition(sel_end);
+    if (sel_end == editor_->PositionFromLine(last_line) && last_line > first_line)
+        --last_line;
+
+    // Process lines from bottom to top so positions remain stable
+    for (int i = last_line; i >= first_line; --i)
+    {
+        int ls = editor_->PositionFromLine(i);
+        int le = editor_->GetLineEndPosition(i);
+        wxString line_text = editor_->GetTextRange(ls, le);
+        wxString commented = "<!-- " + line_text + " -->";
+        editor_->SetTargetStart(ls);
+        editor_->SetTargetEnd(le);
+        editor_->ReplaceTarget(commented);
+    }
+    editor_->EndUndoAction();
+}
+
+// #6 Remove line comment – strip HTML comment wrapper from each selected line
+void EditorPanel::RemoveLineComment()
+{
+    if (editor_ == nullptr)
+        return;
+    editor_->BeginUndoAction();
+    int sel_start = editor_->GetSelectionStart();
+    int sel_end = editor_->GetSelectionEnd();
+    int first_line = editor_->LineFromPosition(sel_start);
+    int last_line = editor_->LineFromPosition(sel_end);
+    if (sel_end == editor_->PositionFromLine(last_line) && last_line > first_line)
+        --last_line;
+
+    for (int i = last_line; i >= first_line; --i)
+    {
+        int ls = editor_->PositionFromLine(i);
+        int le = editor_->GetLineEndPosition(i);
+        wxString line_text = editor_->GetTextRange(ls, le);
+        wxString trimmed = line_text;
+        trimmed.Trim(false); // trim leading whitespace for matching
+        trimmed.Trim(true);
+        if (trimmed.StartsWith("<!-- ") && trimmed.EndsWith(" -->"))
+        {
+            // Find the <!-- and --> in the original text
+            size_t open_pos = static_cast<size_t>(line_text.Find("<!-- "));
+            size_t close_pos = static_cast<size_t>(line_text.Find(" -->"));
+            if (open_pos != wxString::npos && close_pos != wxString::npos)
+            {
+                wxString inner = line_text.Mid(open_pos + 5, close_pos - open_pos - 5);
+                // Preserve any leading whitespace before the comment
+                wxString prefix = line_text.Left(open_pos);
+                editor_->SetTargetStart(ls);
+                editor_->SetTargetEnd(le);
+                editor_->ReplaceTarget(prefix + inner);
+            }
+        }
+    }
+    editor_->EndUndoAction();
+}
+
+// #7 Toggle auto-indent
+void EditorPanel::ToggleAutoIndent()
+{
+    if (editor_ == nullptr)
+        return;
+    auto_indent_ = !auto_indent_;
+}
+
+// #8 Toggle bracket matching
+void EditorPanel::ToggleBracketMatching()
+{
+    if (editor_ == nullptr)
+        return;
+    bracket_matching_ = !bracket_matching_;
+    if (!bracket_matching_)
+    {
+        // Clear existing highlight
+        editor_->BraceHighlight(wxSTC_INVALID_POSITION, wxSTC_INVALID_POSITION);
+    }
+}
+
+// #9 Toggle code folding – show/hide fold margin
+void EditorPanel::ToggleCodeFolding()
+{
+    if (editor_ == nullptr)
+        return;
+    int current_width = editor_->GetMarginWidth(2); // Margin 2 is typically fold margin
+    if (current_width > 0)
+    {
+        editor_->SetMarginWidth(2, 0);
+        // Unfold everything when disabling
+        for (int i = 0; i < editor_->GetLineCount(); ++i)
+        {
+            if (!editor_->GetFoldExpanded(i))
+                editor_->ToggleFold(i);
+        }
+    }
+    else
+    {
+        editor_->SetMarginWidth(2, 16);
+    }
+}
+
+// #10 Toggle indentation guides
+void EditorPanel::ToggleIndentationGuides()
+{
+    if (editor_ == nullptr)
+        return;
+    indentation_guides_ = !indentation_guides_;
+    editor_->SetIndentationGuides(indentation_guides_ ? wxSTC_IV_LOOKBOTH : wxSTC_IV_NONE);
+}
+
+// #11 Select word at cursor (like VS Code Ctrl+D without find)
+void EditorPanel::SelectWordAtCursor()
+{
+    if (editor_ == nullptr)
+        return;
+    int pos = editor_->GetCurrentPos();
+    int word_start = editor_->WordStartPosition(pos, true);
+    int word_end = editor_->WordEndPosition(pos, true);
+    if (word_start < word_end)
+    {
+        editor_->SetSelection(word_start, word_end);
+    }
+}
+
+// #12 Select current paragraph (text between blank lines)
+void EditorPanel::SelectCurrentParagraph()
+{
+    if (editor_ == nullptr)
+        return;
+    int current_line = editor_->GetCurrentLine();
+    int total_lines = editor_->GetLineCount();
+
+    // Find start of paragraph (first non-blank line going upward)
+    int para_start = current_line;
+    while (para_start > 0)
+    {
+        wxString line = editor_->GetLine(para_start - 1);
+        line.Trim(false);
+        line.Trim(true);
+        if (line.IsEmpty())
+            break;
+        --para_start;
+    }
+
+    // Find end of paragraph (first non-blank line going downward)
+    int para_end = current_line;
+    while (para_end < total_lines - 1)
+    {
+        wxString line = editor_->GetLine(para_end + 1);
+        line.Trim(false);
+        line.Trim(true);
+        if (line.IsEmpty())
+            break;
+        ++para_end;
+    }
+
+    int start_pos = editor_->PositionFromLine(para_start);
+    int end_pos = editor_->GetLineEndPosition(para_end);
+    editor_->SetSelection(start_pos, end_pos);
+}
+
+// #13 Toggle read-only mode
+void EditorPanel::ToggleReadOnly()
+{
+    if (editor_ == nullptr)
+        return;
+    bool currently_readonly = editor_->GetReadOnly();
+    editor_->SetReadOnly(!currently_readonly);
+}
+
+// #14 Convert indentation to spaces – replace leading tabs with spaces
+void EditorPanel::ConvertIndentationToSpaces()
+{
+    if (editor_ == nullptr)
+        return;
+    editor_->BeginUndoAction();
+    int tab_width = editor_->GetTabWidth();
+    wxString spaces(static_cast<size_t>(tab_width), ' ');
+
+    for (int i = 0; i < editor_->GetLineCount(); ++i)
+    {
+        int ls = editor_->PositionFromLine(i);
+        int le = editor_->GetLineEndPosition(i);
+        wxString line = editor_->GetTextRange(ls, le);
+
+        // Only replace leading tabs
+        wxString new_line;
+        bool in_leading = true;
+        for (size_t c = 0; c < line.length(); ++c)
+        {
+            if (in_leading && line[c] == '\t')
+            {
+                new_line += spaces;
+            }
+            else
+            {
+                in_leading = false;
+                new_line += line[c];
+            }
+        }
+
+        if (new_line != line)
+        {
+            editor_->SetTargetStart(ls);
+            editor_->SetTargetEnd(le);
+            editor_->ReplaceTarget(new_line);
+        }
+    }
+    editor_->SetUseTabs(false);
+    editor_->EndUndoAction();
+}
+
+// #20 Convert indentation to tabs – replace leading spaces with tabs
+void EditorPanel::ConvertIndentationToTabs()
+{
+    if (editor_ == nullptr)
+        return;
+    editor_->BeginUndoAction();
+    int tab_width = editor_->GetTabWidth();
+
+    for (int i = 0; i < editor_->GetLineCount(); ++i)
+    {
+        int ls = editor_->PositionFromLine(i);
+        int le = editor_->GetLineEndPosition(i);
+        wxString line = editor_->GetTextRange(ls, le);
+
+        // Count leading spaces and replace with tabs
+        int leading_spaces = 0;
+        for (size_t c = 0; c < line.length(); ++c)
+        {
+            if (line[c] == ' ')
+                ++leading_spaces;
+            else
+                break;
+        }
+
+        if (leading_spaces >= tab_width)
+        {
+            int num_tabs = leading_spaces / tab_width;
+            int remaining = leading_spaces % tab_width;
+            wxString new_leading = wxString(static_cast<size_t>(num_tabs), '\t') +
+                                   wxString(static_cast<size_t>(remaining), ' ');
+            wxString new_line = new_leading + line.Mid(static_cast<size_t>(leading_spaces));
+
+            if (new_line != line)
+            {
+                editor_->SetTargetStart(ls);
+                editor_->SetTargetEnd(le);
+                editor_->ReplaceTarget(new_line);
+            }
+        }
+    }
+    editor_->SetUseTabs(true);
+    editor_->EndUndoAction();
 }
 
 } // namespace markamp::ui

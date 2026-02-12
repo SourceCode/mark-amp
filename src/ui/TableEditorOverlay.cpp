@@ -1,6 +1,7 @@
 #include "TableEditorOverlay.h"
 
 #include "core/Color.h"
+#include "core/Events.h"
 
 #include <wx/button.h>
 #include <wx/sizer.h>
@@ -16,9 +17,11 @@ namespace markamp::ui
 
 TableEditorOverlay::TableEditorOverlay(wxWindow* parent,
                                        core::ThemeEngine& theme_engine,
+                                       core::EventBus& event_bus,
                                        CommitCallback on_commit)
     : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_SIMPLE)
     , theme_engine_(theme_engine)
+    , event_bus_(event_bus)
     , on_commit_(std::move(on_commit))
 {
     auto* main_sizer = new wxBoxSizer(wxVERTICAL);
@@ -33,6 +36,9 @@ TableEditorOverlay::TableEditorOverlay(wxWindow* parent,
 
     SetSizer(main_sizer);
     ApplyTheme();
+
+    theme_sub_ = event_bus_.subscribe<core::events::ThemeChangedEvent>(
+        [this](const core::events::ThemeChangedEvent& /*evt*/) { ApplyTheme(); });
 }
 
 void TableEditorOverlay::CreateToolbar()
