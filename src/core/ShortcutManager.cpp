@@ -388,7 +388,9 @@ void ShortcutManager::load_keybindings(const std::filesystem::path& config_dir)
 {
     const auto file_path = config_dir / "keybindings.md";
 
-    if (!std::filesystem::exists(file_path))
+    // R20 Fix 8: Use error_code overload — exists() can throw on bad permissions
+    std::error_code exists_ec;
+    if (!std::filesystem::exists(file_path, exists_ec))
     {
         return; // No custom keybindings file
     }

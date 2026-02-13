@@ -111,8 +111,17 @@ auto PluginManager::activate_plugin(const std::string& plugin_id) -> bool
         [&entry = *it](const std::string& command_id, std::function<void()> handler)
     { entry.command_handlers[command_id] = std::move(handler); };
 
-    // Activate
-    it->plugin->activate(ctx);
+    // R19 Fix 11: Guard plugin activation against uncaught exceptions
+    try
+    {
+        it->plugin->activate(ctx);
+    }
+    catch (const std::exception& ex)
+    {
+        MARKAMP_LOG_WARN(
+            "Plugin '{}' threw during activation: {}", it->plugin->manifest().name, ex.what());
+        return false;
+    }
 
     MARKAMP_LOG_INFO(
         "Activated plugin: {} v{}", it->plugin->manifest().name, it->plugin->manifest().version);
@@ -136,7 +145,16 @@ auto PluginManager::deactivate_plugin(const std::string& plugin_id) -> bool
         return false;
     }
 
-    it->plugin->deactivate();
+    // R19 Fix 12: Guard plugin deactivation against uncaught exceptions
+    try
+    {
+        it->plugin->deactivate();
+    }
+    catch (const std::exception& ex)
+    {
+        MARKAMP_LOG_WARN(
+            "Plugin '{}' threw during deactivation: {}", it->plugin->manifest().name, ex.what());
+    }
     it->command_handlers.clear();
 
     MARKAMP_LOG_INFO("Deactivated plugin: {}", it->plugin->manifest().name);

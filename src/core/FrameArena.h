@@ -56,6 +56,10 @@ public:
         resource_.release();
         // Re-initialize: destroy + placement-new (operator= is deleted)
         resource_.~monotonic_buffer_resource();
+        // R20 Fix 29: Note — monotonic_buffer_resource ctor is not declared noexcept
+        // on all platforms. In practice this ctor never allocates (just assigns pointer
+        // and size), so throwing is not observed. If the ctor did throw, this noexcept
+        // function would call std::terminate, which is the safest outcome.
         ::new (&resource_) std::pmr::monotonic_buffer_resource(
             heap_buffer_.data(), heap_buffer_.size(), std::pmr::null_memory_resource());
     }
@@ -138,6 +142,10 @@ private:
         alignas(T) std::byte storage[sizeof(T)];
         FreeNode* next;
     };
+    // R19 Fix 39: Verify FreeNode alignment/size at compile time
+    static_assert(alignof(FreeNode) >= alignof(T),
+                  "FreeNode alignment must satisfy T's alignment requirement");
+    static_assert(sizeof(FreeNode) >= sizeof(T), "FreeNode must be at least as large as T");
 
     std::vector<std::unique_ptr<FreeNode[]>> blocks_;
     FreeNode* free_list_{nullptr};

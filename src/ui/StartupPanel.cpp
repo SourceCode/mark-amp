@@ -59,6 +59,49 @@ StartupPanel::StartupPanel(wxWindow* parent,
 
     Bind(wxEVT_PAINT, &StartupPanel::onPaint, this);
 
+    // R18 Fix 31: Keyboard navigation for recent workspaces
+    Bind(wxEVT_CHAR_HOOK,
+         [this](wxKeyEvent& evt)
+         {
+             const int key = evt.GetKeyCode();
+             if (key == WXK_DOWN)
+             {
+                 if (recent_workspaces_ != nullptr)
+                 {
+                     const int max_idx =
+                         std::min(static_cast<int>(recent_workspaces_->list().size()), 3) - 1;
+                     if (selected_workspace_idx_ < max_idx)
+                     {
+                         ++selected_workspace_idx_;
+                         Refresh();
+                     }
+                 }
+             }
+             else if (key == WXK_UP)
+             {
+                 if (selected_workspace_idx_ > 0)
+                 {
+                     --selected_workspace_idx_;
+                     Refresh();
+                 }
+             }
+             else if (key == WXK_RETURN || key == WXK_NUMPAD_ENTER)
+             {
+                 if (recent_workspaces_ != nullptr && selected_workspace_idx_ >= 0)
+                 {
+                     const auto& list = recent_workspaces_->list();
+                     if (selected_workspace_idx_ < static_cast<int>(list.size()))
+                     {
+                         onWorkspaceClick(list[static_cast<size_t>(selected_workspace_idx_)]);
+                     }
+                 }
+             }
+             else
+             {
+                 evt.Skip();
+             }
+         });
+
     if (event_bus_ != nullptr)
     {
         theme_sub_ = event_bus_->subscribe<core::events::ThemeChangedEvent>(
@@ -359,37 +402,53 @@ void StartupPanel::onWorkspaceClick(const std::filesystem::path& path)
 
 void StartupPanel::onPaint(wxPaintEvent& /*event*/)
 {
-    wxPaintDC dc(this);
+    wxPaintDC paint_dc(this);
 
-    wxColour bg = wxColour(20, 20, 30); // Default dark
+    wxColour bg_start = wxColour(20, 20, 30); // Default dark
     if (theme_engine_ != nullptr)
     {
-        bg = theme_engine_->color(core::ThemeColorToken::BgApp);
+        bg_start = theme_engine_->color(core::ThemeColorToken::BgApp);
     }
 
-    dc.SetBackground(wxBrush(bg));
-    dc.Clear();
+    wxSize size = GetClientSize();
+
+    // R18 Fix 32: Subtle diagonal gradient from bg_app to a slightly lightened variant
+    wxColour bg_end = bg_start.ChangeLightness(115);
+    for (int row = 0; row < size.GetHeight(); ++row)
+    {
+        double fraction =
+            static_cast<double>(row) / static_cast<double>(std::max(size.GetHeight(), 1));
+        auto red =
+            static_cast<unsigned char>(bg_start.Red() + fraction * (bg_end.Red() - bg_start.Red()));
+        auto green = static_cast<unsigned char>(bg_start.Green() +
+                                                fraction * (bg_end.Green() - bg_start.Green()));
+        auto blue = static_cast<unsigned char>(bg_start.Blue() +
+                                               fraction * (bg_end.Blue() - bg_start.Blue()));
+        paint_dc.SetPen(wxPen(wxColour(red, green, blue), 1));
+        paint_dc.DrawLine(0, row, size.GetWidth(), row);
+    }
 
     // retro-futuristic grid (subtle)
     wxColour grid_color(255, 255, 255, 10); // Very faint white
     if (theme_engine_ != nullptr)
     {
-        // Use a derived color if possible, or just hardcode for now
         grid_color = theme_engine_->color(core::ThemeColorToken::BorderDark);
-        // Make it very transparent
         grid_color = wxColour(grid_color.Red(), grid_color.Green(), grid_color.Blue(), 20);
     }
 
-    dc.SetPen(wxPen(grid_color, 1));
+    paint_dc.SetPen(wxPen(grid_color, 1));
 
-    wxSize size = GetClientSize();
-    int step = 40;
+    constexpr int kGridStep = 40;
 
-    for (int x = 0; x < size.GetWidth(); x += step)
-        dc.DrawLine(x, 0, x, size.GetHeight());
+    for (int grid_x = 0; grid_x < size.GetWidth(); grid_x += kGridStep)
+    {
+        paint_dc.DrawLine(grid_x, 0, grid_x, size.GetHeight());
+    }
 
-    for (int y = 0; y < size.GetHeight(); y += step)
-        dc.DrawLine(0, y, size.GetWidth(), y);
+    for (int grid_y = 0; grid_y < size.GetHeight(); grid_y += kGridStep)
+    {
+        paint_dc.DrawLine(0, grid_y, size.GetWidth(), grid_y);
+    }
 }
 
 } // namespace markamp::ui

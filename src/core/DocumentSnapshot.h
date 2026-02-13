@@ -60,7 +60,7 @@ public:
 
 private:
     mutable std::mutex mutex_;
-    std::shared_ptr<DocumentSnapshot> current_;
+    std::shared_ptr<DocumentSnapshot> current_; // GUARDED_BY(mutex_)
 };
 
 } // namespace markamp::core

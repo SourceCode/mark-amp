@@ -34,10 +34,22 @@ auto getLogFilePath() -> std::string
 
     if (logDir.empty())
     {
-        logDir = std::filesystem::current_path() / "logs";
+        // R20 Fix 6: current_path() can throw if CWD is deleted
+        try
+        {
+            logDir = std::filesystem::current_path() / "logs";
+        }
+        catch (const std::filesystem::filesystem_error&)
+        {
+            logDir = std::filesystem::path("/tmp") / "markamp" / "logs";
+        }
     }
 
-    std::filesystem::create_directories(logDir);
+    // R20 Fix 5: use error_code overload — don't throw on permission failures
+    std::error_code log_ec;
+    std::filesystem::create_directories(logDir, log_ec);
+    // If directory creation fails, we still try to write — the log call itself
+    // will fail gracefully via spdlog
     return (logDir / "markamp.log").string();
 }
 

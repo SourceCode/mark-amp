@@ -37,9 +37,11 @@ public:
     void set_filename(const std::string& filename);
     void set_language(const std::string& language);
     void set_file_size(std::size_t size_bytes);
-    void set_eol_mode(const std::string& eol_mode);       // R4 Fix 9
-    void set_indent_mode(const std::string& indent_mode); // R6 Fix 14
-    void set_zoom_level(int zoom_level);                  // R13
+    void set_eol_mode(const std::string& eol_mode);           // R4 Fix 9
+    void set_indent_mode(const std::string& indent_mode);     // R6 Fix 14
+    void set_zoom_level(int zoom_level);                      // R13
+    void set_progress(bool active, const std::string& label); // R18 Fix 12
+    void set_git_branch(const std::string& branch);           // R18 Fix 13
 
     // Accessors for testing
     [[nodiscard]] auto ready_state() const -> const std::string&
@@ -146,6 +148,15 @@ private:
     int zoom_level_{0};                    // R13: zoom percentage
     std::string indent_mode_{"Spaces: 4"}; // R6 Fix 14
     std::size_t file_size_bytes_{0};
+
+    // R18 Fix 12: Progress spinner
+    bool progress_active_{false};
+    std::string progress_label_;
+    int spinner_frame_{0};
+    wxTimer progress_spinner_timer_;
+
+    // R18 Fix 13: Git branch
+    std::string git_branch_;
 
     // R17 Fix 8: Save flash
     bool save_flash_active_{false};

@@ -42,6 +42,13 @@ class EditorPanel : public ThemeAwareWindow
 {
 public:
     EditorPanel(wxWindow* parent, core::ThemeEngine& theme_engine, core::EventBus& event_bus);
+    ~EditorPanel() override;
+
+    // Non-copyable, non-movable (wxWidgets panel)
+    EditorPanel(const EditorPanel&) = delete;
+    EditorPanel& operator=(const EditorPanel&) = delete;
+    EditorPanel(EditorPanel&&) = delete;
+    EditorPanel& operator=(EditorPanel&&) = delete;
 
     // ── Content management ──
     void SetContent(const std::string& content);

@@ -148,7 +148,15 @@ void CommandPalette::ApplyFilter()
     {
         if (filter_lower.empty())
         {
-            scored.push_back({idx, 1});
+            // R18 Fix 17: Score by MRU position when no filter
+            int mru_score = 100;
+            auto mru_it =
+                std::find(mru_history_.begin(), mru_history_.end(), all_commands_[idx].label);
+            if (mru_it != mru_history_.end())
+            {
+                mru_score = 200 - static_cast<int>(std::distance(mru_history_.begin(), mru_it));
+            }
+            scored.push_back({idx, mru_score});
         }
         else
         {
@@ -167,12 +175,22 @@ void CommandPalette::ApplyFilter()
               [](const ScoredIndex& left, const ScoredIndex& right)
               { return left.score > right.score; });
 
-    // Update list
+    // Update list with R18 Fix 18: Category headers
     list_->Clear();
     filtered_indices_.clear();
+    std::string last_category;
     for (const auto& entry : scored)
     {
         const auto& cmd = all_commands_[entry.index];
+
+        // R18 Fix 18: Insert category header when category changes
+        if (cmd.category != last_category)
+        {
+            last_category = cmd.category;
+            list_->Append(wxString::FromUTF8("── " + cmd.category + " ──"));
+            // Don't add to filtered_indices_ — headers are non-selectable
+        }
+
         auto display = cmd.category + ": " + cmd.label;
         if (!cmd.shortcut.empty())
         {
@@ -207,6 +225,19 @@ void CommandPalette::ExecuteSelected()
 
     size_t cmd_index = filtered_indices_[static_cast<size_t>(sel)];
     Hide();
+
+    // R18 Fix 17: Update MRU history
+    const auto& label = all_commands_[cmd_index].label;
+    auto mru_it = std::find(mru_history_.begin(), mru_history_.end(), label);
+    if (mru_it != mru_history_.end())
+    {
+        mru_history_.erase(mru_it);
+    }
+    mru_history_.insert(mru_history_.begin(), label);
+    if (mru_history_.size() > 20)
+    {
+        mru_history_.resize(20);
+    }
 
     if (all_commands_[cmd_index].action)
     {

@@ -42,9 +42,19 @@ protected:
     /// Fill the DC background with a theme color token.
     void FillBackground(wxDC& dc, core::ThemeColorToken token);
 
+    /// R18 Fix 40: Draw a focus ring around the control when focused.
+    void DrawFocusRing(wxDC& dc);
+
+    /// Whether the control currently has keyboard focus.
+    [[nodiscard]] auto has_focus_ring() const -> bool
+    {
+        return has_focus_;
+    }
+
 private:
     core::ThemeEngine& theme_engine_;
     core::Subscription theme_subscription_;
+    bool has_focus_{false}; // R18 Fix 40
 };
 
 } // namespace markamp::ui

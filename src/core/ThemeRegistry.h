@@ -17,7 +17,7 @@ public:
     ThemeRegistry();
 
     /// Load all themes (built-in + user directory).
-    auto initialize() -> std::expected<void, std::string>;
+    [[nodiscard]] auto initialize() -> std::expected<void, std::string>;
 
     // Query
     [[nodiscard]] auto get_theme(const std::string& id) const -> std::optional<Theme>;
@@ -27,12 +27,13 @@ public:
     [[nodiscard]] auto is_builtin(const std::string& id) const -> bool;
 
     // Import/Export
-    auto import_theme(const std::filesystem::path& path) -> std::expected<Theme, std::string>;
-    auto export_theme(const std::string& id, const std::filesystem::path& path)
+    [[nodiscard]] auto import_theme(const std::filesystem::path& path)
+        -> std::expected<Theme, std::string>;
+    [[nodiscard]] auto export_theme(const std::string& id, const std::filesystem::path& path)
         -> std::expected<void, std::string>;
 
     // Delete (custom themes only)
-    auto delete_theme(const std::string& id) -> std::expected<void, std::string>;
+    [[nodiscard]] auto delete_theme(const std::string& id) -> std::expected<void, std::string>;
 
     /// Platform-aware user themes directory.
     [[nodiscard]] static auto user_themes_directory() -> std::filesystem::path;

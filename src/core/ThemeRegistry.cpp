@@ -95,7 +95,9 @@ void ThemeRegistry::load_builtin_themes()
 auto ThemeRegistry::load_user_themes() -> std::expected<void, std::string>
 {
     auto dir = user_themes_directory();
-    if (!std::filesystem::exists(dir))
+    // R20 Fix 9: Use error_code overload — exists() can throw on bad permissions
+    std::error_code exists_ec;
+    if (!std::filesystem::exists(dir, exists_ec))
     {
         return {}; // No user themes directory yet, not an error
     }

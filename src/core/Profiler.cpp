@@ -32,6 +32,11 @@ ScopedTimer::~ScopedTimer()
 {
     auto end = std::chrono::high_resolution_clock::now();
     auto duration_ms = std::chrono::duration<double, std::milli>(end - start_).count();
+    // R20 Fix 16: Clamp negative durations (possible with clock adjustments)
+    if (duration_ms < 0.0)
+    {
+        duration_ms = 0.0;
+    }
     Profiler::instance().record(name_, duration_ms);
 }
 
@@ -65,7 +70,14 @@ void Profiler::end(std::string_view name)
 
     auto duration_ms =
         std::chrono::duration<double, std::milli>(end_time - iter->second.start).count();
-    timings_[key].durations_ms.push_back(duration_ms);
+    // R20 Fix 37: Cap per-metric history (same limit as record())
+    auto& data = timings_[key];
+    constexpr std::size_t kMaxEntries = 10'000;
+    if (data.durations_ms.size() >= kMaxEntries)
+    {
+        data.durations_ms.erase(data.durations_ms.begin());
+    }
+    data.durations_ms.push_back(duration_ms);
     pending_.erase(iter);
 }
 
@@ -77,7 +89,14 @@ auto Profiler::scope(std::string_view name) -> ScopedTimer
 void Profiler::record(std::string_view name, double duration_ms)
 {
     const std::lock_guard lock(mutex_);
-    timings_[std::string(name)].durations_ms.push_back(duration_ms);
+    auto& data = timings_[std::string(name)];
+    // R20 Fix 17: Cap per-metric history to prevent unbounded memory growth
+    constexpr std::size_t kMaxEntries = 10'000;
+    if (data.durations_ms.size() >= kMaxEntries)
+    {
+        data.durations_ms.erase(data.durations_ms.begin());
+    }
+    data.durations_ms.push_back(duration_ms);
 }
 
 auto Profiler::results() const -> std::vector<TimingResult>
@@ -167,8 +186,16 @@ auto Profiler::memory_usage_mb() -> double
             auto pos = line.find_first_of("0123456789");
             if (pos != std::string::npos)
             {
-                auto kb = std::stol(line.substr(pos));
-                return static_cast<double>(kb) / 1024.0;
+                // R20 Fix 12: Wrap std::stol — /proc/self/status could be corrupt
+                try
+                {
+                    auto kb = std::stol(line.substr(pos));
+                    return static_cast<double>(kb) / 1024.0;
+                }
+                catch (const std::exception&)
+                {
+                    return 0.0;
+                }
             }
         }
     }

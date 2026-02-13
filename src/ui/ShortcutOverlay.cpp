@@ -1,8 +1,11 @@
 #include "ShortcutOverlay.h"
 
+#include <wx/clipbrd.h>
+#include <wx/dataobj.h>
 #include <wx/dcbuffer.h>
 
 #include <algorithm>
+#include <set>
 
 namespace markamp::ui
 {
@@ -33,6 +36,36 @@ ShortcutOverlay::ShortcutOverlay(wxWindow* parent,
     Bind(wxEVT_PAINT, &ShortcutOverlay::OnPaint, this);
     Bind(wxEVT_CHAR_HOOK, &ShortcutOverlay::OnKeyDown, this);
     filter_input_->Bind(wxEVT_TEXT, &ShortcutOverlay::OnFilterChanged, this);
+
+    // R18 Fix 35: Click on a shortcut entry to copy it to clipboard
+    Bind(wxEVT_LEFT_DOWN,
+         [this](wxMouseEvent& mouse_evt)
+         {
+             const wxPoint click_pos = mouse_evt.GetPosition();
+             // Hit-test against rendered shortcut positions
+             for (const auto& [rect, shortcut_str] : shortcut_hit_rects_)
+             {
+                 if (rect.Contains(click_pos))
+                 {
+                     if (wxTheClipboard->Open())
+                     {
+                         wxTheClipboard->SetData(new wxTextDataObject(shortcut_str));
+                         wxTheClipboard->Close();
+                     }
+                     copied_flash_text_ = shortcut_str;
+                     copied_flash_timer_.Start(1500, wxTIMER_ONE_SHOT);
+                     Refresh();
+                     return;
+                 }
+             }
+         });
+
+    copied_flash_timer_.Bind(wxEVT_TIMER,
+                             [this](wxTimerEvent&)
+                             {
+                                 copied_flash_text_.clear();
+                                 Refresh();
+                             });
 
     // Start hidden
     wxWindow::Hide();
@@ -98,6 +131,7 @@ void ShortcutOverlay::OnThemeChanged(const core::Theme& new_theme)
 void ShortcutOverlay::BuildCategories()
 {
     categories_.clear();
+    conflicting_shortcuts_.clear();
 
     // Collect unique category names preserving order
     std::vector<std::string> category_names;
@@ -107,6 +141,21 @@ void ShortcutOverlay::BuildCategories()
             category_names.end())
         {
             category_names.push_back(shortcut.category);
+        }
+    }
+
+    // R18 Fix 36: Detect conflicting shortcuts (same key binding across all categories)
+    std::map<std::string, int> binding_count;
+    for (const auto& shortcut : shortcut_manager_.get_all_shortcuts())
+    {
+        auto text = core::ShortcutManager::format_shortcut(shortcut.key_code, shortcut.modifiers);
+        binding_count[text]++;
+    }
+    for (const auto& [binding, count] : binding_count)
+    {
+        if (count > 1)
+        {
+            conflicting_shortcuts_.insert(binding);
         }
     }
 
@@ -247,6 +296,7 @@ void ShortcutOverlay::OnPaint(wxPaintEvent& /*event*/)
     int col1_y = current_y;
     int col2_y = current_y;
     bool use_col2 = false;
+    shortcut_hit_rects_.clear(); // R18 Fix 35: rebuild hit rects
 
     for (const auto& category : filtered_categories_)
     {
@@ -268,6 +318,14 @@ void ShortcutOverlay::OnPaint(wxPaintEvent& /*event*/)
                 break; // Don't overflow
             }
 
+            // R18 Fix 36: Highlight conflicting shortcuts with warning background
+            if (conflicting_shortcuts_.count(shortcut_text) > 0)
+            {
+                paint_dc.SetBrush(wxBrush(wxColour(200, 150, 0, 40)));
+                paint_dc.SetPen(*wxTRANSPARENT_PEN);
+                paint_dc.DrawRectangle(target_x - 2, target_y - 1, col_width, 16);
+            }
+
             // Shortcut key
             paint_dc.SetTextForeground(
                 theme_engine().color(core::ThemeColorToken::AccentSecondary));
@@ -276,6 +334,18 @@ void ShortcutOverlay::OnPaint(wxPaintEvent& /*event*/)
             // Description
             paint_dc.SetTextForeground(theme_engine().color(core::ThemeColorToken::TextMuted));
             paint_dc.DrawText(description, target_x + 120, target_y);
+
+            // R18 Fix 35: Store hit rect for click-to-copy
+            shortcut_hit_rects_.emplace_back(wxRect(target_x, target_y, col_width, 16),
+                                             shortcut_text);
+
+            // R18 Fix 35: Show "Copied!" flash next to the shortcut
+            if (!copied_flash_text_.empty() && copied_flash_text_ == shortcut_text)
+            {
+                paint_dc.SetTextForeground(
+                    theme_engine().color(core::ThemeColorToken::AccentPrimary));
+                paint_dc.DrawText("Copied!", target_x + col_width - 60, target_y);
+            }
 
             target_y += 16; // 8E: was 18
         }

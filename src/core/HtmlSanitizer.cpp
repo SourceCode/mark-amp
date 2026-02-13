@@ -213,6 +213,14 @@ void HtmlSanitizer::block_tag(const std::string& tag)
 auto HtmlSanitizer::sanitize(std::string_view html) const -> std::string
 {
     MARKAMP_PROFILE_SCOPE("HtmlSanitizer::sanitize");
+
+    // New stability #36: input length limit (10MB) to prevent processing massive input
+    constexpr size_t kMaxInputSize = 10 * 1024 * 1024;
+    if (html.size() > kMaxInputSize)
+    {
+        return std::string(html.substr(0, kMaxInputSize));
+    }
+
     // Early return: if there's no '<', the input has no tags to sanitize
     if (html.find('<') == std::string_view::npos)
     {
@@ -223,8 +231,17 @@ auto HtmlSanitizer::sanitize(std::string_view html) const -> std::string
     result.reserve(html.size());
 
     size_t pos = 0;
+    // New stability #37: iteration cap to prevent infinite-loop-like processing
+    constexpr size_t kMaxTagIterations = 100000;
+    size_t tag_iterations = 0;
     while (pos < html.size())
     {
+        if (++tag_iterations > kMaxTagIterations)
+        {
+            // Append remaining untouched and bail
+            result.append(html.substr(pos));
+            break;
+        }
         // Find next tag
         auto tag_start = html.find('<', pos);
         if (tag_start == std::string_view::npos)
@@ -358,8 +375,13 @@ auto HtmlSanitizer::sanitize_tag(std::string_view tag_content) const -> std::str
 
     // Simple attribute parser
     size_t attr_pos = 0;
+    // New stability #38: cap attribute count per tag to 50
+    int attr_count = 0;
+    constexpr int kMaxAttributesPerTag = 50;
     while (attr_pos < attrs_part.size())
     {
+        if (++attr_count > kMaxAttributesPerTag)
+            break;
         // Skip whitespace
         while (attr_pos < attrs_part.size() &&
                std::isspace(static_cast<unsigned char>(attrs_part[attr_pos])) != 0)

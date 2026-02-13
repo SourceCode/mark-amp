@@ -30,6 +30,9 @@ public:
     static constexpr int kIconSize = 24;
     static constexpr int kIconPadding = 12;
 
+    /// R18 Fix 25: Set badge count on an activity bar item
+    void SetBadge(core::events::ActivityBarItem item, int count);
+
 private:
     struct BarItem
     {
@@ -37,6 +40,7 @@ private:
         std::string label;     // Tooltip text
         std::string icon_char; // Unicode/emoji fallback icon
         wxRect bounds;         // Hit-test rectangle
+        int badge_count{0};    // R18 Fix 25: Badge count indicator
     };
 
     core::ThemeEngine& theme_engine_;

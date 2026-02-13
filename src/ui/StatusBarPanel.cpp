@@ -106,6 +106,16 @@ StatusBarPanel::StatusBarPanel(wxWindow* parent,
                                RebuildItems();
                                Refresh();
                            });
+
+    // R18 Fix 12: Progress spinner timer
+    progress_spinner_timer_.SetOwner(this);
+    progress_spinner_timer_.Bind(wxEVT_TIMER,
+                                 [this](wxTimerEvent& /*evt*/)
+                                 {
+                                     spinner_frame_ = (spinner_frame_ + 1) % 8;
+                                     RebuildItems();
+                                     Refresh();
+                                 });
 }
 
 // --- State setters ---
@@ -234,6 +244,32 @@ void StatusBarPanel::set_zoom_level(int zoom_level)
     Refresh();
 }
 
+// R18 Fix 12: Progress spinner
+void StatusBarPanel::set_progress(bool active, const std::string& label)
+{
+    progress_active_ = active;
+    progress_label_ = label;
+    if (active && !progress_spinner_timer_.IsRunning())
+    {
+        spinner_frame_ = 0;
+        progress_spinner_timer_.Start(80);
+    }
+    else if (!active && progress_spinner_timer_.IsRunning())
+    {
+        progress_spinner_timer_.Stop();
+    }
+    RebuildItems();
+    Refresh();
+}
+
+// R18 Fix 13: Git branch display
+void StatusBarPanel::set_git_branch(const std::string& branch)
+{
+    git_branch_ = branch;
+    RebuildItems();
+    Refresh();
+}
+
 void StatusBarPanel::RebuildItems()
 {
     left_items_.clear();
@@ -338,6 +374,29 @@ void StatusBarPanel::RebuildItems()
     left_items_.push_back(
         {view_mode_label(view_mode_), {}, false, false, nullptr, "Current view mode"});
 
+    // R18 Fix 12: Progress spinner
+    if (progress_active_)
+    {
+        static const std::array<std::string, 8> kSpinnerFrames = {"\xE2\xA3\xBE",
+                                                                  "\xE2\xA3\xBD",
+                                                                  "\xE2\xA3\xBB",
+                                                                  "\xE2\xA2\xBF",
+                                                                  "\xE2\xA1\xBF",
+                                                                  "\xE2\xA3\x9F",
+                                                                  "\xE2\xA3\xAF",
+                                                                  "\xE2\xA3\xB7"};
+        auto spin_text =
+            kSpinnerFrames[static_cast<size_t>(spinner_frame_)] + " " + progress_label_;
+        left_items_.push_back({spin_text, {}, true, false, nullptr, "Background operation"});
+    }
+
+    // R18 Fix 13: Git branch
+    if (!git_branch_.empty())
+    {
+        auto branch_text = "\xE2\x8E\x87 " + git_branch_;
+        left_items_.push_back({branch_text, {}, false, false, nullptr, "Current git branch"});
+    }
+
     // Right zone: {N} WORDS • {M} CHARS • SEL: {LEN} • MERMAID: {STATUS} • Theme Name
     if (word_count_ > 0)
     {
@@ -353,8 +412,9 @@ void StatusBarPanel::RebuildItems()
 
     if (selection_len_ > 0)
     {
-        auto sel_text = fmt::format("SEL: {}", selection_len_);
-        right_items_.push_back({sel_text, {}, false, false, nullptr, "Selected text length"});
+        // R18 Fix 14: Enhanced selection info with character count
+        auto sel_text = fmt::format("Sel: {} chars", selection_len_);
+        right_items_.push_back({sel_text, {}, true, false, nullptr, "Selected text length"});
     }
 
     auto mermaid_text = fmt::format("MERMAID: {}", mermaid_status_);

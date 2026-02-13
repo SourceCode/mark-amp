@@ -74,6 +74,9 @@ public:
     }
 
     /// Approximate number of items in the queue (snapshot — for diagnostics only).
+    /// Note: unsigned subtraction naturally wraps, and the mask limits the
+    /// result to [0, Capacity-1], so this is correct even when tail < head
+    /// due to wrap-around.
     [[nodiscard]] auto size_approx() const noexcept -> std::size_t
     {
         auto tail = tail_.load(std::memory_order_acquire);

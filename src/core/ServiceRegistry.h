@@ -60,7 +60,9 @@ public:
     }
 
     /// Singleton access for the application-scoped registry.
-    static auto instance() -> ServiceRegistry&
+    /// R20 Fix 40: Thread-safe — Meyers singleton is guaranteed safe in C++11+
+    /// (static local initialization is thread-safe per [stmt.dcl]§6.7.4).
+    [[nodiscard]] static auto instance() -> ServiceRegistry&
     {
         static ServiceRegistry registry;
         return registry;

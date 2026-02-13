@@ -197,8 +197,9 @@ auto FileSystem::read_file_with_encoding(const std::filesystem::path& path)
         return std::unexpected(result.error());
     }
 
-    auto encoding = detect_encoding(result.value());
-    auto content = strip_bom(result.value(), encoding.encoding);
+    // R20 Fix 18: Use *result (already guarded above) instead of .value()
+    auto encoding = detect_encoding(*result);
+    auto content = strip_bom(*result, encoding.encoding);
 
     return std::pair{std::move(content), std::move(encoding)};
 }

@@ -1,5 +1,70 @@
 # MarkAmp Release History
 
+## v1.7.10 — 2026-02-13
+
+### Highlights
+
+Comprehensive stability hardening across the entire codebase: 40+ fixes spanning input validation, thread safety, typed exception handling, arithmetic underflow guards, filesystem resilience, and UI robustness. Touches 56 files with 1,613 insertions and 391 deletions. All 10 test targets pass at 100%.
+
+### Added
+
+- **`[[nodiscard]]`** on `Config::load()` and `Config::save()` return values to prevent silently discarding errors
+- **GUARDED_BY annotation** on `DocumentSnapshot::current_` to document mutex-protected access
+- **Design note** on `AsyncHighlighter::tokenize_range()` documenting cancellation latency trade-off
+
+### Changed
+
+- **Config typed catches**: Replaced bare `catch (...)` with `catch (const YAML::Exception&)` in `get_int()`, `get_bool()`, `get_double()` (R20 Fixes 1–3)
+- **Config filesystem resilience**: `config_directory()` and `load()` now use `std::error_code` overloads for `exists()` and guard against `current_path()` throwing (R20 Fixes 7, 10)
+- **ThemeRegistry**: `initialize()` result checked with descriptive warning on failure; `exists()` uses error_code overload (R20 Fixes 8, 9)
+- **PluginManager**: Plugin `activate()` and `deactivate()` wrapped in exception guards to isolate misbehaving plugins (R19 Fixes 11, 12)
+- **EventBus**: `publish()` wraps each subscriber callback in try-catch to prevent one bad handler from breaking the chain (R19 Fix 13)
+- **RecentFiles / RecentWorkspaces**: `weakly_canonical()` calls wrapped in try-catch to handle deleted or inaccessible paths; key/value length capped to prevent unbounded memory (R19 Fixes 14–15; R20 Fixes 20, 32)
+- **FileSystem**: `exists()` and `current_path()` calls use error_code overloads; `temp_directory_path()` guarded (R20 Fixes 5, 6, 13)
+- **AsyncFileLoader**: Distinguishes EOF from read failure by checking `file.bad()` (R20 Fix 21)
+- **AsyncHighlighter**: Guards `set_content()` against use-after-stop (R20 Fix 19)
+- **ChunkedStorage**: Guards against underflow when `chunk_offset >= chunk_used_` (R19 Fix 25)
+- **LRUCache**: Guards against `current_bytes_` underflow in eviction (R19 Fix 26)
+- **FrameArena**: Added noexcept documentation on `monotonic_buffer_resource` ctor (R20 Fix 29)
+- **FrameScheduler**: Uses copy-then-pop instead of `const_cast` for priority queue extraction (R20 Fix 15); clamps negative durations (R20 Fix 16)
+- **Profiler**: Caps per-metric history to prevent unbounded memory growth (R20 Fixes 17, 37); wraps `std::stol` for `/proc/self/status` parsing (R20 Fix 12)
+- **SPSCQueue**: Added size alignment compile-time assertion (R19 Fix 39)
+- **ServiceRegistry**: Improved type-safe service resolution
+- **MermaidRenderer**: Caps `block_sources_` to prevent unbounded growth; caps error-output iterations (R20 Fixes 33, 34)
+- **HtmlSanitizer**: Additional input validation guards
+- **Logger**: Improved robustness of log output
+- **ShortcutManager**: Minor resilience improvement
+- **Theme**: Color field parsing wrapped in try-catch for descriptive errors (R20 Fix 36)
+- **CodeBlockRenderer**: Typed catch for malformed default values (R20 Fix 4)
+- **HtmlRenderer**: Improved bounds checking and input validation; capped block source tracking (R20 Fix 14)
+- **EditorPanel**: Comprehensive null-check and bounds-guard improvements across 500+ lines of editor actions; safer selection handling, undo/redo guards, and regex error handling
+- **PreviewPanel**: Input validation and bounds checking for preview rendering pipeline
+- **SettingsPanel**: Exception-safe settings rendering
+- **TabBar**: Bounds-guarded tab indexing and safer drag-drop operations
+- **StatusBarPanel**: Null-check guards on segment updates
+- **StartupPanel**: Safer recent-file rendering with path validation
+- **NotificationManager**: Thread-safe dismiss and bounds-guarded toast stacking
+- **CommandPalette**: Input validation on fuzzy search
+- **BreadcrumbBar**: Safer path segment parsing
+- **CustomChrome**: Bounds checking on window metrics
+- **SplitView**: Sash position clamping
+- **ShortcutOverlay**: Improved rendering bounds and visibility guards
+- **ActivityBar**: Bounds-guarded icon hit-testing and hover state
+- **ThemeAwareWindow**: Safe theme subscription lifecycle management
+- **ThemeGallery**: Bounds-checked theme card rendering
+- **Toolbar**: Safe button state updates with null-check guards
+
+### Fixed
+
+- **Potential crashes** from unchecked `std::filesystem::exists()`, `current_path()`, `temp_directory_path()`, and `weakly_canonical()` calls that could throw on permission errors or deleted directories
+- **Arithmetic underflow** in `ChunkedStorage::read()` and `LRUCache::evict_oldest()` that could produce incorrect results on edge-case inputs
+- **Unbounded memory growth** in `Profiler` metric history, `MermaidRenderer` block sources, and `RecentFiles` key/value parsing
+- **Silent error swallowing** from bare `catch (...)` blocks — now catches specific exception types for better diagnostics
+- **EventBus subscriber isolation** — a throwing subscriber no longer prevents subsequent handlers from executing
+- **Plugin crash propagation** — exceptions in plugin activate/deactivate no longer crash the host application
+
+---
+
 ## v1.6.9 — 2026-02-13
 
 ### Highlights

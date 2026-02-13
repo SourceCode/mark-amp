@@ -65,6 +65,13 @@ public:
 
         while (length > 0 && chunk_idx < chunks_.size())
         {
+            // R19 Fix 25: Guard against underflow if chunk_offset exceeds chunk_used_
+            if (chunk_offset >= chunk_used_[chunk_idx])
+            {
+                chunk_offset = 0;
+                ++chunk_idx;
+                continue;
+            }
             auto available = chunk_used_[chunk_idx] - chunk_offset;
             auto to_copy = std::min(available, length);
 
@@ -205,7 +212,16 @@ private:
         if (order_.empty())
             return;
         auto& oldest = order_.back();
-        current_bytes_ -= size_fn_(oldest.second);
+        // R19 Fix 26: Guard against underflow in current_bytes_ subtraction
+        auto entry_size = size_fn_(oldest.second);
+        if (entry_size <= current_bytes_)
+        {
+            current_bytes_ -= entry_size;
+        }
+        else
+        {
+            current_bytes_ = 0;
+        }
         map_.erase(oldest.first);
         order_.pop_back();
     }

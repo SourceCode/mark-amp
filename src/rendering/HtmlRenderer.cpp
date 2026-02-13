@@ -50,9 +50,19 @@ auto FootnotePreprocessor::extract_definitions(std::string_view markdown)
 
     // Parse line-by-line without regex: match lines like [^id]: content
     int number = 0;
+    // Stability #34: cap footnote definitions to prevent memory exhaustion
+    static constexpr int kMaxFootnoteDefinitions = 1000;
     size_t pos = 0;
     while (pos < markdown.size())
     {
+        // Stability #34: stop collecting if we've hit the cap
+        if (number >= kMaxFootnoteDefinitions)
+        {
+            // Flush remaining lines into cleaned output without scanning for defs
+            cleaned.append(markdown.substr(pos));
+            break;
+        }
+
         // Find end of current line
         auto line_end = markdown.find('\n', pos);
         auto line = (line_end != std::string_view::npos) ? markdown.substr(pos, line_end - pos)
@@ -155,12 +165,20 @@ auto FootnotePreprocessor::build_section(const std::vector<FootnoteDefinition>& 
 auto HtmlRenderer::render(const core::MarkdownDocument& doc) -> std::string
 {
     MARKAMP_PROFILE_SCOPE("HtmlRenderer::render");
-    code_renderer_.reset_counter();
-    std::string output;
-    // Pre-allocate: ~8 bytes of HTML per character of source (rough estimate)
-    output.reserve(doc.root.children.size() * 256);
-    render_children(doc.root, output);
-    return output;
+    // New stability #34: wrap entire render pipeline in try-catch
+    try
+    {
+        code_renderer_.reset_counter();
+        std::string output;
+        // Pre-allocate: ~8 bytes of HTML per character of source (rough estimate)
+        output.reserve(doc.root.children.size() * 256);
+        render_children(doc.root, output);
+        return output;
+    }
+    catch (const std::exception& ex)
+    {
+        return std::string("<!-- render error: ") + ex.what() + " -->";
+    }
 }
 
 auto HtmlRenderer::render_with_footnotes(const core::MarkdownDocument& doc,
@@ -180,19 +198,33 @@ auto HtmlRenderer::render_with_footnotes(const core::MarkdownDocument& doc,
 // Recursive rendering
 // ═══════════════════════════════════════════════════════
 
-void HtmlRenderer::render_node(const core::MdNode& node, std::string& output)
+void HtmlRenderer::render_node(const core::MdNode& node, std::string& output, int depth)
 {
+    // Stability #31: cap recursion depth to prevent stack overflow
+    if (depth > kMaxRenderDepth)
+    {
+        output += "<!-- max render depth exceeded -->";
+        return;
+    }
+
+    // New stability #35: cap children count to prevent excessive processing
+    if (node.children.size() > 10000)
+    {
+        output += "<!-- node children limit exceeded -->";
+        return;
+    }
+
     using core::MdNodeType;
 
     switch (node.type)
     {
         case MdNodeType::Document:
-            render_children(node, output);
+            render_children(node, output, depth + 1);
             break;
 
         case MdNodeType::Paragraph:
             output += "<p>";
-            render_children(node, output);
+            render_children(node, output, depth + 1);
             output += "</p>\n";
             break;
 
@@ -228,21 +260,24 @@ void HtmlRenderer::render_node(const core::MdNode& node, std::string& output)
                 slug.pop_back();
             }
 
-            output += fmt::format("<h{} id=\"{}\">", node.heading_level, slug);
-            render_children(node, output);
-            output += fmt::format("</h{}>\n", node.heading_level);
+            // Stability #32: clamp heading level to valid range [1, 6]
+            int level = std::clamp(node.heading_level, 1, 6);
+
+            output += fmt::format("<h{} id=\"{}\">", level, slug);
+            render_children(node, output, depth + 1);
+            output += fmt::format("</h{}>\n", level);
             break;
         }
 
         case MdNodeType::BlockQuote:
             output += "<blockquote>\n";
-            render_children(node, output);
+            render_children(node, output, depth + 1);
             output += "</blockquote>\n";
             break;
 
         case MdNodeType::UnorderedList:
             output += "<ul>\n";
-            render_children(node, output);
+            render_children(node, output, depth + 1);
             output += "</ul>\n";
             break;
 
@@ -255,13 +290,13 @@ void HtmlRenderer::render_node(const core::MdNode& node, std::string& output)
             {
                 output += "<ol>\n";
             }
-            render_children(node, output);
+            render_children(node, output, depth + 1);
             output += "</ol>\n";
             break;
 
         case MdNodeType::ListItem:
             output += "<li>";
-            render_children(node, output);
+            render_children(node, output, depth + 1);
             output += "</li>\n";
             break;
 
@@ -298,25 +333,25 @@ void HtmlRenderer::render_node(const core::MdNode& node, std::string& output)
 
         case MdNodeType::Table:
             output += "<div class=\"table-wrapper\">\n<table>\n";
-            render_children(node, output);
+            render_children(node, output, depth + 1);
             output += "</table>\n</div>\n";
             break;
 
         case MdNodeType::TableHead:
             output += "<thead>\n";
-            render_children(node, output);
+            render_children(node, output, depth + 1);
             output += "</thead>\n";
             break;
 
         case MdNodeType::TableBody:
             output += "<tbody>\n";
-            render_children(node, output);
+            render_children(node, output, depth + 1);
             output += "</tbody>\n";
             break;
 
         case MdNodeType::TableRow:
             output += "<tr>";
-            render_children(node, output);
+            render_children(node, output, depth + 1);
             output += "</tr>\n";
             break;
 
@@ -332,7 +367,7 @@ void HtmlRenderer::render_node(const core::MdNode& node, std::string& output)
             {
                 output += fmt::format("<{}>", tag);
             }
-            render_children(node, output);
+            render_children(node, output, depth + 1);
             output += fmt::format("</{}>", tag);
             break;
         }
@@ -349,25 +384,25 @@ void HtmlRenderer::render_node(const core::MdNode& node, std::string& output)
 
         case MdNodeType::Emphasis:
             output += "<em>";
-            render_children(node, output);
+            render_children(node, output, depth + 1);
             output += "</em>";
             break;
 
         case MdNodeType::Strong:
             output += "<strong>";
-            render_children(node, output);
+            render_children(node, output, depth + 1);
             output += "</strong>";
             break;
 
         case MdNodeType::StrongEmphasis:
             output += "<strong><em>";
-            render_children(node, output);
+            render_children(node, output, depth + 1);
             output += "</em></strong>";
             break;
 
         case MdNodeType::Code:
             output += "<code>";
-            render_children(node, output);
+            render_children(node, output, depth + 1);
             output += "</code>";
             break;
 
@@ -378,7 +413,7 @@ void HtmlRenderer::render_node(const core::MdNode& node, std::string& output)
                 output += fmt::format(" title=\"{}\"", escape_html(node.title));
             }
             output += ">";
-            render_children(node, output);
+            render_children(node, output, depth + 1);
             output += "</a>";
             break;
 
@@ -440,17 +475,17 @@ void HtmlRenderer::render_node(const core::MdNode& node, std::string& output)
 
         case MdNodeType::Strikethrough:
             output += "<del>";
-            render_children(node, output);
+            render_children(node, output, depth + 1);
             output += "</del>";
             break;
     }
 }
 
-void HtmlRenderer::render_children(const core::MdNode& node, std::string& output)
+void HtmlRenderer::render_children(const core::MdNode& node, std::string& output, int depth)
 {
     for (const auto& child : node.children)
     {
-        render_node(child, output);
+        render_node(child, output, depth);
     }
 }
 
@@ -599,6 +634,13 @@ auto HtmlRenderer::encode_image_as_data_uri(const std::filesystem::path& image_p
         mime = "image/x-icon";
     else
         return {};
+
+    // Stability #33: verify it's a regular file (not a symlink to device file)
+    std::error_code fsec;
+    if (!std::filesystem::is_regular_file(image_path, fsec) || fsec)
+    {
+        return {};
+    }
 
     // Read file directly into string (avoids ostringstream copy)
     std::ifstream file(image_path, std::ios::binary | std::ios::ate);

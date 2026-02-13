@@ -88,7 +88,24 @@ void SettingsPanel::CreateLayout()
         new wxButton(this, wxID_ANY, "Import Settings", wxDefaultPosition, wxSize(130, 28));
     import_btn->SetToolTip("Import settings from a JSON file");
     import_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent& /*evt*/) { ImportSettings(); });
-    toolbar_sizer->Add(import_btn, 0);
+    toolbar_sizer->Add(import_btn, 0, wxRIGHT, 8);
+
+    // R18 Fix 23: Reset All Settings button
+    auto* reset_all_btn =
+        new wxButton(this, wxID_ANY, "Reset All", wxDefaultPosition, wxSize(100, 28));
+    reset_all_btn->SetToolTip("Reset all settings to their default values");
+    reset_all_btn->SetBackgroundColour(wxColour(200, 60, 60));
+    reset_all_btn->SetForegroundColour(*wxWHITE);
+    reset_all_btn->Bind(wxEVT_BUTTON,
+                        [this](wxCommandEvent& /*evt*/)
+                        {
+                            for (const auto& def : definitions_)
+                            {
+                                ResetSettingToDefault(def.setting_id, def.default_value);
+                            }
+                            RefreshValues();
+                        });
+    toolbar_sizer->Add(reset_all_btn, 0);
 
     main_sizer->Add(toolbar_sizer, 0, wxALL, 12);
 
@@ -544,8 +561,13 @@ auto SettingsPanel::CreateIntegerSetting(wxWindow* parent, const SettingDefiniti
     {
         default_int = std::stoi(def.default_value);
     }
-    catch (...)
+    catch (const std::exception& e)
     {
+        // R20 Fix 4: Typed catch — log malformed default values
+        MARKAMP_LOG_WARN("Invalid integer default '{}' for setting '{}': {}",
+                         def.default_value,
+                         def.setting_id,
+                         e.what());
     }
     int current_val = config_.get_int(def.setting_id, default_int);
     auto* spin = new wxSpinCtrl(row,
@@ -672,7 +694,7 @@ void SettingsPanel::OnCategorySelected(wxCommandEvent& /*event*/)
 void SettingsPanel::OnSettingChanged(const std::string& setting_id, const std::string& new_value)
 {
     config_.set(setting_id, new_value);
-    config_.save();
+    (void)config_.save(); // best-effort persist
 
     // Fire event so other components can react
     core::events::SettingChangedEvent evt(setting_id, new_value);
@@ -712,7 +734,7 @@ void SettingsPanel::ResetSettingToDefault(const std::string& setting_id,
                                           const std::string& default_val)
 {
     config_.set(setting_id, default_val);
-    config_.save();
+    (void)config_.save(); // best-effort persist
 
     core::events::SettingChangedEvent evt(setting_id, default_val);
     event_bus_.publish(evt);
@@ -759,6 +781,12 @@ void SettingsPanel::ExportSettings()
         out << "  \"" << def.setting_id << "\": \"" << current_val << "\"";
     }
     out << "\n}\n";
+    // R20 Fix 14: Check write success before closing
+    if (!out.good())
+    {
+        MARKAMP_LOG_WARN("Settings export may have failed (write error): {}",
+                         save_dlg.GetPath().ToStdString());
+    }
     out.close();
 
     MARKAMP_LOG_DEBUG("Settings exported to: {}", save_dlg.GetPath().ToStdString());
@@ -805,11 +833,19 @@ void SettingsPanel::ImportSettings()
         std::string key = content.substr(key_start + 1, key_end - key_start - 1);
         std::string value = content.substr(val_start + 1, val_end - val_start - 1);
 
+        // R20 Fix 32: Cap key/value length to prevent malformed files from consuming memory
+        constexpr size_t kMaxFieldLength = 1024;
+        if (key.size() > kMaxFieldLength || value.size() > kMaxFieldLength)
+        {
+            pos = val_end + 1;
+            continue;
+        }
+
         config_.set(key, value);
         pos = val_end + 1;
     }
 
-    config_.save();
+    (void)config_.save(); // best-effort persist
     RebuildSettingsList();
 
     MARKAMP_LOG_DEBUG("Settings imported from: {}", open_dlg.GetPath().ToStdString());

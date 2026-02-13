@@ -253,7 +253,7 @@ void CustomChrome::OnPaint(wxPaintEvent& /*event*/)
             auto end_color = core::Color::from_string(*gradient.end);
             if (start_color && end_color)
             {
-                wxGraphicsContext* gc_ptr = wxGraphicsContext::Create(dc);
+                std::unique_ptr<wxGraphicsContext> gc_ptr(wxGraphicsContext::Create(dc));
                 if (gc_ptr != nullptr)
                 {
                     gc_ptr->SetBrush(gc_ptr->CreateLinearGradientBrush(0,
@@ -263,7 +263,6 @@ void CustomChrome::OnPaint(wxPaintEvent& /*event*/)
                                                                        start_color->to_wx_colour(),
                                                                        end_color->to_wx_colour()));
                     gc_ptr->DrawRectangle(0, 0, w, h);
-                    delete gc_ptr;
                     gradient_painted = true;
                 }
             }
@@ -366,8 +365,6 @@ void CustomChrome::OnPaint(wxPaintEvent& /*event*/)
                                                       wxColour(0, 0, 0, strength)));
                 gc_ptr->DrawRectangle(
                     static_cast<wxDouble>(w) * 7.0 / 8.0, 0, static_cast<wxDouble>(w) / 8.0, h);
-
-                delete gc_ptr;
             }
         }
     }
@@ -485,7 +482,10 @@ void CustomChrome::drawWindowButton(wxDC& dc,
     }
     dc.DrawRoundedRectangle(rect, 3);
 
-    wxFont btnFont(12, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL);
+    // R18 Fix 38: Slightly larger glyph on hover for animated feel
+    const int font_size = hovered ? 14 : 12;
+    const wxFont btnFont(font_size, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL);
+    dc.SetFont(btnFont);
     dc.SetFont(btnFont);
 
     if (zone == HitZone::CloseButton && hovered)

@@ -56,12 +56,23 @@ EditorPanel::EditorPanel(wxWindow* parent,
     ApplyThemeToEditor();
 }
 
+EditorPanel::~EditorPanel()
+{
+    // Stability #16: stop all timers to prevent callbacks into destroyed members
+    debounce_timer_.Stop();
+    format_bar_timer_.Stop();
+    auto_save_timer_.Stop();
+}
+
 // ═══════════════════════════════════════════════════════
 // Content management
 // ═══════════════════════════════════════════════════════
 
 void EditorPanel::SetContent(const std::string& content)
 {
+    // Stability #19: stop debounce timer to prevent stale content events
+    debounce_timer_.Stop();
+
     editor_->SetText(wxString::FromUTF8(content));
     editor_->EmptyUndoBuffer();
     editor_->SetSavePoint();
@@ -213,7 +224,8 @@ auto EditorPanel::GetShowLineNumbers() const -> bool
 
 void EditorPanel::SetFontSize(int size)
 {
-    font_size_ = size;
+    // Stability #12: clamp font size to valid range
+    font_size_ = std::clamp(size, 6, 72);
     ApplyThemeToEditor();
 }
 
@@ -704,6 +716,10 @@ void EditorPanel::SetupSyntaxIndicators()
 
 void EditorPanel::ClearSyntaxOverlays()
 {
+    // New stability #4: guard against null editor
+    if (editor_ == nullptr)
+        return;
+
     auto doc_len = editor_->GetLength();
     for (int ind = kIndicatorYamlFrontmatter; ind <= kIndicatorBlockquoteNest; ++ind)
     {
@@ -714,7 +730,8 @@ void EditorPanel::ClearSyntaxOverlays()
 
 void EditorPanel::ApplySyntaxOverlays()
 {
-    if (!syntax_overlays_enabled_)
+    // New stability #5: guard against null editor
+    if (editor_ == nullptr || !syntax_overlays_enabled_)
     {
         return;
     }
@@ -739,11 +756,19 @@ void EditorPanel::ApplySyntaxOverlays()
 
     ClearSyntaxOverlays();
 
-    HighlightYamlFrontmatter();
-    HighlightTaskCheckboxes();
-    HighlightFootnoteReferences();
-    HighlightInlineHtmlTags();
-    HighlightBlockquoteNesting();
+    // New stability #39: wrap Highlight* calls in try-catch for safety
+    try
+    {
+        HighlightYamlFrontmatter();
+        HighlightTaskCheckboxes();
+        HighlightFootnoteReferences();
+        HighlightInlineHtmlTags();
+        HighlightBlockquoteNesting();
+    }
+    catch (const std::exception&)
+    {
+        // Overlay highlighting failed — silently continue
+    }
 }
 
 void EditorPanel::HighlightYamlFrontmatter()
@@ -1056,6 +1081,10 @@ void EditorPanel::HandleSmartPairCompletion(int char_added)
 
 void EditorPanel::SelectNextOccurrence()
 {
+    // New stability #12: guard against null editor
+    if (editor_ == nullptr)
+        return;
+
     // If no selection, select the word under cursor
     int sel_start = editor_->GetSelectionStart();
     int sel_end = editor_->GetSelectionEnd();
@@ -1290,6 +1319,10 @@ void EditorPanel::TrimTrailingWhitespace()
 
 void EditorPanel::UpdateStickyScrollHeading()
 {
+    // New stability #13: guard against null editor
+    if (editor_ == nullptr)
+        return;
+
     // R15 Fix 14: Scan upward from the first visible line to find the nearest
     // Markdown heading. Store it in sticky_heading_ for potential overlay display.
     int first_visible = editor_->GetFirstVisibleLine();
@@ -1311,6 +1344,10 @@ void EditorPanel::UpdateStickyScrollHeading()
 
 void EditorPanel::InsertSnippet(const Snippet& snippet)
 {
+    // New stability #1: guard against null editor
+    if (editor_ == nullptr)
+        return;
+
     // Replace $0 cursor placeholder with insertion point
     auto body = snippet.body;
     auto cursor_marker = body.find("$0");
@@ -1346,7 +1383,11 @@ void EditorPanel::InsertSnippet(const Snippet& snippet)
 
 auto EditorPanel::GetSessionState() const -> SessionState
 {
+    // New stability #2: guard against null editor
     SessionState state;
+    if (editor_ == nullptr)
+        return state;
+
     state.cursor_position = editor_->GetCurrentPos();
     state.first_visible_line = editor_->GetFirstVisibleLine();
     state.wrap_mode = static_cast<int>(wrap_mode_);
@@ -1355,6 +1396,10 @@ auto EditorPanel::GetSessionState() const -> SessionState
 
 void EditorPanel::RestoreSessionState(const SessionState& state)
 {
+    // New stability #3: guard against null editor
+    if (editor_ == nullptr)
+        return;
+
     editor_->SetCurrentPos(state.cursor_position);
     editor_->SetSelection(state.cursor_position, state.cursor_position);
     editor_->SetFirstVisibleLine(state.first_visible_line);
@@ -1506,6 +1551,10 @@ void EditorPanel::ApplyThemeToEditor()
     editor_->SetSelBackground(true, sel_bg);
     editor_->SetSelAlpha(80); // R16 Fix 18: more opaque selection for readability
 
+    // R18 Fix 7: Cursor style configuration (line | block | underline)
+    // SCI_SETCARETSTYLE: 1=line, 2=block, 0=invisible — using line as default
+    editor_->SendMsg(2512, 1, 0); // SCI_SETCARETSTYLE = line
+
     // Additional selections (multi-cursor) match primary
     editor_->SetAdditionalSelBackground(sel_bg);
     editor_->SetAdditionalSelAlpha(40);
@@ -1608,6 +1657,12 @@ void EditorPanel::UpdateLineNumberMargin()
 
 void EditorPanel::OnEditorChange(wxStyledTextEvent& /*event*/)
 {
+    // Stability #1: guard against null editor during teardown
+    if (editor_ == nullptr)
+    {
+        return;
+    }
+
     // Adaptive debounce: increase delay for large files to reduce CPU pressure
     const int line_count = editor_->GetLineCount();
     const int debounce_ms = (line_count > large_file_threshold_) ? kDebounceMaxMs : kDebounceMs;
@@ -1627,6 +1682,12 @@ void EditorPanel::OnEditorChange(wxStyledTextEvent& /*event*/)
 
 void EditorPanel::OnEditorUpdateUI(wxStyledTextEvent& /*event*/)
 {
+    // Stability #2: guard against null editor during teardown
+    if (editor_ == nullptr)
+    {
+        return;
+    }
+
     // Publish cursor position
     core::events::CursorPositionChangedEvent evt;
     evt.line = GetCursorLine();
@@ -1676,6 +1737,12 @@ void EditorPanel::OnEditorUpdateUI(wxStyledTextEvent& /*event*/)
 
 void EditorPanel::OnCharAdded(wxStyledTextEvent& event)
 {
+    // Stability #3: guard against null editor during teardown
+    if (editor_ == nullptr)
+    {
+        return;
+    }
+
     // Phase 3 Item 21: Smart pair completion
     HandleSmartPairCompletion(event.GetKey());
 
@@ -1693,6 +1760,13 @@ void EditorPanel::OnCharAdded(wxStyledTextEvent& event)
 
 void EditorPanel::OnKeyDown(wxKeyEvent& event)
 {
+    // Stability #4: guard against null editor during teardown
+    if (editor_ == nullptr)
+    {
+        event.Skip();
+        return;
+    }
+
     auto key = event.GetKeyCode();
     bool cmd = event.CmdDown(); // Cmd on macOS, Ctrl on others
 
@@ -1950,6 +2024,13 @@ void EditorPanel::OnKeyDown(wxKeyEvent& event)
 
 void EditorPanel::OnMouseWheel(wxMouseEvent& event)
 {
+    // Stability #5: guard against null editor during teardown
+    if (editor_ == nullptr)
+    {
+        event.Skip();
+        return;
+    }
+
     if (event.CmdDown())
     {
         // Ctrl/Cmd + Wheel for Zoom
@@ -1971,12 +2052,25 @@ void EditorPanel::OnMouseWheel(wxMouseEvent& event)
 
 void EditorPanel::OnDebounceTimer(wxTimerEvent& /*event*/)
 {
-    core::events::EditorContentChangedEvent evt;
-    evt.content = GetContent();
-    event_bus_.publish(evt);
+    // Stability #7: guard and protect against exceptions during timer callback
+    if (editor_ == nullptr)
+    {
+        return;
+    }
 
-    // QoL Item 10: Status Bar Stats
-    CalculateAndPublishStats();
+    try
+    {
+        core::events::EditorContentChangedEvent evt;
+        evt.content = GetContent();
+        event_bus_.publish(evt);
+
+        // QoL Item 10: Status Bar Stats
+        CalculateAndPublishStats();
+    }
+    catch (const std::exception& ex)
+    {
+        spdlog::warn("EditorPanel::OnDebounceTimer exception: {}", ex.what());
+    }
 }
 
 // ═══════════════════════════════════════════════════════
@@ -2081,14 +2175,25 @@ void EditorPanel::HandleMarkdownAutoIndent(int char_added)
         }
 
         // Continue with unchecked task
-        std::string indent(prefix.size() - 6, ' '); // extract the leading whitespace
+        // Stability #8: guard against underflow when prefix is shorter than expected
+        const size_t indent_len = (prefix.size() >= 6) ? prefix.size() - 6 : 0;
+        std::string indent(indent_len, ' '); // extract the leading whitespace
         editor_->InsertText(editor_->GetCurrentPos(), wxString::FromUTF8(indent + "- [ ] "));
         editor_->GotoPos(editor_->GetCurrentPos() + static_cast<int>(indent.size()) + 6);
     }
     else if (std::regex_match(prev, match, olist_re))
     {
         std::string indent = match[1].str();
-        int number = std::stoi(match[2].str());
+        // Stability #10: protect std::stoi against malformed list numbers
+        int number = 0;
+        try
+        {
+            number = std::stoi(match[2].str());
+        }
+        catch (const std::exception&)
+        {
+            return; // malformed number, skip auto-indent
+        }
         std::string dot_space = match[3].str();
         content = match[4].str();
 
@@ -2185,6 +2290,12 @@ void EditorPanel::FindNext()
 
 void EditorPanel::FindPrevious()
 {
+    // Stability #14: guard against null find_input_
+    if (find_input_ == nullptr || editor_ == nullptr)
+    {
+        return;
+    }
+
     auto search = find_input_->GetValue().ToStdString();
     if (search.empty())
     {
@@ -2194,7 +2305,9 @@ void EditorPanel::FindPrevious()
     int flags = match_case_ ? wxSTC_FIND_MATCHCASE : 0;
 
     auto pos = editor_->GetCurrentPos();
-    editor_->SetTargetStart(pos - 1);
+    // Stability #11: prevent negative start position
+    const int start_pos = std::max(0, pos - 1);
+    editor_->SetTargetStart(start_pos);
     editor_->SetTargetEnd(0);
     editor_->SetSearchFlags(flags);
 
@@ -2216,6 +2329,12 @@ void EditorPanel::FindPrevious()
 
 void EditorPanel::ReplaceOne()
 {
+    // Stability #14: guard against null find/replace inputs
+    if (find_input_ == nullptr || replace_input_ == nullptr || editor_ == nullptr)
+    {
+        return;
+    }
+
     auto search = find_input_->GetValue().ToStdString();
     auto replace = replace_input_->GetValue().ToStdString();
     if (search.empty())
@@ -2236,6 +2355,12 @@ void EditorPanel::ReplaceOne()
 
 void EditorPanel::ReplaceAll()
 {
+    // Stability #14: guard against null find/replace inputs
+    if (find_input_ == nullptr || replace_input_ == nullptr || editor_ == nullptr)
+    {
+        return;
+    }
+
     auto search = find_input_->GetValue().ToStdString();
     auto replace = replace_input_->GetValue().ToStdString();
     if (search.empty())
@@ -2271,6 +2396,12 @@ void EditorPanel::ReplaceAll()
 
 void EditorPanel::UpdateMatchCount()
 {
+    // Stability #15: guard against null labels and inputs
+    if (find_input_ == nullptr || match_count_label_ == nullptr || editor_ == nullptr)
+    {
+        return;
+    }
+
     auto search = find_input_->GetValue().ToStdString();
     if (search.empty())
     {
@@ -2499,6 +2630,28 @@ void EditorPanel::GoToLineDialog()
     {
         editor_->GotoLine(static_cast<int>(line_num - 1));
         editor_->EnsureCaretVisible();
+
+        // R18 Fix 6: Brief line pulse highlight on go-to target
+        int target_line = static_cast<int>(line_num - 1);
+        editor_->MarkerDefine(3, wxSTC_MARK_BACKGROUND);
+        editor_->MarkerSetBackground(3, wxColour(255, 220, 80)); // Yellow pulse
+        editor_->MarkerSetAlpha(3, 80);
+        editor_->MarkerAdd(target_line, 3);
+
+        // Remove marker after 400ms via a one-shot timer
+        auto* pulse_timer = new wxTimer(this);
+        pulse_timer->Bind(wxEVT_TIMER,
+                          [this, target_line, pulse_timer](wxTimerEvent& /*unused*/)
+                          {
+                              if (editor_ != nullptr)
+                              {
+                                  editor_->MarkerDelete(target_line, 3);
+                                  editor_->Refresh();
+                              }
+                              pulse_timer->Stop();
+                              CallAfter([pulse_timer]() { delete pulse_timer; });
+                          });
+        pulse_timer->StartOnce(400);
     }
 }
 
@@ -2826,11 +2979,21 @@ auto EditorPanel::GetWordAtCaret() const -> std::string
 
 void EditorPanel::ConvertSelectionUpperCase()
 {
+    // Stability #6: guard against null editor
+    if (editor_ == nullptr)
+    {
+        return;
+    }
     editor_->UpperCase();
 }
 
 void EditorPanel::ConvertSelectionLowerCase()
 {
+    // Stability #6: guard against null editor
+    if (editor_ == nullptr)
+    {
+        return;
+    }
     editor_->LowerCase();
 }
 
@@ -2842,104 +3005,122 @@ void EditorPanel::HandleSmartListContinuation()
 {
     if (editor_ == nullptr)
         return;
-
-    int cur_line = editor_->GetCurrentLine();
-    if (cur_line == 0)
-        return;
-
-    // Look at previous line (since we just hit enter, we are on a new empty line)
-    // Actually, we are on the new line. The *previous* line contains the list item.
-    int prev_line = cur_line - 1;
-    auto prev_text = editor_->GetLine(prev_line).ToStdString();
-
-    // Trim newline
-    while (!prev_text.empty() && (prev_text.back() == '\n' || prev_text.back() == '\r'))
+    // New stability #40: wrap regex calls in try-catch for engine errors
+    try
     {
-        prev_text.pop_back();
-    }
 
-    std::smatch match;
-
-    // Regex for unordered list: ^(\s*)([-*+])\s+(.*)$
-    static const std::regex re_ul(R"(^(\s*)([-*+])\s+(.*)$)");
-    // Regex for ordered list: ^(\s*)(\d+)\.(\s+)(.*)$
-    static const std::regex re_ol(R"(^(\s*)(\d+)\.(\s+)(.*)$)");
-    // Regex for task list: ^(\s*)- \[([ xX])\]\s+(.*)$
-    static const std::regex re_task(R"(^(\s*)-\s\[([ xX])\]\s+(.*)$)");
-
-    std::string insertion;
-
-    // Check task list first (subset of unordered)
-    if (std::regex_match(prev_text, match, re_task))
-    {
-        // match[1] = indent, match[2] = x/space, match[3] = content
-        if (match[3].length() == 0)
-        {
-            // Empty task item: user pressed enter twice. Remove the bullet from prev line.
-            editor_->BeginUndoAction();
-            int prev_start = editor_->PositionFromLine(prev_line);
-            int prev_end = editor_->GetLineEndPosition(prev_line);
-            editor_->SetTargetStart(prev_start);
-            editor_->SetTargetEnd(prev_end);
-            editor_->ReplaceTarget("");   // Clear line
-            editor_->GotoPos(prev_start); // Go back
-            editor_->EndUndoAction();
+        int cur_line = editor_->GetCurrentLine();
+        if (cur_line == 0)
             return;
-        }
-        else
-        {
-            // Continue task list with empty box
-            insertion = match[1].str() + "- [ ] ";
-        }
-    }
-    else if (std::regex_match(prev_text, match, re_ul))
-    {
-        // match[1] = indent, match[2] = bullet, match[3] = content
-        if (match[3].length() == 0)
-        {
-            // Empty item: terminate list
-            editor_->BeginUndoAction();
-            int prev_start = editor_->PositionFromLine(prev_line);
-            int prev_end = editor_->GetLineEndPosition(prev_line);
-            editor_->SetTargetStart(prev_start);
-            editor_->SetTargetEnd(prev_end);
-            editor_->ReplaceTarget("");
-            editor_->GotoPos(prev_start);
-            editor_->EndUndoAction();
-            return;
-        }
-        else
-        {
-            insertion = match[1].str() + match[2].str() + " ";
-        }
-    }
-    else if (std::regex_match(prev_text, match, re_ol))
-    {
-        // match[1] = indent, match[2] = number, match[3] = space, match[4] = content
-        if (match[4].length() == 0)
-        {
-            // Empty item: terminate
-            editor_->BeginUndoAction();
-            int prev_start = editor_->PositionFromLine(prev_line);
-            int prev_end = editor_->GetLineEndPosition(prev_line);
-            editor_->SetTargetStart(prev_start);
-            editor_->SetTargetEnd(prev_end);
-            editor_->ReplaceTarget("");
-            editor_->GotoPos(prev_start);
-            editor_->EndUndoAction();
-            return;
-        }
-        else
-        {
-            int num = std::stoi(match[2].str());
-            insertion = match[1].str() + std::to_string(num + 1) + "." + match[3].str();
-        }
-    }
 
-    if (!insertion.empty())
+        // Look at previous line (since we just hit enter, we are on a new empty line)
+        // Actually, we are on the new line. The *previous* line contains the list item.
+        int prev_line = cur_line - 1;
+        auto prev_text = editor_->GetLine(prev_line).ToStdString();
+
+        // Trim newline
+        while (!prev_text.empty() && (prev_text.back() == '\n' || prev_text.back() == '\r'))
+        {
+            prev_text.pop_back();
+        }
+
+        std::smatch match;
+
+        // Regex for unordered list: ^(\s*)([-*+])\s+(.*)$
+        static const std::regex re_ul(R"(^(\s*)([-*+])\s+(.*)$)");
+        // Regex for ordered list: ^(\s*)(\d+)\.(\s+)(.*)$
+        static const std::regex re_ol(R"(^(\s*)(\d+)\.(\s+)(.*)$)");
+        // Regex for task list: ^(\s*)- \[([ xX])\]\s+(.*)$
+        static const std::regex re_task(R"(^(\s*)-\s\[([ xX])\]\s+(.*)$)");
+
+        std::string insertion;
+
+        // Check task list first (subset of unordered)
+        if (std::regex_match(prev_text, match, re_task))
+        {
+            // match[1] = indent, match[2] = x/space, match[3] = content
+            if (match[3].length() == 0)
+            {
+                // Empty task item: user pressed enter twice. Remove the bullet from prev line.
+                editor_->BeginUndoAction();
+                int prev_start = editor_->PositionFromLine(prev_line);
+                int prev_end = editor_->GetLineEndPosition(prev_line);
+                editor_->SetTargetStart(prev_start);
+                editor_->SetTargetEnd(prev_end);
+                editor_->ReplaceTarget("");   // Clear line
+                editor_->GotoPos(prev_start); // Go back
+                editor_->EndUndoAction();
+                return;
+            }
+            else
+            {
+                // Continue task list with empty box
+                insertion = match[1].str() + "- [ ] ";
+            }
+        }
+        else if (std::regex_match(prev_text, match, re_ul))
+        {
+            // match[1] = indent, match[2] = bullet, match[3] = content
+            if (match[3].length() == 0)
+            {
+                // Empty item: terminate list
+                editor_->BeginUndoAction();
+                int prev_start = editor_->PositionFromLine(prev_line);
+                int prev_end = editor_->GetLineEndPosition(prev_line);
+                editor_->SetTargetStart(prev_start);
+                editor_->SetTargetEnd(prev_end);
+                editor_->ReplaceTarget("");
+                editor_->GotoPos(prev_start);
+                editor_->EndUndoAction();
+                return;
+            }
+            else
+            {
+                insertion = match[1].str() + match[2].str() + " ";
+            }
+        }
+        else if (std::regex_match(prev_text, match, re_ol))
+        {
+            // match[1] = indent, match[2] = number, match[3] = space, match[4] = content
+            if (match[4].length() == 0)
+            {
+                // Empty item: terminate
+                editor_->BeginUndoAction();
+                int prev_start = editor_->PositionFromLine(prev_line);
+                int prev_end = editor_->GetLineEndPosition(prev_line);
+                editor_->SetTargetStart(prev_start);
+                editor_->SetTargetEnd(prev_end);
+                editor_->ReplaceTarget("");
+                editor_->GotoPos(prev_start);
+                editor_->EndUndoAction();
+                return;
+            }
+            else
+            {
+                // Stability #9: protect std::stoi against malformed list numbers
+                int num = 0;
+                try
+                {
+                    num = std::stoi(match[2].str());
+                }
+                catch (const std::exception&)
+                {
+                    return; // malformed number, skip continuation
+                }
+                insertion = match[1].str() + std::to_string(num + 1) + "." + match[3].str();
+            }
+        }
+
+        if (!insertion.empty())
+        {
+            editor_->InsertText(editor_->GetCurrentPos(), insertion);
+            editor_->GotoPos(editor_->GetCurrentPos() + static_cast<int>(insertion.length()));
+        }
+
+    } // end try
+    catch (const std::regex_error&)
     {
-        editor_->InsertText(editor_->GetCurrentPos(), insertion);
-        editor_->GotoPos(editor_->GetCurrentPos() + static_cast<int>(insertion.length()));
+        // New stability #40: regex engine error — skip list continuation
     }
 }
 
@@ -3158,6 +3339,10 @@ void EditorPanel::UpdateFormatBarPosition()
 
 void EditorPanel::HandleFormatBarAction(int action)
 {
+    // New stability #19: guard against null editor before dispatching format actions
+    if (editor_ == nullptr)
+        return;
+
     auto typed_action = static_cast<FloatingFormatBar::Action>(action);
     switch (typed_action)
     {
@@ -3187,6 +3372,9 @@ void EditorPanel::HandleFormatBarAction(int action)
 
 void EditorPanel::OnFormatBarTimer(wxTimerEvent& /*event*/)
 {
+    // New stability #18: guard against null state before showing format bar
+    if (editor_ == nullptr)
+        return;
     ShowFormatBar();
 }
 
@@ -3194,6 +3382,10 @@ void EditorPanel::OnFormatBarTimer(wxTimerEvent& /*event*/)
 
 void EditorPanel::OnDwellStart(wxStyledTextEvent& event)
 {
+    // New stability #9: guard against null editor
+    if (editor_ == nullptr)
+        return;
+
     int pos = event.GetPosition();
     if (pos < 0)
     {
@@ -3270,30 +3462,38 @@ auto EditorPanel::DetectLinkAtPosition(int pos) -> std::optional<LinkInfo>
     int col = pos - editor_->PositionFromLine(line);
 
     // Search for [text](url) pattern containing the cursor position
-    std::regex link_re(R"(\[([^\]]*?)\]\(([^\)]+?)\))");
-    std::smatch match;
-    std::string search_str = line_text;
-    int search_offset = 0;
-
-    while (std::regex_search(search_str, match, link_re))
+    // New stability #7: wrap regex in try-catch for engine errors
+    try
     {
-        int match_start = search_offset + static_cast<int>(match.position());
-        int match_end = match_start + static_cast<int>(match.length());
+        std::regex link_re(R"(\[([^\]]*?)\]\(([^\)]+?)\))");
+        std::smatch match;
+        std::string search_str = line_text;
+        int search_offset = 0;
 
-        if (col >= match_start && col <= match_end)
+        while (std::regex_search(search_str, match, link_re))
         {
-            // Don't match image links (they start with !)
-            if (match_start > 0 && line_text[static_cast<size_t>(match_start - 1)] == '!')
-            {
-                search_str = match.suffix().str();
-                search_offset = match_end;
-                continue;
-            }
-            return LinkInfo{match[1].str(), match[2].str()};
-        }
+            int match_start = search_offset + static_cast<int>(match.position());
+            int match_end = match_start + static_cast<int>(match.length());
 
-        search_str = match.suffix().str();
-        search_offset = match_end;
+            if (col >= match_start && col <= match_end)
+            {
+                // Don't match image links (they start with !)
+                if (match_start > 0 && line_text[static_cast<size_t>(match_start - 1)] == '!')
+                {
+                    search_str = match.suffix().str();
+                    search_offset = match_end;
+                    continue;
+                }
+                return LinkInfo{match[1].str(), match[2].str()};
+            }
+
+            search_str = match.suffix().str();
+            search_offset = match_end;
+        }
+    }
+    catch (const std::regex_error&)
+    {
+        // Regex engine error — return no match
     }
 
     return std::nullopt;
@@ -3311,23 +3511,31 @@ auto EditorPanel::DetectImageAtPosition(int pos) -> std::optional<LinkInfo>
     int col = pos - editor_->PositionFromLine(line);
 
     // Search for ![alt](path) pattern
-    std::regex image_re(R"(!\[([^\]]*?)\]\(([^\)]+?)\))");
-    std::smatch match;
-    std::string search_str = line_text;
-    int search_offset = 0;
-
-    while (std::regex_search(search_str, match, image_re))
+    // New stability #8: wrap regex in try-catch for engine errors
+    try
     {
-        int match_start = search_offset + static_cast<int>(match.position());
-        int match_end = match_start + static_cast<int>(match.length());
+        std::regex image_re(R"(!\[([^\]]*?)\]\(([^\)]+?)\))");
+        std::smatch match;
+        std::string search_str = line_text;
+        int search_offset = 0;
 
-        if (col >= match_start && col <= match_end)
+        while (std::regex_search(search_str, match, image_re))
         {
-            return LinkInfo{match[1].str(), match[2].str()};
-        }
+            int match_start = search_offset + static_cast<int>(match.position());
+            int match_end = match_start + static_cast<int>(match.length());
 
-        search_str = match.suffix().str();
-        search_offset = match_end;
+            if (col >= match_start && col <= match_end)
+            {
+                return LinkInfo{match[1].str(), match[2].str()};
+            }
+
+            search_str = match.suffix().str();
+            search_offset = match_end;
+        }
+    }
+    catch (const std::regex_error&)
+    {
+        // Regex engine error — return no match
     }
 
     return std::nullopt;
@@ -3583,7 +3791,9 @@ void EditorPanel::OnMinimapClick(wxMouseEvent& event)
     // Calculate proportional position
     double fraction = static_cast<double>(click_y) / static_cast<double>(minimap_height);
     int total_lines = editor_->GetLineCount();
-    int target_line = static_cast<int>(fraction * total_lines);
+    // New stability #17: clamp target line to valid range
+    int target_line =
+        std::clamp(static_cast<int>(fraction * total_lines), 0, std::max(0, total_lines - 1));
 
     // Scroll editor to the target line, centering it
     int visible_lines = editor_->LinesOnScreen();
@@ -3948,29 +4158,37 @@ void EditorPanel::OnFileDrop(wxDropFilesEvent& event)
     int count = event.GetNumberOfFiles();
     auto* files = event.GetFiles();
 
+    // New stability #6: wrap filesystem calls in try-catch for malformed paths
     editor_->BeginUndoAction();
     for (int file_idx = 0; file_idx < count; ++file_idx)
     {
-        std::string path = files[file_idx].ToStdString();
-        std::string ext = std::filesystem::path(path).extension().string();
-
-        std::string insertion;
-        if (ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".gif" || ext == ".svg" ||
-            ext == ".webp")
+        try
         {
-            // Image: insert ![alt](path)
-            std::string filename = std::filesystem::path(path).stem().string();
-            insertion = "![" + filename + "](" + path + ")";
-        }
-        else
-        {
-            // File: insert [filename](path)
-            std::string filename = std::filesystem::path(path).filename().string();
-            insertion = "[" + filename + "](" + path + ")";
-        }
+            std::string path = files[file_idx].ToStdString();
+            std::string ext = std::filesystem::path(path).extension().string();
 
-        editor_->InsertText(editor_->GetCurrentPos(), insertion);
-        editor_->GotoPos(editor_->GetCurrentPos() + static_cast<int>(insertion.length()));
+            std::string insertion;
+            if (ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".gif" ||
+                ext == ".svg" || ext == ".webp")
+            {
+                // Image: insert ![alt](path)
+                std::string filename = std::filesystem::path(path).stem().string();
+                insertion = "![" + filename + "](" + path + ")";
+            }
+            else
+            {
+                // File: insert [filename](path)
+                std::string filename = std::filesystem::path(path).filename().string();
+                insertion = "[" + filename + "](" + path + ")";
+            }
+
+            editor_->InsertText(editor_->GetCurrentPos(), insertion);
+            editor_->GotoPos(editor_->GetCurrentPos() + static_cast<int>(insertion.length()));
+        }
+        catch (const std::exception&)
+        {
+            // Skip malformed file path
+        }
     }
     editor_->EndUndoAction();
 }
@@ -4018,15 +4236,16 @@ void EditorPanel::UpdateSelectionCount()
 
     // Count occurrences of selected text in document
     int count = 0;
-    int search_pos = 0;
+    size_t search_pos = 0;
     auto full_text = editor_->GetText().ToStdString();
+    // New stability #14: use size_t consistently to prevent integer overflow
     while (true)
     {
-        auto found = full_text.find(selected, static_cast<std::size_t>(search_pos));
+        auto found = full_text.find(selected, search_pos);
         if (found == std::string::npos)
             break;
         count++;
-        search_pos = static_cast<int>(found) + 1;
+        search_pos = found + 1;
     }
 
     // Publish the count as part of stats
@@ -4156,6 +4375,11 @@ void EditorPanel::ExpandSelection()
     int sel_end = editor_->GetSelectionEnd();
 
     // Save current selection for shrink
+    // New stability #11: cap selection_stack_ to 100 entries to prevent unbounded growth
+    if (selection_stack_.size() >= 100)
+    {
+        selection_stack_.erase(selection_stack_.begin());
+    }
     selection_stack_.push_back({sel_start, sel_end});
 
     if (sel_start == sel_end)
@@ -5680,6 +5904,10 @@ void EditorPanel::ShowEditorContextMenu()
     menu.Bind(wxEVT_MENU,
               [this](wxCommandEvent& cmd_event)
               {
+                  // New stability #15: guard against null editor in context menu lambda
+                  if (editor_ == nullptr)
+                      return;
+
                   switch (cmd_event.GetId())
                   {
                       case 200:

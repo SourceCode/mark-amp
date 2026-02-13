@@ -23,6 +23,12 @@ auto CodeBlockRenderer::render(std::string_view source,
     }
 
     // Assign block ID and store source for clipboard copy
+    // New stability #33: cap block_sources_ to prevent unbounded memory growth
+    if (block_sources_.size() >= 10000)
+    {
+        block_sources_.clear();
+        block_counter_ = 0;
+    }
     int block_id = block_counter_++;
     block_sources_.emplace_back(source);
 
@@ -76,6 +82,12 @@ auto CodeBlockRenderer::render_plain(std::string_view source) const -> std::stri
     std::string html;
     html.reserve(source.size() + 256);
 
+    // R20 Fix 33: cap block_sources_ to prevent unbounded memory growth (same as render)
+    if (block_sources_.size() >= 10000)
+    {
+        block_sources_.clear();
+        block_counter_ = 0;
+    }
     int block_id = block_counter_++;
     block_sources_.emplace_back(source);
 
@@ -149,19 +161,30 @@ auto CodeBlockRenderer::parse_highlight_spec(const std::string& spec) -> std::se
         }
 
         // Check for range: "3-5"
-        auto dash = item.find('-');
-        if (dash != std::string::npos && dash > 0 && dash < item.size() - 1)
+        // New stability #31: wrap stoi in try-catch for malformed specs
+        try
         {
-            const int start = std::stoi(item.substr(0, dash));
-            const int end = std::stoi(item.substr(dash + 1));
-            for (int ln = start; ln <= end; ++ln)
+            auto dash = item.find('-');
+            if (dash != std::string::npos && dash > 0 && dash < item.size() - 1)
             {
-                lines.insert(ln);
+                const int start = std::stoi(item.substr(0, dash));
+                const int end = std::stoi(item.substr(dash + 1));
+                // New stability #32: cap range to prevent memory exhaustion
+                if (end - start > 10000)
+                    continue;
+                for (int ln = start; ln <= end; ++ln)
+                {
+                    lines.insert(ln);
+                }
+            }
+            else
+            {
+                lines.insert(std::stoi(item));
             }
         }
-        else
+        catch (const std::exception&)
         {
-            lines.insert(std::stoi(item));
+            // Malformed highlight spec item — skip it
         }
     }
 

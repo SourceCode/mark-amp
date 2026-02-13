@@ -5,7 +5,10 @@
 #include "core/ThemeEngine.h"
 
 #include <wx/textctrl.h>
+#include <wx/timer.h>
 
+#include <map>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -54,6 +57,14 @@ private:
     void OnPaint(wxPaintEvent& event);
     void OnKeyDown(wxKeyEvent& event);
     void OnFilterChanged(wxCommandEvent& event);
+
+    // R18 Fix 35: Click-to-copy infrastructure
+    std::vector<std::pair<wxRect, std::string>> shortcut_hit_rects_;
+    std::string copied_flash_text_;
+    wxTimer copied_flash_timer_;
+
+    // R18 Fix 36: Conflict detection
+    std::set<std::string> conflicting_shortcuts_;
 };
 
 } // namespace markamp::ui

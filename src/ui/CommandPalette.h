@@ -62,6 +62,7 @@ private:
 
     std::vector<PaletteCommand> all_commands_;
     std::vector<size_t> filtered_indices_; // indices into all_commands_
+    std::vector<std::string> mru_history_; // R18 Fix 17: recently used command labels
 };
 
 } // namespace markamp::ui

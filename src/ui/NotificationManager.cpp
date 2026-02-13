@@ -20,8 +20,41 @@ NotificationManager::NotificationManager(wxWindow* parent,
     Bind(wxEVT_PAINT, &NotificationManager::OnPaint, this);
     Bind(wxEVT_TIMER, &NotificationManager::OnAnimationTimer, this, animation_timer_.GetId());
 
-    // R16 Fix 31: Click anywhere to dismiss top toast
-    Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent& /*evt*/) { DismissTop(); });
+    // R18 Fix 19: Click on specific toast to dismiss it (improved from R16)
+    Bind(wxEVT_LEFT_DOWN,
+         [this](wxMouseEvent& evt)
+         {
+             auto pos = evt.GetPosition();
+             auto size = GetClientSize();
+             int bottom_y = size.GetHeight() - kToastMargin;
+
+             for (auto iter = toasts_.rbegin(); iter != toasts_.rend(); ++iter)
+             {
+                 const int toast_x = size.GetWidth() - kToastWidth - kToastMargin;
+                 const int toast_y = bottom_y - kToastHeight;
+
+                 wxRect toast_rect(toast_x, toast_y, kToastWidth, kToastHeight);
+                 if (toast_rect.Contains(pos))
+                 {
+                     // R18 Fix 20: Check if action button was clicked
+                     if (!iter->action_label.empty() && iter->action_callback)
+                     {
+                         wxRect action_rect(
+                             toast_x + kToastWidth - 80, toast_y + 8, 72, kToastHeight - 16);
+                         if (action_rect.Contains(pos))
+                         {
+                             iter->action_callback();
+                             iter->dismissing = true;
+                             return;
+                         }
+                     }
+                     iter->dismissing = true;
+                     return;
+                 }
+
+                 bottom_y = toast_y - kToastMargin;
+             }
+         });
 
     // Subscribe to notification events
     notification_sub_ = event_bus_.subscribe<core::events::NotificationEvent>(
@@ -202,6 +235,26 @@ void NotificationManager::OnPaint(wxPaintEvent& /*event*/)
             paint_dc.SetBrush(wxBrush(level_color));
             paint_dc.SetPen(*wxTRANSPARENT_PEN);
             paint_dc.DrawRoundedRectangle(toast_x + 4, toast_y + kToastHeight - 4, bar_width, 2, 1);
+        }
+
+        // R18 Fix 20: Action button on toasts
+        if (!toast.action_label.empty() && toast.action_callback && !toast.dismissing)
+        {
+            int btn_x = toast_x + kToastWidth - 80;
+            int btn_y = toast_y + 8;
+            int btn_w = 72;
+            int btn_h = kToastHeight - 16;
+
+            paint_dc.SetBrush(wxBrush(level_color));
+            paint_dc.SetPen(*wxTRANSPARENT_PEN);
+            paint_dc.DrawRoundedRectangle(btn_x, btn_y, btn_w, btn_h, 4);
+
+            paint_dc.SetTextForeground(*wxWHITE);
+            auto btn_text = wxString::FromUTF8(toast.action_label);
+            auto text_size = paint_dc.GetTextExtent(btn_text);
+            paint_dc.DrawText(btn_text,
+                              btn_x + (btn_w - text_size.GetWidth()) / 2,
+                              btn_y + (btn_h - text_size.GetHeight()) / 2);
         }
 
         bottom_y = toast_y - kToastMargin;

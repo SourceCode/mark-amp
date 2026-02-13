@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Logger.h"
 #include "SPSCQueue.h"
 
 #include <concepts>
@@ -145,7 +146,16 @@ void EventBus::publish(const T& event)
     {
         for (const auto& entry : *snapshot)
         {
-            entry.handler(event);
+            // R19 Fix 13: Isolate handler exceptions so one bad subscriber
+            // cannot prevent other subscribers from receiving the event.
+            try
+            {
+                entry.handler(event);
+            }
+            catch (const std::exception& ex)
+            {
+                MARKAMP_LOG_WARN("EventBus handler threw: {}", ex.what());
+            }
         }
     }
 }
@@ -169,7 +179,15 @@ void EventBus::publish_fast(const T& event)
     {
         for (const auto& entry : *snapshot)
         {
-            entry.handler(event);
+            // R19 Fix 13: Same guard for fast-path publish.
+            try
+            {
+                entry.handler(event);
+            }
+            catch (const std::exception& ex)
+            {
+                MARKAMP_LOG_WARN("EventBus fast handler threw: {}", ex.what());
+            }
         }
     }
 }

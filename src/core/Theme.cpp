@@ -180,17 +180,26 @@ void to_json(nlohmann::json& j, const ThemeColors& tc)
 
 void from_json(const nlohmann::json& j, ThemeColors& tc)
 {
-    // Required base colors
-    j.at("--bg-app").get_to(tc.bg_app);
-    j.at("--bg-panel").get_to(tc.bg_panel);
-    j.at("--bg-header").get_to(tc.bg_header);
-    j.at("--bg-input").get_to(tc.bg_input);
-    j.at("--text-main").get_to(tc.text_main);
-    j.at("--text-muted").get_to(tc.text_muted);
-    j.at("--accent-primary").get_to(tc.accent_primary);
-    j.at("--accent-secondary").get_to(tc.accent_secondary);
-    j.at("--border-light").get_to(tc.border_light);
-    j.at("--border-dark").get_to(tc.border_dark);
+    // R20 Fix 36: Wrap required color fields in try-catch for descriptive error
+    try
+    {
+        // Required base colors
+        j.at("--bg-app").get_to(tc.bg_app);
+        j.at("--bg-panel").get_to(tc.bg_panel);
+        j.at("--bg-header").get_to(tc.bg_header);
+        j.at("--bg-input").get_to(tc.bg_input);
+        j.at("--text-main").get_to(tc.text_main);
+        j.at("--text-muted").get_to(tc.text_muted);
+        j.at("--accent-primary").get_to(tc.accent_primary);
+        j.at("--accent-secondary").get_to(tc.accent_secondary);
+        j.at("--border-light").get_to(tc.border_light);
+        j.at("--border-dark").get_to(tc.border_dark);
+    }
+    catch (const nlohmann::json::out_of_range& ex)
+    {
+        throw nlohmann::json::other_error::create(
+            602, std::string("Missing required theme color: ") + ex.what(), &j);
+    }
 
     // Optional/New colors with fallbacks
     if (j.contains("--editor-bg"))

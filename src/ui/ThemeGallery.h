@@ -6,6 +6,7 @@
 
 #include <wx/dialog.h>
 #include <wx/scrolwin.h>
+#include <wx/srchctrl.h>
 #include <wx/stattext.h>
 #include <wx/timer.h>
 
@@ -53,6 +54,7 @@ private:
     wxStaticText* error_label_{nullptr};
     wxTimer error_timer_;
     std::vector<ThemePreviewCard*> preview_cards_;
+    wxSearchCtrl* search_ctrl_{nullptr}; // R18 Fix 34
 
     // State
     std::string selected_theme_id_;
@@ -76,6 +78,9 @@ private:
     void OnImportClicked(wxCommandEvent& event);
     void OnSize(wxSizeEvent& event);
     void OnErrorTimer(wxTimerEvent& event);
+
+    // R18 Fix 34: Theme search filter
+    void FilterCards(const std::string& filter_text);
 };
 
 } // namespace markamp::ui

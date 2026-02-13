@@ -18,6 +18,12 @@ AsyncHighlighter::~AsyncHighlighter()
 
 void AsyncHighlighter::set_content(const std::string& content, const std::string& language)
 {
+    // R20 Fix 19: Guard against calling set_content after stop()
+    if (!running_.load(std::memory_order_acquire))
+    {
+        return;
+    }
+
     {
         std::lock_guard lock(content_mutex_);
         content_ = content;
@@ -103,6 +109,11 @@ void AsyncHighlighter::worker_loop()
     }
 }
 
+// R20 Fix 38: Design note — content_copy and language_copy are taken under
+// content_mutex_, then tokenization runs unlocked. The cancel token is checked
+// between line iterations inside process_line(), not mid-tokenize call. This is
+// an accepted trade-off: a single very long line may delay cancellation, but
+// in practice Markdown lines are short enough that latency remains sub-ms.
 void AsyncHighlighter::tokenize_range(std::size_t start_line, uint64_t ver, CancelToken cancel)
 {
     std::string content_copy;

@@ -33,6 +33,13 @@ public:
                  core::ThemeEngine& theme_engine,
                  core::EventBus& event_bus,
                  core::Config* config = nullptr);
+    ~PreviewPanel() override;
+
+    // Non-copyable, non-movable (wxWidgets panel)
+    PreviewPanel(const PreviewPanel&) = delete;
+    PreviewPanel& operator=(const PreviewPanel&) = delete;
+    PreviewPanel(PreviewPanel&&) = delete;
+    PreviewPanel& operator=(PreviewPanel&&) = delete;
 
     // Content
     void SetMarkdownContent(const std::string& markdown);

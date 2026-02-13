@@ -130,7 +130,7 @@ void Toolbar::RecalculateButtonRects()
     for (auto& btn : left_buttons_)
     {
         int text_width = 0;
-        if (!btn.label.empty())
+        if (!btn.label.empty() && !compact_mode_) // R18 Fix 16: hide labels in compact mode
         {
             wxSize ts = dc.GetTextExtent(btn.label);
             text_width = ts.GetWidth();
@@ -152,7 +152,7 @@ void Toolbar::RecalculateButtonRects()
     {
         auto& btn = right_buttons_[static_cast<size_t>(i)];
         int text_width = 0;
-        if (!btn.label.empty())
+        if (!btn.label.empty() && !compact_mode_) // R18 Fix 16: hide labels in compact mode
         {
             wxSize ts = dc.GetTextExtent(btn.label);
             text_width = ts.GetWidth();
@@ -166,6 +166,8 @@ void Toolbar::RecalculateButtonRects()
 
 void Toolbar::OnSize(wxSizeEvent& event)
 {
+    // R18 Fix 16: Responsive collapse to icons-only
+    compact_mode_ = (event.GetSize().GetWidth() < 600);
     RecalculateButtonRects();
     Refresh();
     event.Skip();
@@ -378,12 +380,12 @@ void Toolbar::OnPaint(wxPaintEvent& /*event*/)
     dc.DrawLine(0, bottom_y, GetClientSize().GetWidth(), bottom_y);
 
     // Draw buttons using wxGraphicsContext
-    auto gc_ptr = wxGraphicsContext::Create(dc);
-    if (gc_ptr == nullptr)
+    std::unique_ptr<wxGraphicsContext> gc_owner(wxGraphicsContext::Create(dc));
+    if (gc_owner == nullptr)
     {
         return;
     }
-    auto& gc = *gc_ptr;
+    auto& gc = *gc_owner;
 
     for (int idx = 0; idx < static_cast<int>(left_buttons_.size()); ++idx)
     {
@@ -416,8 +418,6 @@ void Toolbar::OnPaint(wxPaintEvent& /*event*/)
     {
         DrawButton(gc, btn, t);
     }
-
-    delete gc_ptr;
 }
 
 void Toolbar::DrawButton(wxGraphicsContext& gc, const ButtonInfo& btn, const core::Theme& t) const
@@ -503,8 +503,8 @@ void Toolbar::DrawButton(wxGraphicsContext& gc, const ButtonInfo& btn, const cor
             break;
     }
 
-    // Draw label
-    if (!btn.label.empty())
+    // Draw label (R18 Fix 16: skip in compact mode)
+    if (!btn.label.empty() && !compact_mode_)
     {
         auto font = wxFont(wxFontInfo(kFontSizeLabel).Family(wxFONTFAMILY_SWISS).Bold());
         gc.SetFont(font, text_color);

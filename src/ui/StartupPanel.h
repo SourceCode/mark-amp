@@ -38,6 +38,7 @@ private:
     wxBoxSizer* main_sizer_{nullptr};
     wxPanel* recent_list_container_{nullptr};
     wxBoxSizer* recent_list_sizer_{nullptr};
+    int selected_workspace_idx_{-1}; // R18 Fix 31: keyboard nav selection
 
     void initUi();
     void createLogo(wxSizer* parent);

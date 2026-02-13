@@ -58,6 +58,14 @@ void AsyncFileLoader::load_file(std::filesystem::path path,
 
         if (bytes_read == 0)
         {
+            // R20 Fix 21: Distinguish EOF from read failure
+            if (file.bad())
+            {
+                if (on_error)
+                {
+                    on_error("Read error: " + path.string());
+                }
+            }
             break;
         }
 

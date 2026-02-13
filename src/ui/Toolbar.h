@@ -87,6 +87,9 @@ private:
     // R17 Fix 3: Button press feedback
     int pressed_button_index_{-1};
     bool pressed_is_left_{false};
+
+    // R18 Fix 16: Responsive collapse to icons-only
+    bool compact_mode_{false};
 };
 
 } // namespace markamp::ui

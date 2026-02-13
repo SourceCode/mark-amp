@@ -148,6 +148,11 @@ public:
     /// Record a duration into the histogram.
     void record(double duration_ms) noexcept
     {
+        // R20 Fix 20: Clamp negative values before size_t cast — avoids huge index
+        if (duration_ms < 0.0)
+        {
+            duration_ms = 0.0;
+        }
         auto bucket = static_cast<std::size_t>(duration_ms / kBucketWidthMs);
         if (bucket >= kBucketCount)
         {

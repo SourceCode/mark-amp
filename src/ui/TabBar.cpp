@@ -51,6 +51,10 @@ TabBar::TabBar(wxWindow* parent, core::ThemeEngine& theme_engine, core::EventBus
     Bind(wxEVT_MIDDLE_DOWN, &TabBar::OnMiddleDown, this);
     Bind(wxEVT_MOUSEWHEEL, &TabBar::OnMouseWheel, this);
     Bind(wxEVT_SIZE, &TabBar::OnSize, this);
+
+    // R18 Fix 1: Fade-in animation timer
+    fade_timer_.SetOwner(this);
+    Bind(wxEVT_TIMER, &TabBar::OnFadeTimer, this);
 }
 
 // --- Tab management ---
@@ -70,11 +74,19 @@ void TabBar::AddTab(const std::string& file_path, const std::string& display_nam
     tab.display_name = display_name;
     tab.is_modified = false;
     tab.is_active = false;
+    tab.opacity = 0.0F; // R18 Fix 1: Start transparent for fade-in
     tabs_.push_back(tab);
 
     SetActiveTab(file_path);
     RecalculateTabRects();
     EnsureTabVisible(static_cast<int>(tabs_.size()) - 1);
+
+    // R18 Fix 1: Start fade timer if not already running
+    if (!fade_timer_.IsRunning())
+    {
+        fade_timer_.Start(16); // ~60fps
+    }
+
     Refresh();
 }
 
@@ -311,7 +323,7 @@ void TabBar::CloseTabsToRight(const std::string& of_path)
 void TabBar::OnPaint(wxPaintEvent& /*event*/)
 {
     wxAutoBufferedPaintDC dc(this);
-    auto* gc = wxGraphicsContext::Create(dc);
+    std::unique_ptr<wxGraphicsContext> gc(wxGraphicsContext::Create(dc));
     if (gc == nullptr)
     {
         return;
@@ -342,7 +354,6 @@ void TabBar::OnPaint(wxPaintEvent& /*event*/)
         gc->DrawText(hint_text,
                      (sz.GetWidth() - static_cast<int>(hint_w)) / 2,
                      (sz.GetHeight() - static_cast<int>(hint_h)) / 2);
-        delete gc;
         return;
     }
 
@@ -406,8 +417,6 @@ void TabBar::OnPaint(wxPaintEvent& /*event*/)
             gc->CreatePen(wxPen(theme_engine().color(core::ThemeColorToken::AccentPrimary), 2)));
         gc->StrokeLine(indicator_x, 2, indicator_x, sz.GetHeight() - 2);
     }
-
-    delete gc;
 }
 
 void TabBar::DrawTab(wxGraphicsContext& gc, const TabInfo& tab, const core::Theme& /*theme*/) const
@@ -524,6 +533,19 @@ void TabBar::DrawTab(wxGraphicsContext& gc, const TabInfo& tab, const core::Them
 
     int text_y = tab_y + (tab_h - static_cast<int>(text_h)) / 2;
     gc.DrawText(display, text_x, text_y);
+
+    // R18 Fix 4: Show parent folder for disambiguation on duplicate names
+    std::string disambig = GetDisambiguationSuffix(tab);
+    if (!disambig.empty())
+    {
+        wxFont disambig_font = theme_engine().font(core::ThemeFontToken::MonoRegular);
+        disambig_font.SetPointSize(8);
+        gc.SetFont(disambig_font, theme_engine().color(core::ThemeColorToken::TextMuted));
+        wxDouble dw = 0;
+        wxDouble dh = 0;
+        gc.GetTextExtent(disambig, &dw, &dh);
+        gc.DrawText(disambig, text_x + static_cast<int>(text_w) + 4, text_y + 1);
+    }
 
     // Close button (×) — Fix 12: show modified dot (●) instead of × when not hovered
     int close_x = tab_x + tab_w - kCloseButtonSize - kCloseButtonMargin;
@@ -1102,4 +1124,58 @@ void markamp::ui::TabBar::CloseSavedTabs()
         const core::events::TabCloseRequestEvent evt(path);
         event_bus_.publish(evt);
     }
+}
+
+// R18 Fix 1: Fade-in animation timer callback
+void markamp::ui::TabBar::OnFadeTimer(wxTimerEvent& /*event*/)
+{
+    bool any_fading = false;
+    for (auto& tab : tabs_)
+    {
+        if (tab.opacity < 1.0F)
+        {
+            tab.opacity = std::min(1.0F, tab.opacity + 0.1F);
+            any_fading = true;
+        }
+    }
+
+    if (!any_fading)
+    {
+        fade_timer_.Stop();
+    }
+    Refresh();
+}
+
+// R18 Fix 4: Get parent folder name suffix for tabs with duplicate display names
+auto markamp::ui::TabBar::GetDisambiguationSuffix(const TabInfo& tab) const -> std::string
+{
+    // Count how many tabs share the same display_name
+    int count = 0;
+    for (const auto& other : tabs_)
+    {
+        if (other.display_name == tab.display_name)
+        {
+            ++count;
+        }
+    }
+
+    if (count <= 1)
+    {
+        return {};
+    }
+
+    // Extract parent folder name from file path
+    try
+    {
+        const auto parent = std::filesystem::path(tab.file_path).parent_path().filename().string();
+        if (!parent.empty() && parent != ".")
+        {
+            return parent;
+        }
+    }
+    catch (const std::exception& /*err*/)
+    {
+    }
+
+    return {};
 }

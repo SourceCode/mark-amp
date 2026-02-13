@@ -9,6 +9,7 @@
 #include <wx/graphics.h>
 #include <wx/msgdlg.h>
 #include <wx/sizer.h>
+#include <wx/srchctrl.h>
 #include <wx/stattext.h>
 
 #include <algorithm>
@@ -213,7 +214,19 @@ void ThemeGallery::CreateToolbar()
     import_btn->SetFont(import_font);
     import_btn->Bind(wxEVT_BUTTON, &ThemeGallery::OnImportClicked, this);
 
-    toolbar_sizer->Add(import_btn, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 16);
+    toolbar_sizer->Add(import_btn, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
+
+    // R18 Fix 34: Search/filter bar
+    search_ctrl_ = new wxSearchCtrl(
+        toolbar_panel_, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(180, 28));
+    search_ctrl_->SetDescriptiveText("Filter themes\u2026");
+    search_ctrl_->SetBackgroundColour(
+        wxColour(t.colors.bg_panel.to_rgba_string()).ChangeLightness(110));
+    search_ctrl_->SetForegroundColour(wxColour(t.colors.text_main.to_rgba_string()));
+    search_ctrl_->Bind(wxEVT_TEXT,
+                       [this](wxCommandEvent&)
+                       { FilterCards(search_ctrl_->GetValue().ToStdString()); });
+    toolbar_sizer->Add(search_ctrl_, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 16);
 
     toolbar_panel_->SetSizer(toolbar_sizer);
 }
@@ -539,6 +552,52 @@ void ThemeGallery::OnSize(wxSizeEvent& event)
 void ThemeGallery::OnErrorTimer(wxTimerEvent& /*event*/)
 {
     ClearError();
+}
+
+void ThemeGallery::FilterCards(const std::string& filter_text)
+{
+    // R18 Fix 34: Case-insensitive substring filter on theme names
+    std::string lower_filter = filter_text;
+    std::transform(lower_filter.begin(),
+                   lower_filter.end(),
+                   lower_filter.begin(),
+                   [](unsigned char character)
+                   { return static_cast<char>(std::tolower(character)); });
+
+    size_t visible_count = 0;
+    for (auto* card : preview_cards_)
+    {
+        if (lower_filter.empty())
+        {
+            card->Show();
+            ++visible_count;
+            continue;
+        }
+        std::string name = card->GetThemeName();
+        std::transform(name.begin(),
+                       name.end(),
+                       name.begin(),
+                       [](unsigned char character)
+                       { return static_cast<char>(std::tolower(character)); });
+
+        const bool matches = (name.find(lower_filter) != std::string::npos);
+        card->Show(matches);
+        if (matches)
+        {
+            ++visible_count;
+        }
+    }
+
+    // Update count label
+    if (theme_count_label_ != nullptr)
+    {
+        const wxString count_text =
+            wxString::Format("Showing %zu of %zu themes", visible_count, preview_cards_.size());
+        theme_count_label_->SetLabel(count_text);
+    }
+
+    grid_panel_->FitInside();
+    grid_panel_->Layout();
 }
 
 } // namespace markamp::ui

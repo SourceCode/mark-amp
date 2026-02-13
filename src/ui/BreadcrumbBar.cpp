@@ -65,12 +65,17 @@ void BreadcrumbBar::Rebuild()
 {
     std::string display;
 
-    // File path segments: folder > folder > file.md
+    // File path segments: folder › folder › 📄 file.md
     for (size_t idx = 0; idx < file_segments_.size(); ++idx)
     {
         if (idx > 0)
         {
             display += " \xE2\x80\xBA "; // › separator (UTF-8)
+        }
+        // R18 Fix 28: File icon prefix before filename (last segment)
+        if (idx == file_segments_.size() - 1)
+        {
+            display += "\xF0\x9F\x93\x84 "; // 📄 file icon
         }
         display += file_segments_[idx];
     }

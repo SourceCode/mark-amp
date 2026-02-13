@@ -126,6 +126,32 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
         int text_y = item_y + (kBarWidth - text_extent.GetHeight()) / 2;
         paint_dc.DrawText(item.icon_char, text_x, text_y);
 
+        // R18 Fix 25: Badge count indicator
+        if (item.badge_count > 0)
+        {
+            auto badge_bg = clr.accent_primary.to_wx_colour();
+            paint_dc.SetBrush(wxBrush(badge_bg));
+            paint_dc.SetPen(*wxTRANSPARENT_PEN);
+
+            int badge_x = kBarWidth - 16;
+            int badge_y_pos = item_y + 4;
+            int badge_r = 8;
+            paint_dc.DrawCircle(badge_x, badge_y_pos + badge_r, badge_r);
+
+            paint_dc.SetTextForeground(*wxWHITE);
+            auto badge_font = GetFont();
+            badge_font.SetPointSize(8);
+            paint_dc.SetFont(badge_font);
+            auto badge_text = wxString::Format("%d", item.badge_count);
+            auto badge_extent = paint_dc.GetTextExtent(badge_text);
+            paint_dc.DrawText(badge_text,
+                              badge_x - badge_extent.GetWidth() / 2,
+                              badge_y_pos + badge_r - badge_extent.GetHeight() / 2);
+
+            // Restore font
+            paint_dc.SetFont(font);
+        }
+
         item_y += kBarWidth;
     }
 
@@ -197,6 +223,20 @@ auto ActivityBar::HitTest(const wxPoint& pos) const -> int
         }
     }
     return -1;
+}
+
+// R18 Fix 25: Set badge count on an activity bar item
+void ActivityBar::SetBadge(core::events::ActivityBarItem item, int count)
+{
+    for (auto& bar_item : items_)
+    {
+        if (bar_item.item_id == item)
+        {
+            bar_item.badge_count = count;
+            Refresh();
+            return;
+        }
+    }
 }
 
 } // namespace markamp::ui

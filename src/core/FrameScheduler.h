@@ -80,7 +80,9 @@ public:
                 break; // budget exhausted — remaining tasks deferred to next frame
             }
 
-            auto task = std::move(const_cast<ScheduledTask&>(queue_.top()));
+            // R20 Fix 15: Avoid const_cast — extract top by copy, then pop.
+            // Priority queues expose top() as const&, so const_cast was fragile.
+            auto task = queue_.top();
             queue_.pop();
 
             bool has_more = task.execute();

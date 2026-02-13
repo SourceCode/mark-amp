@@ -74,8 +74,11 @@ public:
     }
 
 private:
-    void render_node(const core::MdNode& node, std::string& output);
-    void render_children(const core::MdNode& node, std::string& output);
+    void render_node(const core::MdNode& node, std::string& output, int depth = 0);
+    void render_children(const core::MdNode& node, std::string& output, int depth = 0);
+
+    /// Stability #31: max recursion depth for render_node
+    static constexpr int kMaxRenderDepth = 100;
 
     [[nodiscard]] static auto escape_html(std::string_view text) -> std::string;
     [[nodiscard]] static auto alignment_style(core::MdAlignment align) -> std::string;
@@ -98,7 +101,7 @@ private:
     mutable CodeBlockRenderer code_renderer_;
 
     /// Max image file size: 10 MB
-    static constexpr size_t kMaxImageFileSize = 10 * 1024 * 1024;
+    static constexpr size_t kMaxImageFileSize = static_cast<size_t>(10) * 1024 * 1024;
 };
 
 } // namespace markamp::rendering

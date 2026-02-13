@@ -37,7 +37,15 @@ auto Config::config_directory() -> std::filesystem::path
 
     if (dir.empty())
     {
-        dir = std::filesystem::current_path() / ".markamp";
+        // R20 Fix 10: current_path() can throw if CWD is deleted
+        try
+        {
+            dir = std::filesystem::current_path() / ".markamp";
+        }
+        catch (const std::filesystem::filesystem_error&)
+        {
+            dir = std::filesystem::path(".") / ".markamp";
+        }
     }
 
     return dir;
@@ -146,11 +154,12 @@ auto Config::load() -> std::expected<void, std::string>
 {
     auto path = config_file_path();
 
-    // Migration Check: If config.md doesn't exist but config.json does
-    if (!std::filesystem::exists(path))
+    // R20 Fix 7: Use error_code overload — exists() can throw on bad permissions
+    std::error_code exists_ec;
+    if (!std::filesystem::exists(path, exists_ec))
     {
         auto json_path = config_directory() / "config.json";
-        if (std::filesystem::exists(json_path))
+        if (std::filesystem::exists(json_path, exists_ec))
         {
             MARKAMP_LOG_INFO("Migrating config.json to config.md...");
             try
@@ -281,8 +290,9 @@ auto Config::get_int(std::string_view key, int default_val) const -> int
         {
             return data_[k].as<int>();
         }
-        catch (...)
+        catch (const YAML::Exception&)
         {
+            // R20 Fix 1: Typed catch — only swallow YAML conversion errors
         }
     }
     return default_val;
@@ -297,8 +307,9 @@ auto Config::get_bool(std::string_view key, bool default_val) const -> bool
         {
             return data_[k].as<bool>();
         }
-        catch (...)
+        catch (const YAML::Exception&)
         {
+            // R20 Fix 2: Typed catch — only swallow YAML conversion errors
         }
     }
     return default_val;
@@ -313,8 +324,9 @@ auto Config::get_double(std::string_view key, double default_val) const -> doubl
         {
             return data_[k].as<double>();
         }
-        catch (...)
+        catch (const YAML::Exception&)
         {
+            // R20 Fix 3: Typed catch — only swallow YAML conversion errors
         }
     }
     return default_val;

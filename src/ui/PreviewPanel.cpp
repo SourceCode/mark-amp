@@ -106,6 +106,14 @@ PreviewPanel::PreviewPanel(wxWindow* parent,
     spdlog::debug("PreviewPanel created");
 }
 
+PreviewPanel::~PreviewPanel()
+{
+    // Stability #30: stop all timers to prevent callbacks into destroyed members
+    render_timer_.Stop();
+    resize_timer_.Stop();
+    scroll_sync_timer_.Stop();
+}
+
 // ═══════════════════════════════════════════════════════
 // Content
 // ═══════════════════════════════════════════════════════
@@ -662,66 +670,84 @@ void PreviewPanel::RenderContent(const std::string& markdown)
         return; // No change
     }
 
-    // Save scroll position
-    int scroll_x = 0;
-    int scroll_y = 0;
-    if (html_view_ != nullptr)
+    // Stability #23: reject unreasonably large content (> 10MB)
+    constexpr size_t kMaxContentSize = 10 * 1024 * 1024;
+    if (markdown.size() > kMaxContentSize)
     {
-        html_view_->GetViewStart(&scroll_x, &scroll_y);
-    }
-
-    // Parse markdown (handles footnote preprocessing internally)
-    auto doc_result = parser_.parse(markdown);
-    if (!doc_result.has_value())
-    {
-        DisplayError(doc_result.error());
+        DisplayError("Content too large to render (> 10MB)");
         return;
     }
 
-    // Improvement 11: configure reused renderer member
-    auto mermaid = core::ServiceRegistry::instance().get<core::IMermaidRenderer>();
-    if (mermaid)
+    // Stability #21: wrap entire render pipeline in try-catch
+    try
     {
-        renderer_.set_mermaid_renderer(mermaid.get());
-    }
+        // Save scroll position
+        int scroll_x = 0;
+        int scroll_y = 0;
+        if (html_view_ != nullptr)
+        {
+            html_view_->GetViewStart(&scroll_x, &scroll_y);
+        }
 
-    // Set base path for local image resolution
-    if (!base_path_.empty())
+        // Parse markdown (handles footnote preprocessing internally)
+        auto doc_result = parser_.parse(markdown);
+        if (!doc_result.has_value())
+        {
+            DisplayError(doc_result.error());
+            return;
+        }
+
+        // Improvement 11: configure reused renderer member
+        auto mermaid = core::ServiceRegistry::instance().get<core::IMermaidRenderer>();
+        if (mermaid)
+        {
+            renderer_.set_mermaid_renderer(mermaid.get());
+        }
+
+        // Set base path for local image resolution
+        if (!base_path_.empty())
+        {
+            renderer_.set_base_path(base_path_);
+        }
+
+        // Render with footnotes (using data from parser result)
+        std::string body_html;
+        if (doc_result->has_footnotes_)
+        {
+            body_html =
+                renderer_.render_with_footnotes(*doc_result, doc_result->footnote_section_html);
+        }
+        else
+        {
+            body_html = renderer_.render(*doc_result);
+        }
+
+        // Sanitize HTML output (defense-in-depth)
+        auto safe_html = sanitizer_.sanitize(body_html);
+
+        // Improvement 25: cache for DisplayError reuse
+        last_rendered_html_ = safe_html;
+
+        // Generate full HTML and display
+        auto full_html = GenerateFullHtml(safe_html);
+        if (html_view_ != nullptr)
+        {
+            // Freeze to avoid flicker during content replacement
+            html_view_->Freeze();
+            html_view_->SetPage(full_html);
+
+            // Restore scroll position
+            html_view_->Scroll(scroll_x, scroll_y);
+            html_view_->Thaw();
+        }
+
+        last_rendered_content_ = markdown;
+    }
+    catch (const std::exception& ex)
     {
-        renderer_.set_base_path(base_path_);
+        spdlog::error("PreviewPanel::RenderContent exception: {}", ex.what());
+        DisplayError(fmt::format("Rendering failed: {}", ex.what()));
     }
-
-    // Render with footnotes (using data from parser result)
-    std::string body_html;
-    if (doc_result->has_footnotes_)
-    {
-        body_html = renderer_.render_with_footnotes(*doc_result, doc_result->footnote_section_html);
-    }
-    else
-    {
-        body_html = renderer_.render(*doc_result);
-    }
-
-    // Sanitize HTML output (defense-in-depth)
-    auto safe_html = sanitizer_.sanitize(body_html);
-
-    // Improvement 25: cache for DisplayError reuse
-    last_rendered_html_ = safe_html;
-
-    // Generate full HTML and display
-    auto full_html = GenerateFullHtml(safe_html);
-    if (html_view_ != nullptr)
-    {
-        // Freeze to avoid flicker during content replacement
-        html_view_->Freeze();
-        html_view_->SetPage(full_html);
-
-        // Restore scroll position
-        html_view_->Scroll(scroll_x, scroll_y);
-        html_view_->Thaw();
-    }
-
-    last_rendered_content_ = markdown;
 }
 
 void PreviewPanel::DisplayError(const std::string& error_message)
@@ -748,11 +774,12 @@ void PreviewPanel::DisplayError(const std::string& error_message)
 
 void PreviewPanel::OnRenderTimer(wxTimerEvent& /*event*/)
 {
-    if (!pending_content_.empty())
-    {
-        RenderContent(pending_content_);
-        pending_content_.clear();
-    }
+    // New stability #23 (adjusted): guard against state issues during timer callback
+    if (html_view_ == nullptr || pending_content_.empty())
+        return;
+
+    RenderContent(pending_content_);
+    pending_content_.clear();
 }
 
 void PreviewPanel::OnLinkClicked(wxHtmlLinkEvent& event)
@@ -763,7 +790,17 @@ void PreviewPanel::OnLinkClicked(wxHtmlLinkEvent& event)
     if (href.starts_with("markamp://copy/"))
     {
         auto block_id_str = href.substr(15); // after "markamp://copy/"
-        int block_id = std::stoi(block_id_str);
+        // Stability #26: protect std::stoi against malformed block IDs
+        int block_id = 0;
+        try
+        {
+            block_id = std::stoi(block_id_str);
+        }
+        catch (const std::exception&)
+        {
+            spdlog::warn("PreviewPanel: invalid copy block ID: {}", block_id_str);
+            return;
+        }
         auto source = renderer_.code_renderer().get_block_source(block_id);
         if (!source.empty())
         {
@@ -822,12 +859,13 @@ void PreviewPanel::OnSize(wxSizeEvent& event)
 
 void PreviewPanel::OnResizeTimer(wxTimerEvent& /*event*/)
 {
-    if (!last_rendered_content_.empty())
-    {
-        auto content = last_rendered_content_;
-        last_rendered_content_.clear(); // Force re-render
-        RenderContent(content);
-    }
+    // New stability #22: guard against null html_view_ during resize
+    if (html_view_ == nullptr || last_rendered_content_.empty())
+        return;
+
+    auto content = last_rendered_content_;
+    last_rendered_content_.clear(); // Force re-render
+    RenderContent(content);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -849,11 +887,19 @@ void PreviewPanel::OnThemeChanged(const core::Theme& new_theme)
     cached_css_.clear();
 
     // Re-render with new theme CSS (immediate, not debounced)
+    // New stability #26: wrap re-render in try-catch to prevent theme change crash
     if (!last_rendered_content_.empty())
     {
-        auto content = last_rendered_content_;
-        last_rendered_content_.clear(); // Force re-render
-        RenderContent(content);
+        try
+        {
+            auto content = last_rendered_content_;
+            last_rendered_content_.clear(); // Force re-render
+            RenderContent(content);
+        }
+        catch (const std::exception&)
+        {
+            // Theme re-render failed — silently ignore
+        }
     }
 }
 
@@ -870,12 +916,20 @@ void PreviewPanel::SetZoomLevel(int level)
     zoom_level_ = std::clamp(level, -5, 10);
 
     // Clear cache and re-render
+    // New stability #27: wrap re-render in try-catch to prevent zoom crash
     cached_css_.clear();
     if (!last_rendered_content_.empty())
     {
-        auto content = last_rendered_content_;
-        last_rendered_content_.clear();
-        RenderContent(content);
+        try
+        {
+            auto content = last_rendered_content_;
+            last_rendered_content_.clear();
+            RenderContent(content);
+        }
+        catch (const std::exception&)
+        {
+            // Zoom re-render failed — silently ignore
+        }
     }
 }
 
@@ -896,7 +950,11 @@ void PreviewPanel::OnMouseWheel(wxMouseEvent& event)
     }
     else
     {
-        event.Skip();
+        // New stability #23: guard html_view_ before scroll
+        if (html_view_ != nullptr)
+        {
+            event.Skip();
+        }
     }
 }
 
@@ -966,7 +1024,8 @@ void PreviewPanel::SetScrollFraction(double fraction)
 
     int client_height = html_view_->GetClientSize().GetHeight();
     int scroll_range = std::max(1, virt_height - client_height);
-    int scroll_pos = static_cast<int>(fraction * scroll_range);
+    // New stability #29: clamp scroll position to non-negative
+    int scroll_pos = std::max(0, static_cast<int>(fraction * scroll_range));
 
     int ppu_x = 1;
     int ppu_y = 1;
@@ -979,6 +1038,9 @@ void PreviewPanel::SetScrollFraction(double fraction)
 
 void PreviewPanel::OnScrollSyncTimer(wxTimerEvent& /*event*/)
 {
+    // New stability #21: guard against null html_view_ before scroll sync
+    if (html_view_ == nullptr)
+        return;
     SetScrollFraction(pending_scroll_fraction_);
 }
 
@@ -998,43 +1060,52 @@ auto PreviewPanel::ExportHtml(const std::filesystem::path& output_path) const ->
         return false;
     }
 
-    // Re-render to get the full HTML
-    rendering::FootnotePreprocessor footnote_proc;
-    auto footnote_result = footnote_proc.process(last_rendered_content_);
-
-    core::MarkdownParser parser;
-    auto doc_result = parser.parse(footnote_result.processed_markdown);
-    if (!doc_result.has_value())
+    // Stability #28: wrap file I/O in try-catch for permission/disk errors
+    try
     {
+        // Re-render to get the full HTML
+        rendering::FootnotePreprocessor footnote_proc;
+        auto footnote_result = footnote_proc.process(last_rendered_content_);
+
+        core::MarkdownParser parser;
+        auto doc_result = parser.parse(footnote_result.processed_markdown);
+        if (!doc_result.has_value())
+        {
+            return false;
+        }
+
+        rendering::HtmlRenderer renderer;
+        if (!base_path_.empty())
+        {
+            renderer.set_base_path(base_path_);
+        }
+
+        std::string body_html;
+        if (footnote_result.has_footnotes)
+        {
+            body_html =
+                renderer.render_with_footnotes(*doc_result, footnote_result.footnote_section_html);
+        }
+        else
+        {
+            body_html = renderer.render(*doc_result);
+        }
+
+        auto full_html = GenerateFullHtml(body_html);
+
+        std::ofstream file(output_path);
+        if (!file.is_open())
+        {
+            return false;
+        }
+        file << full_html;
+        return file.good();
+    }
+    catch (const std::exception& ex)
+    {
+        spdlog::error("PreviewPanel::ExportHtml failed: {}", ex.what());
         return false;
     }
-
-    rendering::HtmlRenderer renderer;
-    if (!base_path_.empty())
-    {
-        renderer.set_base_path(base_path_);
-    }
-
-    std::string body_html;
-    if (footnote_result.has_footnotes)
-    {
-        body_html =
-            renderer.render_with_footnotes(*doc_result, footnote_result.footnote_section_html);
-    }
-    else
-    {
-        body_html = renderer.render(*doc_result);
-    }
-
-    auto full_html = GenerateFullHtml(body_html);
-
-    std::ofstream file(output_path);
-    if (!file.is_open())
-    {
-        return false;
-    }
-    file << full_html;
-    return file.good();
 }
 
 // ═══════════════════════════════════════════════════════

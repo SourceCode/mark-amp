@@ -5,6 +5,8 @@
 #include "core/Events.h"
 #include "core/ThemeEngine.h"
 
+#include <wx/timer.h>
+
 #include <functional>
 #include <string>
 #include <vector>
@@ -76,6 +78,7 @@ public:
         bool is_active{false};
         bool close_hovered{false};
         bool is_pinned{false}; // R3 Fix 7: Pinned tabs
+        float opacity{1.0F};   // R18 Fix 1: Fade-in animation opacity
         wxRect rect;
         wxRect close_rect;
     };
@@ -98,6 +101,13 @@ private:
 
     // Interaction state
     int hovered_tab_index_{-1};
+
+    // R18 Fix 1: Fade-in animation timer
+    wxTimer fade_timer_;
+    void OnFadeTimer(wxTimerEvent& event);
+
+    // R18 Fix 4: Parent folder disambiguation for duplicate display names
+    [[nodiscard]] auto GetDisambiguationSuffix(const TabInfo& tab) const -> std::string;
 
     // R3 Fix 5: Drag reorder state
     int drag_start_x_{0};

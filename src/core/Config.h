@@ -15,10 +15,10 @@ class Config
 {
 public:
     /// Load configuration from disk. Creates defaults if file doesn't exist.
-    auto load() -> std::expected<void, std::string>;
+    [[nodiscard]] auto load() -> std::expected<void, std::string>;
 
     /// Persist current configuration to disk.
-    auto save() const -> std::expected<void, std::string>;
+    [[nodiscard]] auto save() const -> std::expected<void, std::string>;
 
     // Typed getters with defaults
     [[nodiscard]] auto get_string(std::string_view key, std::string_view default_val = "") const

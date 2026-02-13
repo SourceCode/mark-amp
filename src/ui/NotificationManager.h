@@ -23,6 +23,10 @@ struct NotificationEntry
     int elapsed_ms{0};
     float opacity{0.0F};
     bool dismissing{false};
+
+    // R18 Fix 20: Optional action button
+    std::string action_label;
+    std::function<void()> action_callback;
 };
 
 /// Toast notification manager inspired by VS Code's notification system.

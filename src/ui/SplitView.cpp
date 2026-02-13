@@ -589,6 +589,11 @@ void SplitView::OnDividerMouseMove(wxMouseEvent& event)
     split_ratio_ = new_ratio;
     UpdateLayout();
 
+    // R18 Fix 22: Show split ratio tooltip during drag
+    int left_pct = static_cast<int>(std::round(split_ratio_ * 100.0));
+    int right_pct = 100 - left_pct;
+    divider_panel_->SetToolTip(wxString::Format("%d / %d", left_pct, right_pct));
+
     event.Skip();
 }
 

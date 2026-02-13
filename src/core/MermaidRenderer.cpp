@@ -93,7 +93,16 @@ auto write_file(const std::filesystem::path& path, std::string_view content) -> 
 /// Generate a unique temp file path with the given extension.
 auto make_temp_path(const std::string& extension) -> std::filesystem::path
 {
-    auto tmp_dir = std::filesystem::temp_directory_path();
+    // R20 Fix 13: temp_directory_path() can throw on misconfigured systems
+    std::filesystem::path tmp_dir;
+    try
+    {
+        tmp_dir = std::filesystem::temp_directory_path();
+    }
+    catch (const std::filesystem::filesystem_error&)
+    {
+        tmp_dir = std::filesystem::path("/tmp");
+    }
     auto pid = static_cast<int>(getpid());
     static int counter = 0;
     auto filename = fmt::format("markamp_mermaid_{}_{}.{}", pid, ++counter, extension);
@@ -443,7 +452,9 @@ auto MermaidRenderer::validate(std::string_view mermaid_source) -> std::vector<D
         size_t search_pos = 0;
         bool found_line = false;
 
-        while (search_pos < remaining.size())
+        // R20 Fix 34: Cap iterations to prevent DoS on huge error output
+        int max_line_extractions = 100;
+        while (search_pos < remaining.size() && max_line_extractions-- > 0)
         {
             auto line_pos = remaining.find("line ", search_pos);
             if (line_pos == std::string::npos)
@@ -462,9 +473,17 @@ auto MermaidRenderer::validate(std::string_view mermaid_source) -> std::vector<D
 
             if (num_end > num_start)
             {
-                int line_num = std::stoi(remaining.substr(num_start, num_end - num_start));
-                diagnostics.push_back({line_num, error_text, DiagnosticSeverity::Error});
-                found_line = true;
+                // R20 Fix 11: Wrap std::stoi in try-catch for robustness
+                try
+                {
+                    int line_num = std::stoi(remaining.substr(num_start, num_end - num_start));
+                    diagnostics.push_back({line_num, error_text, DiagnosticSeverity::Error});
+                    found_line = true;
+                }
+                catch (const std::exception&)
+                {
+                    // Malformed number — skip this extraction
+                }
             }
             search_pos = num_end;
         }

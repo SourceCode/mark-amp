@@ -77,7 +77,11 @@ bool MarkAmpApp::OnInit()
 
     // 7. Initialize theme system
     theme_registry_ = std::make_unique<core::ThemeRegistry>();
-    theme_registry_->initialize();
+    auto themeResult = theme_registry_->initialize();
+    if (!themeResult)
+    {
+        MARKAMP_LOG_WARN("ThemeRegistry init failed: {}", themeResult.error());
+    }
     MARKAMP_LOG_DEBUG("ThemeRegistry initialized with {} themes",
                       theme_registry_->list_themes().size());
 
