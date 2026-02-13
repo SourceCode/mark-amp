@@ -95,6 +95,7 @@ private:
 
     // State
     std::string last_active_file_;
+    std::string workspace_folder_name_{"MarkAmp"}; // R3 Fix 12
     bool zen_mode_{false};
 
     // View switching

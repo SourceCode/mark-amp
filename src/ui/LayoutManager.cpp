@@ -1,5 +1,6 @@
 #include "LayoutManager.h"
 
+#include "BreadcrumbBar.h"
 #include "EditorPanel.h"
 #include "FileTreeCtrl.h"
 #include "SplitView.h"
@@ -13,6 +14,8 @@
 #include "core/Logger.h"
 #include "core/SampleFiles.h"
 
+#include <wx/button.h>
+#include <wx/clipbrd.h>
 #include <wx/dcbuffer.h>
 #include <wx/filedlg.h>
 #include <wx/msgdlg.h>
@@ -83,6 +86,1565 @@ LayoutManager::LayoutManager(wxWindow* parent,
     // Start auto-save
     StartAutoSave();
 
+    // R6 event subscriptions
+    find_sub_ = event_bus_.subscribe<core::events::FindRequestEvent>(
+        [this](const core::events::FindRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->ShowFindBar();
+                }
+            }
+        });
+
+    replace_sub_ = event_bus_.subscribe<core::events::ReplaceRequestEvent>(
+        [this](const core::events::ReplaceRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->ShowFindBar();
+                }
+            }
+        });
+
+    dup_line_sub_ = event_bus_.subscribe<core::events::DuplicateLineRequestEvent>(
+        [this](const core::events::DuplicateLineRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->GetStyledTextCtrl()->LineDuplicate();
+                }
+            }
+        });
+
+    toggle_comment_sub_ = event_bus_.subscribe<core::events::ToggleCommentRequestEvent>(
+        [this](const core::events::ToggleCommentRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    auto* stc = editor->GetStyledTextCtrl();
+                    const wxString sel = stc->GetSelectedText();
+                    if (sel.StartsWith("<!-- ") && sel.EndsWith(" -->"))
+                    {
+                        // Unwrap comment
+                        wxString inner = sel.Mid(5, sel.Len() - 9);
+                        stc->ReplaceSelection(inner);
+                    }
+                    else
+                    {
+                        // Wrap in comment
+                        stc->ReplaceSelection("<!-- " + sel + " -->");
+                    }
+                }
+            }
+        });
+
+    delete_line_sub_ = event_bus_.subscribe<core::events::DeleteLineRequestEvent>(
+        [this](const core::events::DeleteLineRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->GetStyledTextCtrl()->LineDelete();
+                }
+            }
+        });
+
+    wrap_toggle_sub_ = event_bus_.subscribe<core::events::WrapToggleRequestEvent>(
+        [this](const core::events::WrapToggleRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    const auto mode = editor->GetWordWrapMode();
+                    editor->SetWordWrap(mode == core::events::WrapMode::None);
+                }
+            }
+        });
+
+    // R7 event subscriptions
+    move_line_up_sub_ = event_bus_.subscribe<core::events::MoveLineUpRequestEvent>(
+        [this](const core::events::MoveLineUpRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->MoveLineUp();
+                }
+            }
+        });
+    move_line_down_sub_ = event_bus_.subscribe<core::events::MoveLineDownRequestEvent>(
+        [this](const core::events::MoveLineDownRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->MoveLineDown();
+                }
+            }
+        });
+    join_lines_sub_ = event_bus_.subscribe<core::events::JoinLinesRequestEvent>(
+        [this](const core::events::JoinLinesRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->JoinLines();
+                }
+            }
+        });
+    sort_asc_sub_ = event_bus_.subscribe<core::events::SortLinesAscRequestEvent>(
+        [this](const core::events::SortLinesAscRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->SortLinesAscending();
+                }
+            }
+        });
+    sort_desc_sub_ = event_bus_.subscribe<core::events::SortLinesDescRequestEvent>(
+        [this](const core::events::SortLinesDescRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->SortLinesDescending();
+                }
+            }
+        });
+    transform_upper_sub_ = event_bus_.subscribe<core::events::TransformUpperRequestEvent>(
+        [this](const core::events::TransformUpperRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->TransformToUppercase();
+                }
+            }
+        });
+    transform_lower_sub_ = event_bus_.subscribe<core::events::TransformLowerRequestEvent>(
+        [this](const core::events::TransformLowerRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->TransformToLowercase();
+                }
+            }
+        });
+    transform_title_sub_ = event_bus_.subscribe<core::events::TransformTitleRequestEvent>(
+        [this](const core::events::TransformTitleRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->TransformToTitleCase();
+                }
+            }
+        });
+    select_all_occ_sub_ = event_bus_.subscribe<core::events::SelectAllOccurrencesRequestEvent>(
+        [this](const core::events::SelectAllOccurrencesRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->SelectAllOccurrences();
+                }
+            }
+        });
+    expand_line_sub_ = event_bus_.subscribe<core::events::ExpandLineSelectionRequestEvent>(
+        [this](const core::events::ExpandLineSelectionRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->ExpandLineSelection();
+                }
+            }
+        });
+    insert_line_above_sub_ = event_bus_.subscribe<core::events::InsertLineAboveRequestEvent>(
+        [this](const core::events::InsertLineAboveRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->InsertLineAbove();
+                }
+            }
+        });
+    insert_line_below_sub_ = event_bus_.subscribe<core::events::InsertLineBelowRequestEvent>(
+        [this](const core::events::InsertLineBelowRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->InsertLineBelow();
+                }
+            }
+        });
+    fold_all_sub_ = event_bus_.subscribe<core::events::FoldAllRequestEvent>(
+        [this](const core::events::FoldAllRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->FoldAllRegions();
+                }
+            }
+        });
+    unfold_all_sub_ = event_bus_.subscribe<core::events::UnfoldAllRequestEvent>(
+        [this](const core::events::UnfoldAllRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->UnfoldAllRegions();
+                }
+            }
+        });
+    toggle_line_numbers_sub_ = event_bus_.subscribe<core::events::ToggleLineNumbersRequestEvent>(
+        [this](const core::events::ToggleLineNumbersRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->ToggleLineNumbers();
+                }
+            }
+        });
+    toggle_whitespace_sub_ = event_bus_.subscribe<core::events::ToggleWhitespaceRequestEvent>(
+        [this](const core::events::ToggleWhitespaceRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->ToggleRenderWhitespace();
+                }
+            }
+        });
+
+    // R8 event subscriptions
+    copy_line_up_sub_ = event_bus_.subscribe<core::events::CopyLineUpRequestEvent>(
+        [this](const core::events::CopyLineUpRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->CopyLineUp();
+                }
+            }
+        });
+    copy_line_down_sub_ = event_bus_.subscribe<core::events::CopyLineDownRequestEvent>(
+        [this](const core::events::CopyLineDownRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->CopyLineDown();
+                }
+            }
+        });
+    delete_all_left_sub_ = event_bus_.subscribe<core::events::DeleteAllLeftRequestEvent>(
+        [this](const core::events::DeleteAllLeftRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->DeleteAllLeft();
+                }
+            }
+        });
+    delete_all_right_sub_ = event_bus_.subscribe<core::events::DeleteAllRightRequestEvent>(
+        [this](const core::events::DeleteAllRightRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->DeleteAllRight();
+                }
+            }
+        });
+    reverse_lines_sub_ = event_bus_.subscribe<core::events::ReverseLinesRequestEvent>(
+        [this](const core::events::ReverseLinesRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->ReverseSelectedLines();
+                }
+            }
+        });
+    delete_dup_lines_sub_ = event_bus_.subscribe<core::events::DeleteDuplicateLinesRequestEvent>(
+        [this](const core::events::DeleteDuplicateLinesRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->DeleteDuplicateLines();
+                }
+            }
+        });
+    transpose_chars_sub_ = event_bus_.subscribe<core::events::TransposeCharsRequestEvent>(
+        [this](const core::events::TransposeCharsRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->TransposeCharacters();
+                }
+            }
+        });
+    indent_selection_sub_ = event_bus_.subscribe<core::events::IndentSelectionRequestEvent>(
+        [this](const core::events::IndentSelectionRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->IndentSelection();
+                }
+            }
+        });
+    outdent_selection_sub_ = event_bus_.subscribe<core::events::OutdentSelectionRequestEvent>(
+        [this](const core::events::OutdentSelectionRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->OutdentSelection();
+                }
+            }
+        });
+    select_word_sub_ = event_bus_.subscribe<core::events::SelectWordRequestEvent>(
+        [this](const core::events::SelectWordRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->SelectWordAtCursor();
+                }
+            }
+        });
+    select_paragraph_sub_ = event_bus_.subscribe<core::events::SelectParagraphRequestEvent>(
+        [this](const core::events::SelectParagraphRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->SelectCurrentParagraph();
+                }
+            }
+        });
+    toggle_read_only_sub_ = event_bus_.subscribe<core::events::ToggleReadOnlyRequestEvent>(
+        [this](const core::events::ToggleReadOnlyRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->ToggleReadOnly();
+                }
+            }
+        });
+    convert_indent_spaces_sub_ =
+        event_bus_.subscribe<core::events::ConvertIndentSpacesRequestEvent>(
+            [this](const core::events::ConvertIndentSpacesRequestEvent& /*evt*/)
+            {
+                if (split_view_ != nullptr)
+                {
+                    auto* editor = split_view_->GetEditorPanel();
+                    if (editor != nullptr)
+                    {
+                        editor->ConvertIndentationToSpaces();
+                    }
+                }
+            });
+    convert_indent_tabs_sub_ = event_bus_.subscribe<core::events::ConvertIndentTabsRequestEvent>(
+        [this](const core::events::ConvertIndentTabsRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->ConvertIndentationToTabs();
+                }
+            }
+        });
+    jump_to_bracket_sub_ = event_bus_.subscribe<core::events::JumpToBracketRequestEvent>(
+        [this](const core::events::JumpToBracketRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->JumpToMatchingBracket();
+                }
+            }
+        });
+    toggle_minimap_sub_ = event_bus_.subscribe<core::events::ToggleMinimapRequestEvent>(
+        [this](const core::events::ToggleMinimapRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->ToggleMinimapVisibility();
+                }
+            }
+        });
+    fold_current_sub_ = event_bus_.subscribe<core::events::FoldCurrentRequestEvent>(
+        [this](const core::events::FoldCurrentRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->FoldCurrentRegion();
+                }
+            }
+        });
+    unfold_current_sub_ = event_bus_.subscribe<core::events::UnfoldCurrentRequestEvent>(
+        [this](const core::events::UnfoldCurrentRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->UnfoldCurrentRegion();
+                }
+            }
+        });
+    add_line_comment_sub_ = event_bus_.subscribe<core::events::AddLineCommentRequestEvent>(
+        [this](const core::events::AddLineCommentRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->AddLineComment();
+                }
+            }
+        });
+    remove_line_comment_sub_ = event_bus_.subscribe<core::events::RemoveLineCommentRequestEvent>(
+        [this](const core::events::RemoveLineCommentRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->RemoveLineComment();
+                }
+            }
+        });
+
+    // ── R9 subscriptions ──
+    trim_trailing_ws_sub_ = event_bus_.subscribe<core::events::TrimTrailingWSRequestEvent>(
+        [this](const core::events::TrimTrailingWSRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->TrimTrailingWhitespaceNow();
+                }
+            }
+        });
+
+    expand_selection_sub_ = event_bus_.subscribe<core::events::ExpandSelectionRequestEvent>(
+        [this](const core::events::ExpandSelectionRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->ExpandSelection();
+                }
+            }
+        });
+
+    shrink_selection_sub_ = event_bus_.subscribe<core::events::ShrinkSelectionRequestEvent>(
+        [this](const core::events::ShrinkSelectionRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->ShrinkSelection();
+                }
+            }
+        });
+
+    cursor_undo_sub_ = event_bus_.subscribe<core::events::CursorUndoRequestEvent>(
+        [this](const core::events::CursorUndoRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->CursorUndo();
+                }
+            }
+        });
+
+    cursor_redo_sub_ = event_bus_.subscribe<core::events::CursorRedoRequestEvent>(
+        [this](const core::events::CursorRedoRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->CursorRedo();
+                }
+            }
+        });
+
+    move_text_left_sub_ = event_bus_.subscribe<core::events::MoveTextLeftRequestEvent>(
+        [this](const core::events::MoveTextLeftRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->MoveSelectedTextLeft();
+                }
+            }
+        });
+
+    move_text_right_sub_ = event_bus_.subscribe<core::events::MoveTextRightRequestEvent>(
+        [this](const core::events::MoveTextRightRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->MoveSelectedTextRight();
+                }
+            }
+        });
+
+    toggle_auto_indent_sub_ = event_bus_.subscribe<core::events::ToggleAutoIndentRequestEvent>(
+        [this](const core::events::ToggleAutoIndentRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->ToggleAutoIndent();
+                }
+            }
+        });
+
+    toggle_bracket_matching_sub_ =
+        event_bus_.subscribe<core::events::ToggleBracketMatchingRequestEvent>(
+            [this](const core::events::ToggleBracketMatchingRequestEvent& /*evt*/)
+            {
+                if (split_view_ != nullptr)
+                {
+                    auto* editor = split_view_->GetEditorPanel();
+                    if (editor != nullptr)
+                    {
+                        editor->ToggleBracketMatching();
+                    }
+                }
+            });
+
+    toggle_code_folding_sub_ = event_bus_.subscribe<core::events::ToggleCodeFoldingRequestEvent>(
+        [this](const core::events::ToggleCodeFoldingRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->ToggleCodeFolding();
+                }
+            }
+        });
+
+    toggle_indent_guides_sub_ = event_bus_.subscribe<core::events::ToggleIndentGuidesRequestEvent>(
+        [this](const core::events::ToggleIndentGuidesRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->ToggleIndentationGuides();
+                }
+            }
+        });
+
+    select_to_bracket_sub_ = event_bus_.subscribe<core::events::SelectToBracketRequestEvent>(
+        [this](const core::events::SelectToBracketRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->SelectToMatchingBracket();
+                }
+            }
+        });
+
+    toggle_block_comment_sub_ = event_bus_.subscribe<core::events::ToggleBlockCommentRequestEvent>(
+        [this](const core::events::ToggleBlockCommentRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->ToggleBlockComment();
+                }
+            }
+        });
+
+    insert_datetime_sub_ = event_bus_.subscribe<core::events::InsertDateTimeRequestEvent>(
+        [this](const core::events::InsertDateTimeRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->InsertDateTime();
+                }
+            }
+        });
+
+    bold_sub_ = event_bus_.subscribe<core::events::BoldRequestEvent>(
+        [this](const core::events::BoldRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->ToggleBold();
+                }
+            }
+        });
+
+    italic_sub_ = event_bus_.subscribe<core::events::ItalicRequestEvent>(
+        [this](const core::events::ItalicRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->ToggleItalic();
+                }
+            }
+        });
+
+    inline_code_sub_ = event_bus_.subscribe<core::events::InlineCodeRequestEvent>(
+        [this](const core::events::InlineCodeRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->ToggleInlineCode();
+                }
+            }
+        });
+
+    blockquote_sub_ = event_bus_.subscribe<core::events::BlockquoteRequestEvent>(
+        [this](const core::events::BlockquoteRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->InsertBlockquote();
+                }
+            }
+        });
+
+    cycle_heading_sub_ = event_bus_.subscribe<core::events::CycleHeadingRequestEvent>(
+        [this](const core::events::CycleHeadingRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->CycleHeading();
+                }
+            }
+        });
+
+    insert_table_sub_ = event_bus_.subscribe<core::events::InsertTableRequestEvent>(
+        [this](const core::events::InsertTableRequestEvent& /*evt*/)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->InsertTable();
+                }
+            }
+        });
+
+    // ── R10 subscriptions ──
+    toggle_smart_list_sub_ =
+        event_bus_.subscribe<core::events::ToggleSmartListContinuationRequestEvent>(
+            [this](
+                [[maybe_unused]] const core::events::ToggleSmartListContinuationRequestEvent& evt)
+            {
+                if (split_view_ != nullptr)
+                {
+                    auto* editor = split_view_->GetEditorPanel();
+                    if (editor != nullptr)
+                    {
+                        editor->SetSmartListContinuation(!editor->GetSmartListContinuation());
+                    }
+                }
+            });
+
+    close_other_tabs_sub_ = event_bus_.subscribe<core::events::CloseOtherTabsRequestEvent>(
+        [this]([[maybe_unused]] const core::events::CloseOtherTabsRequestEvent& evt)
+        {
+            if (tab_bar_ != nullptr && !active_file_path_.empty())
+            {
+                tab_bar_->CloseOtherTabs(active_file_path_);
+            }
+        });
+
+    close_saved_tabs_sub_ = event_bus_.subscribe<core::events::CloseSavedTabsRequestEvent>(
+        [this]([[maybe_unused]] const core::events::CloseSavedTabsRequestEvent& evt)
+        {
+            if (tab_bar_ != nullptr)
+            {
+                tab_bar_->CloseSavedTabs();
+            }
+        });
+
+    insert_link_sub_ = event_bus_.subscribe<core::events::InsertLinkRequestEvent>(
+        [this]([[maybe_unused]] const core::events::InsertLinkRequestEvent& evt)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->InsertLink();
+                }
+            }
+        });
+
+    add_cursor_below_sub_ = event_bus_.subscribe<core::events::AddCursorBelowRequestEvent>(
+        [this]([[maybe_unused]] const core::events::AddCursorBelowRequestEvent& evt)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->AddCursorBelow();
+                }
+            }
+        });
+
+    add_cursor_above_sub_ = event_bus_.subscribe<core::events::AddCursorAboveRequestEvent>(
+        [this]([[maybe_unused]] const core::events::AddCursorAboveRequestEvent& evt)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->AddCursorAbove();
+                }
+            }
+        });
+
+    add_cursor_next_occurrence_sub_ =
+        event_bus_.subscribe<core::events::AddCursorNextOccurrenceRequestEvent>(
+            [this]([[maybe_unused]] const core::events::AddCursorNextOccurrenceRequestEvent& evt)
+            {
+                if (split_view_ != nullptr)
+                {
+                    auto* editor = split_view_->GetEditorPanel();
+                    if (editor != nullptr)
+                    {
+                        editor->AddCursorAtNextOccurrence();
+                    }
+                }
+            });
+
+    remove_surrounding_brackets_sub_ =
+        event_bus_.subscribe<core::events::RemoveSurroundingBracketsRequestEvent>(
+            [this]([[maybe_unused]] const core::events::RemoveSurroundingBracketsRequestEvent& evt)
+            {
+                if (split_view_ != nullptr)
+                {
+                    auto* editor = split_view_->GetEditorPanel();
+                    if (editor != nullptr)
+                    {
+                        editor->RemoveSurroundingBrackets();
+                    }
+                }
+            });
+
+    duplicate_selection_or_line_sub_ =
+        event_bus_.subscribe<core::events::DuplicateSelectionOrLineRequestEvent>(
+            [this]([[maybe_unused]] const core::events::DuplicateSelectionOrLineRequestEvent& evt)
+            {
+                if (split_view_ != nullptr)
+                {
+                    auto* editor = split_view_->GetEditorPanel();
+                    if (editor != nullptr)
+                    {
+                        editor->DuplicateSelectionOrLine();
+                    }
+                }
+            });
+
+    show_table_editor_sub_ = event_bus_.subscribe<core::events::ShowTableEditorRequestEvent>(
+        [this]([[maybe_unused]] const core::events::ShowTableEditorRequestEvent& evt)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->ShowTableEditor();
+                }
+            }
+        });
+
+    toggle_scroll_beyond_sub_ =
+        event_bus_.subscribe<core::events::ToggleScrollBeyondLastLineRequestEvent>(
+            [this]([[maybe_unused]] const core::events::ToggleScrollBeyondLastLineRequestEvent& evt)
+            {
+                if (split_view_ != nullptr)
+                {
+                    auto* editor = split_view_->GetEditorPanel();
+                    if (editor != nullptr)
+                    {
+                        editor->SetScrollBeyondLastLine(!editor->GetScrollBeyondLastLine());
+                    }
+                }
+            });
+
+    toggle_highlight_line_sub_ =
+        event_bus_.subscribe<core::events::ToggleHighlightCurrentLineRequestEvent>(
+            [this]([[maybe_unused]] const core::events::ToggleHighlightCurrentLineRequestEvent& evt)
+            {
+                if (split_view_ != nullptr)
+                {
+                    auto* editor = split_view_->GetEditorPanel();
+                    if (editor != nullptr)
+                    {
+                        editor->SetHighlightCurrentLine(!editor->GetHighlightCurrentLine());
+                    }
+                }
+            });
+
+    toggle_auto_close_brackets_sub_ =
+        event_bus_.subscribe<core::events::ToggleAutoClosingBracketsRequestEvent>(
+            [this]([[maybe_unused]] const core::events::ToggleAutoClosingBracketsRequestEvent& evt)
+            {
+                if (split_view_ != nullptr)
+                {
+                    auto* editor = split_view_->GetEditorPanel();
+                    if (editor != nullptr)
+                    {
+                        editor->SetAutoClosingBrackets(!editor->GetAutoClosingBrackets());
+                    }
+                }
+            });
+
+    toggle_sticky_scroll_sub_ = event_bus_.subscribe<core::events::ToggleStickyScrollRequestEvent>(
+        [this]([[maybe_unused]] const core::events::ToggleStickyScrollRequestEvent& evt)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->SetStickyScrollEnabled(!editor->GetStickyScrollEnabled());
+                }
+            }
+        });
+
+    toggle_font_ligatures_sub_ =
+        event_bus_.subscribe<core::events::ToggleFontLigaturesRequestEvent>(
+            [this]([[maybe_unused]] const core::events::ToggleFontLigaturesRequestEvent& evt)
+            {
+                if (split_view_ != nullptr)
+                {
+                    auto* editor = split_view_->GetEditorPanel();
+                    if (editor != nullptr)
+                    {
+                        editor->SetFontLigatures(!editor->GetFontLigatures());
+                    }
+                }
+            });
+
+    toggle_smooth_caret_sub_ = event_bus_.subscribe<core::events::ToggleSmoothCaretRequestEvent>(
+        [this]([[maybe_unused]] const core::events::ToggleSmoothCaretRequestEvent& evt)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->SetSmoothCaret(!editor->GetSmoothCaret());
+                }
+            }
+        });
+
+    toggle_color_preview_sub_ =
+        event_bus_.subscribe<core::events::ToggleInlineColorPreviewRequestEvent>(
+            [this]([[maybe_unused]] const core::events::ToggleInlineColorPreviewRequestEvent& evt)
+            {
+                if (split_view_ != nullptr)
+                {
+                    auto* editor = split_view_->GetEditorPanel();
+                    if (editor != nullptr)
+                    {
+                        editor->SetInlineColorPreview(!editor->GetInlineColorPreview());
+                    }
+                }
+            });
+
+    toggle_edge_ruler_sub_ = event_bus_.subscribe<core::events::ToggleEdgeColumnRulerRequestEvent>(
+        [this]([[maybe_unused]] const core::events::ToggleEdgeColumnRulerRequestEvent& evt)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->SetShowEdgeColumnRuler(!editor->GetShowEdgeColumnRuler());
+                }
+            }
+        });
+
+    ensure_final_newline_sub_ = event_bus_.subscribe<core::events::EnsureFinalNewlineRequestEvent>(
+        [this]([[maybe_unused]] const core::events::EnsureFinalNewlineRequestEvent& evt)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->EnsureFinalNewline();
+                }
+            }
+        });
+
+    insert_snippet_sub_ = event_bus_.subscribe<core::events::InsertSnippetRequestEvent>(
+        [this]([[maybe_unused]] const core::events::InsertSnippetRequestEvent& evt)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    EditorPanel::Snippet default_snippet{"Snippet", "", "$0"};
+                    editor->InsertSnippet(default_snippet);
+                }
+            }
+        });
+
+    // ── R11 subscriptions ──
+    toggle_smooth_scrolling_sub_ =
+        event_bus_.subscribe<core::events::ToggleSmoothScrollingRequestEvent>(
+            [this]([[maybe_unused]] const core::events::ToggleSmoothScrollingRequestEvent& evt)
+            {
+                if (split_view_ != nullptr)
+                {
+                    auto* editor = split_view_->GetEditorPanel();
+                    if (editor != nullptr)
+                    {
+                        editor->SetSmoothScrolling(!editor->GetSmoothScrolling());
+                    }
+                }
+            });
+
+    toggle_trailing_ws_sub_ =
+        event_bus_.subscribe<core::events::ToggleTrailingWSHighlightRequestEvent>(
+            [this]([[maybe_unused]] const core::events::ToggleTrailingWSHighlightRequestEvent& evt)
+            {
+                if (split_view_ != nullptr)
+                {
+                    auto* editor = split_view_->GetEditorPanel();
+                    if (editor != nullptr)
+                    {
+                        editor->SetTrailingWhitespace(!editor->GetTrailingWhitespace());
+                    }
+                }
+            });
+
+    toggle_auto_trim_ws_sub_ = event_bus_.subscribe<core::events::ToggleAutoTrimWSRequestEvent>(
+        [this]([[maybe_unused]] const core::events::ToggleAutoTrimWSRequestEvent& evt)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->SetAutoTrimTrailingWhitespace(!editor->GetAutoTrimTrailingWhitespace());
+                }
+            }
+        });
+
+    toggle_gutter_separator_sub_ =
+        event_bus_.subscribe<core::events::ToggleGutterSeparatorRequestEvent>(
+            [this]([[maybe_unused]] const core::events::ToggleGutterSeparatorRequestEvent& evt)
+            {
+                if (split_view_ != nullptr)
+                {
+                    auto* editor = split_view_->GetEditorPanel();
+                    if (editor != nullptr)
+                    {
+                        editor->SetGutterSeparator(!editor->GetGutterSeparator());
+                    }
+                }
+            });
+
+    toggle_insert_final_newline_sub_ =
+        event_bus_.subscribe<core::events::ToggleInsertFinalNewlineRequestEvent>(
+            [this]([[maybe_unused]] const core::events::ToggleInsertFinalNewlineRequestEvent& evt)
+            {
+                if (split_view_ != nullptr)
+                {
+                    auto* editor = split_view_->GetEditorPanel();
+                    if (editor != nullptr)
+                    {
+                        editor->SetInsertFinalNewline(!editor->GetInsertFinalNewline());
+                    }
+                }
+            });
+
+    toggle_whitespace_boundary_sub_ =
+        event_bus_.subscribe<core::events::ToggleWhitespaceBoundaryRequestEvent>(
+            [this]([[maybe_unused]] const core::events::ToggleWhitespaceBoundaryRequestEvent& evt)
+            {
+                if (split_view_ != nullptr)
+                {
+                    auto* editor = split_view_->GetEditorPanel();
+                    if (editor != nullptr)
+                    {
+                        editor->SetWhitespaceBoundary(!editor->GetWhitespaceBoundary());
+                    }
+                }
+            });
+
+    toggle_link_auto_complete_sub_ =
+        event_bus_.subscribe<core::events::ToggleLinkAutoCompleteRequestEvent>(
+            [this]([[maybe_unused]] const core::events::ToggleLinkAutoCompleteRequestEvent& evt)
+            {
+                if (split_view_ != nullptr)
+                {
+                    auto* editor = split_view_->GetEditorPanel();
+                    if (editor != nullptr)
+                    {
+                        editor->SetLinkAutoComplete(!editor->GetLinkAutoComplete());
+                    }
+                }
+            });
+
+    toggle_drag_drop_sub_ = event_bus_.subscribe<core::events::ToggleDragDropRequestEvent>(
+        [this]([[maybe_unused]] const core::events::ToggleDragDropRequestEvent& evt)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->SetDragDropEnabled(!editor->GetDragDropEnabled());
+                }
+            }
+        });
+
+    toggle_auto_save_sub_ = event_bus_.subscribe<core::events::ToggleAutoSaveRequestEvent>(
+        [this]([[maybe_unused]] const core::events::ToggleAutoSaveRequestEvent& evt)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->SetAutoSave(!editor->GetAutoSave());
+                }
+            }
+        });
+
+    toggle_empty_sel_clipboard_sub_ =
+        event_bus_.subscribe<core::events::ToggleEmptySelClipboardRequestEvent>(
+            [this]([[maybe_unused]] const core::events::ToggleEmptySelClipboardRequestEvent& evt)
+            {
+                if (split_view_ != nullptr)
+                {
+                    auto* editor = split_view_->GetEditorPanel();
+                    if (editor != nullptr)
+                    {
+                        editor->SetEmptySelectionClipboard(!editor->GetEmptySelectionClipboard());
+                    }
+                }
+            });
+
+    cycle_render_whitespace_sub_ =
+        event_bus_.subscribe<core::events::CycleRenderWhitespaceRequestEvent>(
+            [this]([[maybe_unused]] const core::events::CycleRenderWhitespaceRequestEvent& evt)
+            {
+                if (split_view_ != nullptr)
+                {
+                    auto* editor = split_view_->GetEditorPanel();
+                    if (editor != nullptr)
+                    {
+                        editor->ToggleRenderWhitespace();
+                    }
+                }
+            });
+
+    delete_current_line_sub_ = event_bus_.subscribe<core::events::DeleteCurrentLineRequestEvent>(
+        [this]([[maybe_unused]] const core::events::DeleteCurrentLineRequestEvent& evt)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->DeleteCurrentLine();
+                }
+            }
+        });
+
+    copy_line_no_sel_sub_ = event_bus_.subscribe<core::events::CopyLineNoSelRequestEvent>(
+        [this]([[maybe_unused]] const core::events::CopyLineNoSelRequestEvent& evt)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->CopyLineIfNoSelection();
+                }
+            }
+        });
+
+    add_sel_next_match_sub_ = event_bus_.subscribe<core::events::AddSelNextMatchRequestEvent>(
+        [this]([[maybe_unused]] const core::events::AddSelNextMatchRequestEvent& evt)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->AddSelectionToNextFindMatch();
+                }
+            }
+        });
+
+    smart_backspace_sub_ = event_bus_.subscribe<core::events::SmartBackspaceRequestEvent>(
+        [this]([[maybe_unused]] const core::events::SmartBackspaceRequestEvent& evt)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->SmartBackspace();
+                }
+            }
+        });
+
+    hide_table_editor_sub_ = event_bus_.subscribe<core::events::HideTableEditorRequestEvent>(
+        [this]([[maybe_unused]] const core::events::HideTableEditorRequestEvent& evt)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->HideTableEditor();
+                }
+            }
+        });
+
+    auto_pair_bold_sub_ = event_bus_.subscribe<core::events::AutoPairBoldRequestEvent>(
+        [this]([[maybe_unused]] const core::events::AutoPairBoldRequestEvent& evt)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->AutoPairEmphasis('*');
+                }
+            }
+        });
+
+    auto_pair_italic_sub_ = event_bus_.subscribe<core::events::AutoPairItalicRequestEvent>(
+        [this]([[maybe_unused]] const core::events::AutoPairItalicRequestEvent& evt)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->AutoPairEmphasis('_');
+                }
+            }
+        });
+
+    auto_pair_code_sub_ = event_bus_.subscribe<core::events::AutoPairCodeRequestEvent>(
+        [this]([[maybe_unused]] const core::events::AutoPairCodeRequestEvent& evt)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->AutoPairEmphasis('`');
+                }
+            }
+        });
+
+    toggle_minimap_r11_sub_ = event_bus_.subscribe<core::events::ToggleMinimapR11RequestEvent>(
+        [this]([[maybe_unused]] const core::events::ToggleMinimapR11RequestEvent& evt)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->ToggleMinimap();
+                }
+            }
+        });
+
+    // ── R12 subscriptions ──
+    close_tabs_to_left_sub_ = event_bus_.subscribe<core::events::CloseTabsToLeftRequestEvent>(
+        [this]([[maybe_unused]] const core::events::CloseTabsToLeftRequestEvent& evt)
+        {
+            if (tab_bar_ != nullptr)
+            {
+                tab_bar_->CloseTabsToLeft(active_file_path_);
+            }
+        });
+
+    close_tabs_to_right_sub_ = event_bus_.subscribe<core::events::CloseTabsToRightRequestEvent>(
+        [this]([[maybe_unused]] const core::events::CloseTabsToRightRequestEvent& evt)
+        {
+            if (tab_bar_ != nullptr)
+            {
+                tab_bar_->CloseTabsToRight(active_file_path_);
+            }
+        });
+
+    pin_tab_sub_ = event_bus_.subscribe<core::events::PinTabRequestEvent>(
+        [this]([[maybe_unused]] const core::events::PinTabRequestEvent& evt)
+        {
+            if (tab_bar_ != nullptr)
+            {
+                tab_bar_->PinTab(active_file_path_);
+            }
+        });
+
+    unpin_tab_sub_ = event_bus_.subscribe<core::events::UnpinTabRequestEvent>(
+        [this]([[maybe_unused]] const core::events::UnpinTabRequestEvent& evt)
+        {
+            if (tab_bar_ != nullptr)
+            {
+                tab_bar_->UnpinTab(active_file_path_);
+            }
+        });
+
+    // ── R13 subscriptions ──
+    copy_file_path_sub_ = event_bus_.subscribe<core::events::CopyFilePathRequestEvent>(
+        [this]([[maybe_unused]] const core::events::CopyFilePathRequestEvent& evt)
+        {
+            if (!active_file_path_.empty() && wxTheClipboard->Open())
+            {
+                wxTheClipboard->SetData(new wxTextDataObject(active_file_path_));
+                wxTheClipboard->Close();
+            }
+        });
+
+    reveal_in_finder_sub_ = event_bus_.subscribe<core::events::RevealInFinderRequestEvent>(
+        [this]([[maybe_unused]] const core::events::RevealInFinderRequestEvent& evt)
+        {
+            if (!active_file_path_.empty())
+            {
+#ifdef __APPLE__
+                wxExecute(wxString::Format("open -R \"%s\"", active_file_path_));
+#elif defined(__linux__)
+                wxExecute(wxString::Format(
+                    "xdg-open \"%s\"",
+                    std::filesystem::path(active_file_path_).parent_path().string()));
+#endif
+            }
+        });
+
+    zoom_in_sub_ = event_bus_.subscribe<core::events::ZoomInRequestEvent>(
+        [this]([[maybe_unused]] const core::events::ZoomInRequestEvent& evt)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->ZoomIn();
+                }
+            }
+        });
+
+    zoom_out_sub_ = event_bus_.subscribe<core::events::ZoomOutRequestEvent>(
+        [this]([[maybe_unused]] const core::events::ZoomOutRequestEvent& evt)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->ZoomOut();
+                }
+            }
+        });
+
+    zoom_reset_sub_ = event_bus_.subscribe<core::events::ZoomResetRequestEvent>(
+        [this]([[maybe_unused]] const core::events::ZoomResetRequestEvent& evt)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->ZoomReset();
+                }
+            }
+        });
+
+    convert_eol_lf_sub_ = event_bus_.subscribe<core::events::ConvertEolLfRequestEvent>(
+        [this]([[maybe_unused]] const core::events::ConvertEolLfRequestEvent& evt)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->ConvertEolToLf();
+                    if (statusbar_panel_ != nullptr)
+                    {
+                        statusbar_panel_->set_eol_mode("LF");
+                    }
+                }
+            }
+        });
+
+    convert_eol_crlf_sub_ = event_bus_.subscribe<core::events::ConvertEolCrlfRequestEvent>(
+        [this]([[maybe_unused]] const core::events::ConvertEolCrlfRequestEvent& evt)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->ConvertEolToCrlf();
+                    if (statusbar_panel_ != nullptr)
+                    {
+                        statusbar_panel_->set_eol_mode("CRLF");
+                    }
+                }
+            }
+        });
+
+    // ── R14 subscriptions ──
+    fold_current_sub_ = event_bus_.subscribe<core::events::FoldCurrentRegionRequestEvent>(
+        [this]([[maybe_unused]] const core::events::FoldCurrentRegionRequestEvent& evt)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->FoldCurrentRegion();
+                }
+            }
+        });
+
+    unfold_current_sub_ = event_bus_.subscribe<core::events::UnfoldCurrentRegionRequestEvent>(
+        [this]([[maybe_unused]] const core::events::UnfoldCurrentRegionRequestEvent& evt)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->UnfoldCurrentRegion();
+                }
+            }
+        });
+
+    jump_to_bracket_sub_ = event_bus_.subscribe<core::events::JumpToMatchingBracketRequestEvent>(
+        [this]([[maybe_unused]] const core::events::JumpToMatchingBracketRequestEvent& evt)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->JumpToMatchingBracket();
+                }
+            }
+        });
+
+    select_to_bracket_sub_ =
+        event_bus_.subscribe<core::events::SelectToMatchingBracketRequestEvent>(
+            [this]([[maybe_unused]] const core::events::SelectToMatchingBracketRequestEvent& evt)
+            {
+                if (split_view_ != nullptr)
+                {
+                    auto* editor = split_view_->GetEditorPanel();
+                    if (editor != nullptr)
+                    {
+                        editor->SelectToMatchingBracket();
+                    }
+                }
+            });
+
+    transpose_chars_sub_ = event_bus_.subscribe<core::events::TransposeCharactersRequestEvent>(
+        [this]([[maybe_unused]] const core::events::TransposeCharactersRequestEvent& evt)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->TransposeCharacters();
+                }
+            }
+        });
+
+    reverse_lines_sub_ = event_bus_.subscribe<core::events::ReverseSelectedLinesRequestEvent>(
+        [this]([[maybe_unused]] const core::events::ReverseSelectedLinesRequestEvent& evt)
+        {
+            if (split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    editor->ReverseSelectedLines();
+                }
+            }
+        });
+
+    file_reload_sub_ = event_bus_.subscribe<core::events::FileReloadRequestEvent>(
+        [this]([[maybe_unused]] const core::events::FileReloadRequestEvent& evt)
+        {
+            if (!active_file_path_.empty() && split_view_ != nullptr)
+            {
+                auto* editor = split_view_->GetEditorPanel();
+                if (editor != nullptr)
+                {
+                    std::ifstream file_stream(active_file_path_);
+                    if (file_stream.is_open())
+                    {
+                        std::stringstream buf;
+                        buf << file_stream.rdbuf();
+                        editor->SetContent(buf.str());
+                    }
+                }
+            }
+        });
+
     MARKAMP_LOG_INFO(
         "LayoutManager created (sidebar={}px, visible={})", sidebar_width_, sidebar_visible_);
 }
@@ -111,25 +1673,42 @@ void LayoutManager::CreateLayout()
 
     // Fix 11: Render "EXPLORER" label in header
     auto* header_sizer = new wxBoxSizer(wxHORIZONTAL);
-    auto* header_label = new wxStaticText(header_panel, wxID_ANY, "EXPLORER");
-    header_label->SetFont(
+    header_label_ = new wxStaticText(header_panel, wxID_ANY, "EXPLORER");
+    header_label_->SetFont(
         theme_engine().font(core::ThemeFontToken::MonoRegular).Bold().Scaled(0.85f));
-    header_label->SetForegroundColour(theme_engine().color(core::ThemeColorToken::TextMuted));
+    header_label_->SetForegroundColour(theme_engine().color(core::ThemeColorToken::TextMuted));
     header_sizer->AddSpacer(12);
-    header_sizer->Add(header_label, 0, wxALIGN_CENTER_VERTICAL);
+    header_sizer->Add(header_label_, 0, wxALIGN_CENTER_VERTICAL);
+    header_sizer->AddStretchSpacer();
+
+    // R4 Fix 15: Collapse All button in sidebar header
+    auto* collapse_btn = new wxButton(
+        header_panel, wxID_ANY, "\xE2\x96\xBE", wxDefaultPosition, wxSize(28, 28), wxBORDER_NONE);
+    collapse_btn->SetToolTip("Collapse All");
+    collapse_btn->SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular).Scaled(0.85f));
+    collapse_btn->SetForegroundColour(theme_engine().color(core::ThemeColorToken::TextMuted));
+    collapse_btn->SetBackgroundColour(theme_engine().color(core::ThemeColorToken::BgHeader));
+    collapse_btn->Bind(wxEVT_BUTTON,
+                       [this](wxCommandEvent& /*evt*/)
+                       {
+                           if (file_tree_ != nullptr)
+                           {
+                               file_tree_->CollapseAllNodes();
+                           }
+                       });
+    header_sizer->Add(collapse_btn, 0, wxALIGN_CENTER_VERTICAL);
+    header_sizer->AddSpacer(4);
+
     header_panel->SetSizer(header_sizer);
 
     sidebar_sizer->Add(header_panel, 0, wxEXPAND);
 
-    // Search field: filter bar between header and file tree
+    // R5 Fix 7: Use wxSearchCtrl for built-in clear/cancel button
     auto* search_sizer = new wxBoxSizer(wxHORIZONTAL);
-    search_field_ = new wxTextCtrl(sidebar_panel_,
-                                   wxID_ANY,
-                                   wxEmptyString,
-                                   wxDefaultPosition,
-                                   wxSize(-1, 28),
-                                   wxTE_PROCESS_ENTER | wxNO_BORDER);
-    search_field_->SetHint("Filter files\u2026");
+    search_field_ = new wxSearchCtrl(
+        sidebar_panel_, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(-1, 28));
+    search_field_->SetDescriptiveText("Filter files\u2026");
+    search_field_->ShowCancelButton(true);
     search_field_->SetBackgroundColour(
         theme_engine().color(core::ThemeColorToken::BgPanel).ChangeLightness(110));
     search_field_->SetForegroundColour(theme_engine().color(core::ThemeColorToken::TextMain));
@@ -151,6 +1730,17 @@ void LayoutManager::CreateLayout()
                             if (file_tree_ != nullptr)
                             {
                                 file_tree_->ApplyFilter(search_field_->GetValue().ToStdString());
+                            }
+                        });
+
+    // R5 Fix 7: Bind cancel button to clear the filter
+    search_field_->Bind(wxEVT_SEARCHCTRL_CANCEL_BTN,
+                        [this](wxCommandEvent& /*evt*/)
+                        {
+                            search_field_->Clear();
+                            if (file_tree_ != nullptr)
+                            {
+                                file_tree_->ApplyFilter("");
                             }
                         });
 
@@ -230,6 +1820,10 @@ void LayoutManager::CreateLayout()
     // Tab bar (QoL feature 1)
     tab_bar_ = new TabBar(content_panel_, theme_engine(), event_bus_);
     content_sizer->Add(tab_bar_, 0, wxEXPAND);
+
+    // R3 Fix 14: BreadcrumbBar between tab bar and split view
+    breadcrumb_bar_ = new BreadcrumbBar(content_panel_, theme_engine(), event_bus_);
+    content_sizer->Add(breadcrumb_bar_, 0, wxEXPAND);
 
     split_view_ = new SplitView(content_panel_, theme_engine(), event_bus_, config_);
     content_sizer->Add(split_view_, 1, wxEXPAND);
@@ -313,6 +1907,13 @@ void LayoutManager::SetWorkspaceRoot(const std::string& root_path)
     if (file_tree_ != nullptr)
     {
         file_tree_->SetWorkspaceRoot(root_path);
+    }
+    // R3 Fix 19: Update sidebar header with workspace folder name
+    if (header_label_ != nullptr)
+    {
+        std::string folder_name = std::filesystem::path(root_path).filename().string();
+        std::transform(folder_name.begin(), folder_name.end(), folder_name.begin(), ::toupper);
+        header_label_->SetLabel(folder_name);
     }
 }
 
@@ -597,8 +2198,8 @@ void LayoutManager::OpenFileInTab(const std::string& path)
         {
             editor->SetContent(content);
             editor->ClearModified();
-            // R2 Fix 11: Editor gains focus after opening a file
-            editor->SetFocus();
+            // R3 Fix 9: Deferred focus so Select All works immediately
+            CallAfter([editor]() { editor->SetFocus(); });
         }
     }
 
@@ -652,6 +2253,16 @@ void LayoutManager::OpenFileInTab(const std::string& path)
         catch (const std::filesystem::filesystem_error& /*err*/)
         {
             statusbar_panel_->set_file_size(0);
+        }
+
+        // R4 Fix 9: Detect EOL mode from file content
+        if (content.find("\r\n") != std::string::npos)
+        {
+            statusbar_panel_->set_eol_mode("CRLF");
+        }
+        else
+        {
+            statusbar_panel_->set_eol_mode("LF");
         }
     }
 
@@ -793,15 +2404,46 @@ void LayoutManager::SwitchToTab(const std::string& path)
                 editor->ClearModified();
             }
 
-            // R2 Fix 10: Editor gains focus after tab switch
-            editor->SetFocus();
+            // R3 Fix 9: Deferred focus on tab switch
+            CallAfter([editor]() { editor->SetFocus(); });
         }
     }
 
     // Fix 7: Sync file tree selection with active tab
+    // R4 Fix 12: Auto-reveal file in sidebar
     if (file_tree_ != nullptr)
     {
         file_tree_->SetActiveFileId(path);
+        file_tree_->EnsureNodeVisible(path);
+    }
+
+    // R3 Fix 14: Update breadcrumb bar with file path segments
+    // R4 Fix 19: Handle Untitled files in breadcrumb
+    if (breadcrumb_bar_ != nullptr)
+    {
+        namespace fs = std::filesystem;
+        std::vector<std::string> segments;
+
+        // Check if this is an untitled file (path starts with "untitled:")
+        if (path.rfind("untitled:", 0) == 0)
+        {
+            // Extract "Untitled-N.md" from the path
+            const auto untitled_name = path.substr(9);
+            segments.push_back(untitled_name.empty() ? "Untitled.md" : untitled_name);
+        }
+        else
+        {
+            fs::path file_path(path);
+            for (const auto& part : file_path)
+            {
+                std::string part_str = part.string();
+                if (!part_str.empty() && part_str != "/")
+                {
+                    segments.push_back(part_str);
+                }
+            }
+        }
+        breadcrumb_bar_->SetFilePath(segments);
     }
 
     // Fix 13: Publish content changed event to refresh preview panel
@@ -946,6 +2588,19 @@ void LayoutManager::SaveActiveFileAs()
 auto LayoutManager::GetActiveFilePath() const -> std::string
 {
     return active_file_path_;
+}
+
+auto LayoutManager::GetActiveFileContent() const -> std::string
+{
+    if (split_view_ != nullptr)
+    {
+        auto* editor = split_view_->GetEditorPanel();
+        if (editor != nullptr)
+        {
+            return editor->GetContent();
+        }
+    }
+    return {};
 }
 
 auto LayoutManager::GetTabBar() -> TabBar*

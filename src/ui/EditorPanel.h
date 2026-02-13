@@ -66,6 +66,12 @@ public:
     void HideFindBar();
     [[nodiscard]] auto IsFindBarVisible() const -> bool;
 
+    // ── Raw Scintilla access (for Duplicate Line, Delete Line, etc.) ──
+    [[nodiscard]] auto GetStyledTextCtrl() -> wxStyledTextCtrl*
+    {
+        return editor_;
+    }
+
     // ── Configuration ──
     void SetWordWrap(bool enabled);
     void SetWordWrapMode(core::events::WrapMode mode);
@@ -84,6 +90,14 @@ public:
     // ── QoL: Editor Actions ──
     void ToggleLineComment();
     void InsertDateTime();
+
+    // ── R13: Zoom + EOL ──
+    void ZoomIn();
+    void ZoomOut();
+    void ZoomReset();
+    [[nodiscard]] auto GetZoomLevel() const -> int;
+    void ConvertEolToLf();
+    void ConvertEolToCrlf();
     void SortSelectedLines();
     void ConvertSelectionUpperCase();
     void ConvertSelectionLowerCase();
@@ -124,6 +138,10 @@ public:
     };
     /// Insert a snippet at the current cursor position
     void InsertSnippet(const Snippet& snippet);
+
+    // ── R15: Additional editing helpers ──
+    void SortSelectedLinesDesc();
+    [[nodiscard]] auto GetWordAtCaret() const -> std::string;
 
     // ── Phase 5: Contextual Inline Tools ──
     void InsertBlockquote();
@@ -368,8 +386,8 @@ public:
     static constexpr int kDefaultFontSize = 13;
     static constexpr int kDefaultTabSize = 4;
     static constexpr int kCaretWidth = 2;
-    static constexpr int kCaretBlinkMs = 530;
-    static constexpr int kDebounceMs = 50; // Responsive! (was 300)
+    static constexpr int kCaretBlinkMs = 400; // R16 Fix 22: faster blink for smoother feel
+    static constexpr int kDebounceMs = 50;    // Responsive! (was 300)
     static constexpr int kDebounceMaxMs = 500;
     static constexpr int kFindBarHeight = 36;
     static constexpr int kLargeFileThreshold = 50000;
@@ -465,6 +483,8 @@ private:
     void OnCharAdded(wxStyledTextEvent& event);
     void OnKeyDown(wxKeyEvent& event);
     void OnMouseWheel(wxMouseEvent& event);
+    void OnRightDown(wxMouseEvent& event); // R4 Fix 1
+    void ShowEditorContextMenu();          // R4 Fix 1
     void OnDebounceTimer(wxTimerEvent& event);
 
     // ── Bracket matching helpers ──
@@ -489,12 +509,16 @@ private:
 
     // ── Line manipulation ──
 
-    // ── Markdown formatting ──
-    void WrapSelectionWith(const std::string& prefix, const std::string& suffix);
+    // ── Markdown formatting (public for menu/event wiring) ──
+public:
     void ToggleBold();
     void ToggleItalic();
     void InsertLink();
     void ToggleInlineCode();
+
+private:
+    // ── Markdown formatting helpers ──
+    void WrapSelectionWith(const std::string& prefix, const std::string& suffix);
 
     // ── Phase 2: Syntax overlays state ──
     bool syntax_overlays_enabled_{true};
@@ -570,6 +594,10 @@ private:
     void OnFileDrop(wxDropFilesEvent& event);
     void UpdateSelectionCount();
     void HandleLinkAutoComplete();
+
+    // ── R15 state ──
+    std::string sticky_heading_;
+    std::vector<Snippet> default_snippets_;
 };
 
 } // namespace markamp::ui

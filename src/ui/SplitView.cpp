@@ -626,7 +626,9 @@ void SplitView::OnDividerMouseLeave(wxMouseEvent& /*event*/)
 
 void SplitView::OnDividerDoubleClick(wxMouseEvent& /*event*/)
 {
-    CycleSnapPreset();
+    // R17 Fix 38: Double-click divider resets to 50/50 split
+    SetSplitRatio(0.5);
+    UpdateLayout();
 }
 
 // ═══════════════════════════════════════════════════════

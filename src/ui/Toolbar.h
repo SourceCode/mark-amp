@@ -4,6 +4,8 @@
 #include "core/EventBus.h"
 #include "core/Events.h"
 
+#include <wx/timer.h>
+
 #include <functional>
 #include <vector>
 
@@ -77,6 +79,14 @@ private:
     core::Subscription view_mode_sub_;
     core::Subscription focus_mode_sub_;
     ThemeGalleryCallback on_theme_gallery_click_;
+
+    // R5 Fix 20: Save button flash feedback
+    bool save_flash_active_{false};
+    wxTimer save_flash_timer_;
+
+    // R17 Fix 3: Button press feedback
+    int pressed_button_index_{-1};
+    bool pressed_is_left_{false};
 };
 
 } // namespace markamp::ui

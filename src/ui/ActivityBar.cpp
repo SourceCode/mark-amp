@@ -79,6 +79,15 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
         bool is_active = (item.item_id == active_item_);
         bool is_hover = (idx == hover_index_);
 
+        // R17 Fix 30: Active item background highlight — subtle accent tint
+        if (is_active)
+        {
+            auto active_bg = clr.accent_primary.with_alpha(0.12F);
+            paint_dc.SetBrush(wxBrush(active_bg.to_wx_colour()));
+            paint_dc.SetPen(*wxTRANSPARENT_PEN);
+            paint_dc.DrawRectangle(0, item_y, kBarWidth, kBarWidth);
+        }
+
         // Active indicator (left border bar)
         if (is_active)
         {
@@ -118,6 +127,14 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
         paint_dc.DrawText(item.icon_char, text_x, text_y);
 
         item_y += kBarWidth;
+    }
+
+    // R17 Fix 29: Bottom border separator below last item
+    if (!items_.empty())
+    {
+        auto border_light = clr.border_light.to_wx_colour();
+        paint_dc.SetPen(wxPen(border_light));
+        paint_dc.DrawLine(4, item_y, kBarWidth - 4, item_y);
     }
 
     // Separator line on the right edge

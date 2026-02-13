@@ -296,8 +296,12 @@ void ThemeTokenEditor::on_apply(wxCommandEvent& /*event*/)
 void ThemeTokenEditor::on_save(wxCommandEvent& event)
 {
     on_apply(event);
-    // TODO(phase4): Write the updated theme to its .md theme file
-    MARKAMP_LOG_INFO("Theme tokens saved (write-to-file not yet implemented)");
+    // Write the updated theme to its .md theme file via ThemeEngine
+    const auto& theme_id = engine_.current_theme().id;
+    auto theme_dir = std::filesystem::path("themes");
+    auto theme_path = theme_dir / (theme_id + ".md");
+    engine_.export_theme(theme_id, theme_path);
+    MARKAMP_LOG_INFO("Theme tokens saved to {}", theme_path.string());
     EndModal(wxID_SAVE);
 }
 

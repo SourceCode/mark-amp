@@ -43,9 +43,14 @@ public:
 
     // Batch operations
     void CloseAllTabs();
+    void CloseSavedTabs(); // R4 Fix 8
     void CloseOtherTabs(const std::string& keep_path);
     void CloseTabsToLeft(const std::string& of_path);
     void CloseTabsToRight(const std::string& of_path);
+
+    // R3 Fix 7: Pinned tab management
+    void PinTab(const std::string& file_path);
+    void UnpinTab(const std::string& file_path);
 
     // Workspace root for relative path calculation
     void SetWorkspaceRoot(const std::string& root_path)
@@ -70,6 +75,7 @@ public:
         bool is_modified{false};
         bool is_active{false};
         bool close_hovered{false};
+        bool is_pinned{false}; // R3 Fix 7: Pinned tabs
         wxRect rect;
         wxRect close_rect;
     };
@@ -93,6 +99,11 @@ private:
     // Interaction state
     int hovered_tab_index_{-1};
 
+    // R3 Fix 5: Drag reorder state
+    int drag_start_x_{0};
+    int drag_tab_index_{-1};
+    bool is_dragging_{false};
+
     // Painting
     void OnPaint(wxPaintEvent& event);
     void DrawTab(wxGraphicsContext& gc, const TabInfo& tab, const core::Theme& theme) const;
@@ -100,6 +111,7 @@ private:
     // Mouse interaction
     void OnMouseMove(wxMouseEvent& event);
     void OnMouseDown(wxMouseEvent& event);
+    void OnMouseUp(wxMouseEvent& event); // R3 Fix 5
     void OnDoubleClick(wxMouseEvent& event);
     void OnMouseLeave(wxMouseEvent& event);
     void OnRightDown(wxMouseEvent& event);

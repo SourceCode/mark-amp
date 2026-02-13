@@ -74,6 +74,72 @@ void Config::apply_defaults()
     {
         data_["auto_save"] = false;
     }
+    // R14 defaults
+    if (!data_["show_line_numbers"])
+    {
+        data_["show_line_numbers"] = true;
+    }
+    if (!data_["highlight_current_line"])
+    {
+        data_["highlight_current_line"] = true;
+    }
+    if (!data_["show_whitespace"])
+    {
+        data_["show_whitespace"] = false;
+    }
+    if (!data_["tab_size"])
+    {
+        data_["tab_size"] = 4;
+    }
+    if (!data_["show_minimap"])
+    {
+        data_["show_minimap"] = false;
+    }
+    if (!data_["last_workspace"])
+    {
+        data_["last_workspace"] = "";
+    }
+    if (!data_["last_open_files"])
+    {
+        data_["last_open_files"] = "";
+    }
+    // R15 defaults
+    if (!data_["auto_indent"])
+    {
+        data_["auto_indent"] = true;
+    }
+    if (!data_["indent_guides"])
+    {
+        data_["indent_guides"] = true;
+    }
+    if (!data_["bracket_matching"])
+    {
+        data_["bracket_matching"] = true;
+    }
+    if (!data_["code_folding"])
+    {
+        data_["code_folding"] = true;
+    }
+    if (!data_["edge_column"])
+    {
+        data_["edge_column"] = 80;
+    }
+    if (!data_["font_family"])
+    {
+        data_["font_family"] = "Menlo";
+    }
+    if (!data_["auto_save_interval_seconds"])
+    {
+        data_["auto_save_interval_seconds"] = 60;
+    }
+    if (!data_["show_status_bar"])
+    {
+        data_["show_status_bar"] = true;
+    }
+    if (!data_["show_tab_bar"])
+    {
+        data_["show_tab_bar"] = true;
+    }
 }
 
 auto Config::load() -> std::expected<void, std::string>

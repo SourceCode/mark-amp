@@ -104,6 +104,18 @@ void StartupPanel::createLogo(wxSizer* parent)
     image.Rescale(128, 128, wxIMAGE_QUALITY_HIGH);
     auto* bitmap = new wxStaticBitmap(this, wxID_ANY, wxBitmap(image));
     parent->Add(bitmap, 0, wxALIGN_CENTER_HORIZONTAL);
+
+    // R6 Fix 19: Version label below logo
+    auto version_str = wxString::Format(
+        "v%d.%d.%d", MARKAMP_VERSION_MAJOR, MARKAMP_VERSION_MINOR, MARKAMP_VERSION_PATCH);
+    auto* version_label = new wxStaticText(this, wxID_ANY, version_str);
+    if (theme_engine_ != nullptr)
+    {
+        version_label->SetFont(
+            theme_engine_->font(core::ThemeFontToken::MonoRegular).Scaled(0.85F));
+        version_label->SetForegroundColour(theme_engine_->color(core::ThemeColorToken::TextMuted));
+    }
+    parent->Add(version_label, 0, wxALIGN_CENTER_HORIZONTAL | wxTOP, 8);
 }
 
 void StartupPanel::createButtons(wxSizer* parent)
@@ -153,7 +165,7 @@ void StartupPanel::createButtons(wxSizer* parent)
         return panel;
     };
 
-    auto* open_folder_panel = make_button("Open Folder");
+    auto* open_folder_panel = make_button("Open Folder  (\u2318O)");
     auto* open_repo_panel = make_button("Open Repository");
 
     // Bind click events
@@ -284,6 +296,21 @@ void StartupPanel::refreshRecentWorkspaces()
         name_txt->Bind(wxEVT_LEFT_DOWN, [this, path](wxMouseEvent&) { onWorkspaceClick(path); });
         path_txt->Bind(wxEVT_LEFT_DOWN, [this, path](wxMouseEvent&) { onWorkspaceClick(path); });
 
+        // R17 Fix 36: Hover highlight on workspace items
+        item_panel->SetCursor(wxCursor(wxCURSOR_HAND));
+        item_panel->Bind(wxEVT_ENTER_WINDOW,
+                         [item_panel, item_bg](wxMouseEvent&)
+                         {
+                             item_panel->SetBackgroundColour(item_bg.ChangeLightness(120));
+                             item_panel->Refresh();
+                         });
+        item_panel->Bind(wxEVT_LEAVE_WINDOW,
+                         [item_panel, item_bg](wxMouseEvent&)
+                         {
+                             item_panel->SetBackgroundColour(item_bg);
+                             item_panel->Refresh();
+                         });
+
         // Add to list sizer with spacing
         recent_list_sizer_->Add(item_panel, 0, wxEXPAND | wxBOTTOM, 10);
     }
@@ -305,8 +332,18 @@ void StartupPanel::onOpenFolder(wxCommandEvent& /*event*/)
 // ReSharper disable once CppParameterMayBeConstPtrOrRef
 void StartupPanel::onOpenRepository(wxCommandEvent& /*event*/)
 {
-    // TODO: Implement "Open GitHub/GitLab URL" dialog
-    wxMessageBox("Coming Soon: Open Remote Repository", "MarkAmp", wxOK | wxICON_INFORMATION);
+    wxTextEntryDialog dialog(this,
+                             "Enter a GitHub or GitLab repository URL:",
+                             "Open Remote Repository",
+                             "https://github.com/");
+    if (dialog.ShowModal() == wxID_OK)
+    {
+        wxString url = dialog.GetValue().Trim();
+        if (!url.IsEmpty())
+        {
+            wxLaunchDefaultBrowser(url);
+        }
+    }
 }
 
 void StartupPanel::onWorkspaceClick(const std::filesystem::path& path)

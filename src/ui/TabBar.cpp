@@ -27,6 +27,9 @@ constexpr int kContextSaveAs = 7;
 constexpr int kContextCopyPath = 8;
 constexpr int kContextCopyRelativePath = 9;
 constexpr int kContextRevealInFinder = 10;
+constexpr int kContextPinTab = 11;
+constexpr int kContextUnpinTab = 12;
+constexpr int kContextCloseSaved = 13; // R4 Fix 8
 } // namespace
 
 TabBar::TabBar(wxWindow* parent, core::ThemeEngine& theme_engine, core::EventBus& event_bus)
@@ -41,6 +44,7 @@ TabBar::TabBar(wxWindow* parent, core::ThemeEngine& theme_engine, core::EventBus
     Bind(wxEVT_PAINT, &TabBar::OnPaint, this);
     Bind(wxEVT_MOTION, &TabBar::OnMouseMove, this);
     Bind(wxEVT_LEFT_DOWN, &TabBar::OnMouseDown, this);
+    Bind(wxEVT_LEFT_UP, &TabBar::OnMouseUp, this); // R3 Fix 5
     Bind(wxEVT_LEFT_DCLICK, &TabBar::OnDoubleClick, this);
     Bind(wxEVT_LEAVE_WINDOW, &TabBar::OnMouseLeave, this);
     Bind(wxEVT_RIGHT_DOWN, &TabBar::OnRightDown, this);
@@ -321,8 +325,8 @@ void TabBar::OnPaint(wxPaintEvent& /*event*/)
     gc->SetPen(wxNullPen);
     gc->DrawRectangle(0, 0, sz.GetWidth(), sz.GetHeight());
 
-    // Bottom border
-    gc->SetPen(gc->CreatePen(wxPen(theme_engine().color(core::ThemeColorToken::BorderDark), 1)));
+    // Bottom border — R16 Fix 40: subtle light border
+    gc->SetPen(gc->CreatePen(wxPen(theme_engine().color(core::ThemeColorToken::BorderLight), 1)));
     gc->StrokeLine(0, sz.GetHeight() - 1, sz.GetWidth(), sz.GetHeight() - 1);
 
     // Fix 10: Empty state hint when no tabs are open
@@ -355,6 +359,28 @@ void TabBar::OnPaint(wxPaintEvent& /*event*/)
         }
     }
 
+    // R16 Fix 6: Tab overflow fade gradient at right edge
+    if (!tabs_.empty())
+    {
+        int last_tab_right = tabs_.back().rect.GetRight() - scroll_offset_;
+        if (last_tab_right > sz.GetWidth())
+        {
+            constexpr int kFadeWidth = 24;
+            auto fade_start = sz.GetWidth() - kFadeWidth;
+            auto panel_bg = theme_engine().color(core::ThemeColorToken::BgPanel);
+            for (int fx = 0; fx < kFadeWidth; ++fx)
+            {
+                int alpha = (fx * 255) / kFadeWidth;
+                wxColour fade_col(panel_bg.Red(),
+                                  panel_bg.Green(),
+                                  panel_bg.Blue(),
+                                  static_cast<unsigned char>(alpha));
+                gc->SetPen(gc->CreatePen(wxPen(fade_col, 1)));
+                gc->StrokeLine(fade_start + fx, 0, fade_start + fx, sz.GetHeight() - 2);
+            }
+        }
+    }
+
     // Fix 11: Draw tab count badge right-aligned
     if (!tabs_.empty())
     {
@@ -369,6 +395,16 @@ void TabBar::OnPaint(wxPaintEvent& /*event*/)
         gc->DrawText(count_text,
                      sz.GetWidth() - static_cast<int>(count_w) - 12,
                      (kHeight - static_cast<int>(count_h)) / 2);
+    }
+
+    // R17 Fix 25: Drag indicator line at insertion point
+    if (is_dragging_ && drag_tab_index_ >= 0 && drag_tab_index_ < static_cast<int>(tabs_.size()))
+    {
+        int indicator_x =
+            tabs_[static_cast<size_t>(drag_tab_index_)].rect.GetLeft() - scroll_offset_;
+        gc->SetPen(
+            gc->CreatePen(wxPen(theme_engine().color(core::ThemeColorToken::AccentPrimary), 2)));
+        gc->StrokeLine(indicator_x, 2, indicator_x, sz.GetHeight() - 2);
     }
 
     delete gc;
@@ -391,16 +427,24 @@ void TabBar::DrawTab(wxGraphicsContext& gc, const TabInfo& tab, const core::Them
              (hovered_tab_index_ >= 0 &&
               tabs_[static_cast<size_t>(hovered_tab_index_)].file_path == tab.file_path))
     {
-        bg_color = theme_engine().color(core::ThemeColorToken::BgPanel).ChangeLightness(110);
+        bg_color = theme_engine().color(core::ThemeColorToken::BgPanel).ChangeLightness(115);
     }
     else
     {
         bg_color = theme_engine().color(core::ThemeColorToken::BgPanel);
     }
 
+    // R16 Fix 1: Rounded active tab background with 4px radius
     gc.SetBrush(gc.CreateBrush(wxBrush(bg_color)));
     gc.SetPen(wxNullPen);
-    gc.DrawRectangle(tab_x, tab_y, tab_w, tab_h);
+    if (tab.is_active)
+    {
+        gc.DrawRoundedRectangle(tab_x, tab_y, tab_w, tab_h + 4, 4);
+    }
+    else
+    {
+        gc.DrawRectangle(tab_x, tab_y, tab_w, tab_h);
+    }
 
     // Active indicator — 2px accent line at bottom
     if (tab.is_active)
@@ -417,9 +461,13 @@ void TabBar::DrawTab(wxGraphicsContext& gc, const TabInfo& tab, const core::Them
         gc.StrokeLine(tab_x + tab_w, tab_y + 4, tab_x + tab_w, tab_y + tab_h - 4);
     }
 
-    // Text
+    // R16 Fix 4: Active tab uses semibold weight
     wxFont font = theme_engine().font(core::ThemeFontToken::MonoRegular);
     font.SetPointSize(10);
+    if (tab.is_active)
+    {
+        font.SetWeight(wxFONTWEIGHT_SEMIBOLD);
+    }
     gc.SetFont(font,
                tab.is_active ? theme_engine().color(core::ThemeColorToken::TextMain)
                              : theme_engine().color(core::ThemeColorToken::TextMuted));
@@ -430,6 +478,17 @@ void TabBar::DrawTab(wxGraphicsContext& gc, const TabInfo& tab, const core::Them
     // Calculate text area (leave room for close button)
     int text_x = tab_x + kTabPaddingH;
     int text_max_w = tab_w - kTabPaddingH * 2 - kCloseButtonSize - kCloseButtonMargin;
+
+    // R16 Fix 3: Pinned tab draws 📌 icon
+    if (tab.is_pinned)
+    {
+        wxDouble pin_w = 0;
+        wxDouble pin_h = 0;
+        gc.GetTextExtent("📌", &pin_w, &pin_h);
+        gc.DrawText("📌", text_x, tab_y + (tab_h - static_cast<int>(pin_h)) / 2);
+        text_x += static_cast<int>(pin_w) + 2;
+        text_max_w -= static_cast<int>(pin_w) + 2;
+    }
 
     // Modified dot (●) before filename
     if (tab.is_modified)
@@ -527,6 +586,33 @@ void TabBar::OnMouseMove(wxMouseEvent& event)
     auto pos = event.GetPosition();
     int new_hovered = HitTestTab(pos);
 
+    // R3 Fix 5: Drag reorder — swap tabs on drag
+    if (is_dragging_ && drag_tab_index_ >= 0 && event.LeftIsDown())
+    {
+        const int delta_x = pos.x - drag_start_x_;
+        constexpr int kDragThreshold = 30;
+        if (std::abs(delta_x) > kDragThreshold)
+        {
+            const int direction = (delta_x > 0) ? 1 : -1;
+            const int swap_idx = drag_tab_index_ + direction;
+            if (swap_idx >= 0 && swap_idx < static_cast<int>(tabs_.size()))
+            {
+                // Don't swap across pinned/unpinned boundary
+                if (tabs_[static_cast<size_t>(drag_tab_index_)].is_pinned ==
+                    tabs_[static_cast<size_t>(swap_idx)].is_pinned)
+                {
+                    std::swap(tabs_[static_cast<size_t>(drag_tab_index_)],
+                              tabs_[static_cast<size_t>(swap_idx)]);
+                    drag_tab_index_ = swap_idx;
+                    drag_start_x_ = pos.x;
+                    RecalculateTabRects();
+                    Refresh();
+                }
+            }
+        }
+        return;
+    }
+
     bool close_state_changed = false;
 
     // Update close button hover states
@@ -541,12 +627,23 @@ void TabBar::OnMouseMove(wxMouseEvent& event)
         }
     }
 
-    // Fix 8: Show full file path tooltip on tab hover
+    // R3 Fix 6: Show relative file path tooltip on tab hover
     if (new_hovered != hovered_tab_index_)
     {
         if (new_hovered >= 0)
         {
-            SetToolTip(tabs_[static_cast<size_t>(new_hovered)].file_path);
+            std::string tip = tabs_[static_cast<size_t>(new_hovered)].file_path;
+            if (!workspace_root_.empty())
+            {
+                try
+                {
+                    tip = std::filesystem::relative(tip, workspace_root_).string();
+                }
+                catch (const std::filesystem::filesystem_error& /*err*/)
+                {
+                }
+            }
+            SetToolTip(tip);
         }
         else
         {
@@ -579,6 +676,12 @@ void TabBar::OnMouseDown(wxMouseEvent& event)
         return;
     }
 
+    // R3 Fix 5: Start drag
+    drag_start_x_ = pos.x;
+    drag_tab_index_ = tab_index;
+    is_dragging_ = true;
+    CaptureMouse();
+
     // Switch to the clicked tab
     const auto& tab = tabs_[static_cast<size_t>(tab_index)];
     if (!tab.is_active)
@@ -587,6 +690,20 @@ void TabBar::OnMouseDown(wxMouseEvent& event)
 
         core::events::TabSwitchedEvent evt(tab.file_path);
         event_bus_.publish(evt);
+    }
+}
+
+// R3 Fix 5: End drag on mouse up
+void TabBar::OnMouseUp(wxMouseEvent& /*event*/)
+{
+    if (is_dragging_)
+    {
+        is_dragging_ = false;
+        drag_tab_index_ = -1;
+        if (HasCapture())
+        {
+            ReleaseMouse();
+        }
     }
 }
 
@@ -683,6 +800,7 @@ void TabBar::ShowTabContextMenu(int tab_index)
     menu.Append(kContextClose, "Close");
     menu.Append(kContextCloseOthers, "Close Others");
     menu.Append(kContextCloseAll, "Close All");
+    menu.Append(kContextCloseSaved, "Close Saved"); // R4 Fix 8
     menu.AppendSeparator();
     menu.Append(kContextCloseToLeft, "Close to Left");
     menu.Append(kContextCloseToRight, "Close to Right");
@@ -694,6 +812,17 @@ void TabBar::ShowTabContextMenu(int tab_index)
     menu.Append(kContextCopyRelativePath, "Copy Relative Path");
     menu.AppendSeparator();
     menu.Append(kContextRevealInFinder, "Reveal in Finder");
+
+    // R3 Fix 7: Pin/Unpin tab
+    menu.AppendSeparator();
+    if (tab.is_pinned)
+    {
+        menu.Append(kContextUnpinTab, "Unpin Tab");
+    }
+    else
+    {
+        menu.Append(kContextPinTab, "Pin Tab");
+    }
 
     // Disable close to left/right if not applicable
     menu.Enable(kContextCloseToLeft, tab_index > 0);
@@ -776,6 +905,17 @@ void TabBar::ShowTabContextMenu(int tab_index)
                           break;
                       }
                       default:
+                          break;
+                      // R4 Fix 8: Close Saved (all unmodified tabs)
+                      case kContextCloseSaved:
+                          CloseSavedTabs();
+                          break;
+                      // R3 Fix 7: Pin / Unpin
+                      case kContextPinTab:
+                          PinTab(target_path);
+                          break;
+                      case kContextUnpinTab:
+                          UnpinTab(target_path);
                           break;
                   }
               });
@@ -898,3 +1038,68 @@ void TabBar::OnThemeChanged(const core::Theme& new_theme)
 }
 
 } // namespace markamp::ui
+
+// R3 Fix 7: Pin / Unpin helpers
+void markamp::ui::TabBar::PinTab(const std::string& file_path)
+{
+    const int idx = FindTabIndex(file_path);
+    if (idx < 0)
+    {
+        return;
+    }
+    tabs_[static_cast<size_t>(idx)].is_pinned = true;
+
+    // Move pinned tab to the end of the pinned region
+    int first_unpinned = 0;
+    for (size_t tab_idx = 0; tab_idx < tabs_.size(); ++tab_idx)
+    {
+        if (!tabs_[tab_idx].is_pinned)
+        {
+            first_unpinned = static_cast<int>(tab_idx);
+            break;
+        }
+        first_unpinned = static_cast<int>(tab_idx) + 1;
+    }
+
+    if (idx > first_unpinned)
+    {
+        // Already past pinned region — move it
+        auto tab = std::move(tabs_[static_cast<size_t>(idx)]);
+        tabs_.erase(tabs_.begin() + idx);
+        tabs_.insert(tabs_.begin() + first_unpinned, std::move(tab));
+    }
+
+    RecalculateTabRects();
+    Refresh();
+}
+
+void markamp::ui::TabBar::UnpinTab(const std::string& file_path)
+{
+    const int idx = FindTabIndex(file_path);
+    if (idx < 0)
+    {
+        return;
+    }
+    tabs_[static_cast<size_t>(idx)].is_pinned = false;
+    RecalculateTabRects();
+    Refresh();
+}
+
+// R4 Fix 8: Close all unmodified (saved) tabs
+void markamp::ui::TabBar::CloseSavedTabs()
+{
+    // Collect paths of non-modified tabs first, then close them
+    std::vector<std::string> saved_paths;
+    for (const auto& tab : tabs_)
+    {
+        if (!tab.is_modified)
+        {
+            saved_paths.push_back(tab.file_path);
+        }
+    }
+    for (const auto& path : saved_paths)
+    {
+        const core::events::TabCloseRequestEvent evt(path);
+        event_bus_.publish(evt);
+    }
+}

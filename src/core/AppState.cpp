@@ -16,8 +16,7 @@ auto AppState::active_file_name() const -> std::string
 
 auto AppState::is_modified() const -> bool
 {
-    // TODO: Track dirty state when editor integration is added
-    return false;
+    return modified_;
 }
 
 AppStateManager::AppStateManager(EventBus& event_bus)
@@ -70,6 +69,11 @@ void AppStateManager::update_content(const std::string& content)
     events::EditorContentChangedEvent evt;
     evt.content = content;
     event_bus_.publish(evt);
+}
+
+void AppStateManager::set_modified(bool modified)
+{
+    state_.modified_ = modified;
 }
 
 } // namespace markamp::core

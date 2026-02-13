@@ -5,6 +5,7 @@
 
 #include <wx/dcbuffer.h>
 
+#include <array>
 #include <cctype>
 #include <fmt/format.h>
 #include <sstream>
@@ -86,6 +87,25 @@ StatusBarPanel::StatusBarPanel(wxWindow* parent,
     Bind(wxEVT_PAINT, &StatusBarPanel::OnPaint, this);
     Bind(wxEVT_LEFT_DOWN, &StatusBarPanel::OnMouseDown, this);
     Bind(wxEVT_MOTION, &StatusBarPanel::OnMouseMove, this);
+
+    // R17 Fix 8: Flash "SAVED" on save event
+    save_sub_ = event_bus_.subscribe<core::events::TabSaveRequestEvent>(
+        [this](const core::events::TabSaveRequestEvent& /*evt*/)
+        {
+            save_flash_active_ = true;
+            ready_state_ = "SAVED \xE2\x9C\x93";
+            RebuildItems();
+            Refresh();
+            save_flash_timer_.StartOnce(800);
+        });
+    save_flash_timer_.Bind(wxEVT_TIMER,
+                           [this](wxTimerEvent& /*evt*/)
+                           {
+                               save_flash_active_ = false;
+                               ready_state_ = "READY";
+                               RebuildItems();
+                               Refresh();
+                           });
 }
 
 // --- State setters ---
@@ -190,6 +210,30 @@ void StatusBarPanel::set_file_size(std::size_t size_bytes)
     Refresh();
 }
 
+// R4 Fix 9: EOL mode display (LF / CRLF)
+void StatusBarPanel::set_eol_mode(const std::string& eol_mode)
+{
+    eol_mode_ = eol_mode;
+    RebuildItems();
+    Refresh();
+}
+
+// R6 Fix 14: Indent mode display
+void StatusBarPanel::set_indent_mode(const std::string& indent_mode)
+{
+    indent_mode_ = indent_mode;
+    RebuildItems();
+    Refresh();
+}
+
+// R13: Zoom indicator
+void StatusBarPanel::set_zoom_level(int zoom_level)
+{
+    zoom_level_ = zoom_level;
+    RebuildItems();
+    Refresh();
+}
+
 void StatusBarPanel::RebuildItems()
 {
     left_items_.clear();
@@ -201,57 +245,161 @@ void StatusBarPanel::RebuildItems()
     {
         ready_text += " \xE2\x97\x8F"; // UTF-8 for ● (black circle / modified indicator)
     }
-    left_items_.push_back({ready_text, {}, file_modified_, false, nullptr});
+    left_items_.push_back({ready_text, {}, file_modified_, false, nullptr, "Editor status"});
 
     auto cursor_text = fmt::format("LN {}, COL {}", cursor_line_, cursor_col_);
-    left_items_.push_back({cursor_text, {}, false, false, nullptr});
+    // R4 Fix 16: Cursor position is clickable — triggers Go-To-Line
+    left_items_.push_back({cursor_text,
+                           {},
+                           false,
+                           true,
+                           [this]()
+                           {
+                               const core::events::GoToLineRequestEvent go_evt;
+                               event_bus_.publish(go_evt);
+                           },
+                           "Click to go to line"});
 
-    left_items_.push_back({encoding_, {}, false, false, nullptr});
+    // R5 Fix 15: Encoding is clickable — cycles through encodings
+    left_items_.push_back(
+        {encoding_,
+         {},
+         false,
+         true,
+         [this]()
+         {
+             static const std::array<std::string, 3> kEncodings = {"UTF-8", "ASCII", "ISO-8859-1"};
+             for (size_t idx = 0; idx < kEncodings.size(); ++idx)
+             {
+                 if (encoding_ == kEncodings[idx])
+                 {
+                     encoding_ = kEncodings[(idx + 1) % kEncodings.size()];
+                     break;
+                 }
+             }
+             RebuildItems();
+             Refresh();
+         },
+         "Click to change encoding"});
 
-    left_items_.push_back({view_mode_label(view_mode_), {}, false, false, nullptr});
+    // R4 Fix 9: Line ending mode — R7: clickable, cycles LF/CRLF/CR
+    if (!eol_mode_.empty())
+    {
+        left_items_.push_back(
+            {eol_mode_,
+             {},
+             false,
+             true,
+             [this]()
+             {
+                 static const std::array<std::string, 3> kEols = {"LF", "CRLF", "CR"};
+                 for (size_t idx = 0; idx < kEols.size(); ++idx)
+                 {
+                     if (eol_mode_ == kEols[idx])
+                     {
+                         eol_mode_ = kEols[(idx + 1) % kEols.size()];
+                         break;
+                     }
+                 }
+                 RebuildItems();
+                 Refresh();
+             },
+             "Click to change line ending"});
+    }
+
+    // R6 Fix 14: Indent mode indicator — R7: clickable, cycles modes
+    left_items_.push_back(
+        {indent_mode_,
+         {},
+         false,
+         true,
+         [this]()
+         {
+             static const std::array<std::string, 3> kIndents = {"Spaces: 4", "Spaces: 2", "Tabs"};
+             for (size_t idx = 0; idx < kIndents.size(); ++idx)
+             {
+                 if (indent_mode_ == kIndents[idx])
+                 {
+                     indent_mode_ = kIndents[(idx + 1) % kIndents.size()];
+                     break;
+                 }
+             }
+             RebuildItems();
+             Refresh();
+         },
+         "Click to change indentation"});
+
+    // R13: Zoom indicator
+    {
+        auto zoom_text = fmt::format("Zoom: {}%", 100 + (zoom_level_ * 10));
+        left_items_.push_back({zoom_text, {}, false, false, nullptr, "Current zoom level"});
+    }
+
+    left_items_.push_back(
+        {view_mode_label(view_mode_), {}, false, false, nullptr, "Current view mode"});
 
     // Right zone: {N} WORDS • {M} CHARS • SEL: {LEN} • MERMAID: {STATUS} • Theme Name
     if (word_count_ > 0)
     {
         auto words_text = fmt::format("{} WORDS", word_count_);
-        right_items_.push_back({words_text, {}, false, false, nullptr});
+        right_items_.push_back({words_text, {}, false, false, nullptr, "Total word count"});
     }
 
     if (char_count_ > 0)
     {
         auto chars_text = fmt::format("{} CHARS", char_count_);
-        right_items_.push_back({chars_text, {}, false, false, nullptr});
+        right_items_.push_back({chars_text, {}, false, false, nullptr, "Total character count"});
     }
 
     if (selection_len_ > 0)
     {
         auto sel_text = fmt::format("SEL: {}", selection_len_);
-        right_items_.push_back({sel_text, {}, false, false, nullptr});
+        right_items_.push_back({sel_text, {}, false, false, nullptr, "Selected text length"});
     }
 
     auto mermaid_text = fmt::format("MERMAID: {}", mermaid_status_);
     bool mermaid_is_accent = mermaid_active_;
-    right_items_.push_back({mermaid_text, {}, mermaid_is_accent, false, nullptr});
+    right_items_.push_back(
+        {mermaid_text, {}, mermaid_is_accent, false, nullptr, "Mermaid diagram status"});
 
-    right_items_.push_back({theme_name_, {}, false, false, nullptr});
+    right_items_.push_back({theme_name_, {}, false, false, nullptr, "Active theme"});
 
     // R2 Fix 13: Filename in left items
     if (!filename_.empty())
     {
-        left_items_.push_back({filename_, {}, false, false, nullptr});
+        left_items_.push_back({filename_, {}, false, false, nullptr, "Active file"});
     }
 
-    // R2 Fix 14: Language in right items
+    // R2 Fix 14: Language in right items — R7: clickable, cycles languages
     if (!language_.empty())
     {
-        right_items_.push_back({language_, {}, false, false, nullptr});
+        right_items_.push_back({language_,
+                                {},
+                                false,
+                                true,
+                                [this]()
+                                {
+                                    static const std::array<std::string, 3> kLangs = {
+                                        "Markdown", "Plain Text", "HTML"};
+                                    for (size_t idx = 0; idx < kLangs.size(); ++idx)
+                                    {
+                                        if (language_ == kLangs[idx])
+                                        {
+                                            language_ = kLangs[(idx + 1) % kLangs.size()];
+                                            break;
+                                        }
+                                    }
+                                    RebuildItems();
+                                    Refresh();
+                                },
+                                "Click to change language"});
     }
 
     // R2 Fix 18: Line count
     if (line_count_ > 0)
     {
         auto lines_text = fmt::format("{} LINES", line_count_);
-        right_items_.push_back({lines_text, {}, false, false, nullptr});
+        right_items_.push_back({lines_text, {}, false, false, nullptr, "Total line count"});
     }
 
     // R2 Fix 19: File size
@@ -271,7 +419,7 @@ void StatusBarPanel::RebuildItems()
         {
             size_text = fmt::format("{} B", file_size_bytes_);
         }
-        right_items_.push_back({size_text, {}, false, false, nullptr});
+        right_items_.push_back({size_text, {}, false, false, nullptr, "File size on disk"});
     }
 }
 
@@ -338,13 +486,38 @@ void StatusBarPanel::OnPaint(wxPaintEvent& /*event*/)
             left_x += separator_width + separator_gap;
         }
 
+        // R16 Fix 14: bold for accent items
+        if (item.is_accent)
+        {
+            wxFont bold_font = theme_engine().font(core::ThemeFontToken::UISmall);
+            bold_font.SetWeight(wxFONTWEIGHT_SEMIBOLD);
+            dc.SetFont(bold_font);
+        }
+
         dc.SetTextForeground(item.is_accent
                                  ? theme_engine().color(core::ThemeColorToken::AccentPrimary)
                                  : theme_engine().color(core::ThemeColorToken::TextMuted));
 
         int text_width = dc.GetTextExtent(item.text).GetWidth();
+
+        // R16 Fix 11: Subtle hover highlight for clickable items
+        if (item.is_clickable)
+        {
+            auto hover_bg =
+                theme_engine().color(core::ThemeColorToken::BgPanel).ChangeLightness(115);
+            dc.SetBrush(wxBrush(hover_bg));
+            dc.SetPen(*wxTRANSPARENT_PEN);
+            dc.DrawRoundedRectangle(left_x - 4, 2, text_width + 8, height - 4, 3);
+        }
+
         item.bounds = wxRect(left_x, 0, text_width, height);
         dc.DrawText(item.text, left_x, text_y);
+
+        // Reset font if we changed it
+        if (item.is_accent)
+        {
+            dc.SetFont(theme_engine().font(core::ThemeFontToken::UISmall));
+        }
 
         left_x += text_width + separator_gap;
     }
@@ -358,12 +531,36 @@ void StatusBarPanel::OnPaint(wxPaintEvent& /*event*/)
         int text_width = dc.GetTextExtent(item.text).GetWidth();
         right_x -= text_width;
 
+        // R16 Fix 14: bold for accent items (right section)
+        if (item.is_accent)
+        {
+            wxFont bold_font = theme_engine().font(core::ThemeFontToken::UISmall);
+            bold_font.SetWeight(wxFONTWEIGHT_SEMIBOLD);
+            dc.SetFont(bold_font);
+        }
+
         dc.SetTextForeground(item.is_accent
                                  ? theme_engine().color(core::ThemeColorToken::AccentPrimary)
                                  : theme_engine().color(core::ThemeColorToken::TextMuted));
 
+        // R16 Fix 11: Subtle hover highlight for clickable items (right)
+        if (item.is_clickable)
+        {
+            auto hover_bg =
+                theme_engine().color(core::ThemeColorToken::BgPanel).ChangeLightness(115);
+            dc.SetBrush(wxBrush(hover_bg));
+            dc.SetPen(*wxTRANSPARENT_PEN);
+            dc.DrawRoundedRectangle(right_x - 4, 2, text_width + 8, height - 4, 3);
+        }
+
         item.bounds = wxRect(right_x, 0, text_width, height);
         dc.DrawText(item.text, right_x, text_y);
+
+        // Reset font if we changed it
+        if (item.is_accent)
+        {
+            dc.SetFont(theme_engine().font(core::ThemeFontToken::UISmall));
+        }
 
         right_x -= separator_gap;
 
@@ -411,26 +608,45 @@ void StatusBarPanel::OnMouseMove(wxMouseEvent& event)
 {
     auto pos = event.GetPosition();
     bool over_clickable = false;
+    std::string hovered_tooltip;
 
     for (const auto& item : left_items_)
     {
-        if (item.is_clickable && item.bounds.Contains(pos))
+        if (item.bounds.Contains(pos))
         {
-            over_clickable = true;
+            hovered_tooltip = item.tooltip;
+            if (item.is_clickable)
+            {
+                over_clickable = true;
+            }
             break;
         }
     }
 
-    if (!over_clickable)
+    if (hovered_tooltip.empty())
     {
         for (const auto& item : right_items_)
         {
-            if (item.is_clickable && item.bounds.Contains(pos))
+            if (item.bounds.Contains(pos))
             {
-                over_clickable = true;
+                hovered_tooltip = item.tooltip;
+                if (item.is_clickable)
+                {
+                    over_clickable = true;
+                }
                 break;
             }
         }
+    }
+
+    // R6 Fix 9: Show tooltip on hover
+    if (!hovered_tooltip.empty())
+    {
+        SetToolTip(hovered_tooltip);
+    }
+    else
+    {
+        UnsetToolTip();
     }
 
     SetCursor(over_clickable ? wxCursor(wxCURSOR_HAND) : wxCursor(wxCURSOR_DEFAULT));

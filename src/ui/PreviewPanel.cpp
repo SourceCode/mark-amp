@@ -178,7 +178,6 @@ body {{
     background-color: {bg_app};
     color: {text_main};
     font-family: 'Rajdhani', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
-    font-family: 'Rajdhani', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
     font-size: {}px;
     line-height: 1.6;
     padding: 24px;

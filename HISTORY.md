@@ -1,5 +1,62 @@
 # MarkAmp Release History
 
+## v1.6.9 — 2026-02-13
+
+### Highlights
+
+R3–R17 UX polish: 80+ new editor action events, command-line file opening, full Edit and View menu build-out, editor right-click context menu, file tree type-ahead search with folder sort and collapse/expand-all, enriched status bar segments (EOL mode, encoding cycling, indent mode, zoom level, "SAVED" flash), clickable breadcrumb bar, Find/Replace integration, print support, sticky scroll headings, default Markdown snippets, recent files management, 20+ new configuration defaults, and persistent modified-state tracking.
+
+### Added
+
+- **80+ Editor Action Events**: `FindRequestEvent`, `ReplaceRequestEvent`, `DuplicateLineRequestEvent`, `ToggleCommentRequestEvent`, `DeleteLineRequestEvent`, `WrapToggleRequestEvent`, `MoveLineUp/DownRequestEvent`, `JoinLinesRequestEvent`, `SortLinesAsc/DescRequestEvent`, `TransformUpper/Lower/TitleRequestEvent`, `SelectAllOccurrencesRequestEvent`, `ExpandLineSelectionRequestEvent`, `InsertLineAbove/BelowRequestEvent`, `FoldAll/UnfoldAllRequestEvent`, `ToggleLineNumbers/WhitespaceRequestEvent`, `CopyLineUp/DownRequestEvent`, `DeleteAllLeft/RightRequestEvent`, `ReverseLinesRequestEvent`, `DeleteDuplicateLinesRequestEvent`, `TransposeCharsRequestEvent`, `IndentSelection/OutdentSelectionRequestEvent`, `SelectWord/ParagraphRequestEvent`, `ToggleReadOnlyRequestEvent`, `ConvertIndentSpaces/TabsRequestEvent`, `JumpToBracket/SelectToBracketRequestEvent`, `ToggleMinimapRequestEvent`, `FoldCurrent/UnfoldCurrentRequestEvent`, `AddLineComment/RemoveLineCommentRequestEvent`, `TrimTrailingWSRequestEvent`, `ExpandSelection/ShrinkSelectionRequestEvent`, `CursorUndo/RedoRequestEvent`, `MoveTextLeft/RightRequestEvent`, `ToggleAutoIndent/BracketMatching/CodeFolding/IndentGuidesRequestEvent`, `PrintRequestEvent`, and more
+- **Command-Line File Opening**: `MainFrame` opens a file passed as command-line argument directly into the editor (bypasses startup screen)
+- **Edit Menu — 50+ Actions**: Find, Replace, Duplicate Line, Toggle Comment, Delete Line, Move Line Up/Down, Join Lines, Sort Lines Asc/Desc, Transform Upper/Lower/Title, Select All Occurrences, Expand Line Selection, Insert Line Above/Below, Copy Line Up/Down, Delete All Left/Right, Reverse Lines, Delete Duplicate Lines, Transpose Chars, Indent/Outdent, Select Word/Paragraph, Toggle Read-Only, Convert Indent Spaces/Tabs, Trim Trailing Whitespace, Expand/Shrink Selection, Cursor Undo/Redo, Move Text Left/Right, Add/Remove Line Comment
+- **View Menu — 15+ Toggles**: Word Wrap, Line Numbers, Whitespace, Fold All, Unfold All, Fold/Unfold Current, Minimap, Auto-Indent, Bracket Matching, Code Folding, Indent Guides, Jump/Select-to Bracket, Welcome Screen
+- **File Menu — Close Folder & Go-To-Line**: Close Folder and Go-To-Line dialog menu entries
+- **File Menu — Print**: Print current document via `wxHtmlEasyPrinting`
+- **File Menu — Recent Files Submenu**: Tracks last 10 opened files with Clear Recent Files option
+- **Editor — Right-Click Context Menu**: Cut, Copy, Paste, Select All, and all Edit menu actions accessible via context menu
+- **File Tree — Type-Ahead Search**: Keyboard type-ahead filtering with 500ms buffer timer to locate files by name
+- **File Tree — Folder Sort**: Recursive folders-before-files sorting with case-insensitive alphabetical ordering
+- **File Tree — Collapse/Expand All**: `CollapseAllNodes()` and `ExpandAllNodes()` actions for bulk tree operations
+- **File Tree — Auto-Expand Ancestors**: Opening a nested file auto-expands parent folders to reveal the node
+- **Status Bar — EOL Mode**: Displays LF/CRLF/CR with click-to-cycle behavior
+- **Status Bar — Encoding Cycling**: Click encoding segment to cycle through UTF-8 / ASCII / ISO-8859-1
+- **Status Bar — Indent Mode**: Displays "Spaces: N" or "Tabs: N" indent configuration
+- **Status Bar — Zoom Level**: Displays current zoom percentage
+- **Status Bar — "SAVED" Flash**: Briefly flashes "SAVED ✓" on save event with 800ms auto-dismiss timer
+- **Status Bar — Clickable Cursor Position**: Click "LN X, COL Y" to trigger Go-To-Line dialog
+- **BreadcrumbBar — Clickable Segments**: Path segments are clickable with configurable callback; filename segment rendered in semi-bold
+- **Editor — Sticky Scroll Heading**: Scans upward from first visible line to find nearest Markdown heading for pinned display
+- **Editor — Default Markdown Snippets**: 8 registered snippets — Bold, Italic, Link, Image, Code Block, Heading 1, Bullet List, Table
+- **Editor — Tab Indents**: `editor_->SetTabIndents(true)` for proper tab behavior
+- **Editor — Caret Visibility**: `EnsureCaretVisible()` called after `SetContent()` to guarantee cursor is on screen
+- **Config — 20+ New Defaults**: `show_line_numbers`, `highlight_current_line`, `show_whitespace`, `tab_size`, `show_minimap`, `last_workspace`, `last_open_files`, `auto_indent`, `indent_guides`, `bracket_matching`, `code_folding`, `edge_column`, `font_family`, `auto_save_interval_seconds`, `show_status_bar`, `show_tab_bar`
+- **AppState — Modified Tracking**: `AppState::modified_` field and `AppStateManager::set_modified()` for persistent dirty-state tracking
+
+### Changed
+
+- Updated `MainFrame` with 50+ new menu items across Edit and View menus, command-line file argument handling, print support, recent files submenu, and Close Folder action
+- Updated `LayoutManager` with 1,500+ lines of new event subscriptions for all R6–R8 editor actions (Find/Replace, duplicate line, toggle comment, delete line, word wrap, move/join/sort lines, transform case, select all occurrences, fold/unfold, copy line, reverse lines, indent/outdent, bracket navigation, and more)
+- Updated `EditorPanel` with right-click context menu, sticky scroll heading implementation, 8 default snippets, tab indent support, improved selection alpha (80 opacity), and caret visibility on content load
+- Updated `FileTreeCtrl` with type-ahead search, recursive folder-first sorting, collapse/expand all, and auto-expand ancestors on file open
+- Updated `StatusBarPanel` with EOL mode, indent mode, zoom level, "SAVED" flash timer, clickable cursor position (Go-To-Line), clickable encoding cycling, and tooltip text for all segments
+- Updated `BreadcrumbBar` with clickable segment callback, semi-bold filename rendering, and accent-tinted separator color
+- Updated `Toolbar` with enhanced button layout and additional action entries
+- Updated `TabBar` with improved tab management methods
+- Updated `Events.h` with 945 lines of new event type definitions across R6–R8 phases
+- Updated `Config.cpp` with 20+ new default configuration keys
+- Updated `AppState` with `modified_` field for dirty-state tracking
+- Updated `ActivityBar`, `CommandPalette`, `NotificationManager`, `StartupPanel`, and `SplitView` with minor refinements
+
+### Fixed
+
+- **Selection opacity**: Increased editor selection alpha from 60 to 80 for improved readability
+- **Preview panel**: Removed redundant preprocessing call
+- **AppState::is_modified()**: Now returns actual `modified_` state instead of hardcoded `false`
+
+---
+
 ## v1.5.8 — 2026-02-12
 
 ### Highlights

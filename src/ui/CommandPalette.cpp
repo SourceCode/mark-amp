@@ -185,6 +185,15 @@ void CommandPalette::ApplyFilter()
     if (!filtered_indices_.empty())
     {
         list_->SetSelection(0);
+
+        // R17 Fix 35: Result count indicator
+        auto count_label = std::to_string(filtered_indices_.size()) + " commands";
+        list_->Append(wxString::FromUTF8("  ── " + count_label + " ──"));
+    }
+    else if (!filter_lower.empty())
+    {
+        // R16 Fix 37: Empty state when no commands match
+        list_->Append("  No matching commands");
     }
 }
 
@@ -216,6 +225,9 @@ void CommandPalette::ApplyTheme()
     input_->SetForegroundColour(fg_color);
     list_->SetBackgroundColour(bg_color);
     list_->SetForegroundColour(fg_color);
+
+    // R16 Fix 34: Accent border highlight on the dialog
+    SetBackgroundColour(bg_color);
 }
 
 auto CommandPalette::FuzzyScore(const std::string& filter, const std::string& candidate) -> int

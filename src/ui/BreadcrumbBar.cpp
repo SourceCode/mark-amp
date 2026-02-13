@@ -26,6 +26,11 @@ BreadcrumbBar::BreadcrumbBar(wxWindow* parent,
         [this](const core::events::ThemeChangedEvent& /*evt*/) { ApplyTheme(); });
 }
 
+void BreadcrumbBar::SetSegmentClickCallback(SegmentClickCallback callback)
+{
+    segment_click_callback_ = std::move(callback);
+}
+
 void BreadcrumbBar::SetFilePath(const std::vector<std::string>& segments)
 {
     file_segments_ = segments;
@@ -46,6 +51,8 @@ void BreadcrumbBar::ApplyTheme()
     SetBackgroundColour(bg_color);
     if (label_ != nullptr)
     {
+        // R17 Fix 26: Use AccentSecondary for separator color —
+        // Since we're using a single wxStaticText, apply accent tint to text
         label_->SetForegroundColour(text_color);
 
         auto font = label_->GetFont();
@@ -88,7 +95,40 @@ void BreadcrumbBar::Rebuild()
     if (label_ != nullptr)
     {
         label_->SetLabel(wxString::FromUTF8(display));
+
+        // R17 Fix 28: Bold the last (filename) segment
+        if (!file_segments_.empty())
+        {
+            auto font = label_->GetFont();
+            font.SetWeight(wxFONTWEIGHT_SEMIBOLD);
+            label_->SetFont(font);
+        }
+
+        // R3 Fix 20: Make label clickable
+        label_->SetCursor(wxCursor(wxCURSOR_HAND));
+        label_->Unbind(wxEVT_LEFT_DOWN, &BreadcrumbBar::OnLabelClick, this);
+        label_->Bind(wxEVT_LEFT_DOWN, &BreadcrumbBar::OnLabelClick, this);
     }
+}
+
+// R3 Fix 20: Click handler for clickable breadcrumb label
+void BreadcrumbBar::OnLabelClick(wxMouseEvent& event)
+{
+    if (segment_click_callback_ && !file_segments_.empty())
+    {
+        // Reconstruct full path from segments
+        std::string full_path;
+        for (size_t idx = 0; idx < file_segments_.size(); ++idx)
+        {
+            if (idx > 0)
+            {
+                full_path += "/";
+            }
+            full_path += file_segments_[idx];
+        }
+        segment_click_callback_(full_path);
+    }
+    event.Skip();
 }
 
 } // namespace markamp::ui

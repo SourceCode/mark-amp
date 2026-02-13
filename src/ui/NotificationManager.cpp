@@ -20,6 +20,9 @@ NotificationManager::NotificationManager(wxWindow* parent,
     Bind(wxEVT_PAINT, &NotificationManager::OnPaint, this);
     Bind(wxEVT_TIMER, &NotificationManager::OnAnimationTimer, this, animation_timer_.GetId());
 
+    // R16 Fix 31: Click anywhere to dismiss top toast
+    Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent& /*evt*/) { DismissTop(); });
+
     // Subscribe to notification events
     notification_sub_ = event_bus_.subscribe<core::events::NotificationEvent>(
         [this](const core::events::NotificationEvent& evt)
@@ -35,7 +38,26 @@ void NotificationManager::ShowNotification(const std::string& message,
                                            int duration_ms)
 {
     NotificationEntry entry;
-    entry.message = message;
+
+    // R17 Fix 31: Prepend level-specific icon emoji
+    std::string icon_prefix;
+    switch (level)
+    {
+        case core::events::NotificationLevel::Info:
+            icon_prefix = "\xE2\x84\xB9\xEF\xB8\x8F "; // ℹ️
+            break;
+        case core::events::NotificationLevel::Warning:
+            icon_prefix = "\xE2\x9A\xA0\xEF\xB8\x8F "; // ⚠️
+            break;
+        case core::events::NotificationLevel::Error:
+            icon_prefix = "\xE2\x9D\x8C "; // ❌
+            break;
+        case core::events::NotificationLevel::Success:
+            icon_prefix = "\xE2\x9C\x85 "; // ✅
+            break;
+    }
+    entry.message = icon_prefix + message;
+
     entry.level = level;
     entry.duration_ms = duration_ms;
     entry.opacity = 0.0F;
@@ -170,6 +192,17 @@ void NotificationManager::OnPaint(wxPaintEvent& /*event*/)
         // Text
         paint_dc.SetTextForeground(clr.editor_fg.to_wx_colour());
         paint_dc.DrawText(toast.message, toast_x + 12, toast_y + (kToastHeight - 16) / 2);
+
+        // R16 Fix 32: Dismiss progress bar at bottom of toast
+        if (toast.duration_ms > 0 && !toast.dismissing && toast.opacity >= 1.0F)
+        {
+            float progress = 1.0F - (static_cast<float>(toast.elapsed_ms) /
+                                     static_cast<float>(toast.duration_ms));
+            int bar_width = static_cast<int>(static_cast<float>(kToastWidth - 8) * progress);
+            paint_dc.SetBrush(wxBrush(level_color));
+            paint_dc.SetPen(*wxTRANSPARENT_PEN);
+            paint_dc.DrawRoundedRectangle(toast_x + 4, toast_y + kToastHeight - 4, bar_width, 2, 1);
+        }
 
         bottom_y = toast_y - kToastMargin;
     }

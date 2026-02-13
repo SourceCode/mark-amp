@@ -5,6 +5,9 @@
 #include "core/Events.h"
 #include "core/ThemeEngine.h"
 
+#include <wx/panel.h>
+#include <wx/timer.h>
+
 #include <functional>
 #include <string>
 #include <vector>
@@ -34,6 +37,9 @@ public:
     void set_filename(const std::string& filename);
     void set_language(const std::string& language);
     void set_file_size(std::size_t size_bytes);
+    void set_eol_mode(const std::string& eol_mode);       // R4 Fix 9
+    void set_indent_mode(const std::string& indent_mode); // R6 Fix 14
+    void set_zoom_level(int zoom_level);                  // R13
 
     // Accessors for testing
     [[nodiscard]] auto ready_state() const -> const std::string&
@@ -91,6 +97,7 @@ public:
         bool is_accent{false};
         bool is_clickable{false};
         std::function<void()> on_click;
+        std::string tooltip; // R6 Fix 9: hover tooltip
     };
 
     /// Rebuild left/right items from current state. Public for testing.
@@ -135,7 +142,15 @@ private:
     core::events::ViewMode view_mode_{core::events::ViewMode::Split};
     std::string filename_;
     std::string language_;
+    std::string eol_mode_;                 // R4 Fix 9: "LF" or "CRLF"
+    int zoom_level_{0};                    // R13: zoom percentage
+    std::string indent_mode_{"Spaces: 4"}; // R6 Fix 14
     std::size_t file_size_bytes_{0};
+
+    // R17 Fix 8: Save flash
+    bool save_flash_active_{false};
+    wxTimer save_flash_timer_;
+    core::Subscription save_sub_;
 
     // Layout items
     std::vector<StatusItem> left_items_;

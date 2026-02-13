@@ -9,6 +9,7 @@
 #include <wx/bmpbndl.h>
 #include <wx/event.h>
 #include <wx/panel.h>
+#include <wx/timer.h>
 
 #include <functional>
 #include <string>
@@ -26,6 +27,7 @@ public:
     void SetFileTree(const std::vector<core::FileNode>& roots);
     void SetActiveFileId(const std::string& file_id);
     void EnsureNodeVisible(const std::string& node_id);
+    void CollapseAllNodes(); // R4 Fix 15
 
     // Filtering
     void ApplyFilter(const std::string& filter);
@@ -83,6 +85,15 @@ private:
     void CollectVisibleNodes(std::vector<core::FileNode*>& result,
                              std::vector<core::FileNode>& nodes);
     auto FindParentIndex(const std::vector<core::FileNode*>& visible, int child_index) -> int;
+    [[nodiscard]] auto GetFocusedNodeId() const -> std::string;
+
+    // R3 Fix 4: Type-ahead search
+    std::string type_ahead_buffer_;
+    wxTimer type_ahead_timer_;
+    void OnTypeAheadTimerExpired(wxTimerEvent& event);
+
+    // R3 Fix 2: Auto-reveal helpers
+    auto ExpandAncestors(const std::string& node_id) -> bool;
 
     // Hit testing
     struct HitResult

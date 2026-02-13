@@ -6,6 +6,7 @@
 #include <wx/panel.h>
 #include <wx/stattext.h>
 
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -28,8 +29,13 @@ public:
     /// Update theme colors
     void ApplyTheme();
 
+    // R3 Fix 20: Callback when a segment is clicked (receives full path up to that segment)
+    using SegmentClickCallback = std::function<void(const std::string& path)>;
+    void SetSegmentClickCallback(SegmentClickCallback callback);
+
 private:
     void Rebuild();
+    void OnLabelClick(wxMouseEvent& event); // R3 Fix 20
 
     core::ThemeEngine& theme_engine_;
     core::EventBus& event_bus_;
@@ -38,6 +44,7 @@ private:
     std::vector<std::string> file_segments_;
     std::vector<std::string> heading_segments_;
     wxStaticText* label_{nullptr};
+    SegmentClickCallback segment_click_callback_; // R3 Fix 20
 };
 
 } // namespace markamp::ui

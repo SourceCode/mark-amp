@@ -42,12 +42,54 @@ FileTreeCtrl::FileTreeCtrl(wxWindow* parent,
     // Allow focus for keyboard events
     SetCanFocus(true);
 
+    // R3 Fix 4: Type-ahead timer — clears buffer after 500ms
+    type_ahead_timer_.SetOwner(this);
+    Bind(wxEVT_TIMER, &FileTreeCtrl::OnTypeAheadTimerExpired, this);
+
     LoadIcons();
 }
 
 void FileTreeCtrl::SetFileTree(const std::vector<core::FileNode>& roots)
 {
     roots_ = roots;
+
+    // R17 Fix 19: Sort folders before files (recursive)
+    std::function<void(std::vector<core::FileNode>&)> sort_recursive;
+    sort_recursive = [&sort_recursive](std::vector<core::FileNode>& nodes)
+    {
+        std::sort(nodes.begin(),
+                  nodes.end(),
+                  [](const core::FileNode& left, const core::FileNode& right)
+                  {
+                      if (left.is_folder() != right.is_folder())
+                      {
+                          return left.is_folder(); // folders first
+                      }
+                      // Case-insensitive alphabetical within each group
+                      std::string l_name = left.name;
+                      std::string r_name = right.name;
+                      std::transform(l_name.begin(),
+                                     l_name.end(),
+                                     l_name.begin(),
+                                     [](unsigned char chr)
+                                     { return static_cast<char>(std::tolower(chr)); });
+                      std::transform(r_name.begin(),
+                                     r_name.end(),
+                                     r_name.begin(),
+                                     [](unsigned char chr)
+                                     { return static_cast<char>(std::tolower(chr)); });
+                      return l_name < r_name;
+                  });
+        for (auto& node : nodes)
+        {
+            if (node.is_folder())
+            {
+                sort_recursive(node.children);
+            }
+        }
+    };
+    sort_recursive(roots_);
+
     UpdateVirtualHeight();
     Refresh();
 }
@@ -57,6 +99,11 @@ void FileTreeCtrl::SetActiveFileId(const std::string& file_id)
     if (active_file_id_ != file_id)
     {
         active_file_id_ = file_id;
+
+        // R3 Fix 2: Auto-expand parent folders so the node is visible
+        ExpandAncestors(file_id);
+        UpdateVirtualHeight();
+
         EnsureNodeVisible(file_id);
         Refresh();
     }
@@ -87,6 +134,29 @@ void FileTreeCtrl::EnsureNodeVisible(const std::string& node_id)
         }
         ++row_index;
     }
+}
+
+// R4 Fix 15: Collapse all folders in the tree
+void FileTreeCtrl::CollapseAllNodes()
+{
+    std::function<void(core::FileNode&)> collapse_recursive;
+    collapse_recursive = [&collapse_recursive](core::FileNode& target)
+    {
+        if (target.is_folder())
+        {
+            target.is_open = false;
+            for (auto& child : target.children)
+            {
+                collapse_recursive(child);
+            }
+        }
+    };
+    for (auto& root : roots_)
+    {
+        collapse_recursive(root);
+    }
+    UpdateVirtualHeight();
+    Refresh();
 }
 
 void FileTreeCtrl::SetOnFileSelect(FileSelectCallback callback)
@@ -318,6 +388,10 @@ void FileTreeCtrl::DrawNode(wxDC& dc, const core::FileNode& node, int depth, int
                                     .ChangeLightness(180))); // Lighter accent
             dc.SetPen(*wxTRANSPARENT_PEN);
             dc.DrawRectangle(0, row_top, row_w, kRowHeight);
+
+            // R16 Fix 25: 2px accent left border on selected row
+            dc.SetBrush(wxBrush(theme_engine().color(core::ThemeColorToken::AccentPrimary)));
+            dc.DrawRectangle(0, row_top, 2, kRowHeight);
         }
         else if (is_hovered)
         {
@@ -326,6 +400,22 @@ void FileTreeCtrl::DrawNode(wxDC& dc, const core::FileNode& node, int depth, int
                                     .ChangeLightness(110))); // Slightly lighter bg
             dc.SetPen(*wxTRANSPARENT_PEN);
             dc.DrawRectangle(0, row_top, row_w, kRowHeight);
+        }
+
+        // R16 Fix 26: Faint bottom border on each row
+        dc.SetPen(
+            wxPen(theme_engine().color(core::ThemeColorToken::BorderLight).ChangeLightness(95), 1));
+        dc.DrawLine(content_x, row_top + kRowHeight - 1, row_w, row_top + kRowHeight - 1);
+
+        // R3 Fix 3: Focus ring for keyboard navigation
+        if (node.id == GetFocusedNodeId())
+        {
+            dc.SetBrush(*wxTRANSPARENT_BRUSH);
+            wxPen focus_pen(theme_engine().color(core::ThemeColorToken::AccentPrimary),
+                            1,
+                            wxPENSTYLE_SHORT_DASH);
+            dc.SetPen(focus_pen);
+            dc.DrawRectangle(1, row_top + 1, row_w - 2, kRowHeight - 2);
         }
 
         // 1. Draw Twistie (Chevron) - LEFT ALIGNED now
@@ -413,6 +503,52 @@ void FileTreeCtrl::DrawNode(wxDC& dc, const core::FileNode& node, int depth, int
             }
         }
         dc.DrawText(display_name, text_x, text_y);
+
+        // R5 Fix 14: Draw file metadata (size or child count) right-aligned in muted text
+        {
+            std::string meta_text;
+            if (node.is_file())
+            {
+                try
+                {
+                    const auto fsize = std::filesystem::file_size(node.id);
+                    if (fsize < 1024)
+                    {
+                        meta_text = std::to_string(fsize) + " B";
+                    }
+                    else if (fsize < 1024 * 1024)
+                    {
+                        meta_text = std::to_string(fsize / 1024) + " KB";
+                    }
+                    else
+                    {
+                        meta_text = std::to_string(fsize / (1024 * 1024)) + " MB";
+                    }
+                }
+                catch (const std::filesystem::filesystem_error& /*err*/)
+                {
+                    // Untitled file — no size
+                }
+            }
+            else
+            {
+                const auto child_count = node.children.size();
+                meta_text = std::to_string(child_count) + (child_count == 1 ? " item" : " items");
+            }
+
+            if (!meta_text.empty())
+            {
+                dc.SetTextForeground(
+                    theme_engine().color(core::ThemeColorToken::TextMuted).ChangeLightness(85));
+                auto meta_extent = dc.GetTextExtent(meta_text);
+                int meta_x = row_w - meta_extent.GetWidth() - kLeftPadding;
+                if (meta_x > text_x + 40) // only draw if there's room
+                {
+                    dc.DrawText(meta_text, meta_x, text_y);
+                }
+            }
+        }
+
         // Chevron for folders (right-aligned)
         // OBSOLETE: Chevron is now left-aligned and drawn above.
     }
@@ -458,7 +594,17 @@ void FileTreeCtrl::OnMouseMove(wxMouseEvent& event)
         // Fix 6: Show file size / child count tooltip on hover
         if (hit.node != nullptr)
         {
-            std::string tip = hit.node->id;
+            // R4 Fix 18: Show relative path instead of absolute
+            std::string tip;
+            if (!workspace_root_.empty())
+            {
+                const auto rel = std::filesystem::relative(hit.node->id, workspace_root_);
+                tip = rel.string();
+            }
+            else
+            {
+                tip = hit.node->id;
+            }
             if (hit.node->is_file())
             {
                 try
@@ -494,8 +640,8 @@ void FileTreeCtrl::OnMouseMove(wxMouseEvent& event)
             UnsetToolTip();
         }
 
-        // Fix 4: Cursor feedback — hand for folders, arrow for files
-        if (hit.node != nullptr && hit.node->is_folder())
+        // R4 Fix 10: Cursor feedback — hand for all rows (like VS Code)
+        if (hit.node != nullptr)
         {
             SetCursor(wxCURSOR_HAND);
         }
@@ -537,12 +683,9 @@ void FileTreeCtrl::OnMouseDown(wxMouseEvent& event)
 
     if (hit.node->is_folder())
     {
-        // Fix 3: Only toggle folder on chevron click; clicking the row just selects
-        if (hit.on_chevron)
-        {
-            hit.node->is_open = !hit.node->is_open;
-            UpdateVirtualHeight();
-        }
+        // R3 Fix 1: Clicking anywhere on the folder row toggles open/close
+        hit.node->is_open = !hit.node->is_open;
+        UpdateVirtualHeight();
         // Always select/highlight the folder
         active_file_id_ = hit.node->id;
         Refresh();
@@ -558,6 +701,12 @@ void FileTreeCtrl::OnMouseDown(wxMouseEvent& event)
             if (on_file_select_)
             {
                 on_file_select_(*hit.node);
+            }
+
+            // R5 Fix 4: Single-click also opens the file (VS Code behavior)
+            if (on_file_open_)
+            {
+                on_file_open_(*hit.node);
             }
 
             // Publish event
@@ -731,6 +880,8 @@ constexpr int kCtxNewFile = 106;
 constexpr int kCtxDeleteFile = 107;
 constexpr int kCtxRename = 108;
 constexpr int kCtxNewFolder = 109;
+constexpr int kCtxOpenInTerminal = 110;       // R4 Fix 5
+constexpr int kCtxOpenContainingFolder = 111; // R4 Fix 6
 } // namespace
 
 void FileTreeCtrl::OnRightClick(wxMouseEvent& event)
@@ -773,15 +924,24 @@ void FileTreeCtrl::ShowFileContextMenu(core::FileNode& node)
     menu.Append(kCtxNewFile, "New File\u2026");
     menu.Append(kCtxNewFolder, "New Folder\u2026");
     menu.AppendSeparator();
-    // R2 Fix 3: "Rename…" option
-    menu.Append(kCtxRename, "Rename\u2026");
-    // R2 Fix 2: "Delete File…" option
-    menu.Append(kCtxDeleteFile, "Delete\u2026");
+    // R2 Fix 3: "Rename…" option — R5 Fix 8: keyboard shortcut hint
+    menu.Append(kCtxRename, "Rename\u2026\tF2");
+    // R2 Fix 2: "Delete File…" option — R5 Fix 8: keyboard shortcut hint
+    menu.Append(kCtxDeleteFile, "Delete\u2026\t\u232B");
     menu.AppendSeparator();
     menu.Append(kCtxRevealInFinder, "Reveal in Finder");
     menu.AppendSeparator();
     menu.Append(kCtxCopyPath, "Copy Path");
     menu.Append(kCtxCopyRelativePath, "Copy Relative Path");
+
+    // R4 Fix 5: Open in Terminal
+    menu.AppendSeparator();
+    menu.Append(kCtxOpenInTerminal, "Open in Terminal");
+    // R4 Fix 6: Open Containing Folder (for files, opens parent directory)
+    if (node.is_file())
+    {
+        menu.Append(kCtxOpenContainingFolder, "Open Containing Folder");
+    }
 
     const std::string node_path = node.id;
     const bool is_file = node.is_file();
@@ -990,6 +1150,34 @@ void FileTreeCtrl::ShowFileContextMenu(core::FileNode& node)
                     }
                     break;
                 }
+                // R4 Fix 5: Open in Terminal
+                case kCtxOpenInTerminal:
+                {
+                    std::string dir_path = node_path;
+                    if (is_file)
+                    {
+                        dir_path = std::filesystem::path(node_path).parent_path().string();
+                    }
+#ifdef __APPLE__
+                    wxExecute(wxString::Format("open -a Terminal \"%s\"", dir_path));
+#elif defined(__linux__)
+                    wxExecute(wxString::Format("x-terminal-emulator --working-directory=\"%s\"",
+                                               dir_path));
+#endif
+                    break;
+                }
+                // R4 Fix 6: Open Containing Folder (opens parent in Finder)
+                case kCtxOpenContainingFolder:
+                {
+                    const std::string parent_dir =
+                        std::filesystem::path(node_path).parent_path().string();
+#ifdef __APPLE__
+                    wxExecute(wxString::Format("open \"%s\"", parent_dir));
+#elif defined(__linux__)
+                    wxExecute(wxString::Format("xdg-open \"%s\"", parent_dir));
+#endif
+                    break;
+                }
                 default:
                     break;
             }
@@ -1146,9 +1334,100 @@ void FileTreeCtrl::OnKeyDown(wxKeyEvent& event)
             break;
         }
 
-        default:
-            event.Skip();
+        // R4 Fix 2: Delete key deletes focused file/folder
+        case WXK_DELETE:
+        case WXK_BACK:
+        {
+            auto* del_node = visible_nodes[static_cast<size_t>(focused_node_index_)];
+            const std::string del_path = del_node->id;
+            const std::string del_name = std::filesystem::path(del_path).filename().string();
+            const bool del_is_file = del_node->is_file();
+            const wxString confirm_msg =
+                del_is_file
+                    ? wxString::Format("Delete file '%s'?", del_name)
+                    : wxString::Format("Delete folder '%s' and all its contents?", del_name);
+
+            const int del_result =
+                wxMessageBox(confirm_msg, "Confirm Delete", wxYES_NO | wxICON_WARNING, this);
+
+            if (del_result == wxYES)
+            {
+                std::error_code err_code;
+                if (del_is_file)
+                {
+                    std::filesystem::remove(del_path, err_code);
+                }
+                else
+                {
+                    std::filesystem::remove_all(del_path, err_code);
+                }
+                if (!err_code)
+                {
+                    core::events::WorkspaceRefreshRequestEvent refresh_evt;
+                    event_bus_.publish(refresh_evt);
+                }
+            }
             break;
+        }
+
+        // R4 Fix 3: F2 key renames focused file/folder
+        case WXK_F2:
+        {
+            auto* rename_node = visible_nodes[static_cast<size_t>(focused_node_index_)];
+            const std::string rename_path = rename_node->id;
+            const std::string current_name = std::filesystem::path(rename_path).filename().string();
+            wxTextEntryDialog rename_dlg(this, "New name:", "Rename", wxString(current_name));
+            if (rename_dlg.ShowModal() == wxID_OK)
+            {
+                const std::string new_name = rename_dlg.GetValue().ToStdString();
+                if (!new_name.empty() && new_name != current_name)
+                {
+                    const std::string new_path =
+                        (std::filesystem::path(rename_path).parent_path() / new_name).string();
+                    std::error_code err_code;
+                    std::filesystem::rename(rename_path, new_path, err_code);
+                    if (!err_code)
+                    {
+                        core::events::WorkspaceRefreshRequestEvent refresh_evt;
+                        event_bus_.publish(refresh_evt);
+                    }
+                }
+            }
+            break;
+        }
+
+        default:
+        {
+            // R3 Fix 4: Type-ahead search — letter keys jump to matching node
+            const int unicode_key = event.GetUnicodeKey();
+            if (unicode_key >= 32 && unicode_key < 127)
+            {
+                const char typed = static_cast<char>(std::tolower(unicode_key));
+                type_ahead_buffer_ += typed;
+                type_ahead_timer_.Start(500, wxTIMER_ONE_SHOT);
+
+                // Find first visible node whose name starts with the buffer
+                for (size_t idx = 0; idx < visible_nodes.size(); ++idx)
+                {
+                    std::string lower_name = visible_nodes[idx]->name;
+                    std::transform(
+                        lower_name.begin(), lower_name.end(), lower_name.begin(), ::tolower);
+                    if (lower_name.rfind(type_ahead_buffer_, 0) == 0)
+                    {
+                        focused_node_index_ = static_cast<int>(idx);
+                        active_file_id_ = visible_nodes[idx]->id;
+                        EnsureNodeVisible(active_file_id_);
+                        Refresh();
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                event.Skip();
+            }
+            break;
+        }
     }
 }
 
@@ -1320,3 +1599,69 @@ void FileTreeCtrl::ShowEmptyAreaContextMenu()
 }
 
 } // namespace markamp::ui
+
+// R3 Fix 4: Clear the type-ahead buffer when the timer fires
+void markamp::ui::FileTreeCtrl::OnTypeAheadTimerExpired(wxTimerEvent& /*event*/)
+{
+    type_ahead_buffer_.clear();
+}
+
+// R3 Fix 3: Return the id of the node with keyboard focus
+auto markamp::ui::FileTreeCtrl::GetFocusedNodeId() const -> std::string
+{
+    if (focused_node_index_ < 0)
+    {
+        return {};
+    }
+    // We need a const version of GetVisibleNodes; build inline
+    std::vector<const core::FileNode*> nodes;
+    std::function<void(const std::vector<core::FileNode>&)> collect;
+    collect = [&](const std::vector<core::FileNode>& src)
+    {
+        for (const auto& node : src)
+        {
+            if (!node.filter_visible)
+            {
+                continue;
+            }
+            nodes.push_back(&node);
+            if (node.is_folder() && node.is_open)
+            {
+                collect(node.children);
+            }
+        }
+    };
+    collect(roots_);
+    if (focused_node_index_ < static_cast<int>(nodes.size()))
+    {
+        return nodes[static_cast<size_t>(focused_node_index_)]->id;
+    }
+    return {};
+}
+
+// R3 Fix 2: Expand ancestor folders so that a given node_id becomes visible
+auto markamp::ui::FileTreeCtrl::ExpandAncestors(const std::string& node_id) -> bool
+{
+    // Recursively walk the tree; on the way back up, open each ancestor
+    std::function<bool(std::vector<core::FileNode>&)> expand;
+    expand = [&](std::vector<core::FileNode>& nodes) -> bool
+    {
+        for (auto& node : nodes)
+        {
+            if (node.id == node_id)
+            {
+                return true; // Found
+            }
+            if (node.is_folder())
+            {
+                if (expand(node.children))
+                {
+                    node.is_open = true;
+                    return true; // Ancestor
+                }
+            }
+        }
+        return false;
+    };
+    return expand(roots_);
+}

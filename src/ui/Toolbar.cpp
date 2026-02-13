@@ -6,6 +6,7 @@
 #include <wx/dcbuffer.h>
 #include <wx/graphics.h>
 
+#include <array>
 #include <cmath>
 
 namespace markamp::ui
@@ -47,6 +48,12 @@ Toolbar::Toolbar(wxWindow* parent, core::ThemeEngine& theme_engine, core::EventB
     Bind(wxEVT_MOTION, &Toolbar::OnMouseMove, this);
     Bind(wxEVT_LEAVE_WINDOW, &Toolbar::OnMouseLeave, this);
     Bind(wxEVT_LEFT_DOWN, &Toolbar::OnMouseDown, this);
+    Bind(wxEVT_LEFT_UP,
+         [this](wxMouseEvent& /*evt*/)
+         {
+             pressed_button_index_ = -1;
+             Refresh();
+         });
     Bind(wxEVT_SIZE, &Toolbar::OnSize, this);
 
     // Subscribe to view mode changes from external sources
@@ -64,6 +71,14 @@ Toolbar::Toolbar(wxWindow* parent, core::ThemeEngine& theme_engine, core::EventB
             }
             Refresh();
         });
+
+    // R5 Fix 20: Save flash timer — resets flash after 400ms
+    save_flash_timer_.Bind(wxEVT_TIMER,
+                           [this](wxTimerEvent& /*evt*/)
+                           {
+                               save_flash_active_ = false;
+                               Refresh();
+                           });
 
     RecalculateButtonRects();
 }
@@ -164,25 +179,60 @@ void Toolbar::OnMouseMove(wxMouseEvent& event)
 {
     wxPoint pos = event.GetPosition();
     bool changed = false;
+    bool any_hovered = false;
 
-    for (auto& btn : left_buttons_)
+    // R5 Fix 1: Tooltip text per button
+    static const std::array<std::string, 4> kLeftTooltips = {"Editor Only (Ctrl+1)",
+                                                             "Split View (Ctrl+2)",
+                                                             "Preview Only (Ctrl+3)",
+                                                             "Focus Mode (Ctrl+K)"};
+    static const std::array<std::string, 3> kRightTooltips = {
+        "Save (Ctrl+S)", "Themes", "Settings"};
+
+    for (size_t idx = 0; idx < left_buttons_.size(); ++idx)
     {
+        auto& btn = left_buttons_[idx];
         bool was = btn.is_hovered;
         btn.is_hovered = btn.rect.Contains(pos);
         if (was != btn.is_hovered)
         {
             changed = true;
         }
+        if (btn.is_hovered)
+        {
+            any_hovered = true;
+            if (idx < kLeftTooltips.size())
+            {
+                SetToolTip(kLeftTooltips[idx]);
+            }
+        }
     }
-    for (auto& btn : right_buttons_)
+    for (size_t idx = 0; idx < right_buttons_.size(); ++idx)
     {
+        auto& btn = right_buttons_[idx];
         bool was = btn.is_hovered;
         btn.is_hovered = btn.rect.Contains(pos);
         if (was != btn.is_hovered)
         {
             changed = true;
         }
+        if (btn.is_hovered)
+        {
+            any_hovered = true;
+            if (idx < kRightTooltips.size())
+            {
+                SetToolTip(kRightTooltips[idx]);
+            }
+        }
     }
+
+    if (!any_hovered)
+    {
+        UnsetToolTip();
+    }
+
+    // R5 Fix 2: Hand cursor on button hover
+    SetCursor(any_hovered ? wxCursor(wxCURSOR_HAND) : wxNullCursor);
 
     if (changed)
     {
@@ -200,6 +250,9 @@ void Toolbar::OnMouseLeave(wxMouseEvent& /*event*/)
     {
         btn.is_hovered = false;
     }
+    // R5 Fix 2: Restore default cursor
+    SetCursor(wxNullCursor);
+    UnsetToolTip();
     Refresh();
 }
 
@@ -212,6 +265,11 @@ void Toolbar::OnMouseDown(wxMouseEvent& event)
     {
         if (left_buttons_[i].rect.Contains(pos))
         {
+            // R17 Fix 3: Track pressed button for visual feedback
+            pressed_button_index_ = static_cast<int>(i);
+            pressed_is_left_ = true;
+            Refresh();
+
             // Focus mode button (index 3)
             if (i == 3)
             {
@@ -248,13 +306,28 @@ void Toolbar::OnMouseDown(wxMouseEvent& event)
     {
         if (right_buttons_[i].rect.Contains(pos))
         {
-            if (i == 1 && on_theme_gallery_click_)
+            // R17 Fix 3: Track pressed button
+            pressed_button_index_ = static_cast<int>(i);
+            pressed_is_left_ = false;
+            Refresh();
+
+            if (i == 0)
+            {
+                // R5 Fix 20: Save button — flash green and publish save event
+                event_bus_.publish(core::events::TabSaveRequestEvent{});
+                save_flash_active_ = true;
+                save_flash_timer_.StartOnce(400);
+                Refresh();
+            }
+            else if (i == 1 && on_theme_gallery_click_)
             {
                 on_theme_gallery_click_();
             }
-            else
+            else if (i == 2)
             {
-                spdlog::debug("Toolbar: right button {} clicked", i);
+                // R17 Fix 4: Settings button opens settings panel
+                event_bus_.publish(core::events::ActivityBarSelectionEvent(
+                    core::events::ActivityBarItem::Settings));
             }
             return;
         }
@@ -312,10 +385,33 @@ void Toolbar::OnPaint(wxPaintEvent& /*event*/)
     }
     auto& gc = *gc_ptr;
 
-    for (const auto& btn : left_buttons_)
+    for (int idx = 0; idx < static_cast<int>(left_buttons_.size()); ++idx)
     {
-        DrawButton(gc, btn, t);
+        DrawButton(gc, left_buttons_[static_cast<size_t>(idx)], t);
+
+        // R17 Fix 1: Active button underline — 2px accent line beneath active view mode buttons
+        if (left_buttons_[static_cast<size_t>(idx)].is_active && idx < 3)
+        {
+            auto accent = wxColour(t.colors.accent_primary.to_rgba_string());
+            gc.SetPen(gc.CreatePen(wxGraphicsPenInfo(accent).Width(2.0)));
+            gc.SetBrush(*wxTRANSPARENT_BRUSH);
+            double ux = left_buttons_[static_cast<size_t>(idx)].rect.GetX() + 2;
+            double uw = left_buttons_[static_cast<size_t>(idx)].rect.GetWidth() - 4;
+            double uy = left_buttons_[static_cast<size_t>(idx)].rect.GetBottom();
+            gc.StrokeLine(ux, uy, ux + uw, uy);
+        }
     }
+
+    // R17 Fix 5: Vertical separator between left and right button groups
+    if (!left_buttons_.empty() && !right_buttons_.empty())
+    {
+        int sep_x =
+            (left_buttons_.back().rect.GetRight() + right_buttons_.front().rect.GetLeft()) / 2;
+        auto sep_col = wxColour(t.colors.border_light.to_rgba_string());
+        gc.SetPen(gc.CreatePen(wxGraphicsPenInfo(sep_col).Width(1.0)));
+        gc.StrokeLine(sep_x, 8, sep_x, GetClientSize().GetHeight() - 8);
+    }
+
     for (const auto& btn : right_buttons_)
     {
         DrawButton(gc, btn, t);
@@ -332,8 +428,18 @@ void Toolbar::DrawButton(wxGraphicsContext& gc, const ButtonInfo& btn, const cor
     double rw = btn.rect.GetWidth();
     double rh = btn.rect.GetHeight();
 
+    // R17 Fix 2: Dim save button when no file is modified (icon_type 3 = save)
+    // (Opacity handled in text color below — skip background for non-flash clean save)
+
     // Background
-    if (btn.is_active)
+    // R5 Fix 20: Green flash for save button after save
+    if (save_flash_active_ && btn.icon_type == 3)
+    {
+        gc.SetBrush(gc.CreateBrush(wxBrush(wxColour(50, 205, 50, 80)))); // lime green flash
+        gc.SetPen(*wxTRANSPARENT_PEN);
+        gc.DrawRoundedRectangle(rx, ry, rw, rh, 4.0);
+    }
+    else if (btn.is_active)
     {
         auto bg = c.accent_primary.with_alpha(0.20f).to_rgba_string();
         gc.SetBrush(gc.CreateBrush(wxBrush(wxColour(bg))));

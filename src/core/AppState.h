@@ -21,6 +21,7 @@ struct AppState
     std::string current_theme_id{"midnight-neon"};
     int cursor_line{1};
     int cursor_column{1};
+    bool modified_{false};
     std::string encoding{"UTF-8"};
 
     // File tree
@@ -45,6 +46,7 @@ public:
     void set_sidebar_visible(bool visible);
     void set_cursor_position(int line, int column);
     void update_content(const std::string& content);
+    void set_modified(bool modified);
 
 private:
     AppState state_;

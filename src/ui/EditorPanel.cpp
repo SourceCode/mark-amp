@@ -66,6 +66,7 @@ void EditorPanel::SetContent(const std::string& content)
     editor_->EmptyUndoBuffer();
     editor_->SetSavePoint();
     editor_->GotoPos(0);
+    editor_->EnsureCaretVisible();
     UpdateLineNumberMargin();
 
     // Apply large file optimizations based on content size
@@ -438,6 +439,9 @@ void EditorPanel::CreateEditor()
     editor_->Bind(wxEVT_KEY_DOWN, &EditorPanel::OnKeyDown, this);
     editor_->Bind(wxEVT_MOUSEWHEEL, &EditorPanel::OnMouseWheel, this);
 
+    // R4 Fix 1: Editor right-click context menu
+    editor_->Bind(wxEVT_RIGHT_DOWN, &EditorPanel::OnRightDown, this);
+
     // Phase 5: Dwell events for link/image preview
     editor_->SetMouseDwellTime(500);
     editor_->Bind(wxEVT_STC_DWELLSTART, &EditorPanel::OnDwellStart, this);
@@ -515,6 +519,7 @@ void EditorPanel::ConfigureEditorDefaults()
     editor_->SetTabWidth(tab_size_);
     editor_->SetIndent(tab_size_);
     editor_->SetBackSpaceUnIndents(true);
+    editor_->SetTabIndents(true);
     editor_->SetViewEOL(false);
 
     // Scrolling
@@ -1285,10 +1290,19 @@ void EditorPanel::TrimTrailingWhitespace()
 
 void EditorPanel::UpdateStickyScrollHeading()
 {
-    // Phase 3 Item 30: Sticky scroll
-    // This requires a custom overlay widget — placeholder for future implementation.
-    // The heading tracking logic would scan upward from current visible line
-    // to find the nearest markdown heading and display it as a pinned label.
+    // R15 Fix 14: Scan upward from the first visible line to find the nearest
+    // Markdown heading. Store it in sticky_heading_ for potential overlay display.
+    int first_visible = editor_->GetFirstVisibleLine();
+    sticky_heading_.clear();
+    for (int line = first_visible; line >= 0; --line)
+    {
+        wxString text = editor_->GetLine(line).Trim();
+        if (text.StartsWith("# ") || text.StartsWith("## ") || text.StartsWith("### "))
+        {
+            sticky_heading_ = text.ToStdString();
+            break;
+        }
+    }
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1349,9 +1363,15 @@ void EditorPanel::RestoreSessionState(const SessionState& state)
 
 void EditorPanel::RegisterDefaultSnippets()
 {
-    // Phase 5 Item 47: Default markdown snippets
-    // These can be registered in the command palette or triggered via shortcuts.
-    // The snippet body uses $0 as the cursor placeholder.
+    // R15 Fix 13: Register 8 basic Markdown snippets.
+    default_snippets_ = {{"Bold", "**", "**$0**"},
+                         {"Italic", "*", "*$0*"},
+                         {"Link", "[]", "[$0](url)"},
+                         {"Image", "![]", "![$0](url)"},
+                         {"Code Block", "```", "```\n$0\n```"},
+                         {"Heading 1", "#", "# $0"},
+                         {"Bullet List", "-", "- $0"},
+                         {"Table", "||", "| Column 1 | Column 2 |\n| --- | --- |\n| $0 | |"}};
 }
 
 void EditorPanel::ApplyThemeToEditor()
@@ -1484,16 +1504,16 @@ void EditorPanel::ApplyThemeToEditor()
     // --- Caret — accent-colored (Item 4) ---
     editor_->SetCaretForeground(accent);
     editor_->SetSelBackground(true, sel_bg);
-    editor_->SetSelAlpha(60); // Item 9: slightly translucent selection
+    editor_->SetSelAlpha(80); // R16 Fix 18: more opaque selection for readability
 
     // Additional selections (multi-cursor) match primary
     editor_->SetAdditionalSelBackground(sel_bg);
     editor_->SetAdditionalSelAlpha(40);
     editor_->SetAdditionalCaretForeground(accent);
 
-    // Active line highlight
     editor_->SetCaretLineVisible(true);
     editor_->SetCaretLineBackground(active_line_bg);
+    editor_->SetCaretLineBackAlpha(40); // R16 Fix 15: subtle current line highlight
 
     // --- Bracket matching styles ---
     editor_->StyleSetForeground(wxSTC_STYLE_BRACELIGHT, accent2);
@@ -1503,6 +1523,10 @@ void EditorPanel::ApplyThemeToEditor()
     editor_->StyleSetForeground(wxSTC_STYLE_BRACEBAD, error_color);
     editor_->StyleSetBackground(wxSTC_STYLE_BRACEBAD, bg);
     editor_->StyleSetBold(wxSTC_STYLE_BRACEBAD, true);
+
+    // R16 Fix 19: Bracket match box indicator for visual emphasis
+    editor_->IndicatorSetStyle(1, wxSTC_INDIC_BOX);
+    editor_->IndicatorSetForeground(1, accent2);
 
     // --- Line number margin — themed (Items 1, 5, 6) ---
     editor_->StyleSetForeground(wxSTC_STYLE_LINENUMBER, muted);
@@ -1527,8 +1551,8 @@ void EditorPanel::ApplyThemeToEditor()
         }
     }
 
-    // --- Edge column color (Item 10) ---
-    editor_->SetEdgeColour(indent_guide_color);
+    // R16 Fix 21: Edge column uses subtle BorderLight color
+    editor_->SetEdgeColour(theme_engine().color(core::ThemeColorToken::BorderLight));
 
     // --- Whitespace color (Item 8) ---
     editor_->SetWhitespaceForeground(true, indent_guide_color);
@@ -1569,7 +1593,7 @@ void EditorPanel::UpdateLineNumberMargin()
             std::max(kMinGutterDigits, static_cast<int>(std::log10(std::max(1, line_count))) + 1);
         int width = editor_->TextWidth(wxSTC_STYLE_LINENUMBER,
                                        std::string(static_cast<size_t>(digits + 1), '9'));
-        editor_->SetMarginWidth(0, width);
+        editor_->SetMarginWidth(0, width + 8); // R16 Fix 17: extra right padding
         editor_->SetMarginType(0, wxSTC_MARGIN_NUMBER);
     }
     else
@@ -2644,10 +2668,160 @@ void EditorPanel::InsertDateTime()
     editor_->ReplaceSelection(now.FormatISOCombined(' '));
 }
 
+// ── R13: Zoom + EOL ──
+void EditorPanel::ZoomIn()
+{
+    if (editor_ != nullptr)
+    {
+        editor_->ZoomIn();
+    }
+}
+
+void EditorPanel::ZoomOut()
+{
+    if (editor_ != nullptr)
+    {
+        editor_->ZoomOut();
+    }
+}
+
+void EditorPanel::ZoomReset()
+{
+    if (editor_ != nullptr)
+    {
+        editor_->SetZoom(0);
+    }
+}
+
+auto EditorPanel::GetZoomLevel() const -> int
+{
+    if (editor_ != nullptr)
+    {
+        return editor_->GetZoom();
+    }
+    return 0;
+}
+
+void EditorPanel::ConvertEolToLf()
+{
+    if (editor_ != nullptr)
+    {
+        editor_->ConvertEOLs(wxSTC_EOL_LF);
+        editor_->SetEOLMode(wxSTC_EOL_LF);
+    }
+}
+
+void EditorPanel::ConvertEolToCrlf()
+{
+    if (editor_ != nullptr)
+    {
+        editor_->ConvertEOLs(wxSTC_EOL_CRLF);
+        editor_->SetEOLMode(wxSTC_EOL_CRLF);
+    }
+}
+
 void EditorPanel::SortSelectedLines()
 {
-    // Not bound to key yet, but good for API
-    // Implementation left for future or context menu
+    if (editor_ == nullptr)
+        return;
+    int sel_start = editor_->GetSelectionStart();
+    int sel_end = editor_->GetSelectionEnd();
+    int start_line = editor_->LineFromPosition(sel_start);
+    int end_line = editor_->LineFromPosition(sel_end);
+
+    if (start_line >= end_line)
+        return;
+
+    // If selection end is at start of a line, don't include that line
+    if (editor_->PositionFromLine(end_line) == sel_end && end_line > start_line)
+    {
+        --end_line;
+    }
+
+    editor_->BeginUndoAction();
+
+    std::vector<std::string> lines;
+    for (int line = start_line; line <= end_line; ++line)
+    {
+        int line_start = editor_->PositionFromLine(line);
+        int line_end = editor_->GetLineEndPosition(line);
+        lines.push_back(editor_->GetTextRange(line_start, line_end).ToStdString());
+    }
+    std::sort(lines.begin(), lines.end());
+
+    // Replace the range
+    int range_start = editor_->PositionFromLine(start_line);
+    int range_end = editor_->GetLineEndPosition(end_line);
+    std::string joined;
+    for (size_t idx = 0; idx < lines.size(); ++idx)
+    {
+        if (idx > 0)
+            joined += '\n';
+        joined += lines[idx];
+    }
+    editor_->SetTargetStart(range_start);
+    editor_->SetTargetEnd(range_end);
+    editor_->ReplaceTarget(joined);
+    editor_->SetSelection(range_start, range_start + static_cast<int>(joined.size()));
+
+    editor_->EndUndoAction();
+}
+
+void EditorPanel::SortSelectedLinesDesc()
+{
+    if (editor_ == nullptr)
+        return;
+    int sel_start = editor_->GetSelectionStart();
+    int sel_end = editor_->GetSelectionEnd();
+    int start_line = editor_->LineFromPosition(sel_start);
+    int end_line = editor_->LineFromPosition(sel_end);
+
+    if (start_line >= end_line)
+        return;
+
+    if (editor_->PositionFromLine(end_line) == sel_end && end_line > start_line)
+    {
+        --end_line;
+    }
+
+    editor_->BeginUndoAction();
+
+    std::vector<std::string> lines;
+    for (int line = start_line; line <= end_line; ++line)
+    {
+        int line_start = editor_->PositionFromLine(line);
+        int line_end = editor_->GetLineEndPosition(line);
+        lines.push_back(editor_->GetTextRange(line_start, line_end).ToStdString());
+    }
+    std::sort(lines.begin(), lines.end(), std::greater<std::string>());
+
+    int range_start = editor_->PositionFromLine(start_line);
+    int range_end = editor_->GetLineEndPosition(end_line);
+    std::string joined;
+    for (size_t idx = 0; idx < lines.size(); ++idx)
+    {
+        if (idx > 0)
+            joined += '\n';
+        joined += lines[idx];
+    }
+    editor_->SetTargetStart(range_start);
+    editor_->SetTargetEnd(range_end);
+    editor_->ReplaceTarget(joined);
+    editor_->SetSelection(range_start, range_start + static_cast<int>(joined.size()));
+
+    editor_->EndUndoAction();
+}
+
+auto EditorPanel::GetWordAtCaret() const -> std::string
+{
+    if (editor_ == nullptr)
+        return "";
+    int pos = editor_->GetCurrentPos();
+    int word_start = editor_->WordStartPosition(pos, true);
+    int word_end = editor_->WordEndPosition(pos, true);
+    if (word_start >= word_end)
+        return "";
+    return editor_->GetTextRange(word_start, word_end).ToStdString();
 }
 
 void EditorPanel::ConvertSelectionUpperCase()
@@ -5416,6 +5590,155 @@ void EditorPanel::ConvertIndentationToTabs()
     }
     editor_->SetUseTabs(true);
     editor_->EndUndoAction();
+}
+
+// R4 Fix 1: Editor right-click context menu
+void EditorPanel::OnRightDown(wxMouseEvent& event)
+{
+    if (editor_ == nullptr)
+    {
+        event.Skip();
+        return;
+    }
+
+    // Position cursor at click if no selection
+    if (editor_->GetSelectionStart() == editor_->GetSelectionEnd())
+    {
+        const auto pos = editor_->PositionFromPoint(event.GetPosition());
+        editor_->SetCurrentPos(pos);
+        editor_->SetSelection(pos, pos);
+    }
+
+    ShowEditorContextMenu();
+}
+
+void EditorPanel::ShowEditorContextMenu()
+{
+    constexpr int kCtxUndo = 200;
+    constexpr int kCtxRedo = 201;
+    constexpr int kCtxCut = 202;
+    constexpr int kCtxCopy = 203;
+    constexpr int kCtxPaste = 204;
+    constexpr int kCtxSelectAll = 205;
+    constexpr int kCtxGoToLine = 206;
+    constexpr int kCtxFind = 207;
+    constexpr int kCtxWordWrap = 208;
+    constexpr int kCtxUppercase = 209;
+    constexpr int kCtxLowercase = 210;
+    constexpr int kCtxTitleCase = 211;
+
+    wxMenu menu;
+    menu.Append(kCtxUndo, "Undo\tCtrl+Z");
+    menu.Append(kCtxRedo, "Redo\tCtrl+Shift+Z");
+    menu.AppendSeparator();
+    menu.Append(kCtxCut, "Cut\tCtrl+X");
+    menu.Append(kCtxCopy, "Copy\tCtrl+C");
+    menu.Append(kCtxPaste, "Paste\tCtrl+V");
+    menu.AppendSeparator();
+    menu.Append(kCtxSelectAll, "Select All\tCtrl+A");
+    menu.AppendSeparator();
+
+    // R14 Fix 13-14: Go to Line and Find
+    menu.Append(kCtxGoToLine, "Go to Line...\tCtrl+G");
+    menu.Append(kCtxFind, "Find...\tCtrl+F");
+    menu.AppendSeparator();
+
+    // R14 Fix 15: Toggle Word Wrap
+    menu.AppendCheckItem(kCtxWordWrap, "Word Wrap");
+    menu.Check(kCtxWordWrap, editor_->GetWrapMode() != wxSTC_WRAP_NONE);
+
+    // R14 Fix 16: Format submenu
+    auto* format_menu = new wxMenu();
+    format_menu->Append(kCtxUppercase, "UPPERCASE");
+    format_menu->Append(kCtxLowercase, "lowercase");
+    format_menu->Append(kCtxTitleCase, "Title Case");
+    menu.AppendSubMenu(format_menu, "Format");
+
+    // R15 Fixes 17-20: Additional context menu items
+    menu.AppendSeparator();
+    constexpr int kCtxSortLines = 212;
+    constexpr int kCtxDuplicateLine = 213;
+    constexpr int kCtxDeleteLine = 214;
+    constexpr int kCtxToggleComment = 215;
+    menu.Append(kCtxSortLines, "Sort Lines");
+    menu.Append(kCtxDuplicateLine, "Duplicate Line");
+    menu.Append(kCtxDeleteLine, "Delete Line");
+    menu.Append(kCtxToggleComment, "Toggle Comment");
+
+    // Enable/disable based on state
+    menu.Enable(kCtxUndo, editor_->CanUndo());
+    menu.Enable(kCtxRedo, editor_->CanRedo());
+
+    const bool has_selection = editor_->GetSelectionStart() != editor_->GetSelectionEnd();
+    menu.Enable(kCtxCut, has_selection);
+    menu.Enable(kCtxCopy, has_selection);
+    menu.Enable(kCtxPaste, editor_->CanPaste());
+    format_menu->Enable(kCtxUppercase, has_selection);
+    format_menu->Enable(kCtxLowercase, has_selection);
+    format_menu->Enable(kCtxTitleCase, has_selection);
+
+    menu.Bind(wxEVT_MENU,
+              [this](wxCommandEvent& cmd_event)
+              {
+                  switch (cmd_event.GetId())
+                  {
+                      case 200:
+                          editor_->Undo();
+                          break;
+                      case 201:
+                          editor_->Redo();
+                          break;
+                      case 202:
+                          editor_->Cut();
+                          break;
+                      case 203:
+                          editor_->Copy();
+                          break;
+                      case 204:
+                          editor_->Paste();
+                          break;
+                      case 205:
+                          editor_->SelectAll();
+                          break;
+                      case 206:
+                          GoToLineDialog();
+                          break;
+                      case 207:
+                      {
+                          core::events::FindRequestEvent evt;
+                          event_bus_.publish(evt);
+                          break;
+                      }
+                      case 208:
+                          ToggleWordWrap();
+                          break;
+                      case 209:
+                          TransformToUppercase();
+                          break;
+                      case 210:
+                          TransformToLowercase();
+                          break;
+                      case 211:
+                          TransformToTitleCase();
+                          break;
+                      case 212:
+                          SortSelectedLines();
+                          break;
+                      case 213:
+                          DuplicateLine();
+                          break;
+                      case 214:
+                          DeleteCurrentLine();
+                          break;
+                      case 215:
+                          ToggleLineComment();
+                          break;
+                      default:
+                          break;
+                  }
+              });
+
+    PopupMenu(&menu);
 }
 
 } // namespace markamp::ui

@@ -477,4 +477,949 @@ struct ShowStartupRequestEvent : Event
     }
 };
 
+// --- R6 Editor action events ---
+struct FindRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "FindRequestEvent";
+    }
+};
+
+struct ReplaceRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ReplaceRequestEvent";
+    }
+};
+
+struct DuplicateLineRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "DuplicateLineRequestEvent";
+    }
+};
+
+struct ToggleCommentRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ToggleCommentRequestEvent";
+    }
+};
+
+struct DeleteLineRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "DeleteLineRequestEvent";
+    }
+};
+
+struct WrapToggleRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "WrapToggleRequestEvent";
+    }
+};
+
+// --- R7 Editor action events ---
+struct MoveLineUpRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "MoveLineUpRequestEvent";
+    }
+};
+
+struct MoveLineDownRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "MoveLineDownRequestEvent";
+    }
+};
+
+struct JoinLinesRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "JoinLinesRequestEvent";
+    }
+};
+
+struct SortLinesAscRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "SortLinesAscRequestEvent";
+    }
+};
+
+struct SortLinesDescRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "SortLinesDescRequestEvent";
+    }
+};
+
+struct TransformUpperRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "TransformUpperRequestEvent";
+    }
+};
+
+struct TransformLowerRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "TransformLowerRequestEvent";
+    }
+};
+
+struct TransformTitleRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "TransformTitleRequestEvent";
+    }
+};
+
+struct SelectAllOccurrencesRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "SelectAllOccurrencesRequestEvent";
+    }
+};
+
+struct ExpandLineSelectionRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ExpandLineSelectionRequestEvent";
+    }
+};
+
+struct InsertLineAboveRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "InsertLineAboveRequestEvent";
+    }
+};
+
+struct InsertLineBelowRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "InsertLineBelowRequestEvent";
+    }
+};
+
+struct FoldAllRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "FoldAllRequestEvent";
+    }
+};
+
+struct UnfoldAllRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "UnfoldAllRequestEvent";
+    }
+};
+
+struct ToggleLineNumbersRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ToggleLineNumbersRequestEvent";
+    }
+};
+
+struct ToggleWhitespaceRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ToggleWhitespaceRequestEvent";
+    }
+};
+
+// ── R8: 20 more editor action request events ──
+
+struct CopyLineUpRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "CopyLineUpRequestEvent";
+    }
+};
+
+struct CopyLineDownRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "CopyLineDownRequestEvent";
+    }
+};
+
+struct DeleteAllLeftRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "DeleteAllLeftRequestEvent";
+    }
+};
+
+struct DeleteAllRightRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "DeleteAllRightRequestEvent";
+    }
+};
+
+struct ReverseLinesRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ReverseLinesRequestEvent";
+    }
+};
+
+struct DeleteDuplicateLinesRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "DeleteDuplicateLinesRequestEvent";
+    }
+};
+
+struct TransposeCharsRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "TransposeCharsRequestEvent";
+    }
+};
+
+struct IndentSelectionRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "IndentSelectionRequestEvent";
+    }
+};
+
+struct OutdentSelectionRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "OutdentSelectionRequestEvent";
+    }
+};
+
+struct SelectWordRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "SelectWordRequestEvent";
+    }
+};
+
+struct SelectParagraphRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "SelectParagraphRequestEvent";
+    }
+};
+
+struct ToggleReadOnlyRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ToggleReadOnlyRequestEvent";
+    }
+};
+
+struct ConvertIndentSpacesRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ConvertIndentSpacesRequestEvent";
+    }
+};
+
+struct ConvertIndentTabsRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ConvertIndentTabsRequestEvent";
+    }
+};
+
+struct JumpToBracketRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "JumpToBracketRequestEvent";
+    }
+};
+
+struct ToggleMinimapRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ToggleMinimapRequestEvent";
+    }
+};
+
+struct FoldCurrentRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "FoldCurrentRequestEvent";
+    }
+};
+
+struct UnfoldCurrentRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "UnfoldCurrentRequestEvent";
+    }
+};
+
+struct AddLineCommentRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "AddLineCommentRequestEvent";
+    }
+};
+
+struct RemoveLineCommentRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "RemoveLineCommentRequestEvent";
+    }
+};
+
+// ── R9: 20 more editor action request events ──
+
+struct TrimTrailingWSRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "TrimTrailingWSRequestEvent";
+    }
+};
+
+struct ExpandSelectionRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ExpandSelectionRequestEvent";
+    }
+};
+
+struct ShrinkSelectionRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ShrinkSelectionRequestEvent";
+    }
+};
+
+struct CursorUndoRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "CursorUndoRequestEvent";
+    }
+};
+
+struct CursorRedoRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "CursorRedoRequestEvent";
+    }
+};
+
+struct MoveTextLeftRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "MoveTextLeftRequestEvent";
+    }
+};
+
+struct MoveTextRightRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "MoveTextRightRequestEvent";
+    }
+};
+
+struct ToggleAutoIndentRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ToggleAutoIndentRequestEvent";
+    }
+};
+
+struct ToggleBracketMatchingRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ToggleBracketMatchingRequestEvent";
+    }
+};
+
+struct ToggleCodeFoldingRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ToggleCodeFoldingRequestEvent";
+    }
+};
+
+struct ToggleIndentGuidesRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ToggleIndentGuidesRequestEvent";
+    }
+};
+
+struct SelectToBracketRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "SelectToBracketRequestEvent";
+    }
+};
+
+struct ToggleBlockCommentRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ToggleBlockCommentRequestEvent";
+    }
+};
+
+struct InsertDateTimeRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "InsertDateTimeRequestEvent";
+    }
+};
+
+struct BoldRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "BoldRequestEvent";
+    }
+};
+
+struct ItalicRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ItalicRequestEvent";
+    }
+};
+
+struct InlineCodeRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "InlineCodeRequestEvent";
+    }
+};
+
+struct BlockquoteRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "BlockquoteRequestEvent";
+    }
+};
+
+struct CycleHeadingRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "CycleHeadingRequestEvent";
+    }
+};
+
+struct InsertTableRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "InsertTableRequestEvent";
+    }
+};
+
+// ── R10 events ──
+struct ToggleSmartListContinuationRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ToggleSmartListContinuationRequestEvent";
+    }
+};
+
+struct CloseOtherTabsRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "CloseOtherTabsRequestEvent";
+    }
+};
+
+struct CloseSavedTabsRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "CloseSavedTabsRequestEvent";
+    }
+};
+
+struct InsertLinkRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "InsertLinkRequestEvent";
+    }
+};
+
+struct AddCursorBelowRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "AddCursorBelowRequestEvent";
+    }
+};
+
+struct AddCursorAboveRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "AddCursorAboveRequestEvent";
+    }
+};
+
+struct AddCursorNextOccurrenceRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "AddCursorNextOccurrenceRequestEvent";
+    }
+};
+
+struct RemoveSurroundingBracketsRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "RemoveSurroundingBracketsRequestEvent";
+    }
+};
+
+struct DuplicateSelectionOrLineRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "DuplicateSelectionOrLineRequestEvent";
+    }
+};
+
+struct ShowTableEditorRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ShowTableEditorRequestEvent";
+    }
+};
+
+struct ToggleScrollBeyondLastLineRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ToggleScrollBeyondLastLineRequestEvent";
+    }
+};
+
+struct ToggleHighlightCurrentLineRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ToggleHighlightCurrentLineRequestEvent";
+    }
+};
+
+struct ToggleAutoClosingBracketsRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ToggleAutoClosingBracketsRequestEvent";
+    }
+};
+
+struct ToggleStickyScrollRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ToggleStickyScrollRequestEvent";
+    }
+};
+
+struct ToggleFontLigaturesRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ToggleFontLigaturesRequestEvent";
+    }
+};
+
+struct ToggleSmoothCaretRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ToggleSmoothCaretRequestEvent";
+    }
+};
+
+struct ToggleInlineColorPreviewRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ToggleInlineColorPreviewRequestEvent";
+    }
+};
+
+struct ToggleEdgeColumnRulerRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ToggleEdgeColumnRulerRequestEvent";
+    }
+};
+
+struct EnsureFinalNewlineRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "EnsureFinalNewlineRequestEvent";
+    }
+};
+
+struct InsertSnippetRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "InsertSnippetRequestEvent";
+    }
+};
+
+// ── R11 events ──
+struct ToggleSmoothScrollingRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ToggleSmoothScrollingRequestEvent";
+    }
+};
+struct ToggleTrailingWSHighlightRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ToggleTrailingWSHighlightRequestEvent";
+    }
+};
+struct ToggleAutoTrimWSRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ToggleAutoTrimWSRequestEvent";
+    }
+};
+struct ToggleGutterSeparatorRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ToggleGutterSeparatorRequestEvent";
+    }
+};
+struct ToggleInsertFinalNewlineRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ToggleInsertFinalNewlineRequestEvent";
+    }
+};
+struct ToggleWhitespaceBoundaryRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ToggleWhitespaceBoundaryRequestEvent";
+    }
+};
+struct ToggleLinkAutoCompleteRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ToggleLinkAutoCompleteRequestEvent";
+    }
+};
+struct ToggleDragDropRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ToggleDragDropRequestEvent";
+    }
+};
+struct ToggleAutoSaveRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ToggleAutoSaveRequestEvent";
+    }
+};
+struct ToggleEmptySelClipboardRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ToggleEmptySelClipboardRequestEvent";
+    }
+};
+struct CycleRenderWhitespaceRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "CycleRenderWhitespaceRequestEvent";
+    }
+};
+struct DeleteCurrentLineRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "DeleteCurrentLineRequestEvent";
+    }
+};
+struct CopyLineNoSelRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "CopyLineNoSelRequestEvent";
+    }
+};
+struct AddSelNextMatchRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "AddSelNextMatchRequestEvent";
+    }
+};
+struct SmartBackspaceRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "SmartBackspaceRequestEvent";
+    }
+};
+struct HideTableEditorRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "HideTableEditorRequestEvent";
+    }
+};
+struct AutoPairBoldRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "AutoPairBoldRequestEvent";
+    }
+};
+struct AutoPairItalicRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "AutoPairItalicRequestEvent";
+    }
+};
+struct AutoPairCodeRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "AutoPairCodeRequestEvent";
+    }
+};
+struct ToggleMinimapR11RequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ToggleMinimapR11RequestEvent";
+    }
+};
+
+// ── R12 events (only truly new ones) ──
+struct ReverseSelectedLinesRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ReverseSelectedLinesRequestEvent";
+    }
+};
+struct TransposeCharactersRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "TransposeCharactersRequestEvent";
+    }
+};
+struct FoldCurrentRegionRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "FoldCurrentRegionRequestEvent";
+    }
+};
+struct UnfoldCurrentRegionRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "UnfoldCurrentRegionRequestEvent";
+    }
+};
+struct JumpToMatchingBracketRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "JumpToMatchingBracketRequestEvent";
+    }
+};
+struct SelectToMatchingBracketRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "SelectToMatchingBracketRequestEvent";
+    }
+};
+struct CloseTabsToLeftRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "CloseTabsToLeftRequestEvent";
+    }
+};
+struct CloseTabsToRightRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "CloseTabsToRightRequestEvent";
+    }
+};
+
+struct PinTabRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "PinTabRequestEvent";
+    }
+};
+struct UnpinTabRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "UnpinTabRequestEvent";
+    }
+};
+
+// ── R13 RequestEvents ──
+struct PrintDocumentRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "PrintDocumentRequestEvent";
+    }
+};
+struct CopyFilePathRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "CopyFilePathRequestEvent";
+    }
+};
+struct RevealInFinderRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "RevealInFinderRequestEvent";
+    }
+};
+struct ZoomInRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ZoomInRequestEvent";
+    }
+};
+struct ZoomOutRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ZoomOutRequestEvent";
+    }
+};
+struct ZoomResetRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ZoomResetRequestEvent";
+    }
+};
+struct ConvertEolLfRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ConvertEolLfRequestEvent";
+    }
+};
+struct ConvertEolCrlfRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ConvertEolCrlfRequestEvent";
+    }
+};
+
+// ── R15 events ──
+struct NewFileRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "NewFileRequestEvent";
+    }
+};
+
 } // namespace markamp::core::events
