@@ -1,7 +1,9 @@
 #pragma once
 
+#include <filesystem>
 #include <functional>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace markamp::core
@@ -104,6 +106,9 @@ struct PluginManifest
 
 /// Runtime context passed to plugins during activation, giving them access
 /// to core services. This is the plugin's gateway to the application.
+///
+/// Enhanced in Phase 4 with subscriptions, extensionPath, workspaceState,
+/// and globalState to match VS Code's `vscode.ExtensionContext`.
 struct PluginContext
 {
     EventBus* event_bus{nullptr};
@@ -113,6 +118,15 @@ struct PluginContext
     /// the command palette and shortcut manager based on the manifest.
     std::function<void(const std::string& command_id, std::function<void()> handler)>
         register_command_handler;
+
+    /// Absolute path to the extension's installation directory.
+    std::filesystem::path extension_path;
+
+    /// Per-workspace key-value state (survives across sessions, scoped to workspace).
+    std::unordered_map<std::string, std::string> workspace_state;
+
+    /// Global key-value state (survives across sessions, shared across workspaces).
+    std::unordered_map<std::string, std::string> global_state;
 };
 
 // ── Plugin Interface ──

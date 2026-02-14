@@ -39,6 +39,7 @@ void ActivityBar::CreateItems()
         {core::events::ActivityBarItem::Search, "Search", "\xF0\x9F\x94\x8D", {}},
         {core::events::ActivityBarItem::Settings, "Settings", "\xE2\x9A\x99", {}},
         {core::events::ActivityBarItem::Themes, "Themes", "\xF0\x9F\x8E\xA8", {}},
+        {core::events::ActivityBarItem::Extensions, "Extensions", "\xF0\x9F\xA7\xA9", {}},
     };
 }
 

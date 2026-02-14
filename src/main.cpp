@@ -6,6 +6,8 @@
 #include "core/Command.h"
 #include "core/Config.h"
 #include "core/EventBus.h"
+#include "core/FeatureRegistry.h"
+#include "core/PluginManager.h"
 #include "core/ThemeEngine.h"
 #include "core/ThemeRegistry.h"
 #include "platform/PlatformAbstraction.h"

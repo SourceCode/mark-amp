@@ -29,8 +29,39 @@ add_executable(markamp
     ui/SettingsPanel.cpp
     ui/NotificationManager.cpp
     ui/ActivityBar.cpp
+    ui/ExtensionsBrowserPanel.cpp
+    ui/ExtensionCard.cpp
+    ui/ExtensionDetailPanel.cpp
+    ui/OutputPanel.cpp
+    ui/ProblemsPanel.cpp
+    ui/TreeViewHost.cpp
+    ui/WebviewHostPanel.cpp
+    ui/WalkthroughPanel.cpp
     core/Logger.cpp
     core/PluginManager.cpp
+    core/FeatureRegistry.cpp
+    core/BuiltInPlugins.cpp
+    core/ExtensionManifest.cpp
+    core/ExtensionScanner.cpp
+    core/ExtensionStorage.cpp
+    core/ExtensionEnablement.cpp
+    core/VsixService.cpp
+    core/HttpClient.cpp
+    core/GalleryService.cpp
+    core/ExtensionManagement.cpp
+    core/ContextKeyService.cpp
+    core/WhenClause.cpp
+    core/OutputChannelService.cpp
+    core/DiagnosticsService.cpp
+    core/TreeDataProviderRegistry.cpp
+    core/WebviewService.cpp
+    core/DecorationService.cpp
+    core/FileSystemProviderRegistry.cpp
+    core/LanguageProviderRegistry.cpp
+    core/ExtensionHostRecovery.cpp
+    core/ExtensionRecommendations.cpp
+    core/ExtensionTelemetry.cpp
+    core/ExtensionSandbox.cpp
     core/EventBus.cpp
     core/AppState.cpp
     core/Command.cpp
@@ -156,12 +187,20 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "Src" FILES
     core/IPlugin.h
     core/PluginManager.h
     core/PluginManager.cpp
+    core/BuiltInPlugins.h
+    core/BuiltInPlugins.cpp
     ui/SettingsPanel.h
     ui/SettingsPanel.cpp
     ui/NotificationManager.h
     ui/NotificationManager.cpp
     ui/ActivityBar.h
     ui/ActivityBar.cpp
+    ui/ExtensionsBrowserPanel.h
+    ui/ExtensionsBrowserPanel.cpp
+    ui/ExtensionCard.h
+    ui/ExtensionCard.cpp
+    ui/ExtensionDetailPanel.h
+    ui/ExtensionDetailPanel.cpp
     platform/PlatformAbstraction.h
     platform/MacPlatform.h
 )

@@ -86,7 +86,8 @@ MainFrame::MainFrame(const wxString& title,
                      markamp::core::Config* config,
                      markamp::core::RecentWorkspaces* recent_workspaces,
                      markamp::platform::PlatformAbstraction* platform,
-                     markamp::core::ThemeEngine* theme_engine)
+                     markamp::core::ThemeEngine* theme_engine,
+                     markamp::core::FeatureRegistry* feature_registry)
     : wxFrame(
           nullptr, wxID_ANY, title, pos, size, wxBORDER_NONE | wxRESIZE_BORDER | wxCLIP_CHILDREN)
     , event_bus_(event_bus)
@@ -94,6 +95,7 @@ MainFrame::MainFrame(const wxString& title,
     , recent_workspaces_(recent_workspaces)
     , platform_(platform)
     , theme_engine_(theme_engine)
+    , feature_registry_(feature_registry)
     , shortcut_manager_(*event_bus)
 {
     // Minimum size constraints
@@ -156,7 +158,7 @@ MainFrame::MainFrame(const wxString& title,
 
     if (theme_engine_ != nullptr && event_bus_ != nullptr)
     {
-        layout_ = new LayoutManager(this, *theme_engine_, *event_bus_, config_);
+        layout_ = new LayoutManager(this, *theme_engine_, *event_bus_, config_, feature_registry_);
         sizer->Add(layout_, 1, wxEXPAND);
         layout_->Hide(); // Hidden by default
     }

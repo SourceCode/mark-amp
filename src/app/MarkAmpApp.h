@@ -17,6 +17,8 @@ class CommandHistory;
 class MermaidRenderer;
 class ThemeRegistry;
 class ThemeEngine;
+class PluginManager;
+class FeatureRegistry;
 } // namespace markamp::core
 
 namespace markamp::platform
@@ -53,6 +55,8 @@ private:
     std::unique_ptr<core::ThemeRegistry> theme_registry_;
     std::unique_ptr<core::ThemeEngine> theme_engine_;
     std::shared_ptr<core::MermaidRenderer> mermaid_renderer_;
+    std::unique_ptr<core::FeatureRegistry> feature_registry_;
+    std::unique_ptr<core::PluginManager> plugin_manager_;
 };
 
 } // namespace markamp::app

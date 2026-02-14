@@ -404,6 +404,76 @@ struct PluginDeactivatedEvent : Event
     }
 };
 
+// --- Feature toggle events ---
+struct FeatureToggledEvent : Event
+{
+    std::string feature_id;
+    bool enabled{false};
+
+    FeatureToggledEvent() = default;
+    FeatureToggledEvent(std::string id, bool state)
+        : feature_id(std::move(id))
+        , enabled(state)
+    {
+    }
+
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "FeatureToggledEvent";
+    }
+};
+
+// --- Extension management events ---
+struct ExtensionInstalledEvent : Event
+{
+    std::string extension_id;
+    std::string version;
+
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ExtensionInstalledEvent";
+    }
+};
+
+struct ExtensionUninstalledEvent : Event
+{
+    std::string extension_id;
+
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ExtensionUninstalledEvent";
+    }
+};
+
+struct ExtensionEnablementChangedEvent : Event
+{
+    std::string extension_id;
+    bool enabled{false};
+
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ExtensionEnablementChangedEvent";
+    }
+};
+
+/// Request to show the Extensions Browser panel in the sidebar.
+struct ShowExtensionsBrowserRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ShowExtensionsBrowserRequestEvent";
+    }
+};
+
+/// Request to show the Explorer panel in the sidebar.
+struct ShowExplorerRequestEvent : Event
+{
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "ShowExplorerRequestEvent";
+    }
+};
+
 // --- Notification events ---
 enum class NotificationLevel
 {
@@ -441,7 +511,8 @@ enum class ActivityBarItem
     FileExplorer,
     Search,
     Settings,
-    Themes
+    Themes,
+    Extensions
 };
 
 struct ActivityBarSelectionEvent : Event

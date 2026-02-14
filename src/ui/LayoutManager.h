@@ -19,12 +19,20 @@
 namespace markamp::core
 {
 class Config;
+class FeatureRegistry;
+} // namespace markamp::core
+
+namespace markamp::core
+{
+class IExtensionManagementService;
+class IExtensionGalleryService;
 } // namespace markamp::core
 
 namespace markamp::ui
 {
 
 class BreadcrumbBar;
+class ExtensionsBrowserPanel;
 class FileTreeCtrl;
 class PreviewPanel;
 class SplitterBar;
@@ -32,6 +40,13 @@ class SplitView;
 class StatusBarPanel;
 class TabBar;
 class Toolbar;
+
+/// Sidebar display mode.
+enum class SidebarMode
+{
+    kExplorer,
+    kExtensions
+};
 
 /// Orchestrates the three-zone layout below CustomChrome:
 ///   Sidebar (256px) | Content Area (flex)
@@ -42,7 +57,8 @@ public:
     LayoutManager(wxWindow* parent,
                   core::ThemeEngine& theme_engine,
                   core::EventBus& event_bus,
-                  core::Config* config);
+                  core::Config* config,
+                  core::FeatureRegistry* feature_registry = nullptr);
 
     // Zone access (for later phases to populate)
     [[nodiscard]] auto sidebar_container() -> wxPanel*;
@@ -90,6 +106,12 @@ public:
     // Phase 6D/7A: Forward minimap toggle to editor
     void ToggleEditorMinimap();
 
+    // Phase 8: Sidebar panel switching
+    void SetSidebarMode(SidebarMode mode);
+    [[nodiscard]] auto GetSidebarMode() const -> SidebarMode;
+    void SetExtensionServices(core::IExtensionManagementService* mgmt_service,
+                              core::IExtensionGalleryService* gallery_service);
+
     static constexpr int kDefaultSidebarWidth = 256;
     static constexpr int kMinSidebarWidth = 180;
     static constexpr int kMaxSidebarWidth = 400;
@@ -101,6 +123,7 @@ protected:
 private:
     core::EventBus& event_bus_;
     core::Config* config_;
+    core::FeatureRegistry* feature_registry_{nullptr};
 
     // Child panels
     wxPanel* sidebar_panel_{nullptr};
@@ -115,6 +138,16 @@ private:
     wxStaticText* file_count_label_{nullptr};
     wxStaticText* header_label_{nullptr};    // R3 Fix 19
     BreadcrumbBar* breadcrumb_bar_{nullptr}; // R3 Fix 14
+
+    // Phase 8: Sidebar mode switching
+    SidebarMode sidebar_mode_{SidebarMode::kExplorer};
+    wxPanel* explorer_panel_{nullptr}; // Container for file tree + search + footer
+    ExtensionsBrowserPanel* extensions_panel_{nullptr};
+    core::IExtensionManagementService* ext_mgmt_service_{nullptr};
+    core::IExtensionGalleryService* ext_gallery_service_{nullptr};
+    core::Subscription show_extensions_sub_;
+    core::Subscription show_explorer_sub_;
+    core::Subscription feature_toggled_sub_;
 
     // Sizer management
     wxBoxSizer* main_sizer_{nullptr};

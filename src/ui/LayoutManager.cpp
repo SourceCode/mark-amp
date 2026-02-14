@@ -2,6 +2,7 @@
 
 #include "BreadcrumbBar.h"
 #include "EditorPanel.h"
+#include "ExtensionsBrowserPanel.h"
 #include "FileTreeCtrl.h"
 #include "SplitView.h"
 #include "SplitterBar.h"
@@ -9,8 +10,10 @@
 #include "TabBar.h"
 #include "ThemeGallery.h"
 #include "Toolbar.h"
+#include "core/BuiltInPlugins.h"
 #include "core/Config.h"
 #include "core/Events.h"
+#include "core/FeatureRegistry.h"
 #include "core/Logger.h"
 #include "core/SampleFiles.h"
 
@@ -32,11 +35,13 @@ namespace markamp::ui
 LayoutManager::LayoutManager(wxWindow* parent,
                              core::ThemeEngine& theme_engine,
                              core::EventBus& event_bus,
-                             core::Config* config)
+                             core::Config* config,
+                             core::FeatureRegistry* feature_registry)
     : ThemeAwareWindow(
           parent, theme_engine, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL)
     , event_bus_(event_bus)
     , config_(config)
+    , feature_registry_(feature_registry)
     , sidebar_anim_timer_(this)
 {
     RestoreLayoutState();
@@ -1647,6 +1652,43 @@ LayoutManager::LayoutManager(wxWindow* parent,
 
     MARKAMP_LOG_INFO(
         "LayoutManager created (sidebar={}px, visible={})", sidebar_width_, sidebar_visible_);
+
+    // Phase 8: Subscribe to sidebar mode switching events
+    show_extensions_sub_ = event_bus_.subscribe<core::events::ShowExtensionsBrowserRequestEvent>(
+        [this]([[maybe_unused]] const core::events::ShowExtensionsBrowserRequestEvent& evt)
+        {
+            SetSidebarMode(SidebarMode::kExtensions);
+            if (!sidebar_visible_)
+            {
+                set_sidebar_visible(true);
+            }
+        });
+
+    show_explorer_sub_ = event_bus_.subscribe<core::events::ShowExplorerRequestEvent>(
+        [this]([[maybe_unused]] const core::events::ShowExplorerRequestEvent& evt)
+        {
+            SetSidebarMode(SidebarMode::kExplorer);
+            if (!sidebar_visible_)
+            {
+                set_sidebar_visible(true);
+            }
+        });
+
+    // Phase 9: Subscribe to feature toggle events for dynamic show/hide
+    feature_toggled_sub_ = event_bus_.subscribe<core::events::FeatureToggledEvent>(
+        [this](const core::events::FeatureToggledEvent& evt)
+        {
+            if (evt.feature_id == core::builtin_features::kBreadcrumb)
+            {
+                if (breadcrumb_bar_ != nullptr)
+                {
+                    breadcrumb_bar_->Show(evt.enabled);
+                    content_panel_->Layout();
+                }
+            }
+            MARKAMP_LOG_INFO(
+                "Feature toggled: {} = {}", evt.feature_id, evt.enabled ? "on" : "off");
+        });
 }
 
 void LayoutManager::SaveFile(const std::string& path)
@@ -1704,9 +1746,13 @@ void LayoutManager::CreateLayout()
     sidebar_sizer->Add(header_panel, 0, wxEXPAND);
 
     // R5 Fix 7: Use wxSearchCtrl for built-in clear/cancel button
+    // Phase 8: Wrap explorer widgets in a container panel for sidebar switching
+    explorer_panel_ = new wxPanel(sidebar_panel_, wxID_ANY);
+    auto* explorer_sizer = new wxBoxSizer(wxVERTICAL);
+
     auto* search_sizer = new wxBoxSizer(wxHORIZONTAL);
     search_field_ = new wxSearchCtrl(
-        sidebar_panel_, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(-1, 28));
+        explorer_panel_, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(-1, 28));
     search_field_->SetDescriptiveText("Filter files\u2026");
     search_field_->ShowCancelButton(true);
     search_field_->SetBackgroundColour(
@@ -1717,11 +1763,11 @@ void LayoutManager::CreateLayout()
     search_sizer->AddSpacer(8);
     search_sizer->Add(search_field_, 1, wxALIGN_CENTER_VERTICAL);
     search_sizer->AddSpacer(8);
-    sidebar_sizer->Add(search_sizer, 0, wxEXPAND | wxTOP | wxBOTTOM, 8); // 8E: was 4
+    explorer_sizer->Add(search_sizer, 0, wxEXPAND | wxTOP | wxBOTTOM, 8); // 8E: was 4
 
     // Spacer content area -> FileTreeCtrl
-    file_tree_ = new FileTreeCtrl(sidebar_panel_, theme_engine(), event_bus_);
-    sidebar_sizer->Add(file_tree_, 1, wxEXPAND);
+    file_tree_ = new FileTreeCtrl(explorer_panel_, theme_engine(), event_bus_);
+    explorer_sizer->Add(file_tree_, 1, wxEXPAND);
 
     // Bind search field text changes to filter
     search_field_->Bind(wxEVT_TEXT,
@@ -1785,7 +1831,7 @@ void LayoutManager::CreateLayout()
     } // end: Fix 14 conditional sample tree
 
     // Footer — Fix 13: show file count
-    auto* footer_panel = new wxPanel(sidebar_panel_, wxID_ANY, wxDefaultPosition, wxSize(-1, 28));
+    auto* footer_panel = new wxPanel(explorer_panel_, wxID_ANY, wxDefaultPosition, wxSize(-1, 28));
     footer_panel->SetBackgroundColour(theme_engine().color(core::ThemeColorToken::BgApp));
     auto* footer_sizer = new wxBoxSizer(wxHORIZONTAL);
     file_count_label_ = new wxStaticText(footer_panel, wxID_ANY, "");
@@ -1794,7 +1840,10 @@ void LayoutManager::CreateLayout()
     footer_sizer->AddSpacer(12);
     footer_sizer->Add(file_count_label_, 1, wxALIGN_CENTER_VERTICAL);
     footer_panel->SetSizer(footer_sizer);
-    sidebar_sizer->Add(footer_panel, 0, wxEXPAND);
+    explorer_sizer->Add(footer_panel, 0, wxEXPAND);
+
+    explorer_panel_->SetSizer(explorer_sizer);
+    sidebar_sizer->Add(explorer_panel_, 1, wxEXPAND);
 
     sidebar_panel_->SetSizer(sidebar_sizer);
 
@@ -1824,6 +1873,13 @@ void LayoutManager::CreateLayout()
     // R3 Fix 14: BreadcrumbBar between tab bar and split view
     breadcrumb_bar_ = new BreadcrumbBar(content_panel_, theme_engine(), event_bus_);
     content_sizer->Add(breadcrumb_bar_, 0, wxEXPAND);
+
+    // Phase 9: Respect initial feature toggle state for breadcrumb
+    if (feature_registry_ != nullptr &&
+        !feature_registry_->is_enabled(core::builtin_features::kBreadcrumb))
+    {
+        breadcrumb_bar_->Hide();
+    }
 
     split_view_ = new SplitView(content_panel_, theme_engine(), event_bus_, config_);
     content_sizer->Add(split_view_, 1, wxEXPAND);
@@ -2112,6 +2168,89 @@ void LayoutManager::ToggleEditorMinimap()
             editor->ToggleMinimap();
         }
     }
+}
+
+// --- Phase 8: Sidebar panel switching ---
+
+void LayoutManager::SetSidebarMode(SidebarMode mode)
+{
+    if (mode == sidebar_mode_)
+    {
+        return;
+    }
+
+    sidebar_mode_ = mode;
+
+    switch (mode)
+    {
+        case SidebarMode::kExplorer:
+        {
+            if (extensions_panel_ != nullptr)
+            {
+                extensions_panel_->Hide();
+            }
+            if (explorer_panel_ != nullptr)
+            {
+                explorer_panel_->Show();
+            }
+            if (header_label_ != nullptr)
+            {
+                header_label_->SetLabel("EXPLORER");
+            }
+            break;
+        }
+        case SidebarMode::kExtensions:
+        {
+            if (explorer_panel_ != nullptr)
+            {
+                explorer_panel_->Hide();
+            }
+
+            // Lazily create the extensions panel when first shown
+            if (extensions_panel_ == nullptr && ext_mgmt_service_ != nullptr &&
+                ext_gallery_service_ != nullptr)
+            {
+                extensions_panel_ = new ExtensionsBrowserPanel(sidebar_panel_,
+                                                               theme_engine(),
+                                                               event_bus_,
+                                                               *ext_mgmt_service_,
+                                                               *ext_gallery_service_);
+
+                auto* sidebar_sizer = sidebar_panel_->GetSizer();
+                if (sidebar_sizer != nullptr)
+                {
+                    sidebar_sizer->Add(extensions_panel_, 1, wxEXPAND);
+                }
+            }
+
+            if (extensions_panel_ != nullptr)
+            {
+                extensions_panel_->Show();
+                extensions_panel_->ShowInstalledExtensions();
+            }
+
+            if (header_label_ != nullptr)
+            {
+                header_label_->SetLabel("EXTENSIONS");
+            }
+            break;
+        }
+    }
+
+    sidebar_panel_->Layout();
+    sidebar_panel_->Refresh();
+}
+
+auto LayoutManager::GetSidebarMode() const -> SidebarMode
+{
+    return sidebar_mode_;
+}
+
+void LayoutManager::SetExtensionServices(core::IExtensionManagementService* mgmt_service,
+                                         core::IExtensionGalleryService* gallery_service)
+{
+    ext_mgmt_service_ = mgmt_service;
+    ext_gallery_service_ = gallery_service;
 }
 
 // --- Multi-file tab management ---

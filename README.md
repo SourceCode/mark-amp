@@ -1,6 +1,6 @@
 # MarkAmp
 
-**v1.8.11** — A powerful, cross-platform Markdown editor built with C++23 and wxWidgets.
+**v1.9.12** — A powerful, cross-platform Markdown editor built with C++23 and wxWidgets.
 
 ## Features
 
@@ -11,7 +11,9 @@
 - **Command Palette**: Fuzzy-searchable command launcher (Ctrl+Shift+P)
 - **Settings Panel**: VS Code-inspired searchable settings with categories, modified indicators, and import/export
 - **Plugin System**: Extensible via manifest-driven plugins with commands, keybindings, snippets, menus, settings, and themes
-- **Activity Bar**: Vertical icon rail for quick panel navigation
+- **Extension Management**: VS Code-style extension infrastructure with marketplace gallery, VSIX install, enablement, sandbox, and host recovery
+- **Extensions Browser**: Sidebar panel for browsing, searching, installing, and managing extensions
+- **Activity Bar**: Vertical icon rail for quick panel navigation (Explorer, Search, Settings, Themes, Extensions)
 - **Toast Notifications**: Info/Warning/Error/Success with auto-dismiss and animation
 - **Zen Mode**: Distraction-free editing with a single keypress
 - **Themeable**: 8 built-in retro-futuristic themes with markdown-based theme authoring
@@ -44,7 +46,7 @@ cmake --build build/debug -j$(sysctl -n hw.ncpu)
 cd build/debug && ctest --output-on-failure
 ```
 
-10 test targets, 100% pass rate covering core, rendering, UI, theme, performance primitives, and crash regressions.
+21 test targets, 100% pass rate covering core, rendering, UI, theme, performance primitives, crash regressions, extension management, and integration tests.
 
 ## Documentation
 

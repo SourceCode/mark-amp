@@ -230,7 +230,7 @@ body {{
     background-color: {bg_app};
     color: {text_main};
     font-family: 'Rajdhani', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
-    font-size: {}px;
+    font-size: {font_size}px;
     line-height: 1.6;
     padding: 24px;
     word-wrap: break-word;
@@ -696,7 +696,7 @@ code {{
                               fmt::arg("accent_bg_30", accent_bg_30),
                               fmt::arg("border_30", border_30),
                               fmt::arg("code_bg", code_bg),
-                              14 + zoom_level_ * 2);
+                              fmt::arg("font_size", 14 + zoom_level_ * 2));
     // Improvement 4: cache the generated CSS string
     cached_css_ = std::move(result);
     return cached_css_;

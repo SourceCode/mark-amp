@@ -17,6 +17,7 @@ class AppStateManager;
 class Config;
 class ThemeEngine;
 class RecentWorkspaces;
+class FeatureRegistry;
 } // namespace markamp::core
 
 namespace markamp::ui
@@ -37,7 +38,8 @@ public:
               markamp::core::Config* config,
               markamp::core::RecentWorkspaces* recent_workspaces,
               markamp::platform::PlatformAbstraction* platform,
-              markamp::core::ThemeEngine* theme_engine);
+              markamp::core::ThemeEngine* theme_engine,
+              markamp::core::FeatureRegistry* feature_registry);
 
 private:
     // Core references (owned by MarkAmpApp)
@@ -46,6 +48,7 @@ private:
     markamp::core::RecentWorkspaces* recent_workspaces_;
     markamp::platform::PlatformAbstraction* platform_;
     markamp::core::ThemeEngine* theme_engine_;
+    markamp::core::FeatureRegistry* feature_registry_;
 
     // Subscriptions
     std::vector<markamp::core::Subscription> subscriptions_;

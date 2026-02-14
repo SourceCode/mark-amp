@@ -1,5 +1,68 @@
 # MarkAmp Release History
 
+## v1.9.12 — 2026-02-14
+
+### Highlights
+
+VS Code-style extension management infrastructure and built-in plugin architecture. Adds a complete extension marketplace pipeline with manifest parsing (JSON package.json), extension scanner, gallery service with HTTP client, VSIX install/uninstall, extension enablement/disablement, sandbox isolation, host crash recovery, telemetry, storage, and recommendation engine. Converts 7 built-in features (Mermaid, Table Editor, Format Bar, Theme Gallery, Link Preview, Image Preview, Breadcrumb) into the plugin architecture via BuiltInPlugins. Introduces FeatureRegistry for runtime feature toggling, ContextKeyService with WhenClause evaluator for conditional UI, and 6 new VS Code-style contribution point registries (FileSystem, Language, TreeData, Webview, Decoration, Output Channel). Adds 8 new UI panels (Extensions Browser, Extension Card, Extension Detail, Output, Problems, Tree View Host, Walkthrough, Webview Host). Enhanced PluginManager with lazy activation events, dependency resolution via topological sort, and extension pack expansion. PluginContext extended with extensionPath, workspaceState, and globalState. Touches 65+ files with 11 new test suites. All 21 test targets pass at 100%.
+
+### Added
+
+- **BuiltInPlugins** (`BuiltInPlugins.h/.cpp`): Converts 7 built-in features (Mermaid, Table Editor, Format Bar, Theme Gallery, Link Preview, Image Preview, Breadcrumb) into IPlugin instances registered with PluginManager
+- **FeatureRegistry** (`FeatureRegistry.h/.cpp`): Runtime feature toggle registry with enable/disable/query and `FeatureToggledEvent` notifications
+- **ExtensionManifest** (`ExtensionManifest.h/.cpp`): JSON manifest parser for VS Code-compatible `package.json` extension manifests including activation events, dependencies, contribution points, and extension packs
+- **ExtensionScanner** (`ExtensionScanner.h/.cpp`): Scans extension directories for installed extensions and parses their manifests
+- **ExtensionStorage** (`ExtensionStorage.h/.cpp`): Persistent per-extension key-value storage with JSON serialization
+- **ExtensionEnablement** (`ExtensionEnablement.h/.cpp`): Extension enable/disable state management with global and workspace-scoped overrides
+- **VsixService** (`VsixService.h/.cpp`): VSIX package install/uninstall with ZIP extraction via libzip
+- **HttpClient** (`HttpClient.h/.cpp`): HTTP GET/POST client using cpp-httplib for marketplace communication
+- **GalleryService** (`GalleryService.h/.cpp`): Extension marketplace gallery search, version listing, and download URL resolution
+- **ExtensionManagement** (`ExtensionManagement.h/.cpp`): High-level extension lifecycle orchestrating scanner, gallery, VSIX, enablement, and PluginManager
+- **ContextKeyService** (`ContextKeyService.h/.cpp`): VS Code-style context key registry for conditional command/menu visibility
+- **WhenClause** (`WhenClause.h/.cpp`): Boolean expression evaluator for `when` clauses (AND, OR, NOT, ==, !=, regex match)
+- **OutputChannelService** (`OutputChannelService.h/.cpp`): Named output channel management for extension logging
+- **DiagnosticsService** (`DiagnosticsService.h/.cpp`): Diagnostic collection and reporting (errors, warnings, hints, info) per URI
+- **TreeDataProviderRegistry** (`TreeDataProviderRegistry.h/.cpp`): Registry for custom tree view data providers
+- **WebviewService** (`WebviewService.h/.cpp`): Webview panel creation and lifecycle management
+- **DecorationService** (`DecorationService.h/.cpp`): Text editor decoration provider registry
+- **FileSystemProviderRegistry** (`FileSystemProviderRegistry.h/.cpp`): Virtual file system provider registry
+- **LanguageProviderRegistry** (`LanguageProviderRegistry.h/.cpp`): Language feature provider registry (completion, hover, definition, diagnostics)
+- **ExtensionHostRecovery** (`ExtensionHostRecovery.h/.cpp`): Extension host crash detection and automatic restart
+- **ExtensionRecommendations** (`ExtensionRecommendations.h/.cpp`): File-type-based extension recommendation engine
+- **ExtensionTelemetry** (`ExtensionTelemetry.h/.cpp`): Extension activation/deactivation telemetry event tracking
+- **ExtensionSandbox** (`ExtensionSandbox.h/.cpp`): Extension isolation with permission grants and resource limits
+- **PluginContext** (`IPlugin.h`): Extended with `extension_path`, `workspace_state`, and `global_state` fields matching VS Code's `vscode.ExtensionContext`
+- **ExtensionsBrowserPanel** (`ExtensionsBrowserPanel.h/.cpp`): Sidebar panel for browsing, searching, installing, and managing extensions
+- **ExtensionCard** (`ExtensionCard.h/.cpp`): Painted card widget for extension list items with icon, name, description, and install button
+- **ExtensionDetailPanel** (`ExtensionDetailPanel.h/.cpp`): Full-page extension detail view with description, version, dependencies, and changelog
+- **OutputPanel** (`OutputPanel.h/.cpp`): Bottom panel for extension output channel display
+- **ProblemsPanel** (`ProblemsPanel.h/.cpp`): Bottom panel for diagnostics display (errors, warnings)
+- **TreeViewHost** (`TreeViewHost.h/.cpp`): Host panel for custom tree views contributed by extensions
+- **WalkthroughPanel** (`WalkthroughPanel.h/.cpp`): Getting-started walkthrough panel for extensions
+- **WebviewHostPanel** (`WebviewHostPanel.h/.cpp`): Host panel for webview content contributed by extensions
+- **Events**: `FeatureToggledEvent`, `ExtensionInstalledEvent`, `ExtensionUninstalledEvent`, `ExtensionEnablementChangedEvent`, `ShowExtensionsBrowserRequestEvent`, `ShowExplorerRequestEvent`
+- **ActivityBar — Extensions Item**: New `Extensions` entry in `ActivityBarItem` enum for sidebar navigation to Extensions Browser
+- **11 New Test Suites**: `test_feature_registry`, `test_extension_manifest`, `test_extension_scanner`, `test_plugin_manager_v2`, `test_vsix_service`, `test_gallery_service`, `test_extension_management`, `test_builtin_plugins`, `test_context_keys`, `test_extension_services`, `test_extension_integration`
+
+### Changed
+
+- **PluginManager**: Enhanced with lazy activation via activation events (plugins only activate when their trigger fires), topological dependency resolution, extension pack expansion, `trigger_activation_event()` method, and manifest-aware `register_plugin()` overload — 452+ lines of new logic
+- **LayoutManager**: Extended with Extensions Browser panel integration, updated sidebar panel switching to handle `ShowExtensionsBrowserRequestEvent` and `ShowExplorerRequestEvent`, 153+ new lines
+- **MainFrame**: Updated to initialize BuiltInPlugins and wire extension-related events
+- **MarkAmpApp**: Added BuiltInPlugins registration during application startup
+- **SettingsPanel**: Extended with extension-related settings categories and registration
+- **ActivityBar**: Added Extensions item to the icon rail
+- **PreviewPanel**: Minor refinements to theme-aware rendering
+- **src/CMakeLists.txt**: Added 30 new source files for all extension infrastructure and UI panels
+- **tests/CMakeLists.txt**: Added 11 new test targets with proper linking for nlohmann_json, libzip, and cpp-httplib
+- **vcpkg.json**: Added `libzip`, `openssl`, and `cpp-httplib` dependencies
+
+### Fixed
+
+- All changes are backwards-compatible with existing plugins, configuration files, and themes
+
+---
+
 ## v1.8.11 — 2026-02-13
 
 ### Highlights

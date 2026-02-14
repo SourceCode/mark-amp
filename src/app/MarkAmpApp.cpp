@@ -1,12 +1,15 @@
 #include "MarkAmpApp.h"
 
 #include "core/AppState.h"
+#include "core/BuiltInPlugins.h"
 #include "core/Command.h"
 #include "core/Config.h"
 #include "core/EventBus.h"
 #include "core/Events.h"
+#include "core/FeatureRegistry.h"
 #include "core/Logger.h"
 #include "core/MermaidRenderer.h"
+#include "core/PluginManager.h"
 #include "core/RecentWorkspaces.h"
 #include "core/ServiceRegistry.h"
 #include "core/ThemeEngine.h"
@@ -89,7 +92,16 @@ bool MarkAmpApp::OnInit()
     MARKAMP_LOG_DEBUG("ThemeEngine initialized with theme: {}",
                       theme_engine_->current_theme().name);
 
-    // 8. Create and show the main frame (with frameless custom chrome)
+    // 8. Initialize plugin system
+    feature_registry_ = std::make_unique<core::FeatureRegistry>(*event_bus_, *config_);
+    plugin_manager_ = std::make_unique<core::PluginManager>(*event_bus_, *config_);
+    core::register_builtin_plugins(*plugin_manager_, *feature_registry_);
+    plugin_manager_->activate_all();
+    MARKAMP_LOG_INFO("Plugin system initialized: {} plugins, {} features",
+                     plugin_manager_->plugin_count(),
+                     feature_registry_->feature_count());
+
+    // 9. Create and show the main frame (with frameless custom chrome)
     auto* frame = new ui::MainFrame("MarkAmp",
                                     wxDefaultPosition,
                                     wxSize(kDefaultWidth, kDefaultHeight),
@@ -97,12 +109,13 @@ bool MarkAmpApp::OnInit()
                                     config_.get(),
                                     recent_workspaces_.get(),
                                     platform_.get(),
-                                    theme_engine_.get());
+                                    theme_engine_.get(),
+                                    feature_registry_.get());
 
     frame->Show(true);
     SetTopWindow(frame);
 
-    // 9. Initialize Mermaid renderer
+    // 10. Initialize Mermaid renderer
     mermaid_renderer_ = std::make_shared<core::MermaidRenderer>();
     core::ServiceRegistry::instance().register_service<core::IMermaidRenderer>(mermaid_renderer_);
     MARKAMP_LOG_INFO("MermaidRenderer initialized (available: {})",
@@ -150,6 +163,12 @@ int MarkAmpApp::OnExit()
     }
 
     // Clean up in reverse order (safe now that all windows are destroyed)
+    if (plugin_manager_)
+    {
+        plugin_manager_->deactivate_all();
+    }
+    plugin_manager_.reset();
+    feature_registry_.reset();
     mermaid_renderer_.reset();
     command_history_.reset();
     state_manager_.reset();

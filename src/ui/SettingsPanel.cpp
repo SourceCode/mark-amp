@@ -666,6 +666,65 @@ void SettingsPanel::RegisterBuiltinSettings()
                      "false",
                      {}});
 
+    // ── Feature Toggles (Phase 1 Plugin Architecture) ──
+
+    RegisterSetting({"feature.mermaid.enabled",
+                     "Mermaid Diagrams",
+                     "Enable Mermaid diagram rendering in markdown preview",
+                     "Features",
+                     core::SettingType::Boolean,
+                     "true",
+                     {}});
+    RegisterSetting({"feature.table-editor.enabled",
+                     "Table Editor",
+                     "Enable the interactive table editor for markdown tables",
+                     "Features",
+                     core::SettingType::Boolean,
+                     "true",
+                     {}});
+    RegisterSetting({"feature.format-bar.enabled",
+                     "Format Bar",
+                     "Show the floating format bar for quick text formatting",
+                     "Features",
+                     core::SettingType::Boolean,
+                     "true",
+                     {}});
+    RegisterSetting({"feature.theme-gallery.enabled",
+                     "Theme Gallery",
+                     "Enable the theme gallery panel for browsing and applying themes",
+                     "Features",
+                     core::SettingType::Boolean,
+                     "true",
+                     {}});
+    RegisterSetting({"feature.link-preview.enabled",
+                     "Link Preview",
+                     "Show a tooltip preview when hovering over links",
+                     "Features",
+                     core::SettingType::Boolean,
+                     "true",
+                     {}});
+    RegisterSetting({"feature.image-preview.enabled",
+                     "Image Preview",
+                     "Show inline image previews in the editor",
+                     "Features",
+                     core::SettingType::Boolean,
+                     "true",
+                     {}});
+    RegisterSetting({"feature.breadcrumb-bar.enabled",
+                     "Breadcrumb Bar",
+                     "Show the breadcrumb navigation bar above the editor",
+                     "Features",
+                     core::SettingType::Boolean,
+                     "true",
+                     {}});
+    RegisterSetting({"feature.syntax-highlighting.enabled",
+                     "Syntax Highlighting",
+                     "Enable syntax highlighting in code blocks",
+                     "Features",
+                     core::SettingType::Boolean,
+                     "true",
+                     {}});
+
     RebuildSettingsList();
 }
 
@@ -683,7 +742,7 @@ void SettingsPanel::RebuildSettingsList()
 
     // Group settings by category
     std::vector<std::string> categories = {
-        "Editor", "Appearance", "Keybindings", "Plugins", "Advanced"};
+        "Editor", "Appearance", "Features", "Keybindings", "Plugins", "Advanced"};
     for (const auto& category : categories)
     {
         // Phase 9: Count how many settings in this category match filters
@@ -746,6 +805,8 @@ void SettingsPanel::RebuildSettingsList()
             icon_prefix = wxString::FromUTF8("\xF0\x9F\x94\x8C "); // 🔌
         else if (category == "Advanced")
             icon_prefix = wxString::FromUTF8("\xE2\x9A\x99 "); // ⚙
+        else if (category == "Features")
+            icon_prefix = wxString::FromUTF8("\xF0\x9F\xA7\xA9 "); // 🧩
 
         // Count badge – "Editor (12 settings, 3 modified)"
         wxString badge_text = icon_prefix + category;
