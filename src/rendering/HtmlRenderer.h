@@ -6,11 +6,14 @@
 #include <filesystem>
 #include <string>
 #include <string_view>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace markamp::core
 {
 class IMermaidRenderer;
+class IMathRenderer;
 } // namespace markamp::core
 
 namespace markamp::rendering
@@ -64,6 +67,21 @@ public:
     /// Set optional Mermaid renderer for diagram blocks.
     void set_mermaid_renderer(core::IMermaidRenderer* renderer);
 
+    /// Enable or disable Mermaid diagram rendering (feature guard).
+    void set_mermaid_enabled(bool enabled)
+    {
+        mermaid_enabled_ = enabled;
+    }
+
+    /// Set optional math renderer for LaTeX math expressions.
+    void set_math_renderer(core::IMathRenderer* renderer);
+
+    /// Enable or disable math rendering (feature guard).
+    void set_math_enabled(bool enabled)
+    {
+        math_enabled_ = enabled;
+    }
+
     /// Set base path for resolving relative image paths.
     void set_base_path(const std::filesystem::path& base_path);
 
@@ -72,6 +90,11 @@ public:
     {
         return code_renderer_;
     }
+    /// Static utilities (public for cross-component use)
+    [[nodiscard]] static auto escape_html(std::string_view text) -> std::string;
+    [[nodiscard]] static auto slugify(std::string_view text) -> std::string;
+    [[nodiscard]] static auto alignment_style(core::MdAlignment align) -> std::string_view;
+    [[nodiscard]] static auto mime_for_extension(std::string_view ext) -> std::string_view;
 
 private:
     void render_node(const core::MdNode& node, std::string& output, int depth = 0);
@@ -80,8 +103,8 @@ private:
     /// Stability #31: max recursion depth for render_node
     static constexpr int kMaxRenderDepth = 100;
 
-    [[nodiscard]] static auto escape_html(std::string_view text) -> std::string;
-    [[nodiscard]] static auto alignment_style(core::MdAlignment align) -> std::string;
+    /// Improvement #38: collect plain text content from node children.
+    [[nodiscard]] static auto collect_plain_text(const core::MdNode& node) -> std::string;
 
     /// Resolve an image URL to an absolute path, validating security constraints.
     /// Returns empty path if the URL is remote, blocked, or the file doesn't exist.
@@ -97,8 +120,14 @@ private:
         -> std::string;
 
     core::IMermaidRenderer* mermaid_renderer_{nullptr};
+    bool mermaid_enabled_{true};
+    core::IMathRenderer* math_renderer_{nullptr};
+    bool math_enabled_{true};
     std::filesystem::path base_path_;
     mutable CodeBlockRenderer code_renderer_;
+
+    /// Improvement #6: track heading slug usage for uniqueness
+    std::unordered_map<std::string, int> heading_slug_counts_;
 
     /// Max image file size: 10 MB
     static constexpr size_t kMaxImageFileSize = static_cast<size_t>(10) * 1024 * 1024;

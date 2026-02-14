@@ -2,6 +2,7 @@
 
 #include "CodeBlockRenderer.h"
 #include "MermaidBlockRenderer.h"
+#include "core/IMathRenderer.h"
 #include "core/IMermaidRenderer.h"
 #include "core/Profiler.h"
 #include "core/StringUtils.h"
@@ -11,6 +12,8 @@
 #include <filesystem>
 #include <fmt/format.h>
 #include <fstream>
+#include <unordered_map>
+#include <unordered_set>
 
 namespace markamp::rendering
 {
@@ -114,6 +117,34 @@ auto FootnotePreprocessor::replace_references(const std::string& markdown,
 {
     std::string result = markdown;
 
+    // Improvement #3: track code fence regions to skip footnote replacement inside them
+    // Build a set of code fence ranges [start, end)
+    std::vector<std::pair<size_t, size_t>> fence_ranges;
+    {
+        size_t scan = 0;
+        while (scan < result.size())
+        {
+            auto fence_start = result.find("```", scan);
+            if (fence_start == std::string::npos)
+                break;
+            auto fence_end = result.find("```", fence_start + 3);
+            if (fence_end == std::string::npos)
+                break;
+            fence_ranges.emplace_back(fence_start, fence_end + 3);
+            scan = fence_end + 3;
+        }
+    }
+
+    auto is_inside_fence = [&fence_ranges](size_t pos) -> bool
+    {
+        for (const auto& [start, end] : fence_ranges)
+        {
+            if (pos >= start && pos < end)
+                return true;
+        }
+        return false;
+    };
+
     for (const auto& def : definitions)
     {
         // Replace [^id] with superscript link HTML
@@ -127,8 +158,12 @@ auto FootnotePreprocessor::replace_references(const std::string& markdown,
         std::string::size_type pos = 0;
         while ((pos = result.find(pattern, pos)) != std::string::npos)
         {
-            // Don't replace if it's the start of a definition line (already removed)
-            // or inside a code block fence
+            // Improvement #3: skip replacement inside code fences
+            if (is_inside_fence(pos))
+            {
+                pos += pattern.size();
+                continue;
+            }
             result.replace(pos, pattern.size(), replacement);
             pos += replacement.size();
         }
@@ -169,9 +204,15 @@ auto HtmlRenderer::render(const core::MarkdownDocument& doc) -> std::string
     try
     {
         code_renderer_.reset_counter();
+        heading_slug_counts_.clear(); // Improvement #6: reset per render
         std::string output;
-        // Pre-allocate: ~8 bytes of HTML per character of source (rough estimate)
-        output.reserve(doc.root.children.size() * 256);
+        // Improvement #13: pre-allocate based on total text length estimate
+        size_t estimate = 0;
+        for (const auto& child : doc.root.children)
+        {
+            estimate += child.text_content.size();
+        }
+        output.reserve(std::max(estimate * 4, static_cast<size_t>(512)));
         render_children(doc.root, output);
         return output;
     }
@@ -184,14 +225,24 @@ auto HtmlRenderer::render(const core::MarkdownDocument& doc) -> std::string
 auto HtmlRenderer::render_with_footnotes(const core::MarkdownDocument& doc,
                                          const std::string& footnote_section) -> std::string
 {
-    std::string output;
-    output.reserve(doc.root.children.size() * 256 + footnote_section.size());
-    render_children(doc.root, output);
-    if (!footnote_section.empty())
+    // Improvement #1: wrap in try-catch matching render()
+    try
     {
-        output += footnote_section;
+        code_renderer_.reset_counter();
+        heading_slug_counts_.clear(); // Improvement #6: reset per render
+        std::string output;
+        output.reserve(doc.root.children.size() * 256 + footnote_section.size());
+        render_children(doc.root, output);
+        if (!footnote_section.empty())
+        {
+            output += footnote_section;
+        }
+        return output;
     }
-    return output;
+    catch (const std::exception& ex)
+    {
+        return std::string("<!-- render error: ") + ex.what() + " -->";
+    }
 }
 
 // ═══════════════════════════════════════════════════════
@@ -237,27 +288,22 @@ void HtmlRenderer::render_node(const core::MdNode& node, std::string& output, in
                 heading_text += child.plain_text();
             }
 
-            // Slugify: lowercase, spaces→dashes, strip non-alnum
-            std::string slug;
-            slug.reserve(heading_text.size());
-            for (char ch : heading_text)
+            // Improvement #40: slugify extracted as reusable logic
+            auto slug = slugify(heading_text);
+
+            // Improvement #6: ensure unique heading IDs by appending suffix
+            if (!slug.empty())
             {
-                if (std::isalnum(static_cast<unsigned char>(ch)))
+                auto it = heading_slug_counts_.find(slug);
+                if (it != heading_slug_counts_.end())
                 {
-                    slug += static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+                    it->second++;
+                    slug += "-" + std::to_string(it->second);
                 }
-                else if (ch == ' ' || ch == '-')
+                else
                 {
-                    if (!slug.empty() && slug.back() != '-')
-                    {
-                        slug += '-';
-                    }
+                    heading_slug_counts_[slug] = 0;
                 }
-            }
-            // Trim trailing dash
-            if (!slug.empty() && slug.back() == '-')
-            {
-                slug.pop_back();
             }
 
             // Stability #32: clamp heading level to valid range [1, 6]
@@ -303,16 +349,51 @@ void HtmlRenderer::render_node(const core::MdNode& node, std::string& output, in
         case MdNodeType::CodeBlock:
         case MdNodeType::FencedCodeBlock:
         {
-            auto hl_spec =
-                CodeBlockRenderer::extract_highlight_spec(node.info_string, node.language);
-            output += code_renderer_.render(node.text_content, node.language, hl_spec);
+            // Improvement #30: normalize language aliases
+            auto lang = node.language;
+            if (lang == "js")
+            {
+                lang = "javascript";
+            }
+            else if (lang == "py")
+            {
+                lang = "python";
+            }
+            else if (lang == "ts")
+            {
+                lang = "typescript";
+            }
+            else if (lang == "rb")
+            {
+                lang = "ruby";
+            }
+            else if (lang == "sh")
+            {
+                lang = "bash";
+            }
+            else if (lang == "yml")
+            {
+                lang = "yaml";
+            }
+            else if (lang == "md")
+            {
+                lang = "markdown";
+            }
+
+            auto hl_spec = CodeBlockRenderer::extract_highlight_spec(node.info_string, lang);
+            output += code_renderer_.render(node.text_content, lang, hl_spec);
             break;
         }
 
         case MdNodeType::MermaidBlock:
         {
             MermaidBlockRenderer mermaid_block;
-            if (mermaid_renderer_ && mermaid_renderer_->is_available())
+            // Phase 4: Guard Mermaid rendering behind feature toggle
+            if (!mermaid_enabled_)
+            {
+                output += mermaid_block.render_placeholder(node.text_content);
+            }
+            else if (mermaid_renderer_ && mermaid_renderer_->is_available())
             {
                 output += mermaid_block.render(node.text_content, *mermaid_renderer_);
             }
@@ -419,12 +500,8 @@ void HtmlRenderer::render_node(const core::MdNode& node, std::string& output, in
 
         case MdNodeType::Image:
         {
-            // Collect alt text from children
-            std::string alt_text;
-            for (const auto& child : node.children)
-            {
-                alt_text += child.plain_text();
-            }
+            // Improvement #38: collect_plain_text helper
+            auto alt_text = collect_plain_text(node);
 
             // Resolve and validate the image path
             auto resolved = resolve_image_path(node.url);
@@ -442,11 +519,14 @@ void HtmlRenderer::render_node(const core::MdNode& node, std::string& output, in
                 }
                 else
                 {
-                    output +=
-                        fmt::format("<img src=\"{}\" alt=\"{}\"", data_uri, escape_html(alt_text));
+                    // Improvement #35: lazy loading + #36: responsive sizing
+                    output += fmt::format(
+                        R"(<img src="{}" alt="{}" loading="lazy" style="max-width:100%;height:auto")",
+                        data_uri,
+                        escape_html(alt_text));
                     if (!node.title.empty())
                     {
-                        output += fmt::format(" title=\"{}\"", escape_html(node.title));
+                        output += fmt::format(R"( title="{}")", escape_html(node.title));
                     }
                     output += ">";
                 }
@@ -478,6 +558,47 @@ void HtmlRenderer::render_node(const core::MdNode& node, std::string& output, in
             render_children(node, output, depth + 1);
             output += "</del>";
             break;
+
+        case MdNodeType::MathInline:
+        case MdNodeType::MathDisplay:
+        {
+            // Collect math content from children
+            std::string math_content;
+            for (const auto& child : node.children)
+            {
+                math_content += child.text_content;
+            }
+
+            bool is_display = (node.type == MdNodeType::MathDisplay);
+
+            if (math_enabled_ && math_renderer_ != nullptr && math_renderer_->is_available())
+            {
+                output += math_renderer_->render(math_content, is_display);
+            }
+            else
+            {
+                // Fallback: render raw LaTeX in a styled code element
+                if (is_display)
+                {
+                    output += "<div class=\"math-fallback\"><code>";
+                    output += escape_html(math_content);
+                    output += "</code></div>\n";
+                }
+                else
+                {
+                    output += "<code class=\"math-fallback\">";
+                    output += escape_html(math_content);
+                    output += "</code>";
+                }
+            }
+            break;
+        }
+
+        // Improvement #2: explicit default case for unhandled node types
+        default:
+            output += fmt::format("<!-- unhandled node type {} -->", static_cast<int>(node.type));
+            render_children(node, output, depth + 1);
+            break;
     }
 }
 
@@ -498,7 +619,46 @@ auto HtmlRenderer::escape_html(std::string_view text) -> std::string
     return core::escape_html(text);
 }
 
-auto HtmlRenderer::alignment_style(core::MdAlignment align) -> std::string
+// Improvement #38: collect plain text from node children (replaces duplicate loops)
+auto HtmlRenderer::collect_plain_text(const core::MdNode& node) -> std::string
+{
+    std::string result;
+    for (const auto& child : node.children)
+    {
+        result += child.plain_text();
+    }
+    return result;
+}
+
+// Improvement #40: reusable slug generation
+auto HtmlRenderer::slugify(std::string_view text) -> std::string
+{
+    std::string slug;
+    slug.reserve(text.size());
+    for (auto ch : text)
+    {
+        if (std::isalnum(static_cast<unsigned char>(ch)))
+        {
+            slug += static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+        }
+        else if (ch == ' ' || ch == '-')
+        {
+            if (!slug.empty() && slug.back() != '-')
+            {
+                slug += '-';
+            }
+        }
+    }
+    // Trim trailing dash
+    if (!slug.empty() && slug.back() == '-')
+    {
+        slug.pop_back();
+    }
+    return slug;
+}
+
+// Improvement #15: return string_view to avoid allocation per table cell
+auto HtmlRenderer::alignment_style(core::MdAlignment align) -> std::string_view
 {
     switch (align)
     {
@@ -518,6 +678,33 @@ void HtmlRenderer::set_mermaid_renderer(core::IMermaidRenderer* renderer)
     mermaid_renderer_ = renderer;
 }
 
+// Improvement #16: shared MIME type lookup table
+auto HtmlRenderer::mime_for_extension(std::string_view ext) -> std::string_view
+{
+    static const std::unordered_map<std::string, std::string_view> kMimeTypes = {
+        {".png", "image/png"},
+        {".jpg", "image/jpeg"},
+        {".jpeg", "image/jpeg"},
+        {".gif", "image/gif"},
+        {".bmp", "image/bmp"},
+        {".svg", "image/svg+xml"},
+        {".webp", "image/webp"},
+        {".ico", "image/x-icon"},
+    };
+
+    auto iter = kMimeTypes.find(std::string(ext));
+    if (iter != kMimeTypes.end())
+    {
+        return iter->second;
+    }
+    return {};
+}
+
+void HtmlRenderer::set_math_renderer(core::IMathRenderer* renderer)
+{
+    math_renderer_ = renderer;
+}
+
 void HtmlRenderer::set_base_path(const std::filesystem::path& base_path)
 {
     base_path_ = base_path;
@@ -533,6 +720,38 @@ auto HtmlRenderer::resolve_image_path(std::string_view url) const -> std::filesy
     {
         return {};
     }
+
+    // Improvement #4: URL-decode percent-encoded characters (e.g. %20 → space)
+    std::string decoded;
+    decoded.reserve(url_str.size());
+    for (size_t i = 0; i < url_str.size(); ++i)
+    {
+        if (url_str[i] == '%' && i + 2 < url_str.size())
+        {
+            auto hi = url_str[i + 1];
+            auto lo = url_str[i + 2];
+            auto hex_digit = [](char c) -> int
+            {
+                if (c >= '0' && c <= '9')
+                    return c - '0';
+                if (c >= 'a' && c <= 'f')
+                    return c - 'a' + 10;
+                if (c >= 'A' && c <= 'F')
+                    return c - 'A' + 10;
+                return -1;
+            };
+            int h = hex_digit(hi);
+            int l = hex_digit(lo);
+            if (h >= 0 && l >= 0)
+            {
+                decoded += static_cast<char>((h << 4) | l);
+                i += 2;
+                continue;
+            }
+        }
+        decoded += url_str[i];
+    }
+    url_str = std::move(decoded);
 
     // Resolve path
     std::filesystem::path image_path;
@@ -583,19 +802,11 @@ auto HtmlRenderer::resolve_image_path(std::string_view url) const -> std::filesy
     std::transform(
         ext.begin(), ext.end(), ext.begin(), [](unsigned char ch) { return std::tolower(ch); });
 
-    static const std::vector<std::string> kAllowedExtensions = {
+    // Improvement #18: use unordered_set for O(1) extension lookup
+    static const std::unordered_set<std::string> kAllowedExtensions = {
         ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".svg", ".webp", ".ico"};
 
-    bool valid_ext = false;
-    for (const auto& allowed : kAllowedExtensions)
-    {
-        if (ext == allowed)
-        {
-            valid_ext = true;
-            break;
-        }
-    }
-    if (!valid_ext)
+    if (!kAllowedExtensions.contains(ext))
     {
         return {};
     }
@@ -603,6 +814,13 @@ auto HtmlRenderer::resolve_image_path(std::string_view url) const -> std::filesy
     // Check file size
     auto file_size = std::filesystem::file_size(image_path, ec);
     if (ec || file_size > kMaxImageFileSize)
+    {
+        return {};
+    }
+
+    // Improvement #5: cap SVG files to 1MB to prevent script-laden SVG bombs
+    static constexpr size_t kMaxSvgFileSize = 1024 * 1024;
+    if (ext == ".svg" && file_size > kMaxSvgFileSize)
     {
         return {};
     }
@@ -617,23 +835,12 @@ auto HtmlRenderer::encode_image_as_data_uri(const std::filesystem::path& image_p
     std::transform(
         ext.begin(), ext.end(), ext.begin(), [](unsigned char ch) { return std::tolower(ch); });
 
-    std::string mime;
-    if (ext == ".png")
-        mime = "image/png";
-    else if (ext == ".jpg" || ext == ".jpeg")
-        mime = "image/jpeg";
-    else if (ext == ".gif")
-        mime = "image/gif";
-    else if (ext == ".bmp")
-        mime = "image/bmp";
-    else if (ext == ".svg")
-        mime = "image/svg+xml";
-    else if (ext == ".webp")
-        mime = "image/webp";
-    else if (ext == ".ico")
-        mime = "image/x-icon";
-    else
+    // Improvement #16: shared MIME lookup table
+    auto mime = mime_for_extension(ext);
+    if (mime.empty())
+    {
         return {};
+    }
 
     // Stability #33: verify it's a regular file (not a symlink to device file)
     std::error_code fsec;
@@ -661,9 +868,16 @@ auto HtmlRenderer::encode_image_as_data_uri(const std::filesystem::path& image_p
     }
 
     // Base64 encode using MermaidBlockRenderer's encoder
+    // Improvement #17: pre-allocate output string for base64 result
     auto b64 = MermaidBlockRenderer::base64_encode(data);
 
-    return fmt::format("data:{};base64,{}", mime, b64);
+    std::string result;
+    result.reserve(5 + mime.size() + 8 + b64.size()); // "data:" + mime + ";base64," + b64
+    result += "data:";
+    result += mime;
+    result += ";base64,";
+    result += b64;
+    return result;
 }
 
 auto HtmlRenderer::render_missing_image(std::string_view url, std::string_view alt_text)

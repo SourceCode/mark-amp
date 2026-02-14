@@ -16,7 +16,7 @@ namespace markamp::core
 /// Implements IMermaidRenderer. Uses temp files for I/O and caches PATH availability.
 
 /// Severity level for Mermaid diagram diagnostics.
-enum class DiagnosticSeverity
+enum class MermaidDiagnosticSeverity
 {
     Error,
     Warning,
@@ -24,11 +24,11 @@ enum class DiagnosticSeverity
 };
 
 /// Diagnostic information for a Mermaid diagram validation error.
-struct DiagnosticInfo
+struct MermaidDiagnosticInfo
 {
     int line{0};
     std::string message;
-    DiagnosticSeverity severity{DiagnosticSeverity::Error};
+    MermaidDiagnosticSeverity severity{MermaidDiagnosticSeverity::Error};
 };
 
 class MermaidRenderer : public IMermaidRenderer
@@ -61,7 +61,8 @@ public:
     // --- Phase 3: Mermaid First-Class Experience ---
 
     /// Validate Mermaid source and return diagnostics.
-    [[nodiscard]] auto validate(std::string_view mermaid_source) -> std::vector<DiagnosticInfo>;
+    [[nodiscard]] auto validate(std::string_view mermaid_source)
+        -> std::vector<MermaidDiagnosticInfo>;
 
     /// Export rendered SVG as raw string.
     [[nodiscard]] auto export_svg(std::string_view mermaid_source)

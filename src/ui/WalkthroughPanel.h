@@ -2,6 +2,10 @@
 
 #include "core/ExtensionManifest.h"
 
+#include <wx/gauge.h>
+#include <wx/panel.h>
+#include <wx/scrolwin.h>
+
 #include <string>
 #include <unordered_set>
 #include <vector>
@@ -12,10 +16,14 @@ namespace markamp::ui
 /// Getting-started walkthrough panel (#48).
 /// Renders walkthrough steps with checkmarks, descriptions, media,
 /// and completion tracking. Mirrors VS Code's "Getting Started" experience.
-class WalkthroughPanel
+class WalkthroughPanel : public wxPanel
 {
 public:
-    WalkthroughPanel() = default;
+    /// Data-only constructor (for tests).
+    WalkthroughPanel();
+
+    /// UI constructor with rendering support.
+    explicit WalkthroughPanel(wxWindow* parent);
 
     /// Set walkthroughs from extension contributions.
     void set_walkthroughs(std::vector<core::ExtensionWalkthrough> walkthroughs);
@@ -40,11 +48,22 @@ public:
     /// Reset completion for a walkthrough.
     void reset_walkthrough(const std::string& walkthrough_id);
 
+    /// Refresh displayed content.
+    void RefreshContent();
+
+    /// Apply theme colors.
+    void ApplyTheme(const wxColour& bg_colour, const wxColour& fg_colour);
+
 private:
+    void CreateLayout();
+
     std::vector<core::ExtensionWalkthrough> walkthroughs_;
     std::string active_walkthrough_;
-    // Completed step keys: "walkthrough_id:step_id"
     std::unordered_set<std::string> completed_steps_;
+
+    // UI controls (null in data-only / test mode)
+    wxScrolledWindow* scroll_area_{nullptr};
+    wxGauge* progress_gauge_{nullptr};
 };
 
 } // namespace markamp::ui

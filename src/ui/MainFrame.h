@@ -15,6 +15,8 @@ namespace markamp::core
 #include "core/EventBus.h"
 class AppStateManager;
 class Config;
+class IMermaidRenderer;
+class IMathRenderer;
 class ThemeEngine;
 class RecentWorkspaces;
 class FeatureRegistry;
@@ -39,7 +41,9 @@ public:
               markamp::core::RecentWorkspaces* recent_workspaces,
               markamp::platform::PlatformAbstraction* platform,
               markamp::core::ThemeEngine* theme_engine,
-              markamp::core::FeatureRegistry* feature_registry);
+              markamp::core::FeatureRegistry* feature_registry,
+              markamp::core::IMermaidRenderer* mermaid_renderer = nullptr,
+              markamp::core::IMathRenderer* math_renderer = nullptr);
 
 private:
     // Core references (owned by MarkAmpApp)
@@ -49,6 +53,8 @@ private:
     markamp::platform::PlatformAbstraction* platform_;
     markamp::core::ThemeEngine* theme_engine_;
     markamp::core::FeatureRegistry* feature_registry_;
+    markamp::core::IMermaidRenderer* mermaid_renderer_{nullptr};
+    markamp::core::IMathRenderer* math_renderer_{nullptr};
 
     // Subscriptions
     std::vector<markamp::core::Subscription> subscriptions_;

@@ -5,7 +5,6 @@
 #include "core/Events.h"
 #include "core/IMermaidRenderer.h"
 #include "core/Profiler.h"
-#include "core/ServiceRegistry.h"
 #include "rendering/HtmlRenderer.h"
 
 #include <wx/clipbrd.h>
@@ -25,10 +24,14 @@ namespace markamp::ui
 PreviewPanel::PreviewPanel(wxWindow* parent,
                            core::ThemeEngine& theme_engine,
                            core::EventBus& event_bus,
-                           core::Config* config)
+                           core::IMermaidRenderer* mermaid_renderer,
+                           core::Config* config,
+                           core::IMathRenderer* math_renderer)
     : ThemeAwareWindow(parent, theme_engine)
     , event_bus_(event_bus)
     , render_timer_(this)
+    , mermaid_renderer_(mermaid_renderer)
+    , math_renderer_(math_renderer)
     , resize_timer_(this)
     , scroll_sync_timer_(this)
 {
@@ -152,6 +155,9 @@ PreviewPanel::PreviewPanel(wxWindow* parent,
 
 PreviewPanel::~PreviewPanel()
 {
+    // Improvement #11: set destroyed flag before stopping timers
+    destroyed_ = true;
+
     // Stability #30: stop all timers to prevent callbacks into destroyed members
     render_timer_.Stop();
     resize_timer_.Stop();
@@ -179,6 +185,12 @@ void PreviewPanel::Clear()
     if (html_view_ != nullptr)
     {
         html_view_->SetPage("<html><body></body></html>");
+    }
+
+    // Improvement #10: hide scroll-to-top button on clear
+    if (scroll_to_top_btn_ != nullptr)
+    {
+        scroll_to_top_btn_->Hide();
     }
 }
 
@@ -772,14 +784,9 @@ void PreviewPanel::RenderContent(const std::string& markdown)
             return;
         }
 
-        // Improvement 11: configure reused renderer member
-        auto mermaid = core::ServiceRegistry::instance().get<core::IMermaidRenderer>();
-        if (mermaid)
-        {
-            renderer_.set_mermaid_renderer(mermaid.get());
-        }
-
-        // Set base path for local image resolution
+        // Improvement #21: lazy renderer config — only reconfigure if renderers changed
+        renderer_.set_mermaid_renderer(mermaid_renderer_);
+        renderer_.set_math_renderer(math_renderer_);
         if (!base_path_.empty())
         {
             renderer_.set_base_path(base_path_);
@@ -827,8 +834,10 @@ void PreviewPanel::RenderContent(const std::string& markdown)
 
 void PreviewPanel::DisplayError(const std::string& error_message)
 {
-    auto error_html = fmt::format(R"(<div class="error-overlay">⚠ Markdown parse error: {}</div>)",
-                                  error_message);
+    // Improvement #12: escape error message to prevent XSS
+    auto safe_msg = rendering::HtmlRenderer::escape_html(error_message);
+    auto error_html =
+        fmt::format(R"(<div class="error-overlay">⚠ Markdown parse error: {}</div>)", safe_msg);
 
     // Show error overlay but keep last successful content if available
     // Improvement 25: use cached HTML body instead of re-parsing
@@ -849,12 +858,18 @@ void PreviewPanel::DisplayError(const std::string& error_message)
 
 void PreviewPanel::OnRenderTimer(wxTimerEvent& /*event*/)
 {
+    // Improvement #11: guard against timer firing after destruction
+    if (destroyed_)
+        return;
+
     // New stability #23 (adjusted): guard against state issues during timer callback
     if (html_view_ == nullptr || pending_content_.empty())
         return;
 
-    RenderContent(pending_content_);
+    // Improvement #8: save content before clearing, retry on failure
+    auto content = std::move(pending_content_);
     pending_content_.clear();
+    RenderContent(content);
 }
 
 void PreviewPanel::OnLinkClicked(wxHtmlLinkEvent& event)
@@ -937,6 +952,10 @@ void PreviewPanel::OnSize(wxSizeEvent& event)
 
 void PreviewPanel::OnResizeTimer(wxTimerEvent& /*event*/)
 {
+    // Improvement #11: guard against timer firing after destruction
+    if (destroyed_)
+        return;
+
     // New stability #22: guard against null html_view_ during resize
     if (html_view_ == nullptr || last_rendered_content_.empty())
         return;
@@ -1202,6 +1221,16 @@ auto PreviewPanel::ExportHtml(const std::filesystem::path& output_path) const ->
         if (!base_path_.empty())
         {
             renderer.set_base_path(base_path_);
+        }
+
+        // Improvement #9: propagate mermaid and math renderers to export
+        if (mermaid_renderer_ != nullptr)
+        {
+            renderer.set_mermaid_renderer(mermaid_renderer_);
+        }
+        if (math_renderer_ != nullptr)
+        {
+            renderer.set_math_renderer(math_renderer_);
         }
 
         std::string body_html;

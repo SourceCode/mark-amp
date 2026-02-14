@@ -1,5 +1,5 @@
 #include "core/AccessibilityManager.h"
-#include "core/BuiltinThemes.h"
+#include "core/BuiltInThemes.h"
 #include "core/Color.h"
 #include "core/Config.h"
 #include "core/EventBus.h"

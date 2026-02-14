@@ -1,9 +1,11 @@
-#include "BuiltinThemes.h"
+#include "BuiltInThemes.h"
 
 namespace markamp::core
 {
 
-static auto make_builtin_themes() -> std::vector<Theme>
+namespace
+{
+auto make_builtin_themes() -> std::vector<Theme>
 {
     std::vector<Theme> themes;
     themes.reserve(8);
@@ -258,11 +260,12 @@ static auto make_builtin_themes() -> std::vector<Theme>
 
     return themes;
 }
+} // anonymous namespace
 
 auto get_builtin_themes() -> const std::vector<Theme>&
 {
-    static const auto themes = make_builtin_themes();
-    return themes;
+    static const auto kThemes = make_builtin_themes();
+    return kThemes;
 }
 
 auto get_default_theme() -> const Theme&

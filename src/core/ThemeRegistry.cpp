@@ -1,6 +1,6 @@
 #include "ThemeRegistry.h"
 
-#include "BuiltinThemes.h"
+#include "BuiltInThemes.h"
 #include "Logger.h"
 #include "ThemeValidator.h"
 #include "loader/ThemeLoader.h"

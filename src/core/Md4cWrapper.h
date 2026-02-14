@@ -24,6 +24,7 @@ public:
     auto enable_strikethrough(bool on = true) -> Md4cParser&;
     auto enable_autolinks(bool on = true) -> Md4cParser&;
     auto enable_no_html(bool on = true) -> Md4cParser&;
+    auto enable_latex_math(bool on = true) -> Md4cParser&;
 
     // Parse markdown to AST
     [[nodiscard]] auto parse(std::string_view markdown)

@@ -47,7 +47,9 @@ enum class MdNodeType
     Strikethrough,
 
     // Custom
-    MermaidBlock
+    MermaidBlock,
+    MathInline,
+    MathDisplay
 };
 
 enum class MdAlignment
@@ -88,6 +90,9 @@ struct MdNode
 
     // Task list
     bool is_checked{false};
+
+    // Math
+    bool is_display{false}; // True for display math ($$...$$)
 
     // Children
     std::vector<MdNode> children;

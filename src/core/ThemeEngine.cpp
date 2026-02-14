@@ -1,6 +1,6 @@
 #include "ThemeEngine.h"
 
-#include "BuiltinThemes.h"
+#include "BuiltInThemes.h"
 #include "Events.h"
 #include "Logger.h"
 
@@ -138,10 +138,20 @@ auto ThemeEngine::pen(ThemeColorToken token, int width) const -> wxPen
 
 auto ThemeEngine::color(ThemeColorToken token) const -> const wxColour&
 {
-    auto it = cache_.colours.find(token);
-    if (it != cache_.colours.end())
+    auto iter = cache_.colours.find(token);
+    if (iter != cache_.colours.end())
     {
-        return it->second;
+        return iter->second;
+    }
+    return kFallbackColour;
+}
+
+auto ThemeEngine::color_fast(ThemeColorToken token) const -> const wxColour&
+{
+    auto idx = static_cast<std::size_t>(token);
+    if (idx < kColorTokenCount)
+    {
+        return flat_colours_[idx];
     }
     return kFallbackColour;
 }
@@ -163,12 +173,17 @@ void ThemeEngine::rebuild_cache()
     cache_.brushes.clear();
     cache_.colours.clear();
 
-    // Helper to cache a color token
+    // Helper to cache a color token (writes to both map and flat array)
     auto cache_color = [this](ThemeColorToken token, const Color& clr)
     {
         wxColour wx_clr = clr.to_wx_colour();
         cache_.colours[token] = wx_clr;
         cache_.brushes[token] = wxBrush(wx_clr);
+        auto idx = static_cast<std::size_t>(token);
+        if (idx < kColorTokenCount)
+        {
+            flat_colours_[idx] = wx_clr;
+        }
     };
 
     // Sync layers from flat colors

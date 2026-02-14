@@ -35,14 +35,17 @@ auto SplitView::EaseOutCubic(double progress) -> double
 SplitView::SplitView(wxWindow* parent,
                      core::ThemeEngine& theme_engine,
                      core::EventBus& event_bus,
-                     core::Config* config)
+                     core::Config* config,
+                     core::IMermaidRenderer* mermaid_renderer,
+                     core::IMathRenderer* math_renderer)
     : ThemeAwareWindow(parent, theme_engine)
     , event_bus_(event_bus)
     , config_(config)
 {
     // --- Create child panels ---
     editor_panel_ = new EditorPanel(this, theme_engine, event_bus);
-    preview_panel_ = new PreviewPanel(this, theme_engine, event_bus);
+    preview_panel_ =
+        new PreviewPanel(this, theme_engine, event_bus, mermaid_renderer, nullptr, math_renderer);
 
     // --- Divider (custom painted) ---
     divider_panel_ = new wxPanel(this, wxID_ANY);
@@ -497,6 +500,22 @@ void SplitView::SaveFile(const std::string& path)
     {
         MARKAMP_LOG_ERROR("Failed to save file: {}", path);
         wxMessageBox("Failed to save file: " + path, "Error", wxICON_ERROR);
+    }
+}
+
+void SplitView::set_feature_registry(core::FeatureRegistry* registry)
+{
+    if (editor_panel_ != nullptr)
+    {
+        editor_panel_->set_feature_registry(registry);
+    }
+}
+
+void SplitView::set_mermaid_enabled(bool enabled)
+{
+    if (preview_panel_ != nullptr)
+    {
+        preview_panel_->set_mermaid_enabled(enabled);
     }
 }
 

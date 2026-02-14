@@ -1,4 +1,4 @@
-#include "core/BuiltinThemes.h"
+#include "core/BuiltInThemes.h"
 #include "core/Color.h"
 #include "core/Theme.h"
 #include "core/ThemeRegistry.h"

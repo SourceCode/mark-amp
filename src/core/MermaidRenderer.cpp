@@ -393,20 +393,21 @@ auto MermaidRenderer::sanitize_svg(const std::string& svg) -> std::string
 // Phase 3: Mermaid First-Class Experience
 // ---------------------------------------------------------------------------
 
-auto MermaidRenderer::validate(std::string_view mermaid_source) -> std::vector<DiagnosticInfo>
+auto MermaidRenderer::validate(std::string_view mermaid_source)
+    -> std::vector<MermaidDiagnosticInfo>
 {
-    std::vector<DiagnosticInfo> diagnostics;
+    std::vector<MermaidDiagnosticInfo> diagnostics;
 
     if (mermaid_source.empty())
     {
-        diagnostics.push_back({0, "Empty Mermaid source", DiagnosticSeverity::Error});
+        diagnostics.push_back({0, "Empty Mermaid source", MermaidDiagnosticSeverity::Error});
         return diagnostics;
     }
 
     if (!mmdc_available_)
     {
         diagnostics.push_back(
-            {0, "Mermaid CLI (mmdc) is not available", DiagnosticSeverity::Warning});
+            {0, "Mermaid CLI (mmdc) is not available", MermaidDiagnosticSeverity::Warning});
         return diagnostics;
     }
 
@@ -424,7 +425,7 @@ auto MermaidRenderer::validate(std::string_view mermaid_source) -> std::vector<D
     if (!write_file(input_path, mermaid_source))
     {
         diagnostics.push_back(
-            {0, "Failed to write source for validation", DiagnosticSeverity::Error});
+            {0, "Failed to write source for validation", MermaidDiagnosticSeverity::Error});
         return diagnostics;
     }
 
@@ -477,7 +478,7 @@ auto MermaidRenderer::validate(std::string_view mermaid_source) -> std::vector<D
                 try
                 {
                     int line_num = std::stoi(remaining.substr(num_start, num_end - num_start));
-                    diagnostics.push_back({line_num, error_text, DiagnosticSeverity::Error});
+                    diagnostics.push_back({line_num, error_text, MermaidDiagnosticSeverity::Error});
                     found_line = true;
                 }
                 catch (const std::exception&)
@@ -491,7 +492,7 @@ auto MermaidRenderer::validate(std::string_view mermaid_source) -> std::vector<D
         if (!found_line)
         {
             // Generic error without line info
-            diagnostics.push_back({0, error_text, DiagnosticSeverity::Error});
+            diagnostics.push_back({0, error_text, MermaidDiagnosticSeverity::Error});
         }
     }
 

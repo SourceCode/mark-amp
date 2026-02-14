@@ -23,8 +23,9 @@ namespace
 class BuiltInPlugin : public IPlugin
 {
 public:
-    explicit BuiltInPlugin(PluginManifest manifest)
+    explicit BuiltInPlugin(PluginManifest manifest, std::string feature_id)
         : manifest_(std::move(manifest))
+        , feature_id_(std::move(feature_id))
     {
     }
 
@@ -37,6 +38,25 @@ public:
     {
         active_ = true;
         ctx_ = &ctx;
+
+        // Register the feature.toggle.<id> command
+        if (ctx.register_command_handler && ctx.feature_registry != nullptr)
+        {
+            const std::string toggle_cmd = "feature.toggle." + feature_id_;
+            ctx.register_command_handler(toggle_cmd,
+                                         [this, &ctx]()
+                                         {
+                                             if (ctx.feature_registry != nullptr)
+                                             {
+                                                 ctx.feature_registry->toggle(feature_id_);
+                                                 MARKAMP_LOG_INFO(
+                                                     "Feature '{}' toggled to: {}",
+                                                     feature_id_,
+                                                     ctx.feature_registry->is_enabled(feature_id_));
+                                             }
+                                         });
+        }
+
         MARKAMP_LOG_INFO("Built-in plugin activated: {}", manifest_.id);
     }
 
@@ -49,6 +69,7 @@ public:
 
 protected:
     PluginManifest manifest_;
+    std::string feature_id_;
     PluginContext* ctx_{nullptr};
 };
 
@@ -58,19 +79,23 @@ class MermaidPlugin final : public BuiltInPlugin
 {
 public:
     MermaidPlugin()
-        : BuiltInPlugin(PluginManifest{
-              .id = "markamp.mermaid",
-              .name = "Mermaid Diagrams",
-              .version = "1.0.0",
-              .description = "Render Mermaid diagrams in the preview pane",
-              .author = "MarkAmp",
-              .contributes = {
-                  .settings = {{.id = "mermaid.enabled",
-                                .label = "Enable Mermaid Diagrams",
-                                .description = "Render Mermaid fenced code blocks as diagrams",
-                                .category = "Features",
-                                .type = SettingType::Boolean,
-                                .default_value = "true"}}}})
+        : BuiltInPlugin(
+              PluginManifest{
+                  .id = "markamp.mermaid",
+                  .name = "Mermaid Diagrams",
+                  .version = "1.0.0",
+                  .description = "Render Mermaid diagrams in the preview pane",
+                  .author = "MarkAmp",
+                  .contributes = {.settings = {{.id = "mermaid.enabled",
+                                                .label = "Enable Mermaid Diagrams",
+                                                .description =
+                                                    "Render Mermaid fenced code blocks as diagrams",
+                                                .category = "Features",
+                                                .type = SettingType::Boolean,
+                                                .default_value = "true"}},
+                                  .commands = {{.id = "feature.toggle.mermaid",
+                                                .title = "Toggle Mermaid Diagrams"}}}},
+              builtin_features::kMermaid)
     {
     }
 };
@@ -81,18 +106,23 @@ class TableEditorPlugin final : public BuiltInPlugin
 {
 public:
     TableEditorPlugin()
-        : BuiltInPlugin(PluginManifest{
-              .id = "markamp.table-editor",
-              .name = "Table Editor",
-              .version = "1.0.0",
-              .description = "Visual table editing overlay for Markdown tables",
-              .author = "MarkAmp",
-              .contributes = {.settings = {{.id = "table-editor.enabled",
-                                            .label = "Enable Table Editor",
-                                            .description = "Show interactive table editing overlay",
-                                            .category = "Features",
-                                            .type = SettingType::Boolean,
-                                            .default_value = "true"}}}})
+        : BuiltInPlugin(
+              PluginManifest{
+                  .id = "markamp.table-editor",
+                  .name = "Table Editor",
+                  .version = "1.0.0",
+                  .description = "Visual table editing overlay for Markdown tables",
+                  .author = "MarkAmp",
+                  .contributes = {.settings = {{.id = "table-editor.enabled",
+                                                .label = "Enable Table Editor",
+                                                .description =
+                                                    "Show interactive table editing overlay",
+                                                .category = "Features",
+                                                .type = SettingType::Boolean,
+                                                .default_value = "true"}},
+                                  .commands = {{.id = "feature.toggle.table-editor",
+                                                .title = "Toggle Table Editor"}}}},
+              builtin_features::kTableEditor)
     {
     }
 };
@@ -103,19 +133,23 @@ class FormatBarPlugin final : public BuiltInPlugin
 {
 public:
     FormatBarPlugin()
-        : BuiltInPlugin(PluginManifest{
-              .id = "markamp.format-bar",
-              .name = "Floating Format Bar",
-              .version = "1.0.0",
-              .description = "Context-sensitive formatting toolbar on text selection",
-              .author = "MarkAmp",
-              .contributes = {
-                  .settings = {{.id = "format-bar.enabled",
-                                .label = "Enable Floating Format Bar",
-                                .description = "Show formatting toolbar on text selection",
-                                .category = "Features",
-                                .type = SettingType::Boolean,
-                                .default_value = "true"}}}})
+        : BuiltInPlugin(
+              PluginManifest{
+                  .id = "markamp.format-bar",
+                  .name = "Floating Format Bar",
+                  .version = "1.0.0",
+                  .description = "Context-sensitive formatting toolbar on text selection",
+                  .author = "MarkAmp",
+                  .contributes = {.settings = {{.id = "format-bar.enabled",
+                                                .label = "Enable Floating Format Bar",
+                                                .description =
+                                                    "Show formatting toolbar on text selection",
+                                                .category = "Features",
+                                                .type = SettingType::Boolean,
+                                                .default_value = "true"}},
+                                  .commands = {{.id = "feature.toggle.format-bar",
+                                                .title = "Toggle Format Bar"}}}},
+              builtin_features::kFormatBar)
     {
     }
 };
@@ -126,19 +160,23 @@ class ThemeGalleryPlugin final : public BuiltInPlugin
 {
 public:
     ThemeGalleryPlugin()
-        : BuiltInPlugin(PluginManifest{
-              .id = "markamp.theme-gallery",
-              .name = "Theme Gallery",
-              .version = "1.0.0",
-              .description = "Browse and apply editor themes from the gallery",
-              .author = "MarkAmp",
-              .contributes = {
-                  .settings = {{.id = "theme-gallery.enabled",
-                                .label = "Enable Theme Gallery",
-                                .description = "Allow browsing themes in the settings panel",
-                                .category = "Features",
-                                .type = SettingType::Boolean,
-                                .default_value = "true"}}}})
+        : BuiltInPlugin(
+              PluginManifest{
+                  .id = "markamp.theme-gallery",
+                  .name = "Theme Gallery",
+                  .version = "1.0.0",
+                  .description = "Browse and apply editor themes from the gallery",
+                  .author = "MarkAmp",
+                  .contributes = {.settings = {{.id = "theme-gallery.enabled",
+                                                .label = "Enable Theme Gallery",
+                                                .description =
+                                                    "Allow browsing themes in the settings panel",
+                                                .category = "Features",
+                                                .type = SettingType::Boolean,
+                                                .default_value = "true"}},
+                                  .commands = {{.id = "feature.toggle.theme-gallery",
+                                                .title = "Toggle Theme Gallery"}}}},
+              builtin_features::kThemeGallery)
     {
     }
 };
@@ -149,19 +187,23 @@ class LinkPreviewPlugin final : public BuiltInPlugin
 {
 public:
     LinkPreviewPlugin()
-        : BuiltInPlugin(PluginManifest{
-              .id = "markamp.link-preview",
-              .name = "Link Preview",
-              .version = "1.0.0",
-              .description = "Show popover previews when hovering over links",
-              .author = "MarkAmp",
-              .contributes = {
-                  .settings = {{.id = "link-preview.enabled",
-                                .label = "Enable Link Preview",
-                                .description = "Show hovering popover previews for links",
-                                .category = "Features",
-                                .type = SettingType::Boolean,
-                                .default_value = "true"}}}})
+        : BuiltInPlugin(
+              PluginManifest{
+                  .id = "markamp.link-preview",
+                  .name = "Link Preview",
+                  .version = "1.0.0",
+                  .description = "Show popover previews when hovering over links",
+                  .author = "MarkAmp",
+                  .contributes = {.settings = {{.id = "link-preview.enabled",
+                                                .label = "Enable Link Preview",
+                                                .description =
+                                                    "Show hovering popover previews for links",
+                                                .category = "Features",
+                                                .type = SettingType::Boolean,
+                                                .default_value = "true"}},
+                                  .commands = {{.id = "feature.toggle.link-preview",
+                                                .title = "Toggle Link Preview"}}}},
+              builtin_features::kLinkPreview)
     {
     }
 };
@@ -172,19 +214,23 @@ class ImagePreviewPlugin final : public BuiltInPlugin
 {
 public:
     ImagePreviewPlugin()
-        : BuiltInPlugin(PluginManifest{
-              .id = "markamp.image-preview",
-              .name = "Image Preview",
-              .version = "1.0.0",
-              .description = "Show popover previews when hovering over image references",
-              .author = "MarkAmp",
-              .contributes = {
-                  .settings = {{.id = "image-preview.enabled",
-                                .label = "Enable Image Preview",
-                                .description = "Show hovering popover previews for images",
-                                .category = "Features",
-                                .type = SettingType::Boolean,
-                                .default_value = "true"}}}})
+        : BuiltInPlugin(
+              PluginManifest{
+                  .id = "markamp.image-preview",
+                  .name = "Image Preview",
+                  .version = "1.0.0",
+                  .description = "Show popover previews when hovering over image references",
+                  .author = "MarkAmp",
+                  .contributes = {.settings = {{.id = "image-preview.enabled",
+                                                .label = "Enable Image Preview",
+                                                .description =
+                                                    "Show hovering popover previews for images",
+                                                .category = "Features",
+                                                .type = SettingType::Boolean,
+                                                .default_value = "true"}},
+                                  .commands = {{.id = "feature.toggle.image-preview",
+                                                .title = "Toggle Image Preview"}}}},
+              builtin_features::kImagePreview)
     {
     }
 };
@@ -195,19 +241,23 @@ class BreadcrumbPlugin final : public BuiltInPlugin
 {
 public:
     BreadcrumbPlugin()
-        : BuiltInPlugin(PluginManifest{
-              .id = "markamp.breadcrumb",
-              .name = "Breadcrumb Bar",
-              .version = "1.0.0",
-              .description = "File path breadcrumb navigation above the editor",
-              .author = "MarkAmp",
-              .contributes = {
-                  .settings = {{.id = "breadcrumb.enabled",
-                                .label = "Enable Breadcrumb Bar",
-                                .description = "Show file path breadcrumbs above the editor",
-                                .category = "Features",
-                                .type = SettingType::Boolean,
-                                .default_value = "true"}}}})
+        : BuiltInPlugin(
+              PluginManifest{
+                  .id = "markamp.breadcrumb",
+                  .name = "Breadcrumb Bar",
+                  .version = "1.0.0",
+                  .description = "File path breadcrumb navigation above the editor",
+                  .author = "MarkAmp",
+                  .contributes = {.settings = {{.id = "breadcrumb.enabled",
+                                                .label = "Enable Breadcrumb Bar",
+                                                .description =
+                                                    "Show file path breadcrumbs above the editor",
+                                                .category = "Features",
+                                                .type = SettingType::Boolean,
+                                                .default_value = "true"}},
+                                  .commands = {{.id = "feature.toggle.breadcrumb",
+                                                .title = "Toggle Breadcrumb Bar"}}}},
+              builtin_features::kBreadcrumb)
     {
     }
 };

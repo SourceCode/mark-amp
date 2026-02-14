@@ -16,7 +16,9 @@
 namespace markamp::core
 {
 class Config;
-}
+class IMermaidRenderer;
+class IMathRenderer;
+} // namespace markamp::core
 
 namespace markamp::ui
 {
@@ -32,7 +34,9 @@ public:
     PreviewPanel(wxWindow* parent,
                  core::ThemeEngine& theme_engine,
                  core::EventBus& event_bus,
-                 core::Config* config = nullptr);
+                 core::IMermaidRenderer* mermaid_renderer = nullptr,
+                 core::Config* config = nullptr,
+                 core::IMathRenderer* math_renderer = nullptr);
     ~PreviewPanel() override;
 
     // Non-copyable, non-movable (wxWidgets panel)
@@ -62,6 +66,12 @@ public:
     // Base path for image resolution
     void set_base_path(const std::filesystem::path& base_path);
 
+    /// Enable or disable Mermaid diagram rendering (feature guard forwarding).
+    void set_mermaid_enabled(bool enabled)
+    {
+        renderer_.set_mermaid_enabled(enabled);
+    }
+
 protected:
     void OnThemeChanged(const core::Theme& new_theme) override;
 
@@ -87,12 +97,17 @@ private:
     mutable std::string cached_css_;
     std::string last_rendered_html_;   // Improvement 25: cached HTML body for DisplayError
     rendering::HtmlRenderer renderer_; // Improvement 11: reused across renders
+    core::IMermaidRenderer* mermaid_renderer_{nullptr};
+    core::IMathRenderer* math_renderer_{nullptr};
     void OnRenderTimer(wxTimerEvent& event);
 
     // Improvement 24: resize debounce
     static constexpr int kResizeDebounceMs = 150;
     wxTimer resize_timer_;
     void OnResizeTimer(wxTimerEvent& event);
+
+    // Improvement #11: guard against timer firing after destruction
+    bool destroyed_{false};
 
     // Scroll synchronization
     static constexpr int kScrollSyncDebounceMs = 50;

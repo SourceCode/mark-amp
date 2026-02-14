@@ -10,12 +10,41 @@
 #include <unordered_set>
 #include <vector>
 
+namespace markamp::ui
+{
+class WalkthroughPanel;
+} // namespace markamp::ui
+
 namespace markamp::core
 {
 
 class EventBus;
 class Config;
 class ShortcutManager;
+class StatusBarItemService;
+class ThemeRegistry;
+class TreeDataProviderRegistry;
+
+// Forward declarations for ExtensionServices
+class ContextKeyService;
+class OutputChannelService;
+class DiagnosticsService;
+class DecorationService;
+class WebviewService;
+class FileSystemProviderRegistry;
+class LanguageProviderRegistry;
+class SnippetEngine;
+class WorkspaceService;
+class TextEditorService;
+class ProgressService;
+class ExtensionEventBus;
+class EnvironmentService;
+class NotificationService;
+class InputBoxService;
+class QuickPickService;
+class GrammarEngine;
+class TerminalService;
+class TaskRunnerService;
 
 namespace ui
 {
@@ -107,6 +136,67 @@ public:
         palette_registrar_ = std::move(registrar);
     }
 
+    // ── Tier 3: Contribution point wiring dependency injection ──
+
+    /// Set the status bar item service for status bar contributions.
+    void set_status_bar_service(StatusBarItemService* svc)
+    {
+        status_bar_service_ = svc;
+    }
+
+    /// Set the walkthrough panel for walkthrough contributions.
+    void set_walkthrough_panel(markamp::ui::WalkthroughPanel* panel)
+    {
+        walkthrough_panel_ = panel;
+    }
+
+    /// Set the theme registry for theme contributions.
+    void set_theme_registry(ThemeRegistry* registry)
+    {
+        theme_registry_ = registry;
+    }
+
+    /// Set the tree data provider registry for view contributions.
+    void set_tree_registry(TreeDataProviderRegistry* registry)
+    {
+        tree_registry_ = registry;
+    }
+
+    // ── Extension service injection for PluginContext population ──
+
+    /// Aggregate of all extension API service pointers. Populated by the app
+    /// and stored here so activate_plugin() can fill every PluginContext field.
+    struct ExtensionServices
+    {
+        ContextKeyService* context_key_service{nullptr};
+        OutputChannelService* output_channel_service{nullptr};
+        DiagnosticsService* diagnostics_service{nullptr};
+        DecorationService* decoration_service{nullptr};
+        WebviewService* webview_service{nullptr};
+        FileSystemProviderRegistry* file_system_provider_registry{nullptr};
+        LanguageProviderRegistry* language_provider_registry{nullptr};
+        TreeDataProviderRegistry* tree_data_provider_registry{nullptr};
+        SnippetEngine* snippet_engine{nullptr};
+        WorkspaceService* workspace_service{nullptr};
+        TextEditorService* text_editor_service{nullptr};
+        ProgressService* progress_service{nullptr};
+        ExtensionEventBus* extension_event_bus{nullptr};
+        EnvironmentService* environment_service{nullptr};
+        NotificationService* notification_service{nullptr};
+        StatusBarItemService* status_bar_item_service{nullptr};
+        InputBoxService* input_box_service{nullptr};
+        QuickPickService* quick_pick_service{nullptr};
+        GrammarEngine* grammar_engine{nullptr};
+        TerminalService* terminal_service{nullptr};
+        TaskRunnerService* task_runner_service{nullptr};
+    };
+
+    /// Inject all extension services. Must be called before activate_all().
+    void set_extension_services(const ExtensionServices& services)
+    {
+        ext_services_ = services;
+    }
+
     // ── Queries ──
 
     [[nodiscard]] auto get_plugin(const std::string& plugin_id) const -> const IPlugin*;
@@ -124,11 +214,59 @@ public:
     [[nodiscard]] auto get_extension_manifest(const std::string& plugin_id) const
         -> const ExtensionManifest*;
 
+    // ── Tier 3: Contributed data queries ──
+
+    /// Get all contributed colors from loaded extensions.
+    [[nodiscard]] auto get_contributed_colors() const -> const std::vector<ExtensionColor>&;
+
+    /// Get all contributed views from loaded extensions.
+    [[nodiscard]] auto get_contributed_views() const -> const std::vector<ExtensionView>&;
+
+    /// Get all contributed views containers from loaded extensions.
+    [[nodiscard]] auto get_contributed_views_containers() const
+        -> const std::vector<ExtensionViewsContainer>&;
+
+    /// Get all contributed menu items from loaded extensions.
+    [[nodiscard]] auto get_contributed_menus() const -> const std::vector<ExtensionMenuItem>&;
+
+    /// Get all contributed snippets from loaded extensions.
+    [[nodiscard]] auto get_contributed_snippets() const -> const std::vector<ExtensionSnippet>&;
+
+    /// Get all contributed languages from loaded extensions.
+    [[nodiscard]] auto get_contributed_languages() const -> const std::vector<ExtensionLanguage>&;
+
+    /// Get all contributed grammars from loaded extensions.
+    [[nodiscard]] auto get_contributed_grammars() const -> const std::vector<ExtensionGrammar>&;
+
 private:
     EventBus& event_bus_;
     Config& config_;
     ShortcutManager* shortcut_manager_{nullptr};
     PaletteRegistrar palette_registrar_;
+
+    // Tier 3: Dependency injection targets
+    StatusBarItemService* status_bar_service_{nullptr};
+    markamp::ui::WalkthroughPanel* walkthrough_panel_{nullptr};
+    ThemeRegistry* theme_registry_{nullptr};
+    TreeDataProviderRegistry* tree_registry_{nullptr};
+
+    /// Extension services injected by the app for PluginContext population.
+    ExtensionServices ext_services_;
+
+    /// Accumulated contribution data from all loaded extensions.
+    struct ContributionRegistry
+    {
+        std::vector<ExtensionColor> colors;
+        std::vector<ExtensionView> views;
+        std::vector<ExtensionViewsContainer> views_containers;
+        std::vector<ExtensionMenuItem> menus;
+        std::vector<ExtensionSubmenu> submenus;
+        std::vector<ExtensionSnippet> snippets;
+        std::vector<ExtensionLanguage> languages;
+        std::vector<ExtensionGrammar> grammars;
+        std::vector<ExtensionCustomEditor> custom_editors;
+    };
+    ContributionRegistry contributions_;
 
     struct PluginEntry
     {

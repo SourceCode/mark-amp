@@ -36,12 +36,16 @@ LayoutManager::LayoutManager(wxWindow* parent,
                              core::ThemeEngine& theme_engine,
                              core::EventBus& event_bus,
                              core::Config* config,
-                             core::FeatureRegistry* feature_registry)
+                             core::FeatureRegistry* feature_registry,
+                             core::IMermaidRenderer* mermaid_renderer,
+                             core::IMathRenderer* math_renderer)
     : ThemeAwareWindow(
           parent, theme_engine, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL)
     , event_bus_(event_bus)
     , config_(config)
     , feature_registry_(feature_registry)
+    , mermaid_renderer_(mermaid_renderer)
+    , math_renderer_(math_renderer)
     , sidebar_anim_timer_(this)
 {
     RestoreLayoutState();
@@ -1298,8 +1302,8 @@ LayoutManager::LayoutManager(wxWindow* parent,
                 }
             });
 
-    delete_current_line_sub_ = event_bus_.subscribe<core::events::DeleteCurrentLineRequestEvent>(
-        [this]([[maybe_unused]] const core::events::DeleteCurrentLineRequestEvent& evt)
+    delete_current_line_sub_ = event_bus_.subscribe<core::events::DeleteLineRequestEvent>(
+        [this]([[maybe_unused]] const core::events::DeleteLineRequestEvent& evt)
         {
             if (split_view_ != nullptr)
             {
@@ -1402,8 +1406,8 @@ LayoutManager::LayoutManager(wxWindow* parent,
             }
         });
 
-    toggle_minimap_r11_sub_ = event_bus_.subscribe<core::events::ToggleMinimapR11RequestEvent>(
-        [this]([[maybe_unused]] const core::events::ToggleMinimapR11RequestEvent& evt)
+    toggle_minimap_r11_sub_ = event_bus_.subscribe<core::events::ToggleMinimapRequestEvent>(
+        [this]([[maybe_unused]] const core::events::ToggleMinimapRequestEvent& evt)
         {
             if (split_view_ != nullptr)
             {
@@ -1552,8 +1556,8 @@ LayoutManager::LayoutManager(wxWindow* parent,
         });
 
     // ── R14 subscriptions ──
-    fold_current_sub_ = event_bus_.subscribe<core::events::FoldCurrentRegionRequestEvent>(
-        [this]([[maybe_unused]] const core::events::FoldCurrentRegionRequestEvent& evt)
+    fold_current_sub_ = event_bus_.subscribe<core::events::FoldCurrentRequestEvent>(
+        [this]([[maybe_unused]] const core::events::FoldCurrentRequestEvent& evt)
         {
             if (split_view_ != nullptr)
             {
@@ -1565,8 +1569,8 @@ LayoutManager::LayoutManager(wxWindow* parent,
             }
         });
 
-    unfold_current_sub_ = event_bus_.subscribe<core::events::UnfoldCurrentRegionRequestEvent>(
-        [this]([[maybe_unused]] const core::events::UnfoldCurrentRegionRequestEvent& evt)
+    unfold_current_sub_ = event_bus_.subscribe<core::events::UnfoldCurrentRequestEvent>(
+        [this]([[maybe_unused]] const core::events::UnfoldCurrentRequestEvent& evt)
         {
             if (split_view_ != nullptr)
             {
@@ -1578,8 +1582,8 @@ LayoutManager::LayoutManager(wxWindow* parent,
             }
         });
 
-    jump_to_bracket_sub_ = event_bus_.subscribe<core::events::JumpToMatchingBracketRequestEvent>(
-        [this]([[maybe_unused]] const core::events::JumpToMatchingBracketRequestEvent& evt)
+    jump_to_bracket_sub_ = event_bus_.subscribe<core::events::JumpToBracketRequestEvent>(
+        [this]([[maybe_unused]] const core::events::JumpToBracketRequestEvent& evt)
         {
             if (split_view_ != nullptr)
             {
@@ -1591,22 +1595,8 @@ LayoutManager::LayoutManager(wxWindow* parent,
             }
         });
 
-    select_to_bracket_sub_ =
-        event_bus_.subscribe<core::events::SelectToMatchingBracketRequestEvent>(
-            [this]([[maybe_unused]] const core::events::SelectToMatchingBracketRequestEvent& evt)
-            {
-                if (split_view_ != nullptr)
-                {
-                    auto* editor = split_view_->GetEditorPanel();
-                    if (editor != nullptr)
-                    {
-                        editor->SelectToMatchingBracket();
-                    }
-                }
-            });
-
-    transpose_chars_sub_ = event_bus_.subscribe<core::events::TransposeCharactersRequestEvent>(
-        [this]([[maybe_unused]] const core::events::TransposeCharactersRequestEvent& evt)
+    transpose_chars_sub_ = event_bus_.subscribe<core::events::TransposeCharsRequestEvent>(
+        [this]([[maybe_unused]] const core::events::TransposeCharsRequestEvent& evt)
         {
             if (split_view_ != nullptr)
             {
@@ -1618,8 +1608,8 @@ LayoutManager::LayoutManager(wxWindow* parent,
             }
         });
 
-    reverse_lines_sub_ = event_bus_.subscribe<core::events::ReverseSelectedLinesRequestEvent>(
-        [this]([[maybe_unused]] const core::events::ReverseSelectedLinesRequestEvent& evt)
+    reverse_lines_sub_ = event_bus_.subscribe<core::events::ReverseLinesRequestEvent>(
+        [this]([[maybe_unused]] const core::events::ReverseLinesRequestEvent& evt)
         {
             if (split_view_ != nullptr)
             {
@@ -1686,6 +1676,15 @@ LayoutManager::LayoutManager(wxWindow* parent,
                     content_panel_->Layout();
                 }
             }
+            // Phase 4: Mermaid toggle — forward to SplitView/PreviewPanel
+            else if (evt.feature_id == core::builtin_features::kMermaid)
+            {
+                if (split_view_ != nullptr)
+                {
+                    split_view_->set_mermaid_enabled(evt.enabled);
+                }
+            }
+            // Phase 4: ThemeGallery toggle is handled at click-time (no widget to hide)
             MARKAMP_LOG_INFO(
                 "Feature toggled: {} = {}", evt.feature_id, evt.enabled ? "on" : "off");
         });
@@ -1861,6 +1860,12 @@ void LayoutManager::CreateLayout()
     toolbar_->SetOnThemeGalleryClick(
         [this]()
         {
+            // Phase 4: Guard ThemeGallery behind feature toggle
+            if (feature_registry_ != nullptr &&
+                !feature_registry_->is_enabled(core::builtin_features::kThemeGallery))
+            {
+                return;
+            }
             ThemeGallery gallery(this, theme_engine(), theme_engine().registry());
             gallery.ShowGallery();
         });
@@ -1881,7 +1886,19 @@ void LayoutManager::CreateLayout()
         breadcrumb_bar_->Hide();
     }
 
-    split_view_ = new SplitView(content_panel_, theme_engine(), event_bus_, config_);
+    split_view_ = new SplitView(
+        content_panel_, theme_engine(), event_bus_, config_, mermaid_renderer_, math_renderer_);
+
+    // Phase 4: Wire FeatureRegistry to SplitView (forwards to EditorPanel)
+    if (feature_registry_ != nullptr)
+    {
+        split_view_->set_feature_registry(feature_registry_);
+
+        // Set initial Mermaid rendering state from feature registry
+        split_view_->set_mermaid_enabled(
+            feature_registry_->is_enabled(core::builtin_features::kMermaid));
+    }
+
     content_sizer->Add(split_view_, 1, wxEXPAND);
 
     content_panel_->SetSizer(content_sizer);

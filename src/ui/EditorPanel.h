@@ -28,6 +28,7 @@ class TableEditorOverlay;
 namespace markamp::core
 {
 class Config;
+class FeatureRegistry;
 } // namespace markamp::core
 
 namespace markamp::ui
@@ -157,6 +158,12 @@ public:
     void ShowTableEditor();
     void HideTableEditor();
     void SetDocumentBasePath(const std::filesystem::path& base_path);
+
+    /// Inject FeatureRegistry for feature-guard checks.
+    void set_feature_registry(core::FeatureRegistry* registry)
+    {
+        feature_registry_ = registry;
+    }
 
     // ── Phase 6D: Minimap ──
     void ToggleMinimap();
@@ -419,6 +426,7 @@ protected:
 private:
     wxStyledTextCtrl* editor_{nullptr};
     core::EventBus& event_bus_;
+    core::FeatureRegistry* feature_registry_{nullptr};
 
     // ── Find bar widgets ──
     wxPanel* find_bar_{nullptr};

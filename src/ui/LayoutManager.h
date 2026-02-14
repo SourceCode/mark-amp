@@ -5,6 +5,7 @@
 #include "core/FileNode.h"
 #include "core/ThemeEngine.h"
 
+#include <wx/notebook.h>
 #include <wx/sizer.h>
 #include <wx/srchctrl.h>
 #include <wx/stattext.h>
@@ -20,6 +21,8 @@ namespace markamp::core
 {
 class Config;
 class FeatureRegistry;
+class IMermaidRenderer;
+class IMathRenderer;
 } // namespace markamp::core
 
 namespace markamp::core
@@ -34,12 +37,17 @@ namespace markamp::ui
 class BreadcrumbBar;
 class ExtensionsBrowserPanel;
 class FileTreeCtrl;
+class OutputPanel;
 class PreviewPanel;
+class ProblemsPanel;
 class SplitterBar;
 class SplitView;
 class StatusBarPanel;
 class TabBar;
 class Toolbar;
+class TreeViewHost;
+class WalkthroughPanel;
+class WebviewHostPanel;
 
 /// Sidebar display mode.
 enum class SidebarMode
@@ -58,7 +66,9 @@ public:
                   core::ThemeEngine& theme_engine,
                   core::EventBus& event_bus,
                   core::Config* config,
-                  core::FeatureRegistry* feature_registry = nullptr);
+                  core::FeatureRegistry* feature_registry = nullptr,
+                  core::IMermaidRenderer* mermaid_renderer = nullptr,
+                  core::IMathRenderer* math_renderer = nullptr);
 
     // Zone access (for later phases to populate)
     [[nodiscard]] auto sidebar_container() -> wxPanel*;
@@ -116,6 +126,11 @@ public:
     static constexpr int kMinSidebarWidth = 180;
     static constexpr int kMaxSidebarWidth = 400;
     static constexpr int kStatusBarHeight = 24;
+    static constexpr int kBottomPanelHeight = 200;
+
+    // Bottom panel control
+    void ShowBottomPanel(bool show);
+    [[nodiscard]] auto is_bottom_panel_visible() const -> bool;
 
 protected:
     void OnThemeChanged(const core::Theme& new_theme) override;
@@ -124,6 +139,8 @@ private:
     core::EventBus& event_bus_;
     core::Config* config_;
     core::FeatureRegistry* feature_registry_{nullptr};
+    core::IMermaidRenderer* mermaid_renderer_{nullptr};
+    core::IMathRenderer* math_renderer_{nullptr};
 
     // Child panels
     wxPanel* sidebar_panel_{nullptr};
@@ -138,6 +155,15 @@ private:
     wxStaticText* file_count_label_{nullptr};
     wxStaticText* header_label_{nullptr};    // R3 Fix 19
     BreadcrumbBar* breadcrumb_bar_{nullptr}; // R3 Fix 14
+
+    // Bottom panel host (Output, Problems, Walkthrough tabs)
+    wxNotebook* bottom_panel_notebook_{nullptr};
+    OutputPanel* output_panel_{nullptr};
+    ProblemsPanel* problems_panel_{nullptr};
+    WalkthroughPanel* walkthrough_panel_{nullptr};
+    TreeViewHost* tree_view_host_{nullptr};
+    WebviewHostPanel* webview_host_panel_{nullptr};
+    bool bottom_panel_visible_{false};
 
     // Phase 8: Sidebar mode switching
     SidebarMode sidebar_mode_{SidebarMode::kExplorer};
@@ -173,6 +199,7 @@ private:
     core::Subscription sidebar_toggle_sub_;
 
     void CreateLayout();
+    void CreateBottomPanelHost();
     void UpdateSidebarSize(int width);
     void SaveLayoutState();
     void RestoreLayoutState();

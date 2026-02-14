@@ -40,7 +40,7 @@ public:
 
     /// Render inline diagnostics below a diagram.
     [[nodiscard]] static auto
-    render_diagnostics(const std::vector<core::DiagnosticInfo>& diagnostics) -> std::string;
+    render_diagnostics(const std::vector<core::MermaidDiagnosticInfo>& diagnostics) -> std::string;
 
 private:
     /// Escape HTML special characters in text.

@@ -39,24 +39,24 @@ public:
 } // anonymous namespace
 
 // ---------------------------------------------------------------------------
-// DiagnosticInfo / DiagnosticSeverity
+// MermaidDiagnosticInfo / MermaidDiagnosticSeverity
 // ---------------------------------------------------------------------------
 
-TEST_CASE("DiagnosticInfo: defaults", "[mermaid_phase3]")
+TEST_CASE("MermaidDiagnosticInfo: defaults", "[mermaid_phase3]")
 {
-    markamp::core::DiagnosticInfo diag;
+    markamp::core::MermaidDiagnosticInfo diag;
     REQUIRE(diag.line == 0);
     REQUIRE(diag.message.empty());
-    REQUIRE(diag.severity == markamp::core::DiagnosticSeverity::Error);
+    REQUIRE(diag.severity == markamp::core::MermaidDiagnosticSeverity::Error);
 }
 
-TEST_CASE("DiagnosticInfo: can be constructed with values", "[mermaid_phase3]")
+TEST_CASE("MermaidDiagnosticInfo: can be constructed with values", "[mermaid_phase3]")
 {
-    markamp::core::DiagnosticInfo diag{
-        5, "Unexpected token", markamp::core::DiagnosticSeverity::Warning};
+    markamp::core::MermaidDiagnosticInfo diag{
+        5, "Unexpected token", markamp::core::MermaidDiagnosticSeverity::Warning};
     REQUIRE(diag.line == 5);
     REQUIRE(diag.message == "Unexpected token");
-    REQUIRE(diag.severity == markamp::core::DiagnosticSeverity::Warning);
+    REQUIRE(diag.severity == markamp::core::MermaidDiagnosticSeverity::Warning);
 }
 
 // ---------------------------------------------------------------------------
@@ -103,7 +103,7 @@ TEST_CASE("MermaidRenderer: validate empty source", "[mermaid_phase3]")
     markamp::core::MermaidRenderer renderer;
     auto diagnostics = renderer.validate("");
     REQUIRE(diagnostics.size() == 1);
-    REQUIRE(diagnostics[0].severity == markamp::core::DiagnosticSeverity::Error);
+    REQUIRE(diagnostics[0].severity == markamp::core::MermaidDiagnosticSeverity::Error);
     REQUIRE(diagnostics[0].message.find("Empty") != std::string::npos);
 }
 
@@ -165,16 +165,16 @@ TEST_CASE("MermaidBlockRenderer: render_with_controls includes CSS styles", "[me
 
 TEST_CASE("MermaidBlockRenderer: render_diagnostics empty returns empty", "[mermaid_phase3]")
 {
-    std::vector<markamp::core::DiagnosticInfo> empty;
+    std::vector<markamp::core::MermaidDiagnosticInfo> empty;
     auto html = markamp::rendering::MermaidBlockRenderer::render_diagnostics(empty);
     REQUIRE(html.empty());
 }
 
 TEST_CASE("MermaidBlockRenderer: render_diagnostics shows errors", "[mermaid_phase3]")
 {
-    std::vector<markamp::core::DiagnosticInfo> diagnostics = {
-        {3, "Unexpected token", markamp::core::DiagnosticSeverity::Error},
-        {0, "Missing end", markamp::core::DiagnosticSeverity::Warning},
+    std::vector<markamp::core::MermaidDiagnosticInfo> diagnostics = {
+        {3, "Unexpected token", markamp::core::MermaidDiagnosticSeverity::Error},
+        {0, "Missing end", markamp::core::MermaidDiagnosticSeverity::Warning},
     };
 
     auto html = markamp::rendering::MermaidBlockRenderer::render_diagnostics(diagnostics);
@@ -191,8 +191,8 @@ TEST_CASE("MermaidBlockRenderer: render_diagnostics shows errors", "[mermaid_pha
 
 TEST_CASE("MermaidBlockRenderer: render_diagnostics handles info severity", "[mermaid_phase3]")
 {
-    std::vector<markamp::core::DiagnosticInfo> diagnostics = {
-        {1, "Use flowchart instead of graph", markamp::core::DiagnosticSeverity::Info},
+    std::vector<markamp::core::MermaidDiagnosticInfo> diagnostics = {
+        {1, "Use flowchart instead of graph", markamp::core::MermaidDiagnosticSeverity::Info},
     };
 
     auto html = markamp::rendering::MermaidBlockRenderer::render_diagnostics(diagnostics);

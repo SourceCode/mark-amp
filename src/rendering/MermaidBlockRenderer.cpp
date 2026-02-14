@@ -220,8 +220,8 @@ auto MermaidBlockRenderer::render_with_controls(std::string_view mermaid_source,
     return html;
 }
 
-auto MermaidBlockRenderer::render_diagnostics(const std::vector<core::DiagnosticInfo>& diagnostics)
-    -> std::string
+auto MermaidBlockRenderer::render_diagnostics(
+    const std::vector<core::MermaidDiagnosticInfo>& diagnostics) -> std::string
 {
     if (diagnostics.empty())
     {
@@ -237,15 +237,15 @@ auto MermaidBlockRenderer::render_diagnostics(const std::vector<core::Diagnostic
         std::string label;
         switch (diag.severity)
         {
-            case core::DiagnosticSeverity::Error:
+            case core::MermaidDiagnosticSeverity::Error:
                 css_class = "mermaid-diag-error";
                 label = "ERROR";
                 break;
-            case core::DiagnosticSeverity::Warning:
+            case core::MermaidDiagnosticSeverity::Warning:
                 css_class = "mermaid-diag-warning";
                 label = "WARN";
                 break;
-            case core::DiagnosticSeverity::Info:
+            case core::MermaidDiagnosticSeverity::Info:
                 css_class = "mermaid-diag-info";
                 label = "INFO";
                 break;

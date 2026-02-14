@@ -1,4 +1,4 @@
-#include "core/BuiltinThemes.h"
+#include "core/BuiltInThemes.h"
 #include "core/Config.h"
 #include "core/EventBus.h"
 #include "core/Events.h"

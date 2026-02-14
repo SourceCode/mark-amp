@@ -1343,7 +1343,7 @@ auto markamp::ui::TabBar::GetGroupColorTint(const std::string& file_path) const 
                     ++dir_count;
                 }
             }
-            catch (...)
+            catch (const std::exception& /*ex*/)
             {
             }
         }
@@ -1369,7 +1369,7 @@ auto markamp::ui::TabBar::GetGroupColorTint(const std::string& file_path) const 
 
         return kGroupColors.at(static_cast<size_t>(hue_index));
     }
-    catch (...)
+    catch (const std::exception& /*ex*/)
     {
         return {0, 0, 0, 0};
     }

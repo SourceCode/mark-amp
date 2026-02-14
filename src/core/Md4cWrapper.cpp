@@ -32,7 +32,7 @@ auto attr_to_string(const MD_ATTRIBUTE& attr) -> std::string
 Md4cParser::Md4cParser()
 {
     // Default: GFM dialect
-    parser_flags_ = MD_DIALECT_GITHUB | MD_FLAG_NOHTML;
+    parser_flags_ = MD_DIALECT_GITHUB | MD_FLAG_NOHTML | MD_FLAG_LATEXMATHSPANS;
 }
 
 auto Md4cParser::enable_tables(bool on) -> Md4cParser&
@@ -96,6 +96,19 @@ auto Md4cParser::enable_no_html(bool on) -> Md4cParser&
     else
     {
         parser_flags_ &= ~static_cast<unsigned>(MD_FLAG_NOHTML);
+    }
+    return *this;
+}
+
+auto Md4cParser::enable_latex_math(bool on) -> Md4cParser&
+{
+    if (on)
+    {
+        parser_flags_ |= MD_FLAG_LATEXMATHSPANS;
+    }
+    else
+    {
+        parser_flags_ &= ~static_cast<unsigned>(MD_FLAG_LATEXMATHSPANS);
     }
     return *this;
 }
@@ -376,8 +389,17 @@ void Md4cParser::on_enter_span(ParseState& state, MD_SPANTYPE span_type, void* d
             node.type = MdNodeType::Strikethrough;
             break;
 
+        case MD_SPAN_LATEXMATH:
+            node.type = MdNodeType::MathInline;
+            break;
+
+        case MD_SPAN_LATEXMATH_DISPLAY:
+            node.type = MdNodeType::MathDisplay;
+            node.is_display = true;
+            break;
+
         default:
-            // Unsupported span types (LATEXMATH, WIKILINK, UNDERLINE)
+            // Unsupported span types (WIKILINK, UNDERLINE)
             node.type = MdNodeType::Text;
             break;
     }
@@ -459,8 +481,17 @@ void Md4cParser::on_text(ParseState& state,
         }
 
         case MD_TEXT_LATEXMATH:
-            // Not supported yet
+        {
+            // LaTeX math text — store as text content in current node
+            MdNode text_node;
+            text_node.type = MdNodeType::Text;
+            text_node.text_content = std::string(text, size);
+            if (!state.node_stack.empty())
+            {
+                state.node_stack.back()->children.push_back(std::move(text_node));
+            }
             break;
+        }
     }
 }
 

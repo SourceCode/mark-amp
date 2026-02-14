@@ -4,9 +4,15 @@
 
 #include <nlohmann/json.hpp> // For migration
 
+#include <array>
 #include <cstdlib>
 #include <fstream>
 #include <sstream>
+#include <variant>
+
+#ifdef __APPLE__
+#include <mach-o/dyld.h> // _NSGetExecutablePath
+#endif
 
 namespace markamp::core
 {
@@ -56,139 +62,267 @@ auto Config::config_file_path() -> std::filesystem::path
     return config_directory() / "config.md";
 }
 
+auto Config::defaults_file_path() -> std::filesystem::path
+{
+    // 1. macOS app bundle: <bundle>/Contents/Resources/config_defaults.json
+#ifdef __APPLE__
+    {
+        // Use _NSGetExecutablePath to find the executable location
+        // Executable is at <bundle>/Contents/MacOS/<exe>
+        // Resources  is at <bundle>/Contents/Resources/
+        std::array<char, 1024> exe_buf{};
+        uint32_t buf_size = exe_buf.size();
+        if (_NSGetExecutablePath(exe_buf.data(), &buf_size) == 0)
+        {
+            std::error_code canon_ec;
+            auto exe_path = std::filesystem::canonical(exe_buf.data(), canon_ec);
+            if (!canon_ec)
+            {
+                auto bundle_res =
+                    exe_path.parent_path().parent_path() / "Resources" / "config_defaults.json";
+                std::error_code exists_ec;
+                if (std::filesystem::exists(bundle_res, exists_ec))
+                {
+                    return bundle_res;
+                }
+            }
+        }
+    }
+#endif
+
+    // 2. Build tree / source tree: <binary_dir>/resources/config_defaults.json
+    std::error_code dir_ec;
+    try
+    {
+        auto cwd = std::filesystem::current_path();
+        auto dev_path = cwd / "resources" / "config_defaults.json";
+        if (std::filesystem::exists(dev_path, dir_ec))
+        {
+            return dev_path;
+        }
+    }
+    catch (const std::filesystem::filesystem_error&)
+    {
+        // CWD unavailable
+    }
+
+    // 3. Relative to source root (common in dev)
+    std::filesystem::path source_path =
+        std::filesystem::path(CMAKE_SOURCE_DIR) / "resources" / "config_defaults.json";
+    if (std::filesystem::exists(source_path, dir_ec))
+    {
+        return source_path;
+    }
+
+    // 4. Give up — return empty path (caller will use hardcoded defaults)
+    return {};
+}
+
+auto Config::load_defaults_from_json(const std::filesystem::path& path)
+    -> std::expected<void, std::string>
+{
+    if (path.empty())
+    {
+        return std::unexpected("defaults file path is empty");
+    }
+
+    std::error_code exists_ec;
+    if (!std::filesystem::exists(path, exists_ec))
+    {
+        return std::unexpected("defaults file not found: " + path.string());
+    }
+
+    try
+    {
+        std::ifstream file(path);
+        if (!file.is_open())
+        {
+            return std::unexpected("failed to open defaults file: " + path.string());
+        }
+
+        auto json_defaults = nlohmann::json::parse(file, nullptr, true, true);
+
+        for (const auto& [key, value] : json_defaults.items())
+        {
+            // Only set keys that are not already present in data_
+            if (data_[key])
+            {
+                continue;
+            }
+
+            if (value.is_string())
+            {
+                data_[key] = value.get<std::string>();
+            }
+            else if (value.is_boolean())
+            {
+                data_[key] = value.get<bool>();
+            }
+            else if (value.is_number_float())
+            {
+                data_[key] = value.get<double>();
+            }
+            else if (value.is_number_integer())
+            {
+                data_[key] = value.get<int>();
+            }
+        }
+
+        return {};
+    }
+    catch (const nlohmann::json::parse_error& parse_err)
+    {
+        return std::unexpected(std::string("JSON parse error in defaults: ") + parse_err.what());
+    }
+    catch (const std::exception& ex)
+    {
+        return std::unexpected(std::string("error loading defaults: ") + ex.what());
+    }
+}
+
 void Config::apply_defaults()
 {
-    if (!data_["theme"])
+    // Try loading defaults from external JSON file first
+    auto json_path = defaults_file_path();
+    auto json_result = load_defaults_from_json(json_path);
+    if (json_result)
     {
-        data_["theme"] = "midnight-neon";
+        MARKAMP_LOG_INFO("Loaded config defaults from: " + json_path.string());
     }
-    if (!data_["view_mode"])
+    else
     {
-        data_["view_mode"] = "split";
+        MARKAMP_LOG_INFO("Using hardcoded config defaults (" + json_result.error() + ")");
     }
-    if (!data_["sidebar_visible"])
+
+    // Data-driven hardcoded fallback table.
+    // Each entry is {key, default_value} — applied only if key is absent.
+    struct DefaultEntry
     {
-        data_["sidebar_visible"] = true;
-    }
-    if (!data_["font_size"])
+        const char* key;
+        std::variant<const char*, int, bool, double> value;
+    };
+
+    static constexpr std::array<DefaultEntry, 28> kDefaults = {{
+        {"theme", "midnight-neon"},
+        {"view_mode", "split"},
+        {"sidebar_visible", true},
+        {"font_size", 14},
+        {"word_wrap", true},
+        {"auto_save", false},
+        {"show_line_numbers", true},
+        {"highlight_current_line", true},
+        {"show_whitespace", false},
+        {"tab_size", 4},
+        {"show_minimap", false},
+        {"last_workspace", ""},
+        {"last_open_files", ""},
+        {"auto_indent", true},
+        {"indent_guides", true},
+        {"bracket_matching", true},
+        {"code_folding", true},
+        {"edge_column", 80},
+        {"font_family", "Menlo"},
+        {"auto_save_interval_seconds", 60},
+        {"show_status_bar", true},
+        {"show_tab_bar", true},
+        {"editor.cursor_blinking", "blink"},
+        {"editor.cursor_width", 2},
+        {"editor.mouse_wheel_zoom", false},
+        {"editor.word_wrap_column", 80},
+        {"editor.line_height", 0},
+        {"editor.letter_spacing", 0.0},
+    }};
+
+    // Additional entries that don't fit in constexpr array due to variant limitations
+    static const std::array<DefaultEntry, 4> kExtraDefaults = {{
+        {"editor.padding_top", 0},
+        {"editor.padding_bottom", 0},
+        {"editor.bracket_pair_colorization", false},
+        {"syntax.dim_whitespace", false},
+    }};
+
+    auto apply_entry = [this](const DefaultEntry& entry)
     {
-        data_["font_size"] = 14;
-    }
-    if (!data_["word_wrap"])
+        if (!data_[entry.key])
+        {
+            std::visit([this, &entry](const auto& val) { data_[entry.key] = val; }, entry.value);
+        }
+    };
+
+    for (const auto& entry : kDefaults)
     {
-        data_["word_wrap"] = true;
+        apply_entry(entry);
     }
-    if (!data_["auto_save"])
+    for (const auto& entry : kExtraDefaults)
     {
-        data_["auto_save"] = false;
+        apply_entry(entry);
     }
-    // R14 defaults
-    if (!data_["show_line_numbers"])
+}
+
+auto Config::migrate_from_json(const std::filesystem::path& json_path)
+    -> std::expected<void, std::string>
+{
+    MARKAMP_LOG_INFO("Migrating config.json to config.md...");
+    try
     {
-        data_["show_line_numbers"] = true;
+        std::ifstream json_file(json_path);
+        nlohmann::json json_data = nlohmann::json::parse(json_file, nullptr, true, true);
+
+        // Transfer known keys from JSON config
+        static constexpr std::array<const char*, 6> kMigrationKeys = {
+            "theme",
+            "view_mode",
+            "sidebar_visible",
+            "font_size",
+            "word_wrap",
+            "auto_save",
+        };
+
+        for (const auto* migration_key : kMigrationKeys)
+        {
+            if (json_data.contains(migration_key))
+            {
+                const auto& val = json_data[migration_key];
+                if (val.is_string())
+                {
+                    data_[migration_key] = val.get<std::string>();
+                }
+                else if (val.is_boolean())
+                {
+                    data_[migration_key] = val.get<bool>();
+                }
+                else if (val.is_number_integer())
+                {
+                    data_[migration_key] = val.get<int>();
+                }
+            }
+        }
+
+        apply_defaults();
+        return save();
     }
-    if (!data_["highlight_current_line"])
+    catch (const std::exception& e)
     {
-        data_["highlight_current_line"] = true;
+        return std::unexpected("Migration failed: " + std::string(e.what()));
     }
-    if (!data_["show_whitespace"])
+}
+
+auto Config::parse_frontmatter(const std::string& content) -> bool
+{
+    if (content.rfind("---", 0) != 0)
     {
-        data_["show_whitespace"] = false;
+        return false;
     }
-    if (!data_["tab_size"])
+
+    auto end_pos = content.find("\n---", 3);
+    if (end_pos == std::string::npos)
     {
-        data_["tab_size"] = 4;
+        return false;
     }
-    if (!data_["show_minimap"])
-    {
-        data_["show_minimap"] = false;
-    }
-    if (!data_["last_workspace"])
-    {
-        data_["last_workspace"] = "";
-    }
-    if (!data_["last_open_files"])
-    {
-        data_["last_open_files"] = "";
-    }
-    // R15 defaults
-    if (!data_["auto_indent"])
-    {
-        data_["auto_indent"] = true;
-    }
-    if (!data_["indent_guides"])
-    {
-        data_["indent_guides"] = true;
-    }
-    if (!data_["bracket_matching"])
-    {
-        data_["bracket_matching"] = true;
-    }
-    if (!data_["code_folding"])
-    {
-        data_["code_folding"] = true;
-    }
-    if (!data_["edge_column"])
-    {
-        data_["edge_column"] = 80;
-    }
-    if (!data_["font_family"])
-    {
-        data_["font_family"] = "Menlo";
-    }
-    if (!data_["auto_save_interval_seconds"])
-    {
-        data_["auto_save_interval_seconds"] = 60;
-    }
-    if (!data_["show_status_bar"])
-    {
-        data_["show_status_bar"] = true;
-    }
-    if (!data_["show_tab_bar"])
-    {
-        data_["show_tab_bar"] = true;
-    }
-    // R22: VS Code-equivalent editor settings
-    if (!data_["editor.cursor_blinking"])
-    {
-        data_["editor.cursor_blinking"] = "blink";
-    }
-    if (!data_["editor.cursor_width"])
-    {
-        data_["editor.cursor_width"] = 2;
-    }
-    if (!data_["editor.mouse_wheel_zoom"])
-    {
-        data_["editor.mouse_wheel_zoom"] = false;
-    }
-    if (!data_["editor.word_wrap_column"])
-    {
-        data_["editor.word_wrap_column"] = 80;
-    }
-    if (!data_["editor.line_height"])
-    {
-        data_["editor.line_height"] = 0;
-    }
-    if (!data_["editor.letter_spacing"])
-    {
-        data_["editor.letter_spacing"] = 0.0;
-    }
-    if (!data_["editor.padding_top"])
-    {
-        data_["editor.padding_top"] = 0;
-    }
-    if (!data_["editor.padding_bottom"])
-    {
-        data_["editor.padding_bottom"] = 0;
-    }
-    if (!data_["editor.bracket_pair_colorization"])
-    {
-        data_["editor.bracket_pair_colorization"] = false;
-    }
-    if (!data_["syntax.dim_whitespace"])
-    {
-        data_["syntax.dim_whitespace"] = false;
-    }
+
+    const std::string yaml_content = content.substr(3, end_pos - 3);
+    data_ = YAML::Load(yaml_content);
+    return true;
 }
 
 auto Config::load() -> std::expected<void, std::string>
@@ -199,37 +333,16 @@ auto Config::load() -> std::expected<void, std::string>
     std::error_code exists_ec;
     if (!std::filesystem::exists(path, exists_ec))
     {
+        // Try migrating from legacy JSON config
         auto json_path = config_directory() / "config.json";
         if (std::filesystem::exists(json_path, exists_ec))
         {
-            MARKAMP_LOG_INFO("Migrating config.json to config.md...");
-            try
+            auto migration_result = migrate_from_json(json_path);
+            if (migration_result)
             {
-                std::ifstream json_file(json_path);
-                nlohmann::json j = nlohmann::json::parse(json_file, nullptr, true, true);
-
-                // Transfer values
-                if (j.contains("theme") && j["theme"].is_string())
-                    data_["theme"] = j["theme"].get<std::string>();
-                if (j.contains("view_mode") && j["view_mode"].is_string())
-                    data_["view_mode"] = j["view_mode"].get<std::string>();
-                if (j.contains("sidebar_visible") && j["sidebar_visible"].is_boolean())
-                    data_["sidebar_visible"] = j["sidebar_visible"].get<bool>();
-                if (j.contains("font_size") && j["font_size"].is_number())
-                    data_["font_size"] = j["font_size"].get<int>();
-                if (j.contains("word_wrap") && j["word_wrap"].is_boolean())
-                    data_["word_wrap"] = j["word_wrap"].get<bool>();
-                if (j.contains("auto_save") && j["auto_save"].is_boolean())
-                    data_["auto_save"] = j["auto_save"].get<bool>();
-
-                apply_defaults();
-                return save();
+                return {};
             }
-            catch (const std::exception& e)
-            {
-                MARKAMP_LOG_ERROR("Migration failed: {}", e.what());
-                // Fallthrough to create new default
-            }
+            MARKAMP_LOG_ERROR("{}", migration_result.error());
         }
 
         MARKAMP_LOG_INFO("Config file not found, creating defaults at: {}", path.string());
@@ -248,29 +361,26 @@ auto Config::load() -> std::expected<void, std::string>
 
         std::stringstream buffer;
         buffer << file.rdbuf();
-        std::string content = buffer.str();
+        const std::string content = buffer.str();
 
-        // Parse Frontmatter
-        if (content.rfind("---", 0) == 0) // Starts with ---
+        if (parse_frontmatter(content))
         {
-            auto end_pos = content.find("\n---", 3);
-            if (end_pos != std::string::npos)
-            {
-                std::string yaml_content = content.substr(3, end_pos - 3);
-                data_ = YAML::Load(yaml_content);
-                apply_defaults();
-                MARKAMP_LOG_INFO("Config loaded from: {}", path.string());
-                return {};
-            }
+            apply_defaults();
+            rebuild_cache();
+            MARKAMP_LOG_INFO("Config loaded from: {}", path.string());
+            return {};
         }
 
         // Fallback for partial/invalid files
         MARKAMP_LOG_WARN(
             "Invalid config format (missing frontmatter), loading as plain YAML or empty");
-        data_ = YAML::Load(content); // Try loading whole file
+        data_ = YAML::Load(content);
         if (data_.IsNull())
+        {
             data_ = YAML::Node();
+        }
         apply_defaults();
+        rebuild_cache();
         return {};
     }
     catch (const YAML::Exception& e)
@@ -278,6 +388,7 @@ auto Config::load() -> std::expected<void, std::string>
         MARKAMP_LOG_WARN("Corrupt config file, resetting to defaults: {}", e.what());
         data_ = YAML::Node();
         apply_defaults();
+        rebuild_cache();
         return save();
     }
 }
@@ -314,22 +425,22 @@ auto Config::save() const -> std::expected<void, std::string>
 
 auto Config::get_string(std::string_view key, std::string_view default_val) const -> std::string
 {
-    auto k = std::string(key);
-    if (data_[k] && data_[k].IsScalar())
+    auto key_str = std::string(key);
+    if (data_[key_str] && data_[key_str].IsScalar())
     {
-        return data_[k].as<std::string>();
+        return data_[key_str].as<std::string>();
     }
     return std::string(default_val);
 }
 
 auto Config::get_int(std::string_view key, int default_val) const -> int
 {
-    auto k = std::string(key);
-    if (data_[k] && data_[k].IsScalar())
+    auto key_str = std::string(key);
+    if (data_[key_str] && data_[key_str].IsScalar())
     {
         try
         {
-            return data_[k].as<int>();
+            return data_[key_str].as<int>();
         }
         catch (const YAML::Exception&)
         {
@@ -341,12 +452,12 @@ auto Config::get_int(std::string_view key, int default_val) const -> int
 
 auto Config::get_bool(std::string_view key, bool default_val) const -> bool
 {
-    auto k = std::string(key);
-    if (data_[k] && data_[k].IsScalar())
+    auto key_str = std::string(key);
+    if (data_[key_str] && data_[key_str].IsScalar())
     {
         try
         {
-            return data_[k].as<bool>();
+            return data_[key_str].as<bool>();
         }
         catch (const YAML::Exception&)
         {
@@ -358,12 +469,12 @@ auto Config::get_bool(std::string_view key, bool default_val) const -> bool
 
 auto Config::get_double(std::string_view key, double default_val) const -> double
 {
-    auto k = std::string(key);
-    if (data_[k] && data_[k].IsScalar())
+    auto key_str = std::string(key);
+    if (data_[key_str] && data_[key_str].IsScalar())
     {
         try
         {
-            return data_[k].as<double>();
+            return data_[key_str].as<double>();
         }
         catch (const YAML::Exception&)
         {
@@ -376,21 +487,68 @@ auto Config::get_double(std::string_view key, double default_val) const -> doubl
 void Config::set(std::string_view key, std::string_view value)
 {
     data_[std::string(key)] = std::string(value);
+    rebuild_cache();
 }
 
 void Config::set(std::string_view key, int value)
 {
     data_[std::string(key)] = value;
+    rebuild_cache();
 }
 
 void Config::set(std::string_view key, bool value)
 {
     data_[std::string(key)] = value;
+    rebuild_cache();
 }
 
 void Config::set(std::string_view key, double value)
 {
     data_[std::string(key)] = value;
+    rebuild_cache();
+}
+
+auto Config::cached() const -> const Config::CachedValues&
+{
+    return cached_;
+}
+
+void Config::rebuild_cache()
+{
+    cached_.theme = get_string("theme", "midnight-neon");
+    cached_.view_mode = get_string("view_mode", "split");
+    cached_.font_family = get_string("font_family", "Menlo");
+    cached_.last_workspace = get_string("last_workspace", "");
+    cached_.cursor_blinking = get_string("editor.cursor_blinking", "blink");
+
+    cached_.font_size = get_int("font_size", 14);
+    cached_.tab_size = get_int("tab_size", 4);
+    cached_.edge_column = get_int("edge_column", 80);
+    cached_.auto_save_interval_seconds = get_int("auto_save_interval_seconds", 60);
+    cached_.cursor_width = get_int("editor.cursor_width", 2);
+    cached_.word_wrap_column = get_int("editor.word_wrap_column", 80);
+    cached_.line_height = get_int("editor.line_height", 0);
+    cached_.padding_top = get_int("editor.padding_top", 0);
+    cached_.padding_bottom = get_int("editor.padding_bottom", 0);
+
+    cached_.letter_spacing = get_double("editor.letter_spacing", 0.0);
+
+    cached_.sidebar_visible = get_bool("sidebar_visible", true);
+    cached_.word_wrap = get_bool("word_wrap", true);
+    cached_.auto_save = get_bool("auto_save", false);
+    cached_.show_line_numbers = get_bool("show_line_numbers", true);
+    cached_.highlight_current_line = get_bool("highlight_current_line", true);
+    cached_.show_whitespace = get_bool("show_whitespace", false);
+    cached_.show_minimap = get_bool("show_minimap", false);
+    cached_.auto_indent = get_bool("auto_indent", true);
+    cached_.indent_guides = get_bool("indent_guides", true);
+    cached_.bracket_matching = get_bool("bracket_matching", true);
+    cached_.code_folding = get_bool("code_folding", true);
+    cached_.show_status_bar = get_bool("show_status_bar", true);
+    cached_.show_tab_bar = get_bool("show_tab_bar", true);
+    cached_.mouse_wheel_zoom = get_bool("editor.mouse_wheel_zoom", false);
+    cached_.bracket_pair_colorization = get_bool("editor.bracket_pair_colorization", false);
+    cached_.dim_whitespace = get_bool("syntax.dim_whitespace", false);
 }
 
 } // namespace markamp::core

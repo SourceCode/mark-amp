@@ -3,60 +3,83 @@
 #include "EventBus.h"
 
 #include <string>
+#include <vector>
 
 namespace markamp::core::events
 {
 
-// --- Theme events ---
-struct ThemeChangedEvent : Event
-{
-    std::string theme_id;
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ThemeChangedEvent";
-    }
-};
+// ============================================================================
+// Event Declaration Macros
+// ============================================================================
+//
+// Naming Convention:
+//   - Notification events:   <Subject><Verb>Event         (e.g. ThemeChangedEvent)
+//   - Request events:        <Action>RequestEvent          (e.g. FindRequestEvent)
+//   - Toggle request events: Toggle<Feature>RequestEvent   (e.g. ToggleMinimapRequestEvent)
+//
+// Usage:
+//   MARKAMP_DECLARE_EVENT(MySimpleEvent)          — fieldless event, 1 line
+//   MARKAMP_DECLARE_EVENT_WITH_FIELDS(MyEvent)    — event with fields, use { } block after
+//
 
-// --- File events ---
-struct FileOpenedEvent : Event
-{
-    std::string file_path;
-    std::string content;
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "FileOpenedEvent";
+// Declares a fieldless event struct with automatic type_name() override.
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define MARKAMP_DECLARE_EVENT(EventName)                                                           \
+    struct EventName : Event                                                                       \
+    {                                                                                              \
+        [[nodiscard]] auto type_name() const -> std::string_view override                          \
+        {                                                                                          \
+            return #EventName;                                                                     \
+        }                                                                                          \
     }
-};
 
-struct FileContentChangedEvent : Event
-{
-    std::string file_id;
-    std::string new_content;
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "FileContentChangedEvent";
-    }
-};
+// Begins a struct with fields. Must be closed with MARKAMP_DECLARE_EVENT_END.
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define MARKAMP_DECLARE_EVENT_WITH_FIELDS(EventName)                                               \
+    struct EventName : Event                                                                       \
+    {                                                                                              \
+        [[nodiscard]] auto type_name() const -> std::string_view override                          \
+        {                                                                                          \
+            return #EventName;                                                                     \
+        }
 
-struct FileSavedEvent : Event
-{
-    std::string file_path;
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "FileSavedEvent";
-    }
-};
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define MARKAMP_DECLARE_EVENT_END }
 
-struct ActiveFileChangedEvent : Event
-{
-    std::string file_id;
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ActiveFileChangedEvent";
-    }
-};
+// ============================================================================
+// Theme events
+// ============================================================================
 
-// --- View events ---
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ThemeChangedEvent)
+std::string theme_id;
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// File events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FileOpenedEvent)
+std::string file_path;
+std::string content;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FileContentChangedEvent)
+std::string file_id;
+std::string new_content;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FileSavedEvent)
+std::string file_path;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ActiveFileChangedEvent)
+std::string file_id;
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// View events
+// ============================================================================
+
 enum class ViewMode
 {
     Editor,
@@ -71,410 +94,261 @@ enum class WrapMode
     Character
 };
 
-struct ViewModeChangedEvent : Event
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ViewModeChangedEvent)
+ViewMode mode{ViewMode::Split};
+
+ViewModeChangedEvent() = default;
+explicit ViewModeChangedEvent(ViewMode m)
+    : mode(m)
 {
-    ViewMode mode{ViewMode::Split};
+}
+MARKAMP_DECLARE_EVENT_END;
 
-    ViewModeChangedEvent() = default;
-    explicit ViewModeChangedEvent(ViewMode m)
-        : mode(m)
-    {
-    }
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SidebarToggleEvent)
+bool visible;
+MARKAMP_DECLARE_EVENT_END;
 
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ViewModeChangedEvent";
-    }
-};
+// ============================================================================
+// Editor events
+// ============================================================================
 
-struct SidebarToggleEvent : Event
-{
-    bool visible;
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "SidebarToggleEvent";
-    }
-};
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CursorPositionChangedEvent)
+int line;
+int column;
+int selection_length{0};
+MARKAMP_DECLARE_EVENT_END;
 
-// --- Editor events ---
-struct CursorPositionChangedEvent : Event
-{
-    int line;
-    int column;
-    int selection_length{0};
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "CursorPositionChangedEvent";
-    }
-};
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(EditorContentChangedEvent)
+std::string content;
+MARKAMP_DECLARE_EVENT_END;
 
-struct EditorContentChangedEvent : Event
-{
-    std::string content;
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "EditorContentChangedEvent";
-    }
-};
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(EditorStatsChangedEvent)
+int word_count{0};
+int char_count{0};
+int line_count{0};
+int selection_length{0};
+MARKAMP_DECLARE_EVENT_END;
 
-struct EditorStatsChangedEvent : Event
-{
-    int word_count{0};
-    int char_count{0};
-    int line_count{0};
-    int selection_length{0};
+// ============================================================================
+// Application events
+// ============================================================================
 
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "EditorStatsChangedEvent";
-    }
-};
+MARKAMP_DECLARE_EVENT(AppReadyEvent);
+MARKAMP_DECLARE_EVENT(AppShutdownEvent);
 
-// --- Application events ---
-struct AppReadyEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "AppReadyEvent";
-    }
-};
+// ============================================================================
+// Scroll sync events
+// ============================================================================
 
-struct AppShutdownEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "AppShutdownEvent";
-    }
-};
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(EditorScrollChangedEvent)
+double scroll_fraction{0.0}; // 0.0 = top, 1.0 = bottom
+MARKAMP_DECLARE_EVENT_END;
 
-// --- Scroll sync events ---
-struct EditorScrollChangedEvent : Event
-{
-    double scroll_fraction{0.0}; // 0.0 = top, 1.0 = bottom
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "EditorScrollChangedEvent";
-    }
-};
-
-// --- Status bar events ---
-struct FileEncodingDetectedEvent : Event
-{
-    std::string encoding_name; // e.g. "UTF-8", "UTF-8 BOM", "ASCII"
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "FileEncodingDetectedEvent";
-    }
-};
-
-struct MermaidRenderStatusEvent : Event
-{
-    std::string status; // "ACTIVE", "INACTIVE", "RENDERING", "ERROR"
-    bool active{false};
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "MermaidRenderStatusEvent";
-    }
-};
-
-// --- Accessibility events ---
-struct UIScaleChangedEvent : Event
-{
-    float scale_factor{1.0F};
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "UIScaleChangedEvent";
-    }
-};
-
-struct InputModeChangedEvent : Event
-{
-    bool using_keyboard{false};
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "InputModeChangedEvent";
-    }
-};
-
-// --- Startup / Workspace Events ---
-
-struct OpenFolderRequestEvent : Event
-{
-    // If empty, prompt user. If set, open directly.
-    std::string path;
-
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "OpenFolderRequestEvent";
-    }
-};
-
-struct WorkspaceOpenRequestEvent : Event
-{
-    std::string path;
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "WorkspaceOpenRequestEvent";
-    }
-};
-
-// --- Focus mode events ---
-struct FocusModeChangedEvent : Event
-{
-    bool active{false};
-
-    FocusModeChangedEvent() = default;
-    explicit FocusModeChangedEvent(bool is_active)
-        : active(is_active)
-    {
-    }
-
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "FocusModeChangedEvent";
-    }
-};
-
-// --- Scroll sync mode ---
 enum class ScrollSyncMode
 {
     Proportional,
     HeadingAnchor
 };
 
-struct ScrollSyncModeChangedEvent : Event
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ScrollSyncModeChangedEvent)
+ScrollSyncMode mode{ScrollSyncMode::Proportional};
+
+ScrollSyncModeChangedEvent() = default;
+explicit ScrollSyncModeChangedEvent(ScrollSyncMode sync_mode)
+    : mode(sync_mode)
 {
-    ScrollSyncMode mode{ScrollSyncMode::Proportional};
+}
+MARKAMP_DECLARE_EVENT_END;
 
-    ScrollSyncModeChangedEvent() = default;
-    explicit ScrollSyncModeChangedEvent(ScrollSyncMode sync_mode)
-        : mode(sync_mode)
-    {
-    }
+// ============================================================================
+// Status bar events
+// ============================================================================
 
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ScrollSyncModeChangedEvent";
-    }
-};
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FileEncodingDetectedEvent)
+std::string encoding_name; // e.g. "UTF-8", "UTF-8 BOM", "ASCII"
+MARKAMP_DECLARE_EVENT_END;
 
-/// Request to open the theme gallery.
-struct ThemeGalleryRequestEvent : Event
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(MermaidRenderStatusEvent)
+std::string status; // "ACTIVE", "INACTIVE", "RENDERING", "ERROR"
+bool active{false};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// Accessibility events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(UIScaleChangedEvent)
+float scale_factor{1.0F};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(InputModeChangedEvent)
+bool using_keyboard{false};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// Startup / Workspace events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(OpenFolderRequestEvent)
+// If empty, prompt user. If set, open directly.
+std::string path;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(WorkspaceOpenRequestEvent)
+std::string path;
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// Focus mode events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FocusModeChangedEvent)
+bool active{false};
+
+FocusModeChangedEvent() = default;
+explicit FocusModeChangedEvent(bool is_active)
+    : active(is_active)
 {
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ThemeGalleryRequestEvent";
-    }
-};
+}
+MARKAMP_DECLARE_EVENT_END;
 
-// --- Tab events ---
-struct TabSwitchedEvent : Event
+// ============================================================================
+// Theme gallery
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT(ThemeGalleryRequestEvent);
+
+// ============================================================================
+// Tab events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TabSwitchedEvent)
+std::string file_path;
+
+TabSwitchedEvent() = default;
+explicit TabSwitchedEvent(std::string path)
+    : file_path(std::move(path))
 {
-    std::string file_path;
+}
+MARKAMP_DECLARE_EVENT_END;
 
-    TabSwitchedEvent() = default;
-    explicit TabSwitchedEvent(std::string path)
-        : file_path(std::move(path))
-    {
-    }
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TabCloseRequestEvent)
+std::string file_path;
 
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "TabSwitchedEvent";
-    }
-};
-
-struct TabCloseRequestEvent : Event
+TabCloseRequestEvent() = default;
+explicit TabCloseRequestEvent(std::string path)
+    : file_path(std::move(path))
 {
-    std::string file_path;
+}
+MARKAMP_DECLARE_EVENT_END;
 
-    TabCloseRequestEvent() = default;
-    explicit TabCloseRequestEvent(std::string path)
-        : file_path(std::move(path))
-    {
-    }
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TabSaveRequestEvent)
+std::string file_path;
 
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "TabCloseRequestEvent";
-    }
-};
-
-struct TabSaveRequestEvent : Event
+TabSaveRequestEvent() = default;
+explicit TabSaveRequestEvent(std::string path)
+    : file_path(std::move(path))
 {
-    std::string file_path;
+}
+MARKAMP_DECLARE_EVENT_END;
 
-    TabSaveRequestEvent() = default;
-    explicit TabSaveRequestEvent(std::string path)
-        : file_path(std::move(path))
-    {
-    }
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TabSaveAsRequestEvent)
+std::string file_path;
 
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "TabSaveRequestEvent";
-    }
-};
-
-struct TabSaveAsRequestEvent : Event
+TabSaveAsRequestEvent() = default;
+explicit TabSaveAsRequestEvent(std::string path)
+    : file_path(std::move(path))
 {
-    std::string file_path;
+}
+MARKAMP_DECLARE_EVENT_END;
 
-    TabSaveAsRequestEvent() = default;
-    explicit TabSaveAsRequestEvent(std::string path)
-        : file_path(std::move(path))
-    {
-    }
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FileReloadRequestEvent)
+std::string file_path;
 
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "TabSaveAsRequestEvent";
-    }
-};
-
-struct FileReloadRequestEvent : Event
+FileReloadRequestEvent() = default;
+explicit FileReloadRequestEvent(std::string path)
+    : file_path(std::move(path))
 {
-    std::string file_path;
+}
+MARKAMP_DECLARE_EVENT_END;
 
-    FileReloadRequestEvent() = default;
-    explicit FileReloadRequestEvent(std::string path)
-        : file_path(std::move(path))
-    {
-    }
+MARKAMP_DECLARE_EVENT(GoToLineRequestEvent);
 
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "FileReloadRequestEvent";
-    }
-};
+// ============================================================================
+// Settings events
+// ============================================================================
 
-struct GoToLineRequestEvent : Event
+MARKAMP_DECLARE_EVENT(SettingsOpenRequestEvent);
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SettingChangedEvent)
+std::string key;
+std::string value;
+
+SettingChangedEvent() = default;
+SettingChangedEvent(std::string key_name, std::string new_value)
+    : key(std::move(key_name))
+    , value(std::move(new_value))
 {
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "GoToLineRequestEvent";
-    }
-};
+}
+MARKAMP_DECLARE_EVENT_END;
 
-// --- Settings events ---
-struct SettingsOpenRequestEvent : Event
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SettingsBatchChangedEvent)
+std::vector<std::string> changed_keys;
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// Plugin events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PluginActivatedEvent)
+std::string plugin_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PluginDeactivatedEvent)
+std::string plugin_id;
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// Feature toggle events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FeatureToggledEvent)
+std::string feature_id;
+bool enabled{false};
+
+FeatureToggledEvent() = default;
+FeatureToggledEvent(std::string id, bool state)
+    : feature_id(std::move(id))
+    , enabled(state)
 {
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "SettingsOpenRequestEvent";
-    }
-};
+}
+MARKAMP_DECLARE_EVENT_END;
 
-struct SettingChangedEvent : Event
-{
-    std::string key;
-    std::string value;
+// ============================================================================
+// Extension management events
+// ============================================================================
 
-    SettingChangedEvent() = default;
-    SettingChangedEvent(std::string key_name, std::string new_value)
-        : key(std::move(key_name))
-        , value(std::move(new_value))
-    {
-    }
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ExtensionInstalledEvent)
+std::string extension_id;
+std::string version;
+MARKAMP_DECLARE_EVENT_END;
 
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "SettingChangedEvent";
-    }
-};
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ExtensionUninstalledEvent)
+std::string extension_id;
+MARKAMP_DECLARE_EVENT_END;
 
-// --- Plugin events ---
-struct PluginActivatedEvent : Event
-{
-    std::string plugin_id;
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ExtensionEnablementChangedEvent)
+std::string extension_id;
+bool enabled{false};
+MARKAMP_DECLARE_EVENT_END;
 
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "PluginActivatedEvent";
-    }
-};
+MARKAMP_DECLARE_EVENT(ShowExtensionsBrowserRequestEvent);
+MARKAMP_DECLARE_EVENT(ShowExplorerRequestEvent);
 
-struct PluginDeactivatedEvent : Event
-{
-    std::string plugin_id;
+// ============================================================================
+// Notification events
+// ============================================================================
 
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "PluginDeactivatedEvent";
-    }
-};
-
-// --- Feature toggle events ---
-struct FeatureToggledEvent : Event
-{
-    std::string feature_id;
-    bool enabled{false};
-
-    FeatureToggledEvent() = default;
-    FeatureToggledEvent(std::string id, bool state)
-        : feature_id(std::move(id))
-        , enabled(state)
-    {
-    }
-
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "FeatureToggledEvent";
-    }
-};
-
-// --- Extension management events ---
-struct ExtensionInstalledEvent : Event
-{
-    std::string extension_id;
-    std::string version;
-
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ExtensionInstalledEvent";
-    }
-};
-
-struct ExtensionUninstalledEvent : Event
-{
-    std::string extension_id;
-
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ExtensionUninstalledEvent";
-    }
-};
-
-struct ExtensionEnablementChangedEvent : Event
-{
-    std::string extension_id;
-    bool enabled{false};
-
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ExtensionEnablementChangedEvent";
-    }
-};
-
-/// Request to show the Extensions Browser panel in the sidebar.
-struct ShowExtensionsBrowserRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ShowExtensionsBrowserRequestEvent";
-    }
-};
-
-/// Request to show the Explorer panel in the sidebar.
-struct ShowExplorerRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ShowExplorerRequestEvent";
-    }
-};
-
-// --- Notification events ---
 enum class NotificationLevel
 {
     Info,
@@ -483,29 +357,26 @@ enum class NotificationLevel
     Success
 };
 
-struct NotificationEvent : Event
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NotificationEvent)
+std::string message;
+NotificationLevel level{NotificationLevel::Info};
+int duration_ms{3000}; // Auto-dismiss duration, 0 = sticky
+
+NotificationEvent() = default;
+explicit NotificationEvent(std::string msg,
+                           NotificationLevel lvl = NotificationLevel::Info,
+                           int dur = 3000)
+    : message(std::move(msg))
+    , level(lvl)
+    , duration_ms(dur)
 {
-    std::string message;
-    NotificationLevel level{NotificationLevel::Info};
-    int duration_ms{3000}; // Auto-dismiss duration, 0 = sticky
+}
+MARKAMP_DECLARE_EVENT_END;
 
-    NotificationEvent() = default;
-    explicit NotificationEvent(std::string msg,
-                               NotificationLevel lvl = NotificationLevel::Info,
-                               int dur = 3000)
-        : message(std::move(msg))
-        , level(lvl)
-        , duration_ms(dur)
-    {
-    }
+// ============================================================================
+// Activity bar events
+// ============================================================================
 
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "NotificationEvent";
-    }
-};
-
-// --- Activity bar events ---
 enum class ActivityBarItem
 {
     FileExplorer,
@@ -515,999 +386,221 @@ enum class ActivityBarItem
     Extensions
 };
 
-struct ActivityBarSelectionEvent : Event
-{
-    ActivityBarItem item{ActivityBarItem::FileExplorer};
-
-    ActivityBarSelectionEvent() = default;
-    explicit ActivityBarSelectionEvent(ActivityBarItem item_id)
-        : item(item_id)
-    {
-    }
-
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ActivityBarSelectionEvent";
-    }
-};
-
-// --- Workspace management events ---
-struct WorkspaceRefreshRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "WorkspaceRefreshRequestEvent";
-    }
-};
-
-struct ShowStartupRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ShowStartupRequestEvent";
-    }
-};
-
-// --- R6 Editor action events ---
-struct FindRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "FindRequestEvent";
-    }
-};
-
-struct ReplaceRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ReplaceRequestEvent";
-    }
-};
-
-struct DuplicateLineRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "DuplicateLineRequestEvent";
-    }
-};
-
-struct ToggleCommentRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ToggleCommentRequestEvent";
-    }
-};
-
-struct DeleteLineRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "DeleteLineRequestEvent";
-    }
-};
-
-struct WrapToggleRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "WrapToggleRequestEvent";
-    }
-};
-
-// --- R7 Editor action events ---
-struct MoveLineUpRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "MoveLineUpRequestEvent";
-    }
-};
-
-struct MoveLineDownRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "MoveLineDownRequestEvent";
-    }
-};
-
-struct JoinLinesRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "JoinLinesRequestEvent";
-    }
-};
-
-struct SortLinesAscRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "SortLinesAscRequestEvent";
-    }
-};
-
-struct SortLinesDescRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "SortLinesDescRequestEvent";
-    }
-};
-
-struct TransformUpperRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "TransformUpperRequestEvent";
-    }
-};
-
-struct TransformLowerRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "TransformLowerRequestEvent";
-    }
-};
-
-struct TransformTitleRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "TransformTitleRequestEvent";
-    }
-};
-
-struct SelectAllOccurrencesRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "SelectAllOccurrencesRequestEvent";
-    }
-};
-
-struct ExpandLineSelectionRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ExpandLineSelectionRequestEvent";
-    }
-};
-
-struct InsertLineAboveRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "InsertLineAboveRequestEvent";
-    }
-};
-
-struct InsertLineBelowRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "InsertLineBelowRequestEvent";
-    }
-};
-
-struct FoldAllRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "FoldAllRequestEvent";
-    }
-};
-
-struct UnfoldAllRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "UnfoldAllRequestEvent";
-    }
-};
-
-struct ToggleLineNumbersRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ToggleLineNumbersRequestEvent";
-    }
-};
-
-struct ToggleWhitespaceRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ToggleWhitespaceRequestEvent";
-    }
-};
-
-// ── R8: 20 more editor action request events ──
-
-struct CopyLineUpRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "CopyLineUpRequestEvent";
-    }
-};
-
-struct CopyLineDownRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "CopyLineDownRequestEvent";
-    }
-};
-
-struct DeleteAllLeftRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "DeleteAllLeftRequestEvent";
-    }
-};
-
-struct DeleteAllRightRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "DeleteAllRightRequestEvent";
-    }
-};
-
-struct ReverseLinesRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ReverseLinesRequestEvent";
-    }
-};
-
-struct DeleteDuplicateLinesRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "DeleteDuplicateLinesRequestEvent";
-    }
-};
-
-struct TransposeCharsRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "TransposeCharsRequestEvent";
-    }
-};
-
-struct IndentSelectionRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "IndentSelectionRequestEvent";
-    }
-};
-
-struct OutdentSelectionRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "OutdentSelectionRequestEvent";
-    }
-};
-
-struct SelectWordRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "SelectWordRequestEvent";
-    }
-};
-
-struct SelectParagraphRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "SelectParagraphRequestEvent";
-    }
-};
-
-struct ToggleReadOnlyRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ToggleReadOnlyRequestEvent";
-    }
-};
-
-struct ConvertIndentSpacesRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ConvertIndentSpacesRequestEvent";
-    }
-};
-
-struct ConvertIndentTabsRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ConvertIndentTabsRequestEvent";
-    }
-};
-
-struct JumpToBracketRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "JumpToBracketRequestEvent";
-    }
-};
-
-struct ToggleMinimapRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ToggleMinimapRequestEvent";
-    }
-};
-
-struct FoldCurrentRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "FoldCurrentRequestEvent";
-    }
-};
-
-struct UnfoldCurrentRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "UnfoldCurrentRequestEvent";
-    }
-};
-
-struct AddLineCommentRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "AddLineCommentRequestEvent";
-    }
-};
-
-struct RemoveLineCommentRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "RemoveLineCommentRequestEvent";
-    }
-};
-
-// ── R9: 20 more editor action request events ──
-
-struct TrimTrailingWSRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "TrimTrailingWSRequestEvent";
-    }
-};
-
-struct ExpandSelectionRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ExpandSelectionRequestEvent";
-    }
-};
-
-struct ShrinkSelectionRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ShrinkSelectionRequestEvent";
-    }
-};
-
-struct CursorUndoRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "CursorUndoRequestEvent";
-    }
-};
-
-struct CursorRedoRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "CursorRedoRequestEvent";
-    }
-};
-
-struct MoveTextLeftRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "MoveTextLeftRequestEvent";
-    }
-};
-
-struct MoveTextRightRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "MoveTextRightRequestEvent";
-    }
-};
-
-struct ToggleAutoIndentRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ToggleAutoIndentRequestEvent";
-    }
-};
-
-struct ToggleBracketMatchingRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ToggleBracketMatchingRequestEvent";
-    }
-};
-
-struct ToggleCodeFoldingRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ToggleCodeFoldingRequestEvent";
-    }
-};
-
-struct ToggleIndentGuidesRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ToggleIndentGuidesRequestEvent";
-    }
-};
-
-struct SelectToBracketRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "SelectToBracketRequestEvent";
-    }
-};
-
-struct ToggleBlockCommentRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ToggleBlockCommentRequestEvent";
-    }
-};
-
-struct InsertDateTimeRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "InsertDateTimeRequestEvent";
-    }
-};
-
-struct BoldRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "BoldRequestEvent";
-    }
-};
-
-struct ItalicRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ItalicRequestEvent";
-    }
-};
-
-struct InlineCodeRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "InlineCodeRequestEvent";
-    }
-};
-
-struct BlockquoteRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "BlockquoteRequestEvent";
-    }
-};
-
-struct CycleHeadingRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "CycleHeadingRequestEvent";
-    }
-};
-
-struct InsertTableRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "InsertTableRequestEvent";
-    }
-};
-
-// ── R10 events ──
-struct ToggleSmartListContinuationRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ToggleSmartListContinuationRequestEvent";
-    }
-};
-
-struct CloseOtherTabsRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "CloseOtherTabsRequestEvent";
-    }
-};
-
-struct CloseSavedTabsRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "CloseSavedTabsRequestEvent";
-    }
-};
-
-struct InsertLinkRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "InsertLinkRequestEvent";
-    }
-};
-
-struct AddCursorBelowRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "AddCursorBelowRequestEvent";
-    }
-};
-
-struct AddCursorAboveRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "AddCursorAboveRequestEvent";
-    }
-};
-
-struct AddCursorNextOccurrenceRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "AddCursorNextOccurrenceRequestEvent";
-    }
-};
-
-struct RemoveSurroundingBracketsRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "RemoveSurroundingBracketsRequestEvent";
-    }
-};
-
-struct DuplicateSelectionOrLineRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "DuplicateSelectionOrLineRequestEvent";
-    }
-};
-
-struct ShowTableEditorRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ShowTableEditorRequestEvent";
-    }
-};
-
-struct ToggleScrollBeyondLastLineRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ToggleScrollBeyondLastLineRequestEvent";
-    }
-};
-
-struct ToggleHighlightCurrentLineRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ToggleHighlightCurrentLineRequestEvent";
-    }
-};
-
-struct ToggleAutoClosingBracketsRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ToggleAutoClosingBracketsRequestEvent";
-    }
-};
-
-struct ToggleStickyScrollRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ToggleStickyScrollRequestEvent";
-    }
-};
-
-struct ToggleFontLigaturesRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ToggleFontLigaturesRequestEvent";
-    }
-};
-
-struct ToggleSmoothCaretRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ToggleSmoothCaretRequestEvent";
-    }
-};
-
-struct ToggleInlineColorPreviewRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ToggleInlineColorPreviewRequestEvent";
-    }
-};
-
-struct ToggleEdgeColumnRulerRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ToggleEdgeColumnRulerRequestEvent";
-    }
-};
-
-struct EnsureFinalNewlineRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "EnsureFinalNewlineRequestEvent";
-    }
-};
-
-struct InsertSnippetRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "InsertSnippetRequestEvent";
-    }
-};
-
-// ── R11 events ──
-struct ToggleSmoothScrollingRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ToggleSmoothScrollingRequestEvent";
-    }
-};
-struct ToggleTrailingWSHighlightRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ToggleTrailingWSHighlightRequestEvent";
-    }
-};
-struct ToggleAutoTrimWSRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ToggleAutoTrimWSRequestEvent";
-    }
-};
-struct ToggleGutterSeparatorRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ToggleGutterSeparatorRequestEvent";
-    }
-};
-struct ToggleInsertFinalNewlineRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ToggleInsertFinalNewlineRequestEvent";
-    }
-};
-struct ToggleWhitespaceBoundaryRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ToggleWhitespaceBoundaryRequestEvent";
-    }
-};
-struct ToggleLinkAutoCompleteRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ToggleLinkAutoCompleteRequestEvent";
-    }
-};
-struct ToggleDragDropRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ToggleDragDropRequestEvent";
-    }
-};
-struct ToggleAutoSaveRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ToggleAutoSaveRequestEvent";
-    }
-};
-struct ToggleEmptySelClipboardRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ToggleEmptySelClipboardRequestEvent";
-    }
-};
-struct CycleRenderWhitespaceRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "CycleRenderWhitespaceRequestEvent";
-    }
-};
-struct DeleteCurrentLineRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "DeleteCurrentLineRequestEvent";
-    }
-};
-struct CopyLineNoSelRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "CopyLineNoSelRequestEvent";
-    }
-};
-struct AddSelNextMatchRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "AddSelNextMatchRequestEvent";
-    }
-};
-struct SmartBackspaceRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "SmartBackspaceRequestEvent";
-    }
-};
-struct HideTableEditorRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "HideTableEditorRequestEvent";
-    }
-};
-struct AutoPairBoldRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "AutoPairBoldRequestEvent";
-    }
-};
-struct AutoPairItalicRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "AutoPairItalicRequestEvent";
-    }
-};
-struct AutoPairCodeRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "AutoPairCodeRequestEvent";
-    }
-};
-struct ToggleMinimapR11RequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ToggleMinimapR11RequestEvent";
-    }
-};
-
-// ── R12 events (only truly new ones) ──
-struct ReverseSelectedLinesRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ReverseSelectedLinesRequestEvent";
-    }
-};
-struct TransposeCharactersRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "TransposeCharactersRequestEvent";
-    }
-};
-struct FoldCurrentRegionRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "FoldCurrentRegionRequestEvent";
-    }
-};
-struct UnfoldCurrentRegionRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "UnfoldCurrentRegionRequestEvent";
-    }
-};
-struct JumpToMatchingBracketRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "JumpToMatchingBracketRequestEvent";
-    }
-};
-struct SelectToMatchingBracketRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "SelectToMatchingBracketRequestEvent";
-    }
-};
-struct CloseTabsToLeftRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "CloseTabsToLeftRequestEvent";
-    }
-};
-struct CloseTabsToRightRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "CloseTabsToRightRequestEvent";
-    }
-};
-
-struct PinTabRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "PinTabRequestEvent";
-    }
-};
-struct UnpinTabRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "UnpinTabRequestEvent";
-    }
-};
-
-// ── R13 RequestEvents ──
-struct PrintDocumentRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "PrintDocumentRequestEvent";
-    }
-};
-struct CopyFilePathRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "CopyFilePathRequestEvent";
-    }
-};
-struct RevealInFinderRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "RevealInFinderRequestEvent";
-    }
-};
-struct ZoomInRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ZoomInRequestEvent";
-    }
-};
-struct ZoomOutRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ZoomOutRequestEvent";
-    }
-};
-struct ZoomResetRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ZoomResetRequestEvent";
-    }
-};
-struct ConvertEolLfRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ConvertEolLfRequestEvent";
-    }
-};
-struct ConvertEolCrlfRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "ConvertEolCrlfRequestEvent";
-    }
-};
-
-// ── R15 events ──
-struct NewFileRequestEvent : Event
-{
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "NewFileRequestEvent";
-    }
-};
-
-// ── R19 events ──
-struct TabDuplicateRequestEvent : Event
-{
-    std::string file_path;
-
-    TabDuplicateRequestEvent() = default;
-    explicit TabDuplicateRequestEvent(std::string path)
-        : file_path(std::move(path))
-    {
-    }
-
-    [[nodiscard]] auto type_name() const -> std::string_view override
-    {
-        return "TabDuplicateRequestEvent";
-    }
-};
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ActivityBarSelectionEvent)
+ActivityBarItem item{ActivityBarItem::FileExplorer};
+
+ActivityBarSelectionEvent() = default;
+explicit ActivityBarSelectionEvent(ActivityBarItem item_id)
+    : item(item_id)
+{
+}
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// Workspace management events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT(WorkspaceRefreshRequestEvent);
+MARKAMP_DECLARE_EVENT(ShowStartupRequestEvent);
+
+// ============================================================================
+// R6 Editor action events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT(FindRequestEvent);
+MARKAMP_DECLARE_EVENT(ReplaceRequestEvent);
+MARKAMP_DECLARE_EVENT(DuplicateLineRequestEvent);
+MARKAMP_DECLARE_EVENT(ToggleCommentRequestEvent);
+MARKAMP_DECLARE_EVENT(DeleteLineRequestEvent);
+MARKAMP_DECLARE_EVENT(WrapToggleRequestEvent);
+
+// ============================================================================
+// R7 Editor action events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT(MoveLineUpRequestEvent);
+MARKAMP_DECLARE_EVENT(MoveLineDownRequestEvent);
+MARKAMP_DECLARE_EVENT(JoinLinesRequestEvent);
+MARKAMP_DECLARE_EVENT(SortLinesAscRequestEvent);
+MARKAMP_DECLARE_EVENT(SortLinesDescRequestEvent);
+MARKAMP_DECLARE_EVENT(TransformUpperRequestEvent);
+MARKAMP_DECLARE_EVENT(TransformLowerRequestEvent);
+MARKAMP_DECLARE_EVENT(TransformTitleRequestEvent);
+MARKAMP_DECLARE_EVENT(SelectAllOccurrencesRequestEvent);
+MARKAMP_DECLARE_EVENT(ExpandLineSelectionRequestEvent);
+MARKAMP_DECLARE_EVENT(InsertLineAboveRequestEvent);
+MARKAMP_DECLARE_EVENT(InsertLineBelowRequestEvent);
+MARKAMP_DECLARE_EVENT(FoldAllRequestEvent);
+MARKAMP_DECLARE_EVENT(UnfoldAllRequestEvent);
+MARKAMP_DECLARE_EVENT(ToggleLineNumbersRequestEvent);
+MARKAMP_DECLARE_EVENT(ToggleWhitespaceRequestEvent);
+
+// ============================================================================
+// R8 Editor action events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT(CopyLineUpRequestEvent);
+MARKAMP_DECLARE_EVENT(CopyLineDownRequestEvent);
+MARKAMP_DECLARE_EVENT(DeleteAllLeftRequestEvent);
+MARKAMP_DECLARE_EVENT(DeleteAllRightRequestEvent);
+MARKAMP_DECLARE_EVENT(ReverseLinesRequestEvent);
+MARKAMP_DECLARE_EVENT(DeleteDuplicateLinesRequestEvent);
+MARKAMP_DECLARE_EVENT(TransposeCharsRequestEvent);
+MARKAMP_DECLARE_EVENT(IndentSelectionRequestEvent);
+MARKAMP_DECLARE_EVENT(OutdentSelectionRequestEvent);
+MARKAMP_DECLARE_EVENT(SelectWordRequestEvent);
+MARKAMP_DECLARE_EVENT(SelectParagraphRequestEvent);
+MARKAMP_DECLARE_EVENT(ToggleReadOnlyRequestEvent);
+MARKAMP_DECLARE_EVENT(ConvertIndentSpacesRequestEvent);
+MARKAMP_DECLARE_EVENT(ConvertIndentTabsRequestEvent);
+MARKAMP_DECLARE_EVENT(JumpToBracketRequestEvent);
+MARKAMP_DECLARE_EVENT(ToggleMinimapRequestEvent);
+MARKAMP_DECLARE_EVENT(FoldCurrentRequestEvent);
+MARKAMP_DECLARE_EVENT(UnfoldCurrentRequestEvent);
+MARKAMP_DECLARE_EVENT(AddLineCommentRequestEvent);
+MARKAMP_DECLARE_EVENT(RemoveLineCommentRequestEvent);
+
+// ============================================================================
+// R9 Editor action events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT(TrimTrailingWSRequestEvent);
+MARKAMP_DECLARE_EVENT(ExpandSelectionRequestEvent);
+MARKAMP_DECLARE_EVENT(ShrinkSelectionRequestEvent);
+MARKAMP_DECLARE_EVENT(CursorUndoRequestEvent);
+MARKAMP_DECLARE_EVENT(CursorRedoRequestEvent);
+MARKAMP_DECLARE_EVENT(MoveTextLeftRequestEvent);
+MARKAMP_DECLARE_EVENT(MoveTextRightRequestEvent);
+MARKAMP_DECLARE_EVENT(ToggleAutoIndentRequestEvent);
+MARKAMP_DECLARE_EVENT(ToggleBracketMatchingRequestEvent);
+MARKAMP_DECLARE_EVENT(ToggleCodeFoldingRequestEvent);
+MARKAMP_DECLARE_EVENT(ToggleIndentGuidesRequestEvent);
+MARKAMP_DECLARE_EVENT(SelectToBracketRequestEvent);
+MARKAMP_DECLARE_EVENT(ToggleBlockCommentRequestEvent);
+MARKAMP_DECLARE_EVENT(InsertDateTimeRequestEvent);
+MARKAMP_DECLARE_EVENT(BoldRequestEvent);
+MARKAMP_DECLARE_EVENT(ItalicRequestEvent);
+MARKAMP_DECLARE_EVENT(InlineCodeRequestEvent);
+MARKAMP_DECLARE_EVENT(BlockquoteRequestEvent);
+MARKAMP_DECLARE_EVENT(CycleHeadingRequestEvent);
+MARKAMP_DECLARE_EVENT(InsertTableRequestEvent);
+
+// ============================================================================
+// R10 Editor action events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT(ToggleSmartListContinuationRequestEvent);
+MARKAMP_DECLARE_EVENT(CloseOtherTabsRequestEvent);
+MARKAMP_DECLARE_EVENT(CloseSavedTabsRequestEvent);
+MARKAMP_DECLARE_EVENT(InsertLinkRequestEvent);
+MARKAMP_DECLARE_EVENT(AddCursorBelowRequestEvent);
+MARKAMP_DECLARE_EVENT(AddCursorAboveRequestEvent);
+MARKAMP_DECLARE_EVENT(AddCursorNextOccurrenceRequestEvent);
+MARKAMP_DECLARE_EVENT(RemoveSurroundingBracketsRequestEvent);
+MARKAMP_DECLARE_EVENT(DuplicateSelectionOrLineRequestEvent);
+MARKAMP_DECLARE_EVENT(ShowTableEditorRequestEvent);
+MARKAMP_DECLARE_EVENT(ToggleScrollBeyondLastLineRequestEvent);
+MARKAMP_DECLARE_EVENT(ToggleHighlightCurrentLineRequestEvent);
+MARKAMP_DECLARE_EVENT(ToggleAutoClosingBracketsRequestEvent);
+MARKAMP_DECLARE_EVENT(ToggleStickyScrollRequestEvent);
+MARKAMP_DECLARE_EVENT(ToggleFontLigaturesRequestEvent);
+MARKAMP_DECLARE_EVENT(ToggleSmoothCaretRequestEvent);
+MARKAMP_DECLARE_EVENT(ToggleInlineColorPreviewRequestEvent);
+MARKAMP_DECLARE_EVENT(ToggleEdgeColumnRulerRequestEvent);
+MARKAMP_DECLARE_EVENT(EnsureFinalNewlineRequestEvent);
+MARKAMP_DECLARE_EVENT(InsertSnippetRequestEvent);
+
+// ============================================================================
+// R11 Editor action events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT(ToggleSmoothScrollingRequestEvent);
+MARKAMP_DECLARE_EVENT(ToggleTrailingWSHighlightRequestEvent);
+MARKAMP_DECLARE_EVENT(ToggleAutoTrimWSRequestEvent);
+MARKAMP_DECLARE_EVENT(ToggleGutterSeparatorRequestEvent);
+MARKAMP_DECLARE_EVENT(ToggleInsertFinalNewlineRequestEvent);
+MARKAMP_DECLARE_EVENT(ToggleWhitespaceBoundaryRequestEvent);
+MARKAMP_DECLARE_EVENT(ToggleLinkAutoCompleteRequestEvent);
+MARKAMP_DECLARE_EVENT(ToggleDragDropRequestEvent);
+MARKAMP_DECLARE_EVENT(ToggleAutoSaveRequestEvent);
+MARKAMP_DECLARE_EVENT(ToggleEmptySelClipboardRequestEvent);
+MARKAMP_DECLARE_EVENT(CycleRenderWhitespaceRequestEvent);
+// NOTE: DeleteCurrentLineRequestEvent removed — use DeleteLineRequestEvent (R6)
+MARKAMP_DECLARE_EVENT(CopyLineNoSelRequestEvent);
+MARKAMP_DECLARE_EVENT(AddSelNextMatchRequestEvent);
+MARKAMP_DECLARE_EVENT(SmartBackspaceRequestEvent);
+MARKAMP_DECLARE_EVENT(HideTableEditorRequestEvent);
+MARKAMP_DECLARE_EVENT(AutoPairBoldRequestEvent);
+MARKAMP_DECLARE_EVENT(AutoPairItalicRequestEvent);
+MARKAMP_DECLARE_EVENT(AutoPairCodeRequestEvent);
+// NOTE: ToggleMinimapR11RequestEvent removed — use ToggleMinimapRequestEvent (R8)
+
+// ============================================================================
+// R12 Editor action events (deduplicated — only truly new ones)
+// ============================================================================
+
+// NOTE: The following R12 events were removed as duplicates of R8/R9 canonical events:
+//   ReverseSelectedLinesRequestEvent   → use ReverseLinesRequestEvent
+//   TransposeCharactersRequestEvent    → use TransposeCharsRequestEvent
+//   FoldCurrentRegionRequestEvent      → use FoldCurrentRequestEvent
+//   UnfoldCurrentRegionRequestEvent    → use UnfoldCurrentRequestEvent
+//   JumpToMatchingBracketRequestEvent  → use JumpToBracketRequestEvent
+
+// NOTE: SelectToMatchingBracketRequestEvent removed — use SelectToBracketRequestEvent (R9)
+MARKAMP_DECLARE_EVENT(CloseTabsToLeftRequestEvent);
+MARKAMP_DECLARE_EVENT(CloseTabsToRightRequestEvent);
+MARKAMP_DECLARE_EVENT(PinTabRequestEvent);
+MARKAMP_DECLARE_EVENT(UnpinTabRequestEvent);
+
+// ============================================================================
+// R13 Editor action events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT(PrintDocumentRequestEvent);
+MARKAMP_DECLARE_EVENT(CopyFilePathRequestEvent);
+MARKAMP_DECLARE_EVENT(RevealInFinderRequestEvent);
+MARKAMP_DECLARE_EVENT(ZoomInRequestEvent);
+MARKAMP_DECLARE_EVENT(ZoomOutRequestEvent);
+MARKAMP_DECLARE_EVENT(ZoomResetRequestEvent);
+MARKAMP_DECLARE_EVENT(ConvertEolLfRequestEvent);
+MARKAMP_DECLARE_EVENT(ConvertEolCrlfRequestEvent);
+
+// ============================================================================
+// R15 events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT(NewFileRequestEvent);
+
+// ============================================================================
+// R19 events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TabDuplicateRequestEvent)
+std::string file_path;
+
+TabDuplicateRequestEvent() = default;
+explicit TabDuplicateRequestEvent(std::string path)
+    : file_path(std::move(path))
+{
+}
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// Phase 07 events: InputBox & QuickPick UI
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ShowInputBoxRequestEvent)
+std::string title;
+std::string prompt;
+std::string value;
+std::string placeholder;
+bool password{false};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ShowQuickPickRequestEvent)
+std::string title;
+std::string placeholder;
+bool can_pick_many{false};
+MARKAMP_DECLARE_EVENT_END;
 
 } // namespace markamp::core::events

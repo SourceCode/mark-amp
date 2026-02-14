@@ -133,9 +133,17 @@ auto WinPlatform::prefers_reduced_motion() const -> bool
 void WinPlatform::announce_to_screen_reader([[maybe_unused]] wxWindow* window,
                                             [[maybe_unused]] const wxString& message)
 {
-    // TODO: Implement UIA (UI Automation) notifications for NVDA/JAWS
-    // This requires linking to UIAutomationCore.lib and using
-    // UiaRaiseNotificationEvent or IAccessible2 interfaces.
+    if (window == nullptr)
+    {
+        return;
+    }
+
+    // Use wxAccessible name-change notification as a cross-platform fallback.
+    // Screen readers (NVDA, JAWS, Narrator) will pick up the name change event.
+    window->SetName(message);
+#if wxUSE_ACCESSIBILITY
+    wxAccessible::NotifyEvent(wxACC_EVENT_OBJECT_NAMECHANGE, window, wxOBJID_CLIENT, wxACC_SELF);
+#endif
 }
 
 // ── System Appearance ──
@@ -184,6 +192,30 @@ auto WinPlatform::get_content_scale_factor() const -> double
     }
 #endif
     return 1.0;
+}
+
+// ── Window Effects ──
+
+void WinPlatform::enable_vibrancy([[maybe_unused]] wxFrame* frame, [[maybe_unused]] bool enable)
+{
+#ifdef _WIN32
+    // Use DWM (Desktop Window Manager) blur-behind for vibrancy effect.
+    // This provides a frosted-glass effect similar to macOS NSVisualEffectView.
+    auto* hwnd = static_cast<HWND>(frame->GetHandle());
+    if (hwnd != nullptr)
+    {
+        DWM_BLURBEHIND blur_behind{};
+        blur_behind.dwFlags = DWM_BB_ENABLE;
+        blur_behind.fEnable = enable ? TRUE : FALSE;
+        DwmEnableBlurBehindWindow(hwnd, &blur_behind);
+    }
+#endif
+}
+
+void WinPlatform::enable_surface_blur(wxFrame* frame, bool enable)
+{
+    // Surface blur uses the same DWM mechanism as vibrancy on Windows.
+    enable_vibrancy(frame, enable);
 }
 
 } // namespace markamp::platform

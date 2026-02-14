@@ -10,6 +10,7 @@
 #include <wx/font.h>
 #include <wx/pen.h>
 
+#include <array>
 #include <functional>
 #include <unordered_map>
 
@@ -74,6 +75,10 @@ enum class ThemeFontToken
     UIHeading,
 };
 
+/// Total number of ThemeColorToken values.
+static constexpr std::size_t kColorTokenCount =
+    static_cast<std::size_t>(ThemeColorToken::RenderTableHeaderBg) + 1;
+
 /// Runtime theme engine — applies colors to wxWidgets components and
 /// enables instant theme hot-swapping via EventBus notifications.
 class ThemeEngine : public IThemeEngine
@@ -101,6 +106,9 @@ public:
     [[nodiscard]] auto color(ThemeColorToken token) const -> const wxColour&;
     [[nodiscard]] auto font(ThemeFontToken token) const -> const wxFont&;
 
+    /// O(1) array-indexed color access for hot paths (no hash lookup).
+    [[nodiscard]] auto color_fast(ThemeColorToken token) const -> const wxColour&;
+
     /// Subscribe to theme change notifications. Returns RAII subscription.
     [[nodiscard]] auto
     subscribe_theme_change(std::function<void(const std::string& theme_id)> handler)
@@ -127,6 +135,9 @@ private:
         std::unordered_map<ThemeFontToken, wxFont> fonts;
     };
     CachedResources cache_;
+
+    /// Flat array for O(1) indexed color access — rebuilt alongside cache_.
+    std::array<wxColour, kColorTokenCount> flat_colours_{};
 
     void rebuild_cache();
     void build_fonts();

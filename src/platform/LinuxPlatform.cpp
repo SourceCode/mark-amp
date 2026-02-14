@@ -169,9 +169,30 @@ auto LinuxPlatform::prefers_reduced_motion() const -> bool
 void LinuxPlatform::announce_to_screen_reader([[maybe_unused]] wxWindow* window,
                                               [[maybe_unused]] const wxString& message)
 {
-    // AT-SPI2 announcement requires atspi2 library linkage.
-    // For now, use the wxAccessible fallback if available.
-    // Full AT-SPI2 integration is deferred to Phase 29.
+    if (window == nullptr)
+    {
+        return;
+    }
+
+#ifdef __linux__
+    // Use ATK (Accessibility Toolkit) to announce to screen readers like Orca.
+    // Set the accessible name on the underlying GtkWidget so AT-SPI2 picks it up.
+    GtkWidget* widget = static_cast<GtkWidget*>(window->GetHandle());
+    if (widget != nullptr)
+    {
+        AtkObject* atk_obj = gtk_widget_get_accessible(widget);
+        if (atk_obj != nullptr)
+        {
+            atk_object_set_name(atk_obj, message.utf8_str().data());
+        }
+    }
+#endif
+
+    // Also set wxWidgets accessible name as a cross-platform fallback.
+    window->SetName(message);
+#if wxUSE_ACCESSIBILITY
+    wxAccessible::NotifyEvent(wxACC_EVENT_OBJECT_NAMECHANGE, window, wxOBJID_CLIENT, wxACC_SELF);
+#endif
 }
 
 // ── System Appearance ──
@@ -223,6 +244,24 @@ auto LinuxPlatform::get_content_scale_factor() const -> double
     }
 #endif
     return 1.0;
+}
+
+// ── Window Effects ──
+
+void LinuxPlatform::enable_vibrancy([[maybe_unused]] wxFrame* frame, [[maybe_unused]] bool enable)
+{
+    // Intentional no-op: Linux window compositors (X11 / Wayland) do not
+    // expose a standardized blur-behind / vibrancy API.
+    // Compositor-specific extensions (e.g. KWin's _KDE_NET_WM_BLUR_BEHIND_REGION,
+    // or picom's dual_kawase blur) could be supported in a future phase.
+}
+
+void LinuxPlatform::enable_surface_blur([[maybe_unused]] wxFrame* frame,
+                                        [[maybe_unused]] bool enable)
+{
+    // Intentional no-op: same reasoning as enable_vibrancy.
+    // Surface blur would require compositor-specific X11 atoms or
+    // Wayland protocol extensions that are not universally available.
 }
 
 } // namespace markamp::platform

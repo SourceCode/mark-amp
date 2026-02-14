@@ -4,8 +4,10 @@
 #include "ImagePreviewPopover.h"
 #include "LinkPreviewPopover.h"
 #include "TableEditorOverlay.h"
+#include "core/BuiltInPlugins.h"
 #include "core/Config.h"
 #include "core/Events.h"
+#include "core/FeatureRegistry.h"
 #include "core/Logger.h"
 
 #include <wx/button.h>
@@ -1948,7 +1950,7 @@ void EditorPanel::OnEditorUpdateUI(wxStyledTextEvent& /*event*/)
     evt.line = GetCursorLine();
     evt.column = GetCursorColumn();
     evt.selection_length = std::abs(editor_->GetSelectionEnd() - editor_->GetSelectionStart());
-    event_bus_.publish(evt);
+    event_bus_.publish_fast(evt);
 
     // Check bracket matching
     if (bracket_matching_)
@@ -2317,7 +2319,7 @@ void EditorPanel::OnDebounceTimer(wxTimerEvent& /*event*/)
     {
         core::events::EditorContentChangedEvent evt;
         evt.content = GetContent();
-        event_bus_.publish(evt);
+        event_bus_.publish_fast(evt);
 
         // QoL Item 10: Status Bar Stats
         CalculateAndPublishStats();
@@ -3528,6 +3530,12 @@ void EditorPanel::ShowFormatBar()
         return;
     }
 
+    // Phase 4: Guard format bar behind feature toggle
+    if (feature_registry_ != nullptr &&
+        !feature_registry_->is_enabled(core::builtin_features::kFormatBar))
+    {
+        return;
+    }
     int sel_start = editor_->GetSelectionStart();
     int sel_end = editor_->GetSelectionEnd();
     if (sel_start == sel_end)
@@ -3648,46 +3656,56 @@ void EditorPanel::OnDwellStart(wxStyledTextEvent& event)
     }
 
     // Check for image first (superset pattern: ![alt](path))
+    // Phase 4: Guard image preview behind feature toggle
     auto image_info = DetectImageAtPosition(pos);
     if (image_info.has_value())
     {
-        if (image_popover_ == nullptr)
+        if (feature_registry_ == nullptr ||
+            feature_registry_->is_enabled(core::builtin_features::kImagePreview))
         {
-            image_popover_ = new ImagePreviewPopover(this, theme_engine(), event_bus_);
-        }
+            if (image_popover_ == nullptr)
+            {
+                image_popover_ = new ImagePreviewPopover(this, theme_engine(), event_bus_);
+            }
 
-        // Resolve relative path
-        std::filesystem::path img_path(image_info->url);
-        if (img_path.is_relative() && !document_base_path_.empty())
-        {
-            img_path = document_base_path_ / img_path;
-        }
+            // Resolve relative path
+            std::filesystem::path img_path(image_info->url);
+            if (img_path.is_relative() && !document_base_path_.empty())
+            {
+                img_path = document_base_path_ / img_path;
+            }
 
-        if (image_popover_->SetImage(img_path, image_info->text))
-        {
-            wxPoint screen_pos = editor_->ClientToScreen(editor_->PointFromPosition(pos));
-            screen_pos.y += editor_->TextHeight(0) + 4;
-            image_popover_->SetPosition(screen_pos);
-            image_popover_->Popup();
+            if (image_popover_->SetImage(img_path, image_info->text))
+            {
+                wxPoint screen_pos = editor_->ClientToScreen(editor_->PointFromPosition(pos));
+                screen_pos.y += editor_->TextHeight(0) + 4;
+                image_popover_->SetPosition(screen_pos);
+                image_popover_->Popup();
+            }
         }
         return;
     }
 
     // Check for link pattern: [text](url)
+    // Phase 4: Guard link preview behind feature toggle
     auto link_info = DetectLinkAtPosition(pos);
     if (link_info.has_value())
     {
-        if (link_popover_ == nullptr)
+        if (feature_registry_ == nullptr ||
+            feature_registry_->is_enabled(core::builtin_features::kLinkPreview))
         {
-            link_popover_ = new LinkPreviewPopover(this, theme_engine(), event_bus_);
+            if (link_popover_ == nullptr)
+            {
+                link_popover_ = new LinkPreviewPopover(this, theme_engine(), event_bus_);
+            }
+
+            link_popover_->SetLink(link_info->text, link_info->url);
+
+            wxPoint screen_pos = editor_->ClientToScreen(editor_->PointFromPosition(pos));
+            screen_pos.y += editor_->TextHeight(0) + 4;
+            link_popover_->SetPosition(screen_pos);
+            link_popover_->Popup();
         }
-
-        link_popover_->SetLink(link_info->text, link_info->url);
-
-        wxPoint screen_pos = editor_->ClientToScreen(editor_->PointFromPosition(pos));
-        screen_pos.y += editor_->TextHeight(0) + 4;
-        link_popover_->SetPosition(screen_pos);
-        link_popover_->Popup();
     }
 }
 
@@ -3860,6 +3878,13 @@ auto EditorPanel::DetectTableAtCursor() -> std::optional<std::pair<int, int>>
 
 void EditorPanel::ShowTableEditor()
 {
+    // Phase 4: Guard table editor behind feature toggle
+    if (feature_registry_ != nullptr &&
+        !feature_registry_->is_enabled(core::builtin_features::kTableEditor))
+    {
+        return;
+    }
+
     auto table_range = DetectTableAtCursor();
     if (!table_range.has_value())
     {
@@ -4509,7 +4534,7 @@ void EditorPanel::UpdateSelectionCount()
         core::events::EditorStatsChangedEvent stats_evt;
         stats_evt.selection_length = static_cast<int>(selected.length());
         stats_evt.word_count = count; // Reuse field to communicate occurrence count
-        event_bus_.publish(stats_evt);
+        event_bus_.publish_fast(stats_evt);
     }
 }
 

@@ -5,6 +5,12 @@
 #include "Events.h"
 #include "Logger.h"
 #include "ShortcutManager.h"
+#include "StatusBarItemService.h"
+#include "ThemeRegistry.h"
+#include "TreeDataProviderRegistry.h"
+
+// ui::WalkthroughPanel lives in markamp::ui, include from project root
+#include "ui/WalkthroughPanel.h"
 
 #include <algorithm>
 #include <stdexcept>
@@ -206,7 +212,7 @@ auto PluginManager::activate_plugin(const std::string& plugin_id) -> bool
     // Process contribution points first
     process_contributions(*entry_it);
 
-    // Create plugin context
+    // Create plugin context with full service injection
     PluginContext ctx;
     ctx.event_bus = &event_bus_;
     ctx.config = &config_;
@@ -214,12 +220,65 @@ auto PluginManager::activate_plugin(const std::string& plugin_id) -> bool
         [&entry = *entry_it](const std::string& command_id, std::function<void()> handler)
     { entry.command_handlers[command_id] = std::move(handler); };
 
-    // Set extension path if manifest is available
+    // execute_command: search all registered plugins for the command handler
+    ctx.execute_command = [this](const std::string& command_id) -> bool
+    {
+        for (auto& plugin_entry : plugins_)
+        {
+            auto handler_it = plugin_entry.command_handlers.find(command_id);
+            if (handler_it != plugin_entry.command_handlers.end())
+            {
+                handler_it->second();
+                return true;
+            }
+        }
+        return false;
+    };
+
+    // get_commands: collect all registered command IDs across all plugins
+    ctx.get_commands = [this]() -> std::vector<std::string>
+    {
+        std::vector<std::string> commands;
+        for (const auto& plugin_entry : plugins_)
+        {
+            for (const auto& [cmd_id, handler] : plugin_entry.command_handlers)
+            {
+                commands.push_back(cmd_id);
+            }
+        }
+        return commands;
+    };
+
+    // Set extension identity fields from manifest
     if (entry_it->ext_manifest.has_value())
     {
-        // Extension path is typically set by the scanner; for now use empty path
-        // as it will be populated when loading from ExtensionScanner
+        const auto& manifest = entry_it->ext_manifest.value();
+        ctx.extension_id = manifest.publisher + "." + manifest.name;
+        // Extension path is populated by the scanner when loading from disk
     }
+
+    // Inject all extension API services from ext_services_
+    ctx.context_key_service = ext_services_.context_key_service;
+    ctx.output_channel_service = ext_services_.output_channel_service;
+    ctx.diagnostics_service = ext_services_.diagnostics_service;
+    ctx.tree_data_provider_registry = ext_services_.tree_data_provider_registry;
+    ctx.webview_service = ext_services_.webview_service;
+    ctx.decoration_service = ext_services_.decoration_service;
+    ctx.file_system_provider_registry = ext_services_.file_system_provider_registry;
+    ctx.language_provider_registry = ext_services_.language_provider_registry;
+    ctx.snippet_engine = ext_services_.snippet_engine;
+    ctx.workspace_service = ext_services_.workspace_service;
+    ctx.text_editor_service = ext_services_.text_editor_service;
+    ctx.progress_service = ext_services_.progress_service;
+    ctx.extension_event_bus = ext_services_.extension_event_bus;
+    ctx.environment_service = ext_services_.environment_service;
+    ctx.notification_service = ext_services_.notification_service;
+    ctx.status_bar_item_service = ext_services_.status_bar_item_service;
+    ctx.input_box_service = ext_services_.input_box_service;
+    ctx.quick_pick_service = ext_services_.quick_pick_service;
+    ctx.grammar_engine = ext_services_.grammar_engine;
+    ctx.terminal_service = ext_services_.terminal_service;
+    ctx.task_runner_service = ext_services_.task_runner_service;
 
     // R19 Fix 11: Guard plugin activation against uncaught exceptions
     try
@@ -459,7 +518,7 @@ void PluginManager::process_contributions(PluginEntry& entry)
     // Process setting contributions → apply defaults to Config
     apply_setting_defaults(contrib.settings);
 
-    // ── Process ExtensionManifest contribution points (#49) ──
+    // ── Process ExtensionManifest contribution points (Tier 3) ──
     // New contribution types are only available on ExtensionManifest (external plugins),
     // not on the built-in PluginManifest::ContributionPoints.
     if (!entry.ext_manifest.has_value())
@@ -469,77 +528,218 @@ void PluginManager::process_contributions(PluginEntry& entry)
 
     const auto& ext_contrib = entry.ext_manifest->contributes;
 
-    // Submenus – register in menu system
-    for (const auto& submenu : ext_contrib.submenus)
+    // Status bar items → wire to StatusBarItemService
+    if (status_bar_service_ != nullptr)
     {
-        MARKAMP_LOG_DEBUG(
-            "Extension contributes submenu: {} ({})", submenu.label, submenu.submenu_id);
+        for (const auto& item : ext_contrib.status_bar_items)
+        {
+            StatusBarAlignment alignment = StatusBarAlignment::kLeft;
+            if (item.alignment == "right")
+            {
+                alignment = StatusBarAlignment::kRight;
+            }
+
+            StatusBarItemOptions opts;
+            opts.id = item.item_id;
+            opts.alignment = alignment;
+            opts.priority = item.priority;
+
+            auto* created = status_bar_service_->create_item(opts);
+            if (created != nullptr)
+            {
+                created->set_text(item.text);
+                created->set_tooltip(item.tooltip);
+                created->set_command(item.command);
+                created->show();
+            }
+
+            MARKAMP_LOG_DEBUG("Wired status bar item: {} ({})", item.name, item.item_id);
+        }
+    }
+    else
+    {
+        for (const auto& item : ext_contrib.status_bar_items)
+        {
+            MARKAMP_LOG_DEBUG("Extension contributes status bar item: {} ({}) [no service]",
+                              item.name,
+                              item.item_id);
+        }
     }
 
-    // Walkthroughs – register for getting-started panel
+    // Walkthroughs → accumulate and push to WalkthroughPanel
     for (const auto& walkthrough : ext_contrib.walkthroughs)
     {
-        MARKAMP_LOG_DEBUG("Extension contributes walkthrough: {} ({} steps)",
-                          walkthrough.title,
-                          walkthrough.steps.size());
+        MARKAMP_LOG_DEBUG(
+            "Wired walkthrough: {} ({} steps)", walkthrough.title, walkthrough.steps.size());
+    }
+    if (walkthrough_panel_ != nullptr && !ext_contrib.walkthroughs.empty())
+    {
+        // Accumulate walkthroughs from this extension; the panel stores the full set
+        auto existing = walkthrough_panel_->walkthroughs();
+        existing.insert(
+            existing.end(), ext_contrib.walkthroughs.begin(), ext_contrib.walkthroughs.end());
+        walkthrough_panel_->set_walkthroughs(std::move(existing));
     }
 
-    // Custom editors – register file-type associations
+    // Themes → import via ThemeRegistry
+    if (theme_registry_ != nullptr)
+    {
+        for (const auto& theme : ext_contrib.themes)
+        {
+            if (!theme.path.empty())
+            {
+                // Use the theme path directly — if relative, it should be relative
+                // to the extension's install directory. The scanner resolves paths
+                // when populating the manifest.
+                const std::filesystem::path theme_path{theme.path};
+
+                if (std::filesystem::exists(theme_path))
+                {
+                    auto result = theme_registry_->import_theme(theme_path);
+                    if (result.has_value())
+                    {
+                        MARKAMP_LOG_INFO(
+                            "Imported extension theme: {} ({})", theme.label, theme.theme_id);
+                    }
+                    else
+                    {
+                        MARKAMP_LOG_WARN("Failed to import extension theme '{}': {}",
+                                         theme.label,
+                                         result.error());
+                    }
+                }
+                else
+                {
+                    MARKAMP_LOG_WARN("Extension theme path does not exist: {}",
+                                     theme_path.string());
+                }
+            }
+        }
+    }
+
+    // Views → store in contribution registry for TreeViewHost to query
+    for (const auto& view : ext_contrib.views)
+    {
+        contributions_.views.push_back(view);
+        MARKAMP_LOG_DEBUG("Registered contributed view: {} ({})", view.name, view.view_id);
+    }
+
+    // Views containers → store in contribution registry
+    for (const auto& container : ext_contrib.views_containers)
+    {
+        contributions_.views_containers.push_back(container);
+        MARKAMP_LOG_DEBUG("Registered contributed views container: {} ({})",
+                          container.title,
+                          container.container_id);
+    }
+
+    // Colors → store in contribution registry for theme engine resolution
+    for (const auto& color : ext_contrib.colors)
+    {
+        contributions_.colors.push_back(color);
+        MARKAMP_LOG_DEBUG("Registered contributed color: {}", color.color_id);
+    }
+
+    // Menus → store in contribution registry for context menu rendering
+    for (const auto& menu_item : ext_contrib.menus)
+    {
+        contributions_.menus.push_back(menu_item);
+        MARKAMP_LOG_DEBUG(
+            "Registered contributed menu item: {} (group: {})", menu_item.command, menu_item.group);
+    }
+
+    // Submenus → store in contribution registry
+    for (const auto& submenu : ext_contrib.submenus)
+    {
+        contributions_.submenus.push_back(submenu);
+        MARKAMP_LOG_DEBUG(
+            "Registered contributed submenu: {} ({})", submenu.label, submenu.submenu_id);
+    }
+
+    // Snippets → store in contribution registry for future snippet engine
+    for (const auto& snippet : ext_contrib.snippets)
+    {
+        contributions_.snippets.push_back(snippet);
+        MARKAMP_LOG_DEBUG("Registered contributed snippet for language: {}", snippet.language);
+    }
+
+    // Languages → store in contribution registry
+    for (const auto& lang : ext_contrib.languages)
+    {
+        contributions_.languages.push_back(lang);
+        MARKAMP_LOG_DEBUG("Registered contributed language: {}", lang.language_id);
+    }
+
+    // Grammars → store in contribution registry
+    for (const auto& grammar : ext_contrib.grammars)
+    {
+        contributions_.grammars.push_back(grammar);
+        MARKAMP_LOG_DEBUG(
+            "Registered contributed grammar: {} ({})", grammar.scope_name, grammar.language);
+    }
+
+    // Custom editors → store in contribution registry
     for (const auto& editor : ext_contrib.custom_editors)
     {
+        contributions_.custom_editors.push_back(editor);
         MARKAMP_LOG_DEBUG(
-            "Extension contributes custom editor: {} ({})", editor.display_name, editor.view_type);
+            "Registered contributed custom editor: {} ({})", editor.display_name, editor.view_type);
     }
 
-    // Task definitions – register task types
+    // Configuration → apply extension settings to Config
+    for (const auto& config : ext_contrib.configuration)
+    {
+        for (const auto& prop : config.properties)
+        {
+            auto existing = config_.get_string(prop.key);
+            if (existing.empty() && !prop.default_value.empty())
+            {
+                config_.set(prop.key, prop.default_value);
+            }
+        }
+        MARKAMP_LOG_DEBUG("Applied extension configuration: {} ({} properties)",
+                          config.title,
+                          config.properties.size());
+    }
+
+    // ── Low-priority contributions: log only ──
+    // These are N/A for a Markdown editor or have no runtime consumer yet.
+
     for (const auto& task_def : ext_contrib.task_definitions)
     {
         MARKAMP_LOG_DEBUG("Extension contributes task definition: {}", task_def.type);
     }
 
-    // Problem matchers – register build-error patterns
     for (const auto& matcher : ext_contrib.problem_matchers)
     {
         MARKAMP_LOG_DEBUG(
             "Extension contributes problem matcher: {} (owner: {})", matcher.name, matcher.owner);
     }
 
-    // Terminal profiles – register terminal contributions
     for (const auto& profile : ext_contrib.terminal_profiles)
     {
         MARKAMP_LOG_DEBUG(
             "Extension contributes terminal profile: {} ({})", profile.title, profile.profile_id);
     }
 
-    // Status bar items – register status bar contributions
-    for (const auto& item : ext_contrib.status_bar_items)
-    {
-        MARKAMP_LOG_DEBUG(
-            "Extension contributes status bar item: {} ({})", item.name, item.item_id);
-    }
-
-    // JSON validations – register schema associations
     for (const auto& validation : ext_contrib.json_validations)
     {
-        MARKAMP_LOG_DEBUG("Extension contributes JSON validation: {} → {}",
+        MARKAMP_LOG_DEBUG("Extension contributes JSON validation: {} \u2192 {}",
                           validation.file_match,
                           validation.url);
     }
 
-    // Icon themes
     for (const auto& theme : ext_contrib.icon_themes)
     {
         MARKAMP_LOG_DEBUG("Extension contributes icon theme: {} ({})", theme.label, theme.theme_id);
     }
 
-    // Product icon themes
     for (const auto& theme : ext_contrib.product_icon_themes)
     {
         MARKAMP_LOG_DEBUG(
             "Extension contributes product icon theme: {} ({})", theme.label, theme.theme_id);
     }
 
-    // Resource label formatters
     for (const auto& formatter : ext_contrib.resource_label_formatters)
     {
         MARKAMP_LOG_DEBUG("Extension contributes resource label formatter for scheme: {}",
@@ -615,6 +815,44 @@ auto PluginManager::get_extension_manifest(const std::string& plugin_id) const
         return &entry_it->ext_manifest.value();
     }
     return nullptr;
+}
+
+// ── Tier 3: Contributed data queries ──
+
+auto PluginManager::get_contributed_colors() const -> const std::vector<ExtensionColor>&
+{
+    return contributions_.colors;
+}
+
+auto PluginManager::get_contributed_views() const -> const std::vector<ExtensionView>&
+{
+    return contributions_.views;
+}
+
+auto PluginManager::get_contributed_views_containers() const
+    -> const std::vector<ExtensionViewsContainer>&
+{
+    return contributions_.views_containers;
+}
+
+auto PluginManager::get_contributed_menus() const -> const std::vector<ExtensionMenuItem>&
+{
+    return contributions_.menus;
+}
+
+auto PluginManager::get_contributed_snippets() const -> const std::vector<ExtensionSnippet>&
+{
+    return contributions_.snippets;
+}
+
+auto PluginManager::get_contributed_languages() const -> const std::vector<ExtensionLanguage>&
+{
+    return contributions_.languages;
+}
+
+auto PluginManager::get_contributed_grammars() const -> const std::vector<ExtensionGrammar>&
+{
+    return contributions_.grammars;
 }
 
 } // namespace markamp::core

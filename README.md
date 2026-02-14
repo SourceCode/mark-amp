@@ -1,6 +1,6 @@
 # MarkAmp
 
-**v1.9.12** — A powerful, cross-platform Markdown editor built with C++23 and wxWidgets.
+**v2.1.13** — A powerful, cross-platform Markdown editor built with C++23 and wxWidgets.
 
 ## Features
 
@@ -46,7 +46,7 @@ cmake --build build/debug -j$(sysctl -n hw.ncpu)
 cd build/debug && ctest --output-on-failure
 ```
 
-21 test targets, 100% pass rate covering core, rendering, UI, theme, performance primitives, crash regressions, extension management, and integration tests.
+27 test targets, 100% pass rate covering core, rendering, UI, theme, performance primitives, crash regressions, extension management, extension services, and integration tests.
 
 ## Documentation
 

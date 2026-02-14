@@ -87,7 +87,9 @@ MainFrame::MainFrame(const wxString& title,
                      markamp::core::RecentWorkspaces* recent_workspaces,
                      markamp::platform::PlatformAbstraction* platform,
                      markamp::core::ThemeEngine* theme_engine,
-                     markamp::core::FeatureRegistry* feature_registry)
+                     markamp::core::FeatureRegistry* feature_registry,
+                     markamp::core::IMermaidRenderer* mermaid_renderer,
+                     markamp::core::IMathRenderer* math_renderer)
     : wxFrame(
           nullptr, wxID_ANY, title, pos, size, wxBORDER_NONE | wxRESIZE_BORDER | wxCLIP_CHILDREN)
     , event_bus_(event_bus)
@@ -96,6 +98,8 @@ MainFrame::MainFrame(const wxString& title,
     , platform_(platform)
     , theme_engine_(theme_engine)
     , feature_registry_(feature_registry)
+    , mermaid_renderer_(mermaid_renderer)
+    , math_renderer_(math_renderer)
     , shortcut_manager_(*event_bus)
 {
     // Minimum size constraints
@@ -158,7 +162,13 @@ MainFrame::MainFrame(const wxString& title,
 
     if (theme_engine_ != nullptr && event_bus_ != nullptr)
     {
-        layout_ = new LayoutManager(this, *theme_engine_, *event_bus_, config_, feature_registry_);
+        layout_ = new LayoutManager(this,
+                                    *theme_engine_,
+                                    *event_bus_,
+                                    config_,
+                                    feature_registry_,
+                                    mermaid_renderer_,
+                                    math_renderer_);
         sizer->Add(layout_, 1, wxEXPAND);
         layout_->Hide(); // Hidden by default
     }
@@ -1342,8 +1352,7 @@ void MainFrame::createMenuBar()
                 kMenuToggleEmptySelClipboard);
     publish_r11([]() { return core::events::CycleRenderWhitespaceRequestEvent{}; },
                 kMenuCycleRenderWhitespace);
-    publish_r11([]() { return core::events::DeleteCurrentLineRequestEvent{}; },
-                kMenuDeleteCurrentLine);
+    publish_r11([]() { return core::events::DeleteLineRequestEvent{}; }, kMenuDeleteCurrentLine);
     publish_r11([]() { return core::events::CopyLineNoSelRequestEvent{}; }, kMenuCopyLineNoSel);
     publish_r11([]() { return core::events::AddSelNextMatchRequestEvent{}; }, kMenuAddSelNextMatch);
     publish_r11([]() { return core::events::SmartBackspaceRequestEvent{}; }, kMenuSmartBackspace);
@@ -1351,8 +1360,7 @@ void MainFrame::createMenuBar()
     publish_r11([]() { return core::events::AutoPairBoldRequestEvent{}; }, kMenuAutoPairBold);
     publish_r11([]() { return core::events::AutoPairItalicRequestEvent{}; }, kMenuAutoPairItalic);
     publish_r11([]() { return core::events::AutoPairCodeRequestEvent{}; }, kMenuAutoPairCode);
-    publish_r11([]() { return core::events::ToggleMinimapR11RequestEvent{}; },
-                kMenuToggleMinimapR11);
+    publish_r11([]() { return core::events::ToggleMinimapRequestEvent{}; }, kMenuToggleMinimapR11);
 
     // R12 event bindings
     auto publish_r12 = [this](auto make_event, int menu_id)
@@ -2699,9 +2707,7 @@ void MainFrame::RegisterPaletteCommands()
     reg_r11("Cycle Render Whitespace",
             "View",
             []() { return core::events::CycleRenderWhitespaceRequestEvent{}; });
-    reg_r11("Delete Current Line",
-            "Edit",
-            []() { return core::events::DeleteCurrentLineRequestEvent{}; });
+    reg_r11("Delete Current Line", "Edit", []() { return core::events::DeleteLineRequestEvent{}; });
     reg_r11("Copy Line (No Selection)",
             "Edit",
             []() { return core::events::CopyLineNoSelRequestEvent{}; });
@@ -2719,8 +2725,7 @@ void MainFrame::RegisterPaletteCommands()
             []() { return core::events::AutoPairItalicRequestEvent{}; });
     reg_r11(
         "Auto-Pair Code (`)", "Format", []() { return core::events::AutoPairCodeRequestEvent{}; });
-    reg_r11(
-        "Toggle Minimap", "View", []() { return core::events::ToggleMinimapR11RequestEvent{}; });
+    reg_r11("Toggle Minimap", "View", []() { return core::events::ToggleMinimapRequestEvent{}; });
 
     // ── R12 palette commands ──
     auto reg_r12 = [this](const char* name, const char* cat, auto make_event)
@@ -2786,18 +2791,17 @@ void MainFrame::RegisterPaletteCommands()
                                                }
                                            }});
     };
-    reg_r14("Fold Current Region",
-            "Edit",
-            []() { return core::events::FoldCurrentRegionRequestEvent{}; });
+    reg_r14(
+        "Fold Current Region", "Edit", []() { return core::events::FoldCurrentRequestEvent{}; });
     reg_r14("Unfold Current Region",
             "Edit",
-            []() { return core::events::UnfoldCurrentRegionRequestEvent{}; });
+            []() { return core::events::UnfoldCurrentRequestEvent{}; });
     reg_r14("Transpose Characters",
             "Edit",
-            []() { return core::events::TransposeCharactersRequestEvent{}; });
+            []() { return core::events::TransposeCharsRequestEvent{}; });
     reg_r14("Reverse Selected Lines",
             "Edit",
-            []() { return core::events::ReverseSelectedLinesRequestEvent{}; });
+            []() { return core::events::ReverseLinesRequestEvent{}; });
     reg_r14(
         "Sort Lines Ascending", "Edit", []() { return core::events::SortLinesAscRequestEvent{}; });
     reg_r14(
@@ -2842,10 +2846,10 @@ void MainFrame::RegisterPaletteCommands()
         "Select Line", "Edit", []() { return core::events::ExpandLineSelectionRequestEvent{}; });
     reg_r15("Jump to Matching Bracket",
             "Edit",
-            []() { return core::events::JumpToMatchingBracketRequestEvent{}; });
+            []() { return core::events::JumpToBracketRequestEvent{}; });
     reg_r15("Select to Matching Bracket",
             "Edit",
-            []() { return core::events::SelectToMatchingBracketRequestEvent{}; });
+            []() { return core::events::SelectToBracketRequestEvent{}; });
 
     MARKAMP_LOG_DEBUG("Registered {} palette commands",
                       shortcut_manager_.get_all_shortcuts().size());

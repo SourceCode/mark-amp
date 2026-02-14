@@ -60,7 +60,7 @@ void AppStateManager::set_cursor_position(int line, int column)
     events::CursorPositionChangedEvent evt;
     evt.line = line;
     evt.column = column;
-    event_bus_.publish(evt);
+    event_bus_.publish_fast(evt);
 }
 
 void AppStateManager::update_content(const std::string& content)
@@ -68,7 +68,7 @@ void AppStateManager::update_content(const std::string& content)
     state_.active_file_content = content;
     events::EditorContentChangedEvent evt;
     evt.content = content;
-    event_bus_.publish(evt);
+    event_bus_.publish_fast(evt);
 }
 
 void AppStateManager::set_modified(bool modified)

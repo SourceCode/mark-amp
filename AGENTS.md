@@ -2,9 +2,9 @@
 
 ## Project Overview
 
-MarkAmp is a cross-platform, retro-futuristic Markdown editor built with **C++23** and **wxWidgets 3.2.9**. It features split-view editing, syntax highlighting, Mermaid diagram rendering, a theme system with 8 built-in themes, multi-file tab management, command palette, Zen Mode, performance infrastructure with arena allocators and viewport caching, advanced rendering primitives (glyph caching, hit-testing, double-buffered paint, scroll blitting), visual polish with gradient surfaces and micro-animations, native platform integration, a VS Code-inspired settings panel with 40 VS Code-equivalent editor and syntax highlighting settings, toast notifications, activity bar navigation with press feedback and drag handles, a plugin architecture with manifest-driven contribution points and lazy activation, VS Code-style extension management infrastructure (manifest parsing, extension scanner, gallery service, VSIX install/uninstall, enablement, sandbox, host recovery, telemetry, recommendations), built-in plugin conversions (Mermaid, Table Editor, Format Bar, Theme Gallery, Link Preview, Image Preview, Breadcrumb), FeatureRegistry for runtime feature toggling, ContextKeyService with WhenClause evaluator, 6 contribution point registries (FileSystem, Language, TreeData, Webview, Decoration, Output Channel), Extensions Browser panel, 80+ editor action events with full Edit/View menu build-out, editor right-click context menu, file tree type-ahead search with folder sort and icon tinting, enriched status bar (EOL mode, encoding cycling, indent mode, zoom level, "SAVED" flash), clickable breadcrumb bar with styled chevrons and heading glyphs, Find/Replace, print support with print-friendly CSS, sticky scroll headings, default Markdown snippets, recent files management, 60+ configuration defaults, scroll-to-top preview button, comprehensive stability hardening (40+ fixes for input validation, thread safety, typed exception handling, filesystem resilience, and arithmetic underflow guards), and R20–R22 UI polish (command palette fuzzy-match highlighting, toolbar zoom slider, window chrome filename truncation, and radial button glow).
+MarkAmp is a cross-platform, retro-futuristic Markdown editor built with **C++23** and **wxWidgets 3.2.9**. It features split-view editing, syntax highlighting, Mermaid diagram rendering, LaTeX math rendering (Unicode-based via IMathRenderer), a theme system with 8 built-in themes, multi-file tab management, command palette, Zen Mode, performance infrastructure with arena allocators and viewport caching, advanced rendering primitives (glyph caching, hit-testing, double-buffered paint, scroll blitting), visual polish with gradient surfaces and micro-animations, native platform integration (macOS, Windows, Linux), a VS Code-inspired settings panel with 40 VS Code-equivalent editor and syntax highlighting settings, toast notifications, activity bar navigation with press feedback and drag handles, a plugin architecture with manifest-driven contribution points and lazy activation, VS Code-style extension management infrastructure (manifest parsing, extension scanner, gallery service, VSIX install/uninstall, enablement, sandbox, host recovery, telemetry, recommendations), 13 P1-P4 extension services (SnippetEngine, WorkspaceService, TextEditorService, ProgressService, EnvironmentService, NotificationService, StatusBarItemService, InputBoxService, QuickPickService, ExtensionEventBus, GrammarEngine, TerminalService, TaskRunnerService), built-in plugin conversions (Mermaid, Table Editor, Format Bar, Theme Gallery, Link Preview, Image Preview, Breadcrumb), FeatureRegistry for runtime feature toggling, ContextKeyService with WhenClause evaluator, 6 contribution point registries (FileSystem, Language, TreeData, Webview, Decoration, Output Channel), Extensions Browser panel, 80+ editor action events with full Edit/View menu build-out, editor right-click context menu, file tree type-ahead search with folder sort and icon tinting, enriched status bar (EOL mode, encoding cycling, indent mode, zoom level, "SAVED" flash), clickable breadcrumb bar with styled chevrons and heading glyphs, Find/Replace, print support with print-friendly CSS, sticky scroll headings, default Markdown snippets, recent files management, 60+ configuration defaults, scroll-to-top preview button, comprehensive stability hardening (40+ fixes for input validation, thread safety, typed exception handling, filesystem resilience, and arithmetic underflow guards), and R20–R22 UI polish (command palette fuzzy-match highlighting, toolbar zoom slider, window chrome filename truncation, and radial button glow).
 
-**Current Version:** 1.9.12
+**Current Version:** 2.1.13
 
 ## Key Workflows
 
@@ -16,11 +16,11 @@ MarkAmp is a cross-platform, retro-futuristic Markdown editor built with **C++23
 ## Codebase Structure
 
 - `src/app/` — Application entry point (`MarkAmpApp`)
-- `src/core/` — Core logic: Config (YAML), Theme, ThemeRegistry, Color, Events, EventBus, BuiltinThemes, RecentWorkspaces, ThemeLoader, PieceTable, LineIndex, FrameArena, FrameScheduler, Profiler, AsyncHighlighter, AsyncFileLoader, IncrementalSearcher, DocumentSnapshot, SPSCQueue, CoalescingTask, AdaptiveThrottle, AsyncPipeline, ChunkedStorage, CompilerHints, FrameBudgetToken, GenerationCounter, GraphemeBoundaryCache, IMECompositionOverlay, InputPriorityDispatcher, StableLineId, StyleRunStore, TextSpan, **IPlugin** (plugin interface), **PluginManager** (lifecycle management with lazy activation and dependency resolution), **BuiltInPlugins** (7 feature-to-plugin conversions), **FeatureRegistry** (runtime feature toggles), **ExtensionManifest** (JSON manifest parser), **ExtensionScanner**, **ExtensionStorage**, **ExtensionEnablement**, **VsixService**, **HttpClient**, **GalleryService**, **ExtensionManagement** (lifecycle orchestrator), **ContextKeyService**, **WhenClause** (boolean expression evaluator), **OutputChannelService**, **DiagnosticsService**, **TreeDataProviderRegistry**, **WebviewService**, **DecorationService**, **FileSystemProviderRegistry**, **LanguageProviderRegistry**, **ExtensionHostRecovery**, **ExtensionRecommendations**, **ExtensionTelemetry**, **ExtensionSandbox**, **PluginContext** (VS Code-compatible)
+- `src/core/` — Core logic: Config (YAML), Theme, ThemeRegistry, Color, Events, EventBus, BuiltinThemes, RecentWorkspaces, ThemeLoader, PieceTable, LineIndex, FrameArena, FrameScheduler, Profiler, AsyncHighlighter, AsyncFileLoader, IncrementalSearcher, DocumentSnapshot, SPSCQueue, CoalescingTask, AdaptiveThrottle, AsyncPipeline, ChunkedStorage, CompilerHints, FrameBudgetToken, GenerationCounter, GraphemeBoundaryCache, IMECompositionOverlay, InputPriorityDispatcher, StableLineId, StyleRunStore, TextSpan, **IPlugin** (plugin interface), **PluginManager** (lifecycle management with lazy activation and dependency resolution), **BuiltInPlugins** (7 feature-to-plugin conversions), **FeatureRegistry** (runtime feature toggles), **ExtensionManifest** (JSON manifest parser), **ExtensionScanner**, **ExtensionStorage**, **ExtensionEnablement**, **VsixService**, **HttpClient**, **GalleryService**, **ExtensionManagement** (lifecycle orchestrator), **ContextKeyService**, **WhenClause** (boolean expression evaluator), **OutputChannelService**, **DiagnosticsService**, **TreeDataProviderRegistry**, **WebviewService**, **DecorationService**, **FileSystemProviderRegistry**, **LanguageProviderRegistry**, **ExtensionHostRecovery**, **ExtensionRecommendations**, **ExtensionTelemetry**, **ExtensionSandbox**, **PluginContext** (VS Code-compatible with 24 service fields), **SnippetEngine**, **WorkspaceService**, **TextEditorService**, **ProgressService**, **ExtensionEventBus**, **EnvironmentService**, **NotificationService**, **StatusBarItemService**, **InputBoxService**, **QuickPickService**, **GrammarEngine** (stub), **TerminalService** (stub), **TaskRunnerService** (stub), **IMathRenderer** / **MathRenderer** (LaTeX-to-Unicode math rendering)
 - `src/ui/` — UI components: MainFrame (50+ Edit/View menu items, command-line file open, print, recent files), EditorPanel (60+ VS Code-inspired improvements, right-click context menu, sticky scroll, 8 Markdown snippets), PreviewPanel, FileTreeCtrl (auto-scroll, indent guides, 30+ file-type icons, type-ahead search, folder sort, collapse/expand all, enriched context menus, tooltips), SplitView, StatusBarPanel (filename, language, file size, EOL mode, encoding cycling, indent mode, zoom level, SAVED flash, clickable Go-To-Line), LayoutManager (Save All, Revert File, Close All Tabs, drag-and-drop, 1,500+ lines of editor action wiring, Extensions Browser integration), TabBar, CommandPalette, BreadcrumbBar (clickable segments), StartupPanel, FloatingFormatBar, LinkPreviewPopover, ImagePreviewPopover, TableEditorOverlay, ThemeTokenEditor, SplitterBar, ShortcutOverlay, Toolbar, CustomChrome, **SettingsPanel** (settings editor), **NotificationManager** (toast notifications), **ActivityBar** (vertical icon rail with Extensions), **ExtensionsBrowserPanel**, **ExtensionCard**, **ExtensionDetailPanel**, **OutputPanel**, **ProblemsPanel**, **TreeViewHost**, **WalkthroughPanel**, **WebviewHostPanel**
-- `src/rendering/` — HtmlRenderer, CodeBlockRenderer, MermaidBlockRenderer, DirtyRegion, ViewportCache, CaretOverlay, DoubleBufferedPaint, GlyphAdvanceCache, HitTestAccelerator, IncrementalLineWrap, PrefetchManager, ScrollBlit, SelectionPainter
-- `src/platform/` — Platform abstractions: MacPlatform (Objective-C++ bridge)
-- `tests/unit/` — Catch2 unit tests (21 test targets, 100% pass rate)
+- `src/rendering/` — HtmlRenderer (with math and Mermaid rendering), CodeBlockRenderer, MermaidBlockRenderer, DirtyRegion, ViewportCache, CaretOverlay, DoubleBufferedPaint, GlyphAdvanceCache, HitTestAccelerator, IncrementalLineWrap, PrefetchManager, ScrollBlit, SelectionPainter
+- `src/platform/` — Platform abstractions: MacPlatform (Objective-C++ bridge), WinPlatform (Win32 API), LinuxPlatform (GTK/GDK)
+- `tests/unit/` — Catch2 unit tests (27 test targets, 100% pass rate)
 - `scripts/` — Build, test, and packaging helpers
 - `themes/` — Markdown-based theme definitions (YAML frontmatter)
 - `resources/icons/lucide/` — Lucide SVG icons for file tree
@@ -32,7 +32,7 @@ MarkAmp is a cross-platform, retro-futuristic Markdown editor built with **C++23
 
 - `IPlugin` — Abstract interface: `manifest()`, `activate(ctx)`, `deactivate()`
 - `PluginManifest` — Declares contribution points: commands, keybindings, snippets, menus, settings, themes
-- `PluginContext` — Runtime context providing `EventBus*`, `Config*`, `register_command_handler`, `extension_path`, `workspace_state`, `global_state`
+- `PluginContext` — Runtime context with 24 fields: `EventBus*`, `Config*`, `FeatureRegistry*`, `register_command_handler`, `execute_command`, `get_commands`, `extension_path`, `workspace_state`, `global_state`, and all extension service pointers (ContextKeyService, OutputChannelService, DiagnosticsService, TreeDataProviderRegistry, WebviewService, DecorationService, FileSystemProviderRegistry, LanguageProviderRegistry, SnippetEngine, WorkspaceService, TextEditorService, ProgressService, ExtensionEventBus, EnvironmentService, NotificationService, StatusBarItemService, InputBoxService, QuickPickService, GrammarEngine, TerminalService, TaskRunnerService)
 - `PluginManager` — Manages lifecycle (register → activate → deactivate) with lazy activation events, topological dependency resolution, extension pack expansion, and `trigger_activation_event()`
 - `BuiltInPlugins` — Converts 7 built-in features into IPlugin instances
 
@@ -59,6 +59,28 @@ MarkAmp is a cross-platform, retro-futuristic Markdown editor built with **C++23
 
 - `OutputChannelService`, `DiagnosticsService`, `TreeDataProviderRegistry`, `WebviewService`, `DecorationService`, `FileSystemProviderRegistry`, `LanguageProviderRegistry`
 
+### Extension Services (P1-P4)
+
+- `SnippetEngine` — Snippet expansion with tab stops, placeholders, and choice lists
+- `WorkspaceService` — Workspace file access and configuration
+- `TextEditorService` — Editor decoration and text manipulation API
+- `ProgressService` — Progress bar/notification lifecycle management
+- `EnvironmentService` — Clipboard, URI opening, machine ID, app metadata
+- `NotificationService` — Extension-facing notification API (Info/Warning/Error with actions)
+- `StatusBarItemService` — Status bar item creation and management
+- `InputBoxService` — Modal text input prompts
+- `QuickPickService` — Filterable selection lists (single and multi-select)
+- `ExtensionEventBus` — Extension-scoped event pub/sub
+- `GrammarEngine` — P3 stub for TextMate grammar support
+- `TerminalService` — P4 stub (N/A for Markdown editor)
+- `TaskRunnerService` — P4 stub (N/A for Markdown editor)
+
+### Math Rendering (`IMathRenderer.h`, `MathRenderer.h/.cpp`)
+
+- Pure C++ LaTeX-to-Unicode rendering (~120 symbol map)
+- Inline (`$...$`) and display (`$$...$$`) math support via md4c `MD_FLAG_LATEXMATHSPANS`
+- Threaded through constructor chain: MarkAmpApp → MainFrame → LayoutManager → SplitView → PreviewPanel → HtmlRenderer
+
 ### Settings System (`SettingsPanel.h/.cpp`)
 
 - Searchable/filterable settings with category grouping
@@ -79,7 +101,7 @@ MarkAmp is a cross-platform, retro-futuristic Markdown editor built with **C++23
 
 ### Event System (`Events.h`)
 
-- Settings events: `SettingsOpenRequestEvent`, `SettingChangedEvent`
+- Settings events: `SettingsOpenRequestEvent`, `SettingChangedEvent`, `SettingsBatchChangedEvent`
 - Plugin events: `PluginActivatedEvent`, `PluginDeactivatedEvent`
 - Notification events: `NotificationEvent` (with `NotificationLevel`)
 - Activity bar events: `ActivityBarSelectionEvent` (with `ActivityBarItem`)
@@ -108,4 +130,4 @@ wxWidgets, nlohmann-json, md4c, catch2, fmt, spdlog, yaml-cpp, nanosvg, libzip, 
 - Documentation: Markdown in `docs/`
 - Versioning: Semantic Versioning (managed in `CMakeLists.txt`, `vcpkg.json`)
 - Linting: clang-format, clang-tidy (configs in project root)
-- Testing: 21 test targets covering core, rendering, UI, theme, performance primitives, crash regressions, extension management, feature registry, plugin manager, and integration tests
+- Testing: 27 test targets covering core, rendering, UI, theme, performance primitives, crash regressions, extension management, feature registry, plugin manager, extension services, and integration tests

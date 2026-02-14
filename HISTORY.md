@@ -1,10 +1,73 @@
 # MarkAmp Release History
 
-## v1.9.12 — 2026-02-14
+## v2.1.13 — 2026-02-14
 
 ### Highlights
 
-VS Code-style extension management infrastructure and built-in plugin architecture. Adds a complete extension marketplace pipeline with manifest parsing (JSON package.json), extension scanner, gallery service with HTTP client, VSIX install/uninstall, extension enablement/disablement, sandbox isolation, host crash recovery, telemetry, storage, and recommendation engine. Converts 7 built-in features (Mermaid, Table Editor, Format Bar, Theme Gallery, Link Preview, Image Preview, Breadcrumb) into the plugin architecture via BuiltInPlugins. Introduces FeatureRegistry for runtime feature toggling, ContextKeyService with WhenClause evaluator for conditional UI, and 6 new VS Code-style contribution point registries (FileSystem, Language, TreeData, Webview, Decoration, Output Channel). Adds 8 new UI panels (Extensions Browser, Extension Card, Extension Detail, Output, Problems, Tree View Host, Walkthrough, Webview Host). Enhanced PluginManager with lazy activation events, dependency resolution via topological sort, and extension pack expansion. PluginContext extended with extensionPath, workspaceState, and globalState. Touches 65+ files with 11 new test suites. All 21 test targets pass at 100%.
+Phase 18–21 quality-and-feature sweep: LaTeX math rendering foundation (IMathRenderer + MathRenderer with ~120 Unicode symbol mappings), documentation and AGENTS.md sync, 4 hot-path performance optimizations (publish_fast migration, Config CachedValues, ThemeEngine color_fast, buffer pre-alloc), code quality hardening (typed exception handlers, Config.cpp cognitive complexity reduction, data-driven apply_defaults, 9 new Phase 20 test cases), plus 13 P1-P4 extension API services (SnippetEngine, WorkspaceService, TextEditorService, ProgressService, EnvironmentService, NotificationService, StatusBarItemService, InputBoxService, QuickPickService, ExtensionEvents, GrammarEngine stub, TerminalService stub, TaskRunnerService stub). 80 files changed, 28 test targets passing.
+
+### Added
+
+- **P1-P4 Extension Services**: SnippetEngine, WorkspaceService, TextEditorService, ProgressService, EnvironmentService, NotificationService, StatusBarItemService, InputBoxService, QuickPickService, ExtensionEvents, GrammarEngine (stub), TerminalService (stub), TaskRunnerService (stub) — all wired into PluginContext
+- **Math Rendering Foundation (Phase 18)**: `IMathRenderer` interface and `MathRenderer` with ~120 LaTeX-to-Unicode symbol mapping, inline (`$...$`) and display (`$$...$$`) support via md4c `MD_FLAG_LATEXMATHSPANS`
+- **Phase 20 Performance Tests**: 9 new test cases (62 assertions) covering `CachedValues`, `publish_fast()`, `color_fast()`, and `apply_defaults` refactor
+- **test_p1_p4_services**: Comprehensive test suite for all 13 P1-P4 extension services
+
+### Changed
+
+- **Config.cpp Complexity Reduction (Phase 21)**: Refactored `apply_defaults()` from 28 chained if-blocks to data-driven `DefaultEntry` table with `std::variant` (complexity ~34→5); extracted `migrate_from_json()` and `parse_frontmatter()` helpers from `load()` (complexity ~36→12)
+- **Hot-Path Performance (Phase 20)**: Migrated 5 high-frequency event publishes to `publish_fast()`, added `CachedValues` struct to Config for O(1) access, added `color_fast()` O(1) array-indexed lookup to ThemeEngine
+- **Documentation (Phase 19)**: Updated AGENTS.md architecture diagram, README feature list, and HISTORY.md to reflect current state
+- **TabBar**: Replaced `catch(...)` with `catch(const std::exception&)` for type safety
+- **Config.cpp Lint Fixes**: Renamed short variables, added `const` correctness, added braces to single-line if-statements
+
+### Fixed
+
+- **Phase 14 Deferred Items**: Verified MarkdownDocument naming and duplicate steps in MarkAmpApp.cpp were already resolved
+- **Config.cpp Lint Warnings**: Fixed short variable names, missing braces, and const correctness issues
+
+---
+
+## v2.0.0 — 2026-02-14
+
+### Highlights
+
+V2 architecture refactor: 18-phase overhaul delivering event system macro standardization, full extension service wiring (13 P1-P4 services), PluginContext population with 24 service fields, behavioral built-in plugin activation, feature guard integration, real wxWidgets panel rendering for 5 extension UI panels, InputBox/QuickPick modal UI, EventBus lock-free fast-path publishing, orphan code cleanup, CMake source_group standardization, 6 new test suites (27 total), naming convention standardization, config defaults externalization, platform stub completion (Win32/Linux), ServiceRegistry singleton elimination via constructor injection, and LaTeX math rendering via IMathRenderer with ~120-symbol Unicode mapping. Touches 100+ files with 10,000+ insertions.
+
+### Added
+
+- **Math Rendering**: `IMathRenderer` interface and `MathRenderer` implementation with ~120 LaTeX-to-Unicode symbol map, inline (`$...$`) and display (`$$...$$`) math support via md4c `MD_FLAG_LATEXMATHSPANS`, threaded through full constructor chain (MarkAmpApp → MainFrame → LayoutManager → SplitView → PreviewPanel → HtmlRenderer)
+- **13 Extension Services (P1-P4)**: SnippetEngine, WorkspaceService, TextEditorService, ProgressService, EnvironmentService, NotificationService, StatusBarItemService, InputBoxService, QuickPickService, ExtensionEventBus, GrammarEngine (stub), TerminalService (stub), TaskRunnerService (stub) — all wired into `PluginContext` with 24 populated fields
+- **InputBox & QuickPick UI**: `InputBoxDialog` and `QuickPickDialog` wxWidgets modals for extension-facing text input and selection lists
+- **Platform Stubs**: `WinPlatform` (Win32 API) and `LinuxPlatform` (GTK/GDK) completing cross-platform abstraction layer
+- **Feature Guards**: `FeatureGuardedPlugin` wrapper evaluating FeatureRegistry state before plugin activation
+- **6 New Test Suites**: `test_service_wiring`, `test_eventbus_queuing`, `test_builtin_plugin_behavior`, `test_feature_guard_integration`, `test_panel_data_flow`, `test_extension_services` — bringing total to 27 targets
+- **CLAUDE.md**: Claude Code-compatible project instructions with build, style, and architecture documentation
+
+### Changed
+
+- **Event System**: Standardized all event declarations to use `MARKAMP_DECLARE_EVENT` macros with field-based constructors, eliminating hand-rolled boilerplate
+- **PluginContext**: Unified from original 6 fields to full 24-field VS Code-compatible context aggregating all service pointers (`PluginContext.h`)
+- **Built-In Plugins**: 7 built-in features now behaviorally activate — register commands, contribute snippets, and subscribe to events on `activate(ctx)` rather than being inert wrappers
+- **EventBus**: Added `publish_fast()` lock-free path for hot-path events, `queued_publish()` for cross-thread posting, and configurable queue drain
+- **CMake**: Standardized `source_group()` entries for all 100+ source files, ensuring correct IDE project organization
+- **Naming Conventions**: Standardized member variables (`m_` → `_` suffix), function names, and enum values across the codebase
+- **Config Defaults**: Externalized 60+ default configuration values from scattered constructors into centralized `Config::set_defaults()`
+- **ServiceRegistry**: Eliminated singleton pattern — all services now use constructor injection throughout the dependency chain
+- **Extension Panels**: `OutputPanel`, `ProblemsPanel`, `TreeViewHost`, `WalkthroughPanel`, `WebviewHostPanel` upgraded from data-only stubs to real wxWidgets panels with theme-aware rendering
+- **Documentation**: Updated AGENTS.md, README.md, HISTORY.md, and created CLAUDE.md to reflect the full v2 architecture
+
+### Fixed
+
+- **Orphan Code**: Removed 800+ lines of unused/dead code across 15 files
+- **Event Type Deduplication**: Eliminated 12 duplicate event type definitions
+- **Platform Detection**: Fixed `PlatformAbstraction` to correctly detect and dispatch to Mac/Win/Linux implementations
+
+---
+
+## v1.9.12 — 2026-02-14
+
+### Highlights
 
 ### Added
 

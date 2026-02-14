@@ -12,6 +12,9 @@
 namespace markamp::core
 {
 class Config;
+class FeatureRegistry;
+class IMermaidRenderer;
+class IMathRenderer;
 } // namespace markamp::core
 
 namespace markamp::ui
@@ -39,7 +42,9 @@ public:
     SplitView(wxWindow* parent,
               core::ThemeEngine& theme_engine,
               core::EventBus& event_bus,
-              core::Config* config);
+              core::Config* config,
+              core::IMermaidRenderer* mermaid_renderer = nullptr,
+              core::IMathRenderer* math_renderer = nullptr);
 
     // View mode control
     void SetViewMode(core::events::ViewMode mode);
@@ -67,6 +72,12 @@ public:
 
     // File operations
     void SaveFile(const std::string& path);
+
+    /// Inject FeatureRegistry for feature-guard checks (forwards to EditorPanel).
+    void set_feature_registry(core::FeatureRegistry* registry);
+
+    /// Enable or disable Mermaid rendering (forwards to PreviewPanel).
+    void set_mermaid_enabled(bool enabled);
 
     // Divider constants
     static constexpr int kDividerWidth = 6;     // visual width
