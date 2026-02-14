@@ -22,6 +22,10 @@ ThemedScrollbar::ThemedScrollbar(wxWindow* parent,
     Bind(wxEVT_LEFT_DOWN, &ThemedScrollbar::OnMouseDown, this);
     Bind(wxEVT_MOTION, &ThemedScrollbar::OnMouseMove, this);
     Bind(wxEVT_LEFT_UP, &ThemedScrollbar::OnMouseUp, this);
+
+    // R20 Fix 37: Auto-hide timer
+    Bind(wxEVT_TIMER, &ThemedScrollbar::OnAutoHideTimer, this, auto_hide_timer_.GetId());
+    auto_hide_timer_.Start(kAutoHideDelayMs);
 }
 
 void ThemedScrollbar::UpdateScrollPosition(int position, int visible_range, int total_range)
@@ -29,6 +33,9 @@ void ThemedScrollbar::UpdateScrollPosition(int position, int visible_range, int 
     position_ = position;
     visible_range_ = visible_range;
     total_range_ = total_range;
+    // R20 Fix 37: Show thumb instantly when scroll position updates
+    thumb_opacity_ = 1.0F;
+    ResetAutoHideTimer();
     Refresh();
 }
 
@@ -63,11 +70,36 @@ void ThemedScrollbar::OnPaint(wxPaintEvent& /*event*/)
     // Thumb
     auto token = is_hovering_ || is_dragging_ ? core::ThemeColorToken::ScrollbarHover
                                               : core::ThemeColorToken::ScrollbarThumb;
-    dc.SetBrush(theme_engine().brush(token));
+    auto thumb_color = theme_engine().color(token);
+    // R20 Fix 37: Apply opacity for auto-hide
+    wxColour faded_thumb(thumb_color.Red(),
+                         thumb_color.Green(),
+                         thumb_color.Blue(),
+                         static_cast<unsigned char>(thumb_opacity_ * 255.0F));
+    dc.SetBrush(wxBrush(faded_thumb));
     dc.SetPen(*wxTRANSPARENT_PEN);
 
     auto tr = thumb_rect();
     dc.DrawRoundedRectangle(tr, 4.0);
+
+    // R20 Fix 38: Scroll position tick marks at regular intervals
+    if (total_range_ > visible_range_ && total_range_ > 0)
+    {
+        constexpr int kTickInterval = 50; // tick every 50 content units
+        auto tick_color = theme_engine().color(core::ThemeColorToken::BorderLight);
+        wxColour faded_tick(tick_color.Red(),
+                            tick_color.Green(),
+                            tick_color.Blue(),
+                            static_cast<unsigned char>(thumb_opacity_ * 60.0F));
+        dc.SetPen(wxPen(faded_tick, 1));
+
+        for (int content_pos = kTickInterval; content_pos < total_range_;
+             content_pos += kTickInterval)
+        {
+            int pixel_y = content_to_pixel(content_pos);
+            dc.DrawLine(size.GetWidth() - 3, pixel_y, size.GetWidth(), pixel_y);
+        }
+    }
 }
 
 auto ThemedScrollbar::thumb_rect() const -> wxRect
@@ -121,6 +153,9 @@ auto ThemedScrollbar::pixel_to_content(int pixel_y) const -> int
 void ThemedScrollbar::OnMouseEnter(wxMouseEvent& /*event*/)
 {
     is_hovering_ = true;
+    // R20 Fix 37: Show thumb on hover
+    thumb_opacity_ = 1.0F;
+    ResetAutoHideTimer();
     Refresh();
 }
 
@@ -177,6 +212,30 @@ void ThemedScrollbar::OnMouseUp(wxMouseEvent& /*event*/)
         }
         Refresh();
     }
+}
+
+// R20 Fix 37: Auto-hide timer handler
+void ThemedScrollbar::OnAutoHideTimer(wxTimerEvent& /*event*/)
+{
+    if (!is_hovering_ && !is_dragging_)
+    {
+        thumb_opacity_ -= 0.08F;
+        if (thumb_opacity_ <= 0.0F)
+        {
+            thumb_opacity_ = 0.0F;
+            auto_hide_timer_.Stop();
+        }
+        Refresh();
+    }
+}
+
+void ThemedScrollbar::ResetAutoHideTimer()
+{
+    if (auto_hide_timer_.IsRunning())
+    {
+        auto_hide_timer_.Stop();
+    }
+    auto_hide_timer_.Start(kAutoHideDelayMs);
 }
 
 } // namespace markamp::ui

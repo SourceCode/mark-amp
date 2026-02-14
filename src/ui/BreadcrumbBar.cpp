@@ -65,12 +65,13 @@ void BreadcrumbBar::Rebuild()
 {
     std::string display;
 
-    // File path segments: folder › folder › 📄 file.md
+    // File path segments: folder ▸ folder ▸ 📄 file.md
     for (size_t idx = 0; idx < file_segments_.size(); ++idx)
     {
         if (idx > 0)
         {
-            display += " \xE2\x80\xBA "; // › separator (UTF-8)
+            // R21 Fix 6: Styled ▸ chevron separator instead of plain ›
+            display += " \xE2\x96\xB8 "; // ▸ separator (UTF-8)
         }
         // R18 Fix 28: File icon prefix before filename (last segment)
         if (idx == file_segments_.size() - 1)
@@ -80,7 +81,7 @@ void BreadcrumbBar::Rebuild()
         display += file_segments_[idx];
     }
 
-    // Heading path: separated by >
+    // Heading path: separated by ▸
     if (!heading_segments_.empty())
     {
         if (!display.empty())
@@ -91,8 +92,11 @@ void BreadcrumbBar::Rebuild()
         {
             if (idx > 0)
             {
-                display += " \xE2\x80\xBA "; // › separator
+                // R21 Fix 6: Styled ▸ chevron separator for headings too
+                display += " \xE2\x96\xB8 "; // ▸ separator
             }
+            // R21 Fix 8: § glyph prefix before heading segments
+            display += "\xC2\xA7 "; // § (UTF-8)
             display += heading_segments_[idx];
         }
     }
@@ -110,6 +114,7 @@ void BreadcrumbBar::Rebuild()
         }
 
         // R3 Fix 20: Make label clickable
+        // R21 Fix 7: Hand cursor provides hover affordance for clickable segments
         label_->SetCursor(wxCursor(wxCURSOR_HAND));
         label_->Unbind(wxEVT_LEFT_DOWN, &BreadcrumbBar::OnLabelClick, this);
         label_->Bind(wxEVT_LEFT_DOWN, &BreadcrumbBar::OnLabelClick, this);

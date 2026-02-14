@@ -191,12 +191,56 @@ void CommandPalette::ApplyFilter()
             // Don't add to filtered_indices_ — headers are non-selectable
         }
 
-        auto display = cmd.category + ": " + cmd.label;
+        // R21 Fix 2: Category badge prefix [Category]
+        std::string display = "[" + cmd.category + "]  ";
+
+        // R21 Fix 1: Fuzzy match highlight — mark matched chars with « » brackets
+        if (!filter_lower.empty())
+        {
+            std::string label_lower;
+            label_lower.reserve(cmd.label.size());
+            for (const char chr : cmd.label)
+            {
+                label_lower += static_cast<char>(std::tolower(static_cast<unsigned char>(chr)));
+            }
+            size_t fpos = 0;
+            for (size_t ci = 0; ci < cmd.label.size(); ++ci)
+            {
+                if (fpos < filter_lower.size() && label_lower[ci] == filter_lower[fpos])
+                {
+                    display += "\xC2\xAB"; // « (UTF-8)
+                    display += cmd.label[ci];
+                    display += "\xC2\xBB"; // » (UTF-8)
+                    ++fpos;
+                }
+                else
+                {
+                    display += cmd.label[ci];
+                }
+            }
+        }
+        else
+        {
+            display += cmd.label;
+        }
+
+        // R21 Fix 3: Right-aligned shortcut display
         if (!cmd.shortcut.empty())
         {
-            display += "  (" + cmd.shortcut + ")";
+            // Pad with spaces to push shortcut to the right
+            size_t current_len = display.size();
+            constexpr size_t kTargetWidth = 50;
+            if (current_len < kTargetWidth)
+            {
+                display += std::string(kTargetWidth - current_len, ' ');
+            }
+            display += cmd.shortcut;
         }
-        list_->Append(wxString::FromUTF8(display));
+
+        // R21 Fix 5: Selected item accent bar — visual prefix marker
+        // The first item will get ▸ prefix; others get space prefix
+        auto prefix = filtered_indices_.empty() ? "\xE2\x96\xB8 " : "  ";
+        list_->Append(wxString::FromUTF8(prefix + display));
         filtered_indices_.push_back(entry.index);
     }
 
@@ -210,8 +254,9 @@ void CommandPalette::ApplyFilter()
     }
     else if (!filter_lower.empty())
     {
-        // R16 Fix 37: Empty state when no commands match
-        list_->Append("  No matching commands");
+        // R21 Fix 4: No-results placeholder with centered visual cue
+        list_->Append(wxString::FromUTF8("      ✦ No commands found ✦"));
+        list_->Append(wxString::FromUTF8("      Try a different search term"));
     }
 }
 

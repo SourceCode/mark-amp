@@ -24,6 +24,7 @@ public:
     /// Scrollbar width in pixels.
     static constexpr int kWidth = 8;
     static constexpr int kThumbMinHeight = 20;
+    static constexpr int kAutoHideDelayMs = 1500; // R20 Fix 37: Auto-hide delay
 
 protected:
     void OnThemeChanged(const core::Theme& new_theme) override;
@@ -37,6 +38,8 @@ private:
     bool is_dragging_{false};
     int drag_start_y_{0};
     int drag_start_position_{0};
+    float thumb_opacity_{1.0F}; // R20 Fix 37: current thumb opacity
+    wxTimer auto_hide_timer_;   // R20 Fix 37: auto-hide timer
 
     void OnPaint(wxPaintEvent& event);
     void OnMouseEnter(wxMouseEvent& event);
@@ -48,6 +51,8 @@ private:
     [[nodiscard]] auto thumb_rect() const -> wxRect;
     [[nodiscard]] auto content_to_pixel(int content_pos) const -> int;
     [[nodiscard]] auto pixel_to_content(int pixel_y) const -> int;
+    void OnAutoHideTimer(wxTimerEvent& event); // R20 Fix 37
+    void ResetAutoHideTimer();                 // R20 Fix 37
 };
 
 } // namespace markamp::ui

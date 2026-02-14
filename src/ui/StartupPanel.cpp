@@ -339,20 +339,46 @@ void StartupPanel::refreshRecentWorkspaces()
         name_txt->Bind(wxEVT_LEFT_DOWN, [this, path](wxMouseEvent&) { onWorkspaceClick(path); });
         path_txt->Bind(wxEVT_LEFT_DOWN, [this, path](wxMouseEvent&) { onWorkspaceClick(path); });
 
-        // R17 Fix 36: Hover highlight on workspace items
+        // R20 Fix 39: Workspace hover card with accent border and rounded corners
         item_panel->SetCursor(wxCursor(wxCURSOR_HAND));
+
+        // Use proper paint handler for hover card styling
+        item_panel->SetBackgroundStyle(wxBG_STYLE_PAINT);
+
+        // Get the accent color for the left border
+        wxColour accent_col(100, 60, 140);
+        if (theme_engine_ != nullptr)
+        {
+            accent_col = theme_engine_->color(core::ThemeColorToken::AccentPrimary);
+        }
+
+        // Bind paint for hover card effect
+        item_panel->Bind(wxEVT_PAINT,
+                         [item_panel, item_bg, accent_col](wxPaintEvent&)
+                         {
+                             wxPaintDC paint_dc(item_panel);
+                             wxSize panel_size = item_panel->GetClientSize();
+                             bool hovered =
+                                 item_panel->GetScreenRect().Contains(wxGetMousePosition());
+
+                             wxColour bg_col = hovered ? item_bg.ChangeLightness(120) : item_bg;
+                             paint_dc.SetBrush(wxBrush(bg_col));
+                             paint_dc.SetPen(*wxTRANSPARENT_PEN);
+                             paint_dc.DrawRoundedRectangle(
+                                 0, 0, panel_size.GetWidth(), panel_size.GetHeight(), 6);
+
+                             // Accent left border on hover
+                             if (hovered)
+                             {
+                                 paint_dc.SetBrush(wxBrush(accent_col));
+                                 paint_dc.DrawRectangle(0, 0, 3, panel_size.GetHeight());
+                             }
+                         });
+
         item_panel->Bind(wxEVT_ENTER_WINDOW,
-                         [item_panel, item_bg](wxMouseEvent&)
-                         {
-                             item_panel->SetBackgroundColour(item_bg.ChangeLightness(120));
-                             item_panel->Refresh();
-                         });
+                         [item_panel](wxMouseEvent&) { item_panel->Refresh(); });
         item_panel->Bind(wxEVT_LEAVE_WINDOW,
-                         [item_panel, item_bg](wxMouseEvent&)
-                         {
-                             item_panel->SetBackgroundColour(item_bg);
-                             item_panel->Refresh();
-                         });
+                         [item_panel](wxMouseEvent&) { item_panel->Refresh(); });
 
         // Add to list sizer with spacing
         recent_list_sizer_->Add(item_panel, 0, wxEXPAND | wxBOTTOM, 10);
@@ -448,6 +474,38 @@ void StartupPanel::onPaint(wxPaintEvent& /*event*/)
     for (int grid_y = 0; grid_y < size.GetHeight(); grid_y += kGridStep)
     {
         paint_dc.DrawLine(0, grid_y, size.GetWidth(), grid_y);
+    }
+
+    // R20 Fix 40: Version badge pill in bottom-right corner
+    {
+        auto version_str = wxString::Format(
+            "v%d.%d.%d", MARKAMP_VERSION_MAJOR, MARKAMP_VERSION_MINOR, MARKAMP_VERSION_PATCH);
+
+        wxFont badge_font(8, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL);
+        paint_dc.SetFont(badge_font);
+
+        auto badge_extent = paint_dc.GetTextExtent(version_str);
+        const int badge_w = badge_extent.GetWidth() + 14;
+        const int badge_h = badge_extent.GetHeight() + 6;
+        const int badge_x = size.GetWidth() - badge_w - 16;
+        const int badge_y = size.GetHeight() - badge_h - 16;
+
+        // Pill background
+        wxColour badge_bg = bg_start.ChangeLightness(130);
+        paint_dc.SetBrush(wxBrush(badge_bg));
+        paint_dc.SetPen(*wxTRANSPARENT_PEN);
+        paint_dc.DrawRoundedRectangle(badge_x, badge_y, badge_w, badge_h, badge_h / 2);
+
+        // Text
+        wxColour badge_fg(180, 180, 200);
+        if (theme_engine_ != nullptr)
+        {
+            badge_fg = theme_engine_->color(core::ThemeColorToken::TextMuted);
+        }
+        paint_dc.SetTextForeground(badge_fg);
+        paint_dc.DrawText(version_str,
+                          badge_x + (badge_w - badge_extent.GetWidth()) / 2,
+                          badge_y + (badge_h - badge_extent.GetHeight()) / 2);
     }
 }
 

@@ -27,7 +27,10 @@ public:
     [[nodiscard]] auto GetActiveViewMode() const -> core::events::ViewMode;
 
     static constexpr int kHeight = 40;
-
+    static constexpr int kDropShadowHeight = 2;    // R19 Fix 8
+    static constexpr float kSavePulseSpeed = 0.1F; // R19 Fix 7: scale step per tick
+    static constexpr float kPressScale = 0.9F;     // R20 Fix 6: press scale-down factor
+    static constexpr int kHoverUnderlineH = 2;     // R20 Fix 10: hover underline height
     /// Callback type for opening the theme gallery.
     using ThemeGalleryCallback = std::function<void()>;
     void SetOnThemeGalleryClick(ThemeGalleryCallback callback);
@@ -83,6 +86,11 @@ private:
     // R5 Fix 20: Save button flash feedback
     bool save_flash_active_{false};
     wxTimer save_flash_timer_;
+    float save_pulse_scale_{1.0F}; // R19 Fix 7: save icon scale during pulse
+    wxTimer save_pulse_timer_;     // R19 Fix 7: timer for save icon pulse
+    int zoom_level_{0};            // R19 Fix 10: current zoom level (%)
+    int focused_button_index_{-1}; // R19 Fix 9: keyboard focus ring index
+    bool focus_is_left_{true};     // R19 Fix 9: which button group has focus
 
     // R17 Fix 3: Button press feedback
     int pressed_button_index_{-1};
@@ -90,6 +98,11 @@ private:
 
     // R18 Fix 16: Responsive collapse to icons-only
     bool compact_mode_{false};
+
+    // R20 Fix 8: Tooltip delay timer (prevents tooltip flash)
+    wxTimer tooltip_delay_timer_;
+    int pending_tooltip_index_{-1};
+    bool pending_tooltip_is_left_{false};
 };
 
 } // namespace markamp::ui

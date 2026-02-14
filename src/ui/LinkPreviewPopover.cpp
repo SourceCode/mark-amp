@@ -3,6 +3,8 @@
 #include "core/Color.h"
 #include "core/Events.h"
 
+#include <wx/clipbrd.h>
+#include <wx/dataobj.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 
@@ -35,15 +37,32 @@ void LinkPreviewPopover::CreateLayout()
     url_label_ = new wxStaticText(this, wxID_ANY, "", wxDefaultPosition, wxSize(kMaxWidth, -1));
     url_label_->SetMaxSize(wxSize(kMaxWidth, -1));
 
+    // R21 Fix 20: Copy URL button
+    copy_btn_ = new wxButton(this, wxID_ANY, "Copy URL", wxDefaultPosition, wxDefaultSize);
+    copy_btn_->Bind(wxEVT_BUTTON,
+                    [this](wxCommandEvent& /*evt*/)
+                    {
+                        if (!current_url_.empty() && wxTheClipboard->Open())
+                        {
+                            wxTheClipboard->SetData(
+                                new wxTextDataObject(wxString::FromUTF8(current_url_)));
+                            wxTheClipboard->Close();
+                        }
+                    });
+
     open_btn_ = new wxButton(this, wxID_ANY, "Open in browser", wxDefaultPosition, wxDefaultSize);
     open_btn_->Bind(wxEVT_BUTTON, &LinkPreviewPopover::OnOpenInBrowser, this);
+
+    auto* btn_sizer = new wxBoxSizer(wxHORIZONTAL);
+    btn_sizer->Add(copy_btn_, 0, wxRIGHT, 4);
+    btn_sizer->Add(open_btn_, 0);
 
     sizer->AddSpacer(kPadding);
     sizer->Add(link_label_, 0, wxLEFT | wxRIGHT, kPadding);
     sizer->AddSpacer(4);
     sizer->Add(url_label_, 0, wxLEFT | wxRIGHT, kPadding);
     sizer->AddSpacer(6);
-    sizer->Add(open_btn_, 0, wxLEFT | wxRIGHT, kPadding);
+    sizer->Add(btn_sizer, 0, wxLEFT | wxRIGHT, kPadding);
     sizer->AddSpacer(kPadding);
 
     SetSizer(sizer);
@@ -53,7 +72,8 @@ void LinkPreviewPopover::SetLink(const std::string& link_text, const std::string
 {
     current_url_ = url;
     link_label_->SetLabel(wxString::FromUTF8(link_text));
-    url_label_->SetLabel(wxString::FromUTF8(url));
+    // R21 Fix 19: Globe emoji prefix before URL
+    url_label_->SetLabel(wxString::FromUTF8("\xF0\x9F\x8C\x90 " + url)); // 🌐
     url_label_->Wrap(kMaxWidth - 2 * kPadding);
 
     GetSizer()->Fit(this);

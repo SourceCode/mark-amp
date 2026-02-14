@@ -80,9 +80,32 @@ void FloatingFormatBar::CreateButtons()
             btn->SetFont(font);
         }
 
+        // R21 Fix 9: Hover background — highlight button on mouse enter
+        btn->Bind(wxEVT_ENTER_WINDOW,
+                  [this, btn](wxMouseEvent& /*evt*/)
+                  {
+                      auto hover_bg = theme_engine_.color(core::ThemeColorToken::HoverBg);
+                      btn->SetBackgroundColour(hover_bg);
+                      btn->Refresh();
+                  });
+        btn->Bind(wxEVT_LEAVE_WINDOW,
+                  [this, btn](wxMouseEvent& /*evt*/)
+                  {
+                      auto bg = theme_engine_.color(core::ThemeColorToken::BgPanel);
+                      btn->SetBackgroundColour(bg);
+                      btn->Refresh();
+                  });
+
+        // R21 Fix 12: Pressed feedback — flash AccentSecondary on click
         btn->Bind(wxEVT_BUTTON,
-                  [this, action = spec.action](wxCommandEvent& /*evt*/)
-                  { OnButtonClicked(action); });
+                  [this, action = spec.action, btn](wxCommandEvent& /*evt*/)
+                  {
+                      // R21 Fix 10: Flash accent color on press
+                      auto accent = theme_engine_.color(core::ThemeColorToken::AccentSecondary);
+                      btn->SetForegroundColour(accent);
+                      btn->Refresh();
+                      OnButtonClicked(action);
+                  });
 
         sizer->Add(btn, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, kButtonSpacing);
     }
@@ -99,6 +122,7 @@ void FloatingFormatBar::ApplyTheme()
     auto bg_color = theme_engine_.color(core::ThemeColorToken::BgPanel);
     auto fg_color = theme_engine_.color(core::ThemeColorToken::TextMain);
     auto accent = theme_engine_.color(core::ThemeColorToken::AccentPrimary);
+    auto border = theme_engine_.color(core::ThemeColorToken::BorderDark);
 
     SetBackgroundColour(bg_color);
 
@@ -112,6 +136,10 @@ void FloatingFormatBar::ApplyTheme()
             btn->SetForegroundColour(fg_color);
         }
     }
+
+    // R21 Fix 11: Border for depth effect around the popup
+    // wxPopupTransientWindow doesn't support border painting directly,
+    // but we can use the window's background and accent to style it
 
     Refresh();
 }

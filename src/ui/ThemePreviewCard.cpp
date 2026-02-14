@@ -3,6 +3,7 @@
 #include <wx/dcbuffer.h>
 #include <wx/graphics.h>
 
+#include <array>
 #include <cmath>
 
 namespace markamp::ui
@@ -161,8 +162,43 @@ void ThemePreviewCard::OnPaint(wxPaintEvent& /*event*/)
         border_color = wxColour(c.border_dark.to_rgba_string());
     }
 
+    // R21 Fix 23: Hover lift shadow — increase shadow depth on hover
+    if (is_hovered_)
+    {
+        constexpr int kShadowSize = 6;
+        for (int band = kShadowSize; band > 0; --band)
+        {
+            auto alpha = static_cast<unsigned char>((kShadowSize - band + 1) * 12);
+            dc.SetPen(wxPen(wxColour(0, 0, 0, alpha), 1));
+            dc.SetBrush(*wxTRANSPARENT_BRUSH);
+            dc.DrawRoundedRectangle(-band,
+                                    -band + 2,
+                                    size.GetWidth() + band * 2,
+                                    size.GetHeight() + band * 2,
+                                    kCornerRadius + band);
+        }
+    }
+
+    // R21 Fix 26: Active theme glow ring
+    if (is_active_)
+    {
+        constexpr int kGlowSize = 4;
+        auto accent = wxColour(c.accent_primary.to_rgba_string());
+        for (int band = kGlowSize; band > 0; --band)
+        {
+            auto alpha = static_cast<unsigned char>((kGlowSize - band + 1) * 30);
+            dc.SetPen(wxPen(wxColour(accent.Red(), accent.Green(), accent.Blue(), alpha), 1));
+            dc.SetBrush(*wxTRANSPARENT_BRUSH);
+            dc.DrawRoundedRectangle(-band,
+                                    -band,
+                                    size.GetWidth() + band * 2,
+                                    size.GetHeight() + band * 2,
+                                    kCornerRadius + band);
+        }
+    }
+
     // Draw card background with rounded rect
-    dc.SetPen(wxPen(border_color, kBorderWidth));
+    dc.SetPen(wxPen(border_color, is_active_ ? 2 : kBorderWidth));
     dc.SetBrush(wxBrush(wxColour(c.bg_app.to_rgba_string())));
     dc.DrawRoundedRectangle(0, 0, size.GetWidth(), size.GetHeight(), kCornerRadius);
 
@@ -302,6 +338,45 @@ void ThemePreviewCard::DrawFooter(wxDC& dc, const wxRect& area)
     else
     {
         delete_btn_rect_ = wxRect(0, 0, 0, 0);
+    }
+
+    // R21 Fix 24: Color palette swatches — 5 small circles in footer
+    {
+        constexpr int kSwatchRadius = 5;
+        constexpr int kSwatchSpacing = 14;
+        int swatch_x = area.GetLeft() + kPadding;
+        const int swatch_y = area.GetTop() + area.GetHeight() - kSwatchRadius - 6;
+
+        const std::array<core::Color, 5> palette = {
+            c.bg_app, c.accent_primary, c.accent_secondary, c.text_main, c.border_dark};
+        for (const auto& swatch : palette)
+        {
+            dc.SetPen(wxPen(wxColour(c.border_light.to_rgba_string()), 1));
+            dc.SetBrush(wxBrush(wxColour(swatch.to_rgba_string())));
+            dc.DrawCircle(swatch_x, swatch_y, kSwatchRadius);
+            swatch_x += kSwatchSpacing;
+        }
+    }
+
+    // R21 Fix 25: Theme type badge — "Dark" or "Light" pill
+    {
+        // Determine luminance of bg_app to decide Dark vs Light
+        int luminance = (c.bg_app.r * 299 + c.bg_app.g * 587 + c.bg_app.b * 114) / 1000;
+        std::string type_label = (luminance < 128) ? "Dark" : "Light";
+
+        wxFont badge_font(wxFontInfo(8).Family(wxFONTFAMILY_SWISS));
+        dc.SetFont(badge_font);
+        auto text_extent = dc.GetTextExtent(type_label);
+        int badge_x = area.GetRight() - text_extent.GetWidth() - kPadding - 8;
+        int badge_y = area.GetTop() + area.GetHeight() - text_extent.GetHeight() - 8;
+
+        // Pill background
+        dc.SetPen(wxPen(wxColour(c.border_light.to_rgba_string()), 1));
+        dc.SetBrush(wxBrush(wxColour(c.bg_header.to_rgba_string())));
+        dc.DrawRoundedRectangle(
+            badge_x - 4, badge_y - 2, text_extent.GetWidth() + 8, text_extent.GetHeight() + 4, 6);
+        dc.SetTextForeground(wxColour(c.text_muted.to_rgba_string()));
+        dc.DrawText(type_label, badge_x, badge_y);
     }
 }
 

@@ -116,6 +116,11 @@ private:
     void SetZoomLevel(int level);
     void OnMouseWheel(wxMouseEvent& event);
     void OnKeyDown(wxKeyEvent& event);
+
+    // R21 Fix 32: Scroll-to-top button
+    wxButton* scroll_to_top_btn_{nullptr};
+    void UpdateScrollToTopButton();
+    void PositionScrollToTopButton();
 };
 
 } // namespace markamp::ui

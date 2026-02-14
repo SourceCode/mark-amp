@@ -307,9 +307,22 @@ void ShortcutOverlay::OnPaint(wxPaintEvent& /*event*/)
         paint_dc.SetTextForeground(theme_engine().color(core::ThemeColorToken::AccentPrimary));
         paint_dc.SetFont(theme_engine().font(core::ThemeFontToken::UIHeading));
         paint_dc.DrawText(category.name, target_x, target_y);
-        target_y += 22;
+
+        // R21 Fix 13: Accent underline below category header
+        {
+            auto header_extent = paint_dc.GetTextExtent(category.name);
+            paint_dc.SetPen(wxPen(theme_engine().color(core::ThemeColorToken::AccentPrimary), 2));
+            paint_dc.DrawLine(target_x,
+                              target_y + header_extent.GetHeight() + 2,
+                              target_x + header_extent.GetWidth(),
+                              target_y + header_extent.GetHeight() + 2);
+        }
+        target_y += 24;
 
         paint_dc.SetFont(theme_engine().font(core::ThemeFontToken::UISmall));
+
+        // R21 Fix 16: Fixed column positions for scan readability
+        constexpr int kShortcutColWidth = 140;
 
         for (const auto& [shortcut_text, description] : category.entries)
         {
@@ -326,14 +339,86 @@ void ShortcutOverlay::OnPaint(wxPaintEvent& /*event*/)
                 paint_dc.DrawRectangle(target_x - 2, target_y - 1, col_width, 16);
             }
 
-            // Shortcut key
+            // R21 Fix 14: Key badge pill — wrap shortcut text in [ ] bracket style
+            std::string badge_text = "\xE2\x8C\xA8 " + shortcut_text; // ⌨ prefix
             paint_dc.SetTextForeground(
                 theme_engine().color(core::ThemeColorToken::AccentSecondary));
-            paint_dc.DrawText(shortcut_text, target_x, target_y);
+            // Draw a subtle pill background behind the shortcut
+            {
+                auto key_extent = paint_dc.GetTextExtent(wxString::FromUTF8(badge_text));
+                wxColour pill_bg = theme_engine().color(core::ThemeColorToken::BgInput);
+                paint_dc.SetBrush(wxBrush(pill_bg));
+                paint_dc.SetPen(wxPen(theme_engine().color(core::ThemeColorToken::BorderLight), 1));
+                paint_dc.DrawRoundedRectangle(target_x - 2,
+                                              target_y - 2,
+                                              key_extent.GetWidth() + 6,
+                                              key_extent.GetHeight() + 4,
+                                              3);
+            }
+            paint_dc.DrawText(wxString::FromUTF8(badge_text), target_x, target_y);
 
-            // Description
-            paint_dc.SetTextForeground(theme_engine().color(core::ThemeColorToken::TextMuted));
-            paint_dc.DrawText(description, target_x + 120, target_y);
+            // R21 Fix 15: Search match highlight in descriptions
+            // R21 Fix 16: Description at fixed column offset
+            const int desc_x = target_x + kShortcutColWidth;
+            if (!filter_text_.empty())
+            {
+                // Highlight matched portion with AccentPrimary
+                std::string lower_desc = description;
+                std::transform(lower_desc.begin(),
+                               lower_desc.end(),
+                               lower_desc.begin(),
+                               [](unsigned char ch)
+                               { return static_cast<char>(std::tolower(ch)); });
+                std::string lower_filt = filter_text_;
+                std::transform(lower_filt.begin(),
+                               lower_filt.end(),
+                               lower_filt.begin(),
+                               [](unsigned char ch)
+                               { return static_cast<char>(std::tolower(ch)); });
+
+                auto match_pos = lower_desc.find(lower_filt);
+                if (match_pos != std::string::npos)
+                {
+                    // Draw text before match
+                    auto before = description.substr(0, match_pos);
+                    paint_dc.SetTextForeground(
+                        theme_engine().color(core::ThemeColorToken::TextMuted));
+                    paint_dc.DrawText(wxString::FromUTF8(before), desc_x, target_y);
+                    auto before_width =
+                        paint_dc.GetTextExtent(wxString::FromUTF8(before)).GetWidth();
+
+                    // Draw matched text in accent bold
+                    auto matched = description.substr(match_pos, filter_text_.size());
+                    paint_dc.SetTextForeground(
+                        theme_engine().color(core::ThemeColorToken::AccentPrimary));
+                    wxFont bold_font = paint_dc.GetFont();
+                    bold_font.SetWeight(wxFONTWEIGHT_BOLD);
+                    paint_dc.SetFont(bold_font);
+                    paint_dc.DrawText(wxString::FromUTF8(matched), desc_x + before_width, target_y);
+                    auto match_width =
+                        paint_dc.GetTextExtent(wxString::FromUTF8(matched)).GetWidth();
+
+                    // Draw text after match
+                    paint_dc.SetFont(theme_engine().font(core::ThemeFontToken::UISmall));
+                    auto after = description.substr(match_pos + filter_text_.size());
+                    paint_dc.SetTextForeground(
+                        theme_engine().color(core::ThemeColorToken::TextMuted));
+                    paint_dc.DrawText(
+                        wxString::FromUTF8(after), desc_x + before_width + match_width, target_y);
+                }
+                else
+                {
+                    paint_dc.SetTextForeground(
+                        theme_engine().color(core::ThemeColorToken::TextMuted));
+                    paint_dc.DrawText(description, desc_x, target_y);
+                }
+            }
+            else
+            {
+                // No filter — plain description
+                paint_dc.SetTextForeground(theme_engine().color(core::ThemeColorToken::TextMuted));
+                paint_dc.DrawText(description, desc_x, target_y);
+            }
 
             // R18 Fix 35: Store hit rect for click-to-copy
             shortcut_hit_rects_.emplace_back(wxRect(target_x, target_y, col_width, 16),

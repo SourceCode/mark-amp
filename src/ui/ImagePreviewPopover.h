@@ -37,6 +37,7 @@ private:
     wxStaticText* alt_label_{nullptr};
     wxStaticText* path_label_{nullptr};
     wxStaticText* error_label_{nullptr};
+    wxStaticText* dimensions_label_{nullptr}; // R21 Fix 17-18
 
     static constexpr int kMaxThumbWidth = 300;
     static constexpr int kMaxThumbHeight = 200;

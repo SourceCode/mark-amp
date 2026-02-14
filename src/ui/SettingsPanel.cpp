@@ -61,6 +61,7 @@ void SettingsPanel::CreateLayout()
     cat_items.Add("Editor");
     cat_items.Add("Appearance");
     cat_items.Add("Advanced");
+    cat_items.Add("Syntax Highlighting");
     category_list_ =
         new wxListBox(this, wxID_ANY, wxDefaultPosition, wxSize(120, -1), cat_items, wxLB_SINGLE);
     category_list_->SetSelection(0);
@@ -350,6 +351,321 @@ void SettingsPanel::RegisterBuiltinSettings()
                      "false",
                      {}});
 
+    // ═══════════════════════════════════════════════════════
+    // R22: 40 VS Code-Equivalent Editor & Syntax Highlighting Settings
+    // ═══════════════════════════════════════════════════════
+
+    // ── Editor Behavior (15 settings) ──
+
+    RegisterSetting({"editor.cursorBlinking",
+                     "Cursor Blinking",
+                     "Controls the cursor animation style (blink, smooth, phase, expand, solid)",
+                     "Editor",
+                     core::SettingType::Choice,
+                     "blink",
+                     {"blink", "smooth", "phase", "expand", "solid"}});
+    RegisterSetting({"editor.cursorWidth",
+                     "Cursor Width",
+                     "Controls the width of the cursor in pixels when cursor style is 'line'",
+                     "Editor",
+                     core::SettingType::Integer,
+                     "2",
+                     {},
+                     1,
+                     10});
+    RegisterSetting({"editor.mouseWheelZoom",
+                     "Mouse Wheel Zoom",
+                     "Zoom the font in the editor when using the mouse wheel with Ctrl/Cmd",
+                     "Editor",
+                     core::SettingType::Boolean,
+                     "false",
+                     {}});
+    RegisterSetting({"editor.renderControlCharacters",
+                     "Render Control Characters",
+                     "Display control characters such as line endings in the editor",
+                     "Editor",
+                     core::SettingType::Boolean,
+                     "true",
+                     {}});
+    RegisterSetting({"editor.roundedSelection",
+                     "Rounded Selection",
+                     "Render the editor selection with rounded borders",
+                     "Editor",
+                     core::SettingType::Boolean,
+                     "true",
+                     {}});
+    RegisterSetting({"editor.selectOnLineNumbers",
+                     "Select on Line Numbers",
+                     "Select the corresponding line when clicking on a line number",
+                     "Editor",
+                     core::SettingType::Boolean,
+                     "true",
+                     {}});
+    RegisterSetting({"editor.matchBrackets",
+                     "Match Brackets",
+                     "How bracket matching is triggered (always, near cursor, or never)",
+                     "Editor",
+                     core::SettingType::Choice,
+                     "always",
+                     {"always", "near", "never"}});
+    RegisterSetting({"editor.renderLineHighlight",
+                     "Render Line Highlight",
+                     "Controls the rendering of the current line highlight",
+                     "Editor",
+                     core::SettingType::Choice,
+                     "all",
+                     {"none", "gutter", "line", "all"}});
+    RegisterSetting({"editor.renderLineHighlightOnlyWhenFocus",
+                     "Line Highlight Only When Focused",
+                     "Only show the current line highlight when the editor has focus",
+                     "Editor",
+                     core::SettingType::Boolean,
+                     "false",
+                     {}});
+    RegisterSetting({"editor.wordWrapColumn",
+                     "Word Wrap Column",
+                     "Column number at which editor content wraps when Word Wrap is set to column",
+                     "Editor",
+                     core::SettingType::Integer,
+                     "80",
+                     {},
+                     40,
+                     200});
+    RegisterSetting({"editor.wrappingIndent",
+                     "Wrapping Indent",
+                     "Indentation of wrapped lines (none, same, indent, deepIndent)",
+                     "Editor",
+                     core::SettingType::Choice,
+                     "same",
+                     {"none", "same", "indent", "deepIndent"}});
+    RegisterSetting({"editor.lineHeight",
+                     "Line Height",
+                     "Extra line height in pixels (0 = use default from font size)",
+                     "Editor",
+                     core::SettingType::Integer,
+                     "0",
+                     {},
+                     0,
+                     40});
+    RegisterSetting({"editor.letterSpacing",
+                     "Letter Spacing",
+                     "Extra letter spacing in pixels between characters",
+                     "Editor",
+                     core::SettingType::Integer,
+                     "0",
+                     {},
+                     0,
+                     10});
+    RegisterSetting(
+        {"editor.scrollBeyondLastColumn",
+         "Scroll Beyond Last Column",
+         "Number of extra columns the editor can scroll horizontally past the last character",
+         "Editor",
+         core::SettingType::Integer,
+         "5",
+         {},
+         0,
+         30});
+    RegisterSetting({"editor.autoClosingQuotes",
+                     "Auto Closing Quotes",
+                     "Auto-close quote characters when typing",
+                     "Editor",
+                     core::SettingType::Boolean,
+                     "true",
+                     {}});
+
+    // ── Editor Appearance (15 settings) ──
+
+    RegisterSetting({"editor.showFoldingControls",
+                     "Show Folding Controls",
+                     "When fold controls in the gutter are displayed (always, mouseover, never)",
+                     "Appearance",
+                     core::SettingType::Choice,
+                     "mouseover",
+                     {"always", "mouseover", "never"}});
+    RegisterSetting({"editor.foldingHighlight",
+                     "Folding Highlight",
+                     "Highlight folded regions with a background color",
+                     "Appearance",
+                     core::SettingType::Boolean,
+                     "true",
+                     {}});
+    RegisterSetting(
+        {"editor.glyphMargin",
+         "Glyph Margin",
+         "Show the glyph margin to the left of line numbers for breakpoints and decorations",
+         "Appearance",
+         core::SettingType::Boolean,
+         "true",
+         {}});
+    RegisterSetting({"editor.overviewRulerBorder",
+                     "Overview Ruler Border",
+                     "Show a border around the overview ruler",
+                     "Appearance",
+                     core::SettingType::Boolean,
+                     "true",
+                     {}});
+    RegisterSetting({"editor.lineNumbersMinChars",
+                     "Line Numbers Minimum Chars",
+                     "Minimum number of characters reserved for line number display",
+                     "Appearance",
+                     core::SettingType::Integer,
+                     "5",
+                     {},
+                     1,
+                     10});
+    RegisterSetting({"editor.padding.top",
+                     "Padding Top",
+                     "Extra padding at the top of the editor in pixels",
+                     "Appearance",
+                     core::SettingType::Integer,
+                     "0",
+                     {},
+                     0,
+                     100});
+    RegisterSetting({"editor.padding.bottom",
+                     "Padding Bottom",
+                     "Extra padding at the bottom of the editor in pixels",
+                     "Appearance",
+                     core::SettingType::Integer,
+                     "0",
+                     {},
+                     0,
+                     100});
+    RegisterSetting({"editor.minimap.maxColumn",
+                     "Minimap Max Column",
+                     "Maximum width of the minimap in character columns",
+                     "Appearance",
+                     core::SettingType::Integer,
+                     "120",
+                     {},
+                     40,
+                     300});
+    RegisterSetting({"editor.minimap.scale",
+                     "Minimap Scale",
+                     "Scale factor for the minimap text (1-3)",
+                     "Appearance",
+                     core::SettingType::Integer,
+                     "1",
+                     {},
+                     1,
+                     3});
+    RegisterSetting({"editor.minimap.side",
+                     "Minimap Side",
+                     "Which side the minimap appears on",
+                     "Appearance",
+                     core::SettingType::Choice,
+                     "right",
+                     {"left", "right"}});
+    RegisterSetting({"editor.stickyScroll.enabled",
+                     "Sticky Scroll",
+                     "Show sticky heading at the top of the editor while scrolling",
+                     "Appearance",
+                     core::SettingType::Boolean,
+                     "false",
+                     {}});
+    RegisterSetting({"editor.guides.bracketPairs",
+                     "Bracket Pair Guides",
+                     "Show vertical guides connecting matching bracket pairs",
+                     "Appearance",
+                     core::SettingType::Boolean,
+                     "false",
+                     {}});
+    RegisterSetting({"editor.guides.highlightActiveIndentation",
+                     "Highlight Active Indentation",
+                     "Highlight the active indentation guide with a distinct color",
+                     "Appearance",
+                     core::SettingType::Boolean,
+                     "true",
+                     {}});
+    RegisterSetting({"editor.bracketPairColorization",
+                     "Bracket Pair Colorization",
+                     "Colorize matching bracket pairs with distinct colors",
+                     "Appearance",
+                     core::SettingType::Boolean,
+                     "false",
+                     {}});
+    RegisterSetting({"editor.colorDecorators",
+                     "Color Decorators",
+                     "Show inline color decorators for recognized color values",
+                     "Appearance",
+                     core::SettingType::Boolean,
+                     "true",
+                     {}});
+
+    // ── Syntax Highlighting (10 settings) ──
+
+    RegisterSetting({"syntax.boldKeywords",
+                     "Bold Keywords",
+                     "Render language keywords in bold in code block syntax highlighting",
+                     "Syntax Highlighting",
+                     core::SettingType::Boolean,
+                     "true",
+                     {}});
+    RegisterSetting({"syntax.italicComments",
+                     "Italic Comments",
+                     "Render comments in italic in code block syntax highlighting",
+                     "Syntax Highlighting",
+                     core::SettingType::Boolean,
+                     "true",
+                     {}});
+    RegisterSetting({"syntax.highlightStrings",
+                     "Highlight Strings",
+                     "Apply distinct color to string literals in code blocks",
+                     "Syntax Highlighting",
+                     core::SettingType::Boolean,
+                     "true",
+                     {}});
+    RegisterSetting({"syntax.highlightNumbers",
+                     "Highlight Numbers",
+                     "Apply distinct color to numeric literals in code blocks",
+                     "Syntax Highlighting",
+                     core::SettingType::Boolean,
+                     "true",
+                     {}});
+    RegisterSetting({"syntax.highlightOperators",
+                     "Highlight Operators",
+                     "Apply distinct color to operators in code blocks",
+                     "Syntax Highlighting",
+                     core::SettingType::Boolean,
+                     "true",
+                     {}});
+    RegisterSetting({"syntax.highlightTypes",
+                     "Highlight Types",
+                     "Apply distinct color to type names in code blocks",
+                     "Syntax Highlighting",
+                     core::SettingType::Boolean,
+                     "true",
+                     {}});
+    RegisterSetting({"syntax.highlightFunctions",
+                     "Highlight Functions",
+                     "Apply distinct color to function names in code blocks",
+                     "Syntax Highlighting",
+                     core::SettingType::Boolean,
+                     "true",
+                     {}});
+    RegisterSetting({"syntax.highlightConstants",
+                     "Highlight Constants",
+                     "Apply distinct color to constants (true, false, null) in code blocks",
+                     "Syntax Highlighting",
+                     core::SettingType::Boolean,
+                     "true",
+                     {}});
+    RegisterSetting({"syntax.highlightPreprocessor",
+                     "Highlight Preprocessor",
+                     "Apply distinct color to preprocessor directives in code blocks",
+                     "Syntax Highlighting",
+                     core::SettingType::Boolean,
+                     "true",
+                     {}});
+    RegisterSetting({"syntax.dimWhitespace",
+                     "Dim Whitespace",
+                     "Render whitespace tokens with a dimmed/muted color in code blocks",
+                     "Syntax Highlighting",
+                     core::SettingType::Boolean,
+                     "false",
+                     {}});
+
     RebuildSettingsList();
 }
 
@@ -418,8 +734,21 @@ void SettingsPanel::RebuildSettingsList()
                          { OnCollapsibleToggle(cat); });
         header_sizer->Add(toggle_btn, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
 
+        // R21 Fix 30: Category emoji icon prefix
+        wxString icon_prefix;
+        if (category == "Editor")
+            icon_prefix = wxString::FromUTF8("\xF0\x9F\x8E\xA8 "); // 🎨
+        else if (category == "Appearance")
+            icon_prefix = wxString::FromUTF8("\xF0\x9F\x96\xA5 "); // 🖥
+        else if (category == "Keybindings")
+            icon_prefix = wxString::FromUTF8("\xE2\x8C\xA8 "); // ⌨
+        else if (category == "Plugins")
+            icon_prefix = wxString::FromUTF8("\xF0\x9F\x94\x8C "); // 🔌
+        else if (category == "Advanced")
+            icon_prefix = wxString::FromUTF8("\xE2\x9A\x99 "); // ⚙
+
         // Count badge – "Editor (12 settings, 3 modified)"
-        wxString badge_text = category;
+        wxString badge_text = icon_prefix + category;
         badge_text += wxString::Format(" (%d settings", matching_count);
         if (modified_count > 0)
             badge_text += wxString::Format(", %d modified", modified_count);
@@ -489,7 +818,25 @@ void SettingsPanel::RebuildSettingsList()
 
             if (widget != nullptr)
             {
-                category_sizer->Add(widget, 0, wxEXPAND | wxLEFT | wxRIGHT, kCategoryPadding);
+                // R21 Fix 29: Modified indicator dot
+                if (IsSettingModified(def))
+                {
+                    auto* dot = new wxStaticText(scroll_area_,
+                                                 wxID_ANY,
+                                                 wxString::FromUTF8("\xE2\x97\x8F")); // ●
+                    auto accent = theme_engine_.color(core::ThemeColorToken::AccentPrimary);
+                    dot->SetForegroundColour(accent);
+                    dot->SetToolTip("Modified from default");
+                    auto* row_with_dot = new wxBoxSizer(wxHORIZONTAL);
+                    row_with_dot->Add(dot, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
+                    row_with_dot->Add(widget, 1, wxEXPAND);
+                    category_sizer->Add(
+                        row_with_dot, 0, wxEXPAND | wxLEFT | wxRIGHT, kCategoryPadding);
+                }
+                else
+                {
+                    category_sizer->Add(widget, 0, wxEXPAND | wxLEFT | wxRIGHT, kCategoryPadding);
+                }
                 setting_widgets_.push_back(widget);
             }
         }

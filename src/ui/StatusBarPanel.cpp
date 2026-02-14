@@ -402,6 +402,12 @@ void StatusBarPanel::RebuildItems()
     {
         auto words_text = fmt::format("{} WORDS", word_count_);
         right_items_.push_back({words_text, {}, false, false, nullptr, "Total word count"});
+
+        // R20 Fix 13: Reading time estimate (~N min read at 200 WPM)
+        int reading_minutes = std::max(1, word_count_ / 200);
+        auto read_time_text = fmt::format("~{} min read", reading_minutes);
+        right_items_.push_back(
+            {read_time_text, {}, false, false, nullptr, "Estimated reading time"});
     }
 
     if (char_count_ > 0)
@@ -412,7 +418,7 @@ void StatusBarPanel::RebuildItems()
 
     if (selection_len_ > 0)
     {
-        // R18 Fix 14: Enhanced selection info with character count
+        // R18 Fix 14 + R20 Fix 11: Selection count badge with accent highlight
         auto sel_text = fmt::format("Sel: {} chars", selection_len_);
         right_items_.push_back({sel_text, {}, true, false, nullptr, "Selected text length"});
     }
@@ -424,10 +430,15 @@ void StatusBarPanel::RebuildItems()
 
     right_items_.push_back({theme_name_, {}, false, false, nullptr, "Active theme"});
 
-    // R2 Fix 13: Filename in left items
+    // R2 Fix 13 + R20 Fix 15: Filename with modified dot indicator
     if (!filename_.empty())
     {
-        left_items_.push_back({filename_, {}, false, false, nullptr, "Active file"});
+        std::string display_name = filename_;
+        if (file_modified_)
+        {
+            display_name = "\xE2\x97\x8F " + display_name; // ● prefix when modified
+        }
+        left_items_.push_back({display_name, {}, file_modified_, false, nullptr, "Active file"});
     }
 
     // R2 Fix 14: Language in right items — R7: clickable, cycles languages
@@ -560,8 +571,9 @@ void StatusBarPanel::OnPaint(wxPaintEvent& /*event*/)
 
         int text_width = dc.GetTextExtent(item.text).GetWidth();
 
+        // R20 Fix 12: Hover highlight for ALL items (extended from R16 Fix 11)
         // R16 Fix 11: Subtle hover highlight for clickable items
-        if (item.is_clickable)
+        if (item.is_clickable || item.bounds.Contains(ScreenToClient(wxGetMousePosition())))
         {
             auto hover_bg =
                 theme_engine().color(core::ThemeColorToken::BgPanel).ChangeLightness(115);
@@ -603,8 +615,8 @@ void StatusBarPanel::OnPaint(wxPaintEvent& /*event*/)
                                  ? theme_engine().color(core::ThemeColorToken::AccentPrimary)
                                  : theme_engine().color(core::ThemeColorToken::TextMuted));
 
-        // R16 Fix 11: Subtle hover highlight for clickable items (right)
-        if (item.is_clickable)
+        // R20 Fix 12: Hover highlight for ALL items (right side)
+        if (item.is_clickable || item.bounds.Contains(ScreenToClient(wxGetMousePosition())))
         {
             auto hover_bg =
                 theme_engine().color(core::ThemeColorToken::BgPanel).ChangeLightness(115);

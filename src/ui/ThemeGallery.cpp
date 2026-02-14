@@ -596,6 +596,24 @@ void ThemeGallery::FilterCards(const std::string& filter_text)
         theme_count_label_->SetLabel(count_text);
     }
 
+    // R21 Fix 27: Empty state illustration when no themes match filter
+    if (visible_count == 0 && !lower_filter.empty())
+    {
+        auto* empty_label = new wxStaticText(grid_panel_,
+                                             wxID_ANY,
+                                             "No themes found",
+                                             wxDefaultPosition,
+                                             wxDefaultSize,
+                                             wxALIGN_CENTRE_HORIZONTAL);
+        auto font = empty_label->GetFont();
+        font.SetPointSize(13);
+        font.SetStyle(wxFONTSTYLE_ITALIC);
+        empty_label->SetFont(font);
+        auto muted = theme_engine_.color(core::ThemeColorToken::TextMuted);
+        empty_label->SetForegroundColour(muted);
+        grid_panel_->GetSizer()->Add(empty_label, 0, wxALIGN_CENTER | wxTOP, 40);
+    }
+
     grid_panel_->FitInside();
     grid_panel_->Layout();
 }

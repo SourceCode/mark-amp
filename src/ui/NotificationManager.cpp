@@ -210,21 +210,44 @@ void NotificationManager::OnPaint(wxPaintEvent& /*event*/)
         // Apply opacity
         auto level_color = GetLevelColor(toast.level);
 
+        // R20 Fix 36: Slide-in offset — toasts slide up into position during fade-in
+        int slide_offset = 0;
+        if (toast.opacity < 1.0F && !toast.dismissing)
+        {
+            slide_offset = static_cast<int>((1.0F - toast.opacity) * 12.0F);
+        }
+        const int drawn_toast_y = toast_y + slide_offset;
+
         // Background
         paint_dc.SetBrush(wxBrush(wxColour(clr.bg_panel.r,
                                            clr.bg_panel.g,
                                            clr.bg_panel.b,
                                            static_cast<unsigned char>(toast.opacity * 230.0F))));
         paint_dc.SetPen(*wxTRANSPARENT_PEN);
-        paint_dc.DrawRoundedRectangle(toast_x, toast_y, kToastWidth, kToastHeight, 6);
+        paint_dc.DrawRoundedRectangle(toast_x, drawn_toast_y, kToastWidth, kToastHeight, 6);
 
         // Left accent bar
         paint_dc.SetBrush(wxBrush(level_color));
-        paint_dc.DrawRectangle(toast_x, toast_y, 4, kToastHeight);
+        paint_dc.DrawRectangle(toast_x, drawn_toast_y, 4, kToastHeight);
 
         // Text
         paint_dc.SetTextForeground(clr.editor_fg.to_wx_colour());
-        paint_dc.DrawText(toast.message, toast_x + 12, toast_y + (kToastHeight - 16) / 2);
+        paint_dc.DrawText(toast.message, toast_x + 12, drawn_toast_y + (kToastHeight - 16) / 2);
+
+        // R20 Fix 35: Close button (×) in top-right corner of toast
+        {
+            const int close_size = 16;
+            const int close_x = toast_x + kToastWidth - close_size - 6;
+            const int close_y = drawn_toast_y + 4;
+            paint_dc.SetTextForeground(
+                wxColour(clr.text_muted.r,
+                         clr.text_muted.g,
+                         clr.text_muted.b,
+                         static_cast<unsigned char>(toast.opacity * 180.0F)));
+            wxFont close_font(9, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_BOLD);
+            paint_dc.SetFont(close_font);
+            paint_dc.DrawText("\u00D7", close_x, close_y);
+        }
 
         // R16 Fix 32: Dismiss progress bar at bottom of toast
         if (toast.duration_ms > 0 && !toast.dismissing && toast.opacity >= 1.0F)
@@ -234,14 +257,15 @@ void NotificationManager::OnPaint(wxPaintEvent& /*event*/)
             int bar_width = static_cast<int>(static_cast<float>(kToastWidth - 8) * progress);
             paint_dc.SetBrush(wxBrush(level_color));
             paint_dc.SetPen(*wxTRANSPARENT_PEN);
-            paint_dc.DrawRoundedRectangle(toast_x + 4, toast_y + kToastHeight - 4, bar_width, 2, 1);
+            paint_dc.DrawRoundedRectangle(
+                toast_x + 4, drawn_toast_y + kToastHeight - 4, bar_width, 2, 1);
         }
 
         // R18 Fix 20: Action button on toasts
         if (!toast.action_label.empty() && toast.action_callback && !toast.dismissing)
         {
             int btn_x = toast_x + kToastWidth - 80;
-            int btn_y = toast_y + 8;
+            int btn_y = drawn_toast_y + 8;
             int btn_w = 72;
             int btn_h = kToastHeight - 16;
 

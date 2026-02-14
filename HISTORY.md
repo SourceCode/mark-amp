@@ -1,5 +1,49 @@
 # MarkAmp Release History
 
+## v1.8.11 — 2026-02-13
+
+### Highlights
+
+R20–R22 UI/UX polish and VS Code-equivalent settings: 40 new editor and syntax highlighting settings, command palette fuzzy-match highlighting and category badges, breadcrumb chevron styling with heading glyphs, activity bar press feedback and drag handles, file tree hover highlighting and icon tinting, preview panel scroll-to-top button and print-friendly CSS, settings panel category emojis and accent underlines, toolbar zoom slider and format dropdown, tab bar pin indicators and drag shadows, and window chrome long-filename truncation with radial button glow. Touches 32 source files with 2,125 insertions across core and UI layers. All 10 test targets pass at 100%.
+
+### Added
+
+- **40 VS Code-Equivalent Settings (R22)**: 15 editor behavior settings (cursor blinking, cursor width, mouse wheel zoom, render control characters, rounded selection, select on line numbers, match brackets mode, render line highlight, word wrap column, and more) plus 15 editor appearance settings (minimap side/scale/max column, overview ruler, letter spacing, line height, fold highlighting, cursor style, cursor surrounding lines style, smooth scrolling) plus 10 syntax highlighting settings (strings, numbers, operators, types, functions, constants, preprocessor, comments, keywords, decorators) — all registered in SettingsPanel and integrated with Scintilla
+- **Config Defaults (R22)**: 41 new default configuration keys in `Config.cpp` covering all R22 settings
+- **Events (R22)**: `SettingsBatchChangedEvent` for bulk settings reloads
+- **PreviewPanel — Scroll-to-Top Button (R21 Fix 32)**: Floating scroll-to-top button appears when scrolled past threshold, repositioned on resize
+- **PreviewPanel — Print-Friendly CSS (R21 Fix 34)**: `@media print` CSS block for clean printed output
+- **ImagePreviewPopover — Dimensions & Size Labels (R21 Fix 17–18)**: Image dimensions and file size displayed in popover
+- **LinkPreviewPopover — Copy URL Button & Globe Prefix (R21 Fix 19–20)**: Globe emoji prefix before URL and a copy-to-clipboard button
+
+### Changed
+
+- **CommandPalette**: Category badge prefix `[Category]`, fuzzy match character highlighting with `«»` brackets, right-aligned shortcut display, selected item `▸` accent prefix, styled no-results placeholder (R21 Fixes 1–5)
+- **BreadcrumbBar**: Styled `▸` chevron separators, `§` glyph prefix before heading segments, hand cursor on hover (R21 Fixes 6–8)
+- **ActivityBar**: Press offset feedback (1px shift), double-click-to-collapse sidebar, drag handle dots, themed tooltip pill, separator above bottom item (R20 Fixes 16–20)
+- **CustomChrome**: Long filename truncation with gradient text-fade, modified dot prefix, radial glow behind hovered window buttons (R20 Fixes 29–31)
+- **EditorPanel**: Accent-tinted line numbers, R22 settings integration with Scintilla (cursor style, folding, bracket matching, indentation guides, word wrap column, letter spacing, line height, minimap, smooth scrolling)
+- **FileTreeCtrl**: Full-width hover row highlight, file icon color tint by extension, bold matched filter characters (R20 Fixes 22–24)
+- **FloatingFormatBar**: Hover background highlight, pressed accent flash (R21 Fixes 9, 12)
+- **NotificationManager**: Slide-in offset animation, close button on toasts (R20 Fixes 35–36)
+- **SettingsPanel**: Category emoji icon prefixes, modified indicator dots, accent underline below category headers, fixed column positions for readability, key badge pill for shortcuts (R21 Fixes 13–16, 29–30; R22 settings registration)
+- **ShortcutOverlay**: Enhanced rendering with improved visual layout
+- **SplitView**: Additional bounds and state guards
+- **StartupPanel**: Improved recent-file rendering
+- **StatusBarPanel**: Minor refinements to segment updates
+- **TabBar**: Pin tab indicator, drag shadow improvements, enhanced close/modify indicators (R21 Fixes 37–38)
+- **TableEditorOverlay**: Border depth effect (R21 Fix 11)
+- **ThemeGallery**: Improved card rendering
+- **ThemePreviewCard**: Enhanced preview styling
+- **ThemedScrollbar**: Additional visual polish
+- **Toolbar**: Zoom slider, format dropdown, accent-hover effects (R21 Fixes 25–28)
+
+### Fixed
+
+- All changes are backwards-compatible with existing configuration files and themes
+
+---
+
 ## v1.7.10 — 2026-02-13
 
 ### Highlights

@@ -49,6 +49,7 @@ private:
     std::vector<BarItem> items_;
     core::events::ActivityBarItem active_item_{core::events::ActivityBarItem::FileExplorer};
     int hover_index_{-1};
+    int pressed_index_{-1}; // R20 Fix 18: index of item being pressed
 
     core::Subscription theme_sub_;
 
@@ -57,6 +58,8 @@ private:
 
     void OnPaint(wxPaintEvent& event);
     void OnMouseDown(wxMouseEvent& event);
+    void OnMouseUp(wxMouseEvent& event);     // R20 Fix 18: release press
+    void OnDoubleClick(wxMouseEvent& event); // R20 Fix 16: collapse sidebar
     void OnMouseMove(wxMouseEvent& event);
     void OnMouseLeave(wxMouseEvent& event);
 

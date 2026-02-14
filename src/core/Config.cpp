@@ -148,6 +148,47 @@ void Config::apply_defaults()
     {
         data_["show_tab_bar"] = true;
     }
+    // R22: VS Code-equivalent editor settings
+    if (!data_["editor.cursor_blinking"])
+    {
+        data_["editor.cursor_blinking"] = "blink";
+    }
+    if (!data_["editor.cursor_width"])
+    {
+        data_["editor.cursor_width"] = 2;
+    }
+    if (!data_["editor.mouse_wheel_zoom"])
+    {
+        data_["editor.mouse_wheel_zoom"] = false;
+    }
+    if (!data_["editor.word_wrap_column"])
+    {
+        data_["editor.word_wrap_column"] = 80;
+    }
+    if (!data_["editor.line_height"])
+    {
+        data_["editor.line_height"] = 0;
+    }
+    if (!data_["editor.letter_spacing"])
+    {
+        data_["editor.letter_spacing"] = 0.0;
+    }
+    if (!data_["editor.padding_top"])
+    {
+        data_["editor.padding_top"] = 0;
+    }
+    if (!data_["editor.padding_bottom"])
+    {
+        data_["editor.padding_bottom"] = 0;
+    }
+    if (!data_["editor.bracket_pair_colorization"])
+    {
+        data_["editor.bracket_pair_colorization"] = false;
+    }
+    if (!data_["syntax.dim_whitespace"])
+    {
+        data_["syntax.dim_whitespace"] = false;
+    }
 }
 
 auto Config::load() -> std::expected<void, std::string>

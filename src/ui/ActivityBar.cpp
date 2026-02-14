@@ -23,6 +23,8 @@ ActivityBar::ActivityBar(wxWindow* parent,
 
     Bind(wxEVT_PAINT, &ActivityBar::OnPaint, this);
     Bind(wxEVT_LEFT_DOWN, &ActivityBar::OnMouseDown, this);
+    Bind(wxEVT_LEFT_UP, &ActivityBar::OnMouseUp, this);         // R20 Fix 18
+    Bind(wxEVT_LEFT_DCLICK, &ActivityBar::OnDoubleClick, this); // R20 Fix 16
     Bind(wxEVT_MOTION, &ActivityBar::OnMouseMove, this);
     Bind(wxEVT_LEAVE_WINDOW, &ActivityBar::OnMouseLeave, this);
 
@@ -106,6 +108,15 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
         }
 
         // Icon text (emoji fallback)
+        // R20 Fix 18: press offset — shift icon 1px when pressed
+        int press_offset_x = 0;
+        int press_offset_y = 0;
+        if (idx == pressed_index_)
+        {
+            press_offset_x = 1;
+            press_offset_y = 1;
+        }
+
         if (is_active)
         {
             paint_dc.SetTextForeground(clr.editor_fg.to_wx_colour());
@@ -122,8 +133,8 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
         paint_dc.SetFont(font);
 
         auto text_extent = paint_dc.GetTextExtent(item.icon_char);
-        int text_x = (kBarWidth - text_extent.GetWidth()) / 2;
-        int text_y = item_y + (kBarWidth - text_extent.GetHeight()) / 2;
+        int text_x = (kBarWidth - text_extent.GetWidth()) / 2 + press_offset_x;
+        int text_y = item_y + (kBarWidth - text_extent.GetHeight()) / 2 + press_offset_y;
         paint_dc.DrawText(item.icon_char, text_x, text_y);
 
         // R18 Fix 25: Badge count indicator
@@ -163,6 +174,50 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
         paint_dc.DrawLine(4, item_y, kBarWidth - 4, item_y);
     }
 
+    // R20 Fix 20: Separator above the bottom-most item (last item)
+    if (items_.size() > 1)
+    {
+        const auto& last_item = items_.back();
+        int sep_y = last_item.bounds.GetY() - 2;
+        auto sep_col = clr.border_light.to_wx_colour();
+        paint_dc.SetPen(wxPen(sep_col));
+        paint_dc.DrawLine(8, sep_y, kBarWidth - 8, sep_y);
+    }
+
+    // R20 Fix 17: Drag handle dots — 3 small dots centered in bar
+    {
+        int drag_y = size.GetHeight() - 40;
+        auto dot_col = clr.text_muted.to_wx_colour();
+        paint_dc.SetBrush(wxBrush(dot_col));
+        paint_dc.SetPen(*wxTRANSPARENT_PEN);
+        int dot_x = kBarWidth / 2;
+        for (int dot_idx = 0; dot_idx < 3; ++dot_idx)
+        {
+            paint_dc.DrawCircle(dot_x, drag_y + dot_idx * 6, 2);
+        }
+    }
+
+    // R20 Fix 19: Themed tooltip pill for hovered item
+    if (hover_index_ >= 0 && hover_index_ < static_cast<int>(items_.size()))
+    {
+        const auto& hov_item = items_[static_cast<std::size_t>(hover_index_)];
+        auto pill_bg = clr.bg_header.to_wx_colour();
+        auto pill_fg = clr.editor_fg.to_wx_colour();
+        auto pill_font = GetFont();
+        pill_font.SetPointSize(9);
+        paint_dc.SetFont(pill_font);
+        auto tip_extent = paint_dc.GetTextExtent(hov_item.label);
+        int pill_x = kBarWidth + 4;
+        int pill_y =
+            hov_item.bounds.GetY() + (hov_item.bounds.GetHeight() - tip_extent.GetHeight() - 8) / 2;
+        paint_dc.SetBrush(wxBrush(pill_bg));
+        paint_dc.SetPen(wxPen(clr.border_light.to_wx_colour()));
+        paint_dc.DrawRoundedRectangle(
+            pill_x, pill_y, tip_extent.GetWidth() + 16, tip_extent.GetHeight() + 8, 6);
+        paint_dc.SetTextForeground(pill_fg);
+        paint_dc.DrawText(hov_item.label, pill_x + 8, pill_y + 4);
+    }
+
     // Separator line on the right edge
     auto border = clr.border_light.to_wx_colour();
     paint_dc.SetPen(wxPen(border));
@@ -172,6 +227,10 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
 void ActivityBar::OnMouseDown(wxMouseEvent& event)
 {
     int idx = HitTest(event.GetPosition());
+    // R20 Fix 18: Track pressed item for visual feedback
+    pressed_index_ = idx;
+    Refresh();
+
     if (idx >= 0 && idx < static_cast<int>(items_.size()))
     {
         auto item = items_[static_cast<std::size_t>(idx)].item_id;
@@ -182,6 +241,28 @@ void ActivityBar::OnMouseDown(wxMouseEvent& event)
     }
 }
 
+// R20 Fix 18: Mouse-up restores press state
+void ActivityBar::OnMouseUp(wxMouseEvent& /*event*/)
+{
+    pressed_index_ = -1;
+    Refresh();
+}
+
+// R20 Fix 16: Double-click active item collapses sidebar
+void ActivityBar::OnDoubleClick(wxMouseEvent& event)
+{
+    int idx = HitTest(event.GetPosition());
+    if (idx >= 0 && idx < static_cast<int>(items_.size()))
+    {
+        auto item = items_[static_cast<std::size_t>(idx)].item_id;
+        if (item == active_item_)
+        {
+            core::events::SidebarToggleEvent toggle_evt;
+            event_bus_.publish(toggle_evt);
+        }
+    }
+}
+
 void ActivityBar::OnMouseMove(wxMouseEvent& event)
 {
     int idx = HitTest(event.GetPosition());
@@ -189,15 +270,9 @@ void ActivityBar::OnMouseMove(wxMouseEvent& event)
     {
         hover_index_ = idx;
 
-        // Set tooltip
-        if (idx >= 0 && idx < static_cast<int>(items_.size()))
-        {
-            SetToolTip(items_[static_cast<std::size_t>(idx)].label);
-        }
-        else
-        {
-            UnsetToolTip();
-        }
+        // R20 Fix 19: Use themed tooltip pill instead of native (drawn in OnPaint)
+        // Still unset native tooltip to avoid double display
+        UnsetToolTip();
 
         Refresh();
     }

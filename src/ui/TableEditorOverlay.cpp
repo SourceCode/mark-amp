@@ -162,7 +162,30 @@ void TableEditorOverlay::RebuildGrid()
                 auto font = cell->GetFont();
                 font.SetWeight(wxFONTWEIGHT_BOLD);
                 cell->SetFont(font);
+                // R21 Fix 21: Header row accent background
+                auto header_bg = theme_engine_.color(core::ThemeColorToken::BgHeader);
+                cell->SetBackgroundColour(header_bg);
             }
+
+            // R21 Fix 22: Active cell border highlight on focus
+            cell->Bind(wxEVT_SET_FOCUS,
+                       [this, cell](wxFocusEvent& evt)
+                       {
+                           auto accent = theme_engine_.color(core::ThemeColorToken::AccentPrimary);
+                           cell->SetBackgroundColour(accent.ChangeLightness(170));
+                           cell->Refresh();
+                           evt.Skip();
+                       });
+            cell->Bind(wxEVT_KILL_FOCUS,
+                       [this, cell, row](wxFocusEvent& evt)
+                       {
+                           auto bg = (row == 0)
+                                         ? theme_engine_.color(core::ThemeColorToken::BgHeader)
+                                         : theme_engine_.color(core::ThemeColorToken::BgInput);
+                           cell->SetBackgroundColour(bg);
+                           cell->Refresh();
+                           evt.Skip();
+                       });
 
             cell_widgets_[row_idx][col_idx] = cell;
             grid_sizer->Add(cell, 1, wxEXPAND);

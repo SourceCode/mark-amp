@@ -454,6 +454,7 @@ private:
     void ConfigureEditorDefaults();
     void SetupMarkdownLexer();
     void ApplyThemeToEditor();
+    void ApplyVSCodeSettings();
     void UpdateLineNumberMargin();
     void ConfigureBracketMatching();
     void ConfigureFoldMargin();
@@ -605,6 +606,53 @@ private:
     // ── R15 state ──
     std::string sticky_heading_;
     std::vector<Snippet> default_snippets_;
+
+    // ── R22: VS Code-Equivalent Settings state ──
+
+    // Editor Behavior
+    std::string cursor_blinking_{"blink"};
+    int cursor_width_{2};
+    bool mouse_wheel_zoom_{false};
+    bool render_control_characters_{true};
+    bool rounded_selection_{true};
+    bool select_on_line_numbers_{true};
+    std::string match_brackets_mode_{"always"};
+    std::string render_line_highlight_{"all"};
+    bool render_line_highlight_only_focus_{false};
+    int word_wrap_column_{80};
+    std::string wrapping_indent_{"same"};
+    int line_height_override_{0};
+    int letter_spacing_{0};
+    int scroll_beyond_last_column_{5};
+    bool auto_closing_quotes_{true};
+
+    // Editor Appearance
+    std::string show_folding_controls_{"mouseover"};
+    bool folding_highlight_{true};
+    bool glyph_margin_{true};
+    bool overview_ruler_border_{true};
+    int line_numbers_min_chars_{5};
+    int padding_top_{0};
+    int padding_bottom_{0};
+    int minimap_max_column_{120};
+    int minimap_scale_{1};
+    std::string minimap_side_{"right"};
+    bool bracket_pair_guides_{false};
+    bool highlight_active_indentation_{true};
+    bool bracket_pair_colorization_{false};
+    bool color_decorators_{true};
+
+    // Syntax Highlighting Token Toggles
+    bool syntax_bold_keywords_{true};
+    bool syntax_italic_comments_{true};
+    bool syntax_highlight_strings_{true};
+    bool syntax_highlight_numbers_{true};
+    bool syntax_highlight_operators_{true};
+    bool syntax_highlight_types_{true};
+    bool syntax_highlight_functions_{true};
+    bool syntax_highlight_constants_{true};
+    bool syntax_highlight_preprocessor_{true};
+    bool syntax_dim_whitespace_{false};
 };
 
 } // namespace markamp::ui

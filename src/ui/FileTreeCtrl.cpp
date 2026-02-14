@@ -395,9 +395,10 @@ void FileTreeCtrl::DrawNode(wxDC& dc, const core::FileNode& node, int depth, int
         }
         else if (is_hovered)
         {
+            // R20 Fix 23: Full-width hover row highlight with distinct color
             dc.SetBrush(wxBrush(theme_engine()
                                     .color(core::ThemeColorToken::BgPanel)
-                                    .ChangeLightness(110))); // Slightly lighter bg
+                                    .ChangeLightness(112))); // Slightly brighter for hover
             dc.SetPen(*wxTRANSPARENT_PEN);
             dc.DrawRectangle(0, row_top, row_w, kRowHeight);
         }
@@ -469,6 +470,49 @@ void FileTreeCtrl::DrawNode(wxDC& dc, const core::FileNode& node, int depth, int
             dc.DrawBitmap(bitmap, icon_x, icon_y, true);
         }
 
+        // R20 Fix 22: File icon color tint by extension
+        if (node.is_file())
+        {
+            const auto& fname = node.name;
+            wxColour ext_color;
+            auto ends_with = [&fname](const char* ext) -> bool
+            {
+                return fname.size() >= std::strlen(ext) &&
+                       fname.compare(fname.size() - std::strlen(ext), std::strlen(ext), ext) == 0;
+            };
+            if (ends_with(".md") || ends_with(".txt"))
+            {
+                ext_color = wxColour(100, 149, 237); // cornflower blue
+            }
+            else if (ends_with(".json") || ends_with(".yml") || ends_with(".yaml"))
+            {
+                ext_color = wxColour(230, 200, 50); // yellow
+            }
+            else if (ends_with(".cpp") || ends_with(".h") || ends_with(".hpp") || ends_with(".c"))
+            {
+                ext_color = wxColour(150, 100, 200); // purple
+            }
+            else if (ends_with(".js") || ends_with(".ts") || ends_with(".jsx") || ends_with(".tsx"))
+            {
+                ext_color = wxColour(80, 200, 120); // green
+            }
+            else if (ends_with(".html") || ends_with(".htm") || ends_with(".css"))
+            {
+                ext_color = wxColour(255, 140, 60); // orange
+            }
+            else if (ends_with(".py") || ends_with(".rb") || ends_with(".go") || ends_with(".rs"))
+            {
+                ext_color = wxColour(220, 100, 100); // red-ish
+            }
+            // Draw a small 4px colored dot next to the icon as extension indicator
+            if (ext_color.IsOk())
+            {
+                dc.SetBrush(wxBrush(ext_color));
+                dc.SetPen(*wxTRANSPARENT_PEN);
+                dc.DrawCircle(icon_x + kIconSize + 1, icon_y + kIconSize - 2, 3);
+            }
+        }
+
         // 3. Draw Text
         // Fix 4: Distinct colors for selected vs hovered vs normal
         if (is_selected)
@@ -502,7 +546,63 @@ void FileTreeCtrl::DrawNode(wxDC& dc, const core::FileNode& node, int depth, int
                 }
             }
         }
-        dc.DrawText(display_name, text_x, text_y);
+        // R20 Fix 24: Bold matched filter characters in file names
+        if (!filter_text_.empty() && !node.is_folder())
+        {
+            // Find the match position in display_name (case-insensitive)
+            std::string lower_display;
+            for (char ch : display_name.ToStdString())
+            {
+                lower_display += static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+            }
+            std::string lower_filter = filter_text_;
+            std::transform(lower_filter.begin(),
+                           lower_filter.end(),
+                           lower_filter.begin(),
+                           [](unsigned char chr) { return static_cast<char>(std::tolower(chr)); });
+            auto match_pos = lower_display.find(lower_filter);
+            if (match_pos != std::string::npos)
+            {
+                // Draw text in segments: before, match (bold), after
+                auto font_normal = dc.GetFont();
+                wxFont font_bold = font_normal;
+                font_bold.SetWeight(wxFONTWEIGHT_BOLD);
+
+                wxString before_text = display_name.Left(match_pos);
+                wxString match_text = display_name.Mid(match_pos, lower_filter.size());
+                wxString after_text = display_name.Mid(match_pos + lower_filter.size());
+
+                int draw_x = text_x;
+                if (!before_text.empty())
+                {
+                    dc.DrawText(before_text, draw_x, text_y);
+                    draw_x += dc.GetTextExtent(before_text).GetWidth();
+                }
+                dc.SetFont(font_bold);
+                dc.SetTextForeground(theme_engine().color(core::ThemeColorToken::AccentPrimary));
+                dc.DrawText(match_text, draw_x, text_y);
+                draw_x += dc.GetTextExtent(match_text).GetWidth();
+                dc.SetFont(font_normal);
+                dc.SetTextForeground(is_selected ? theme_engine()
+                                                       .color(core::ThemeColorToken::AccentPrimary)
+                                                       .ChangeLightness(80)
+                                     : is_hovered
+                                         ? theme_engine().color(core::ThemeColorToken::TextMain)
+                                         : theme_engine().color(core::ThemeColorToken::TextMuted));
+                if (!after_text.empty())
+                {
+                    dc.DrawText(after_text, draw_x, text_y);
+                }
+            }
+            else
+            {
+                dc.DrawText(display_name, text_x, text_y);
+            }
+        }
+        else
+        {
+            dc.DrawText(display_name, text_x, text_y);
+        }
 
         // R5 Fix 14: Draw file metadata (size or child count) right-aligned in muted text
         {

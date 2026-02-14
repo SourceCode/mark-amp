@@ -49,6 +49,7 @@ public:
     void CloseOtherTabs(const std::string& keep_path);
     void CloseTabsToLeft(const std::string& of_path);
     void CloseTabsToRight(const std::string& of_path);
+    void DuplicateTab(const std::string& file_path); // R19 Fix 4
 
     // R3 Fix 7: Pinned tab management
     void PinTab(const std::string& file_path);
@@ -67,7 +68,13 @@ public:
     static constexpr int kTabPaddingH = 12;
     static constexpr int kCloseButtonSize = 14;
     static constexpr int kCloseButtonMargin = 6;
+    static constexpr int kPinnedStripeWidth = 2;    // R19 Fix 2
+    static constexpr float kWidthAnimSpeed = 0.15F; // R19 Fix 1: interpolation factor
     static constexpr int kModifiedDotSize = 6;
+    static constexpr float kCloseHoverScale = 1.2F;  // R20 Fix 1: close × scale on hover
+    static constexpr int kGlowLineHeight = 2;        // R20 Fix 3: active tab glow
+    static constexpr int kOverflowChevronWidth = 20; // R20 Fix 4: overflow chevron width
+    static constexpr int kGroupColorCount = 6;       // R20 Fix 5: distinct group hues
 
     /// Tab data visible for testing.
     struct TabInfo
@@ -79,6 +86,8 @@ public:
         bool close_hovered{false};
         bool is_pinned{false}; // R3 Fix 7: Pinned tabs
         float opacity{1.0F};   // R18 Fix 1: Fade-in animation opacity
+        int target_width{0};   // R19 Fix 1: animated target width
+        int anim_width{0};     // R19 Fix 1: current interpolated width
         wxRect rect;
         wxRect close_rect;
     };
@@ -142,6 +151,9 @@ private:
 
     // Helpers
     [[nodiscard]] auto FindTabIndex(const std::string& file_path) const -> int;
+
+    // R20 Fix 5: Get a tint color for a directory-based group
+    [[nodiscard]] auto GetGroupColorTint(const std::string& file_path) const -> wxColour;
 };
 
 } // namespace markamp::ui

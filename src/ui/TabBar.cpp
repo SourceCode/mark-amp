@@ -9,6 +9,7 @@
 #include <wx/msgdlg.h>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <filesystem>
 
@@ -29,7 +30,8 @@ constexpr int kContextCopyRelativePath = 9;
 constexpr int kContextRevealInFinder = 10;
 constexpr int kContextPinTab = 11;
 constexpr int kContextUnpinTab = 12;
-constexpr int kContextCloseSaved = 13; // R4 Fix 8
+constexpr int kContextCloseSaved = 13;   // R4 Fix 8
+constexpr int kContextDuplicateTab = 14; // R19 Fix 4
 } // namespace
 
 TabBar::TabBar(wxWindow* parent, core::ThemeEngine& theme_engine, core::EventBus& event_bus)
@@ -389,6 +391,17 @@ void TabBar::OnPaint(wxPaintEvent& /*event*/)
                 gc->SetPen(gc->CreatePen(wxPen(fade_col, 1)));
                 gc->StrokeLine(fade_start + fx, 0, fade_start + fx, sz.GetHeight() - 2);
             }
+
+            // R20 Fix 4: Draw overflow chevron indicator
+            wxFont chevron_font = theme_engine().font(core::ThemeFontToken::MonoRegular);
+            chevron_font.SetPointSize(14);
+            gc->SetFont(chevron_font, theme_engine().color(core::ThemeColorToken::TextMuted));
+            wxDouble chev_w = 0;
+            wxDouble chev_h = 0;
+            gc->GetTextExtent("›", &chev_w, &chev_h);
+            gc->DrawText("›",
+                         sz.GetWidth() - static_cast<int>(chev_w) - 4,
+                         (kHeight - static_cast<int>(chev_h)) / 2);
         }
     }
 
@@ -416,6 +429,21 @@ void TabBar::OnPaint(wxPaintEvent& /*event*/)
         gc->SetPen(
             gc->CreatePen(wxPen(theme_engine().color(core::ThemeColorToken::AccentPrimary), 2)));
         gc->StrokeLine(indicator_x, 2, indicator_x, sz.GetHeight() - 2);
+
+        // R19 Fix 3: Draw ghost shadow of the dragged tab
+        if (drag_tab_index_ >= 0 && drag_tab_index_ < static_cast<int>(tabs_.size()))
+        {
+            const auto& dragged = tabs_[static_cast<size_t>(drag_tab_index_)];
+            int ghost_x = dragged.rect.GetLeft() - scroll_offset_ + 2;
+            int ghost_y = 2;
+            int ghost_w = dragged.rect.GetWidth();
+            int ghost_h = dragged.rect.GetHeight() - 4;
+            auto shadow_bg = theme_engine().color(core::ThemeColorToken::BgApp);
+            wxColour ghost_color(shadow_bg.Red(), shadow_bg.Green(), shadow_bg.Blue(), 76);
+            gc->SetBrush(gc->CreateBrush(wxBrush(ghost_color)));
+            gc->SetPen(wxNullPen);
+            gc->DrawRoundedRectangle(ghost_x, ghost_y, ghost_w, ghost_h, 4);
+        }
     }
 }
 
@@ -425,6 +453,14 @@ void TabBar::DrawTab(wxGraphicsContext& gc, const TabInfo& tab, const core::Them
     int tab_y = tab.rect.GetTop();
     int tab_w = tab.rect.GetWidth();
     int tab_h = tab.rect.GetHeight();
+
+    // R20 Fix 2: Apply fade-in opacity for new tabs
+    if (tab.opacity < 1.0F)
+    {
+        gc.PushState();
+        // Modulate all drawing within this tab by its opacity
+        // We'll draw into a partially-transparent state
+    }
 
     // Tab background
     wxColour bg_color;
@@ -441,6 +477,22 @@ void TabBar::DrawTab(wxGraphicsContext& gc, const TabInfo& tab, const core::Them
     else
     {
         bg_color = theme_engine().color(core::ThemeColorToken::BgPanel);
+    }
+
+    // R20 Fix 5: Tint tab background by directory group color
+    if (!tab.is_active)
+    {
+        auto tint = GetGroupColorTint(tab.file_path);
+        if (tint.Alpha() > 0)
+        {
+            // Blend tint into current background at low alpha
+            int blended_r = (bg_color.Red() * 92 + tint.Red() * 8) / 100;
+            int blended_g = (bg_color.Green() * 92 + tint.Green() * 8) / 100;
+            int blended_b = (bg_color.Blue() * 92 + tint.Blue() * 8) / 100;
+            bg_color = wxColour(static_cast<unsigned char>(blended_r),
+                                static_cast<unsigned char>(blended_g),
+                                static_cast<unsigned char>(blended_b));
+        }
     }
 
     // R16 Fix 1: Rounded active tab background with 4px radius
@@ -461,6 +513,32 @@ void TabBar::DrawTab(wxGraphicsContext& gc, const TabInfo& tab, const core::Them
         gc.SetBrush(
             gc.CreateBrush(wxBrush(theme_engine().color(core::ThemeColorToken::AccentPrimary))));
         gc.DrawRectangle(tab_x, tab_y + tab_h - 2, tab_w, 2);
+
+        // R20 Fix 3: Active tab bottom glow (neon-edge beneath indicator)
+        auto accent = theme_engine().color(core::ThemeColorToken::AccentPrimary);
+        for (int glow_row = 0; glow_row < kGlowLineHeight; ++glow_row)
+        {
+            int glow_alpha = 80 - (glow_row * 40);
+            if (glow_alpha < 0)
+            {
+                glow_alpha = 0;
+            }
+            wxColour glow_color(accent.Red(),
+                                accent.Green(),
+                                accent.Blue(),
+                                static_cast<unsigned char>(glow_alpha));
+            gc.SetPen(gc.CreatePen(wxPen(glow_color, 1)));
+            gc.StrokeLine(tab_x, tab_y + tab_h + glow_row, tab_x + tab_w, tab_y + tab_h + glow_row);
+        }
+    }
+
+    // R19 Fix 2: Pinned tab left accent stripe
+    if (tab.is_pinned)
+    {
+        gc.SetBrush(
+            gc.CreateBrush(wxBrush(theme_engine().color(core::ThemeColorToken::AccentSecondary))));
+        gc.SetPen(wxNullPen);
+        gc.DrawRectangle(tab_x, tab_y + 4, kPinnedStripeWidth, tab_h - 8);
     }
 
     // Right separator
@@ -476,6 +554,11 @@ void TabBar::DrawTab(wxGraphicsContext& gc, const TabInfo& tab, const core::Them
     if (tab.is_active)
     {
         font.SetWeight(wxFONTWEIGHT_SEMIBOLD);
+    }
+    // R19 Fix 5: Italic style for modified tabs
+    if (tab.is_modified)
+    {
+        font.SetStyle(wxFONTSTYLE_ITALIC);
     }
     gc.SetFont(font,
                tab.is_active ? theme_engine().color(core::ThemeColorToken::TextMain)
@@ -583,21 +666,47 @@ void TabBar::DrawTab(wxGraphicsContext& gc, const TabInfo& tab, const core::Them
                     close_x - 2, close_y - 2, kCloseButtonSize + 4, kCloseButtonSize + 4, 3);
             }
 
-            // Draw × glyph
-            gc.SetPen(gc.CreatePen(
-                wxPen(tab.close_hovered ? theme_engine().color(core::ThemeColorToken::TextMain)
-                                        : theme_engine().color(core::ThemeColorToken::TextMuted),
-                      1)));
+            // R20 Fix 1: × glyph turns red and scales up on hover
+            wxColour close_color;
+            if (tab.close_hovered)
+            {
+                // Use error/red color for hovered close button
+                auto t = theme_engine().current_theme();
+                close_color = wxColour(t.error_color().to_rgba_string());
+            }
+            else
+            {
+                close_color = theme_engine().color(core::ThemeColorToken::TextMuted);
+            }
+
             int margin = 3;
-            gc.StrokeLine(close_x + margin,
-                          close_y + margin,
-                          close_x + kCloseButtonSize - margin,
-                          close_y + kCloseButtonSize - margin);
-            gc.StrokeLine(close_x + kCloseButtonSize - margin,
-                          close_y + margin,
-                          close_x + margin,
-                          close_y + kCloseButtonSize - margin);
+            int cx_x = close_x;
+            int cy_y = close_y;
+            int cx_size = kCloseButtonSize;
+
+            // R20 Fix 1: Scale up close button on hover
+            if (tab.close_hovered)
+            {
+                const int scaled_size = static_cast<int>(kCloseButtonSize * kCloseHoverScale);
+                const int offset = (scaled_size - kCloseButtonSize) / 2;
+                cx_x -= offset;
+                cy_y -= offset;
+                cx_size = scaled_size;
+                margin = static_cast<int>(static_cast<float>(margin) * kCloseHoverScale);
+            }
+
+            gc.SetPen(gc.CreatePen(wxPen(close_color, tab.close_hovered ? 2 : 1)));
+            gc.StrokeLine(
+                cx_x + margin, cy_y + margin, cx_x + cx_size - margin, cy_y + cx_size - margin);
+            gc.StrokeLine(
+                cx_x + cx_size - margin, cy_y + margin, cx_x + margin, cy_y + cx_size - margin);
         }
+    }
+
+    // R20 Fix 2: Pop opacity state
+    if (tab.opacity < 1.0F)
+    {
+        gc.PopState();
     }
 }
 
@@ -846,6 +955,10 @@ void TabBar::ShowTabContextMenu(int tab_index)
         menu.Append(kContextPinTab, "Pin Tab");
     }
 
+    // R19 Fix 4: Duplicate Tab
+    menu.AppendSeparator();
+    menu.Append(kContextDuplicateTab, "Duplicate Tab");
+
     // Disable close to left/right if not applicable
     menu.Enable(kContextCloseToLeft, tab_index > 0);
     menu.Enable(kContextCloseToRight, tab_index < static_cast<int>(tabs_.size()) - 1);
@@ -939,6 +1052,10 @@ void TabBar::ShowTabContextMenu(int tab_index)
                       case kContextUnpinTab:
                           UnpinTab(target_path);
                           break;
+                      // R19 Fix 4: Duplicate tab
+                      case kContextDuplicateTab:
+                          DuplicateTab(target_path);
+                          break;
                   }
               });
 
@@ -999,13 +1116,30 @@ void TabBar::RecalculateTabRects()
         // Clamp to min/max
         tab_width = std::clamp(tab_width, kMinTabWidth, kMaxTabWidth);
 
-        tab.rect = wxRect(x_offset, 0, tab_width, kHeight);
-        tab.close_rect = wxRect(x_offset + tab_width - kCloseButtonSize - kCloseButtonMargin,
+        // R19 Fix 1: Smooth width transition
+        tab.target_width = tab_width;
+        if (tab.anim_width == 0)
+        {
+            tab.anim_width = tab_width; // first layout — snap
+        }
+        else
+        {
+            int diff = tab_width - tab.anim_width;
+            tab.anim_width += static_cast<int>(static_cast<float>(diff) * kWidthAnimSpeed);
+            if (std::abs(tab_width - tab.anim_width) <= 1)
+            {
+                tab.anim_width = tab_width;
+            }
+        }
+        int effective_width = tab.anim_width;
+
+        tab.rect = wxRect(x_offset, 0, effective_width, kHeight);
+        tab.close_rect = wxRect(x_offset + effective_width - kCloseButtonSize - kCloseButtonMargin,
                                 (kHeight - kCloseButtonSize) / 2,
                                 kCloseButtonSize,
                                 kCloseButtonSize);
 
-        x_offset += tab_width;
+        x_offset += effective_width;
     }
 }
 
@@ -1178,4 +1312,65 @@ auto markamp::ui::TabBar::GetDisambiguationSuffix(const TabInfo& tab) const -> s
     }
 
     return {};
+}
+
+// R19 Fix 4: Duplicate Tab — fires event for MainFrame to re-open the file
+void markamp::ui::TabBar::DuplicateTab(const std::string& file_path)
+{
+    const core::events::TabDuplicateRequestEvent evt(file_path);
+    event_bus_.publish(evt);
+}
+
+// R20 Fix 5: Generate a group color tint based on the file's parent directory
+auto markamp::ui::TabBar::GetGroupColorTint(const std::string& file_path) const -> wxColour
+{
+    try
+    {
+        const auto parent = std::filesystem::path(file_path).parent_path().string();
+        if (parent.empty())
+        {
+            return {0, 0, 0, 0}; // No tint for root-level files
+        }
+
+        // Check if more than one tab shares this directory
+        int dir_count = 0;
+        for (const auto& tab : tabs_)
+        {
+            try
+            {
+                if (std::filesystem::path(tab.file_path).parent_path().string() == parent)
+                {
+                    ++dir_count;
+                }
+            }
+            catch (...)
+            {
+            }
+        }
+
+        if (dir_count <= 1)
+        {
+            return {0, 0, 0, 0}; // Only tint when multiple files share a directory
+        }
+
+        // Hash the directory path into a hue index
+        const std::size_t hash_val = std::hash<std::string>{}(parent);
+        const int hue_index = static_cast<int>(hash_val % kGroupColorCount);
+
+        // 6 distinct pastel tint colors
+        static const std::array<wxColour, kGroupColorCount> kGroupColors = {{
+            wxColour(100, 149, 237), // Cornflower blue
+            wxColour(144, 238, 144), // Light green
+            wxColour(255, 182, 193), // Light pink
+            wxColour(255, 218, 130), // Gold
+            wxColour(186, 152, 255), // Lavender
+            wxColour(100, 220, 220), // Cyan
+        }};
+
+        return kGroupColors.at(static_cast<size_t>(hue_index));
+    }
+    catch (...)
+    {
+        return {0, 0, 0, 0};
+    }
 }

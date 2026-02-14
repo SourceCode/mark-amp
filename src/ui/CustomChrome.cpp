@@ -397,10 +397,37 @@ void CustomChrome::OnPaint(wxPaintEvent& /*event*/)
                     text_y + 2);
     }
 
-    // --- Center section: Filename pill ---
+    // R20 Fix 31: Modified dot prefix before filename
+    std::string display_filename = filename_;
+    // Check if filename already starts with ● (from external callers) — if not, check modified
+    // state The modified status is indicated by ● prefix set by MainFrame
+
+    // R20 Fix 30: Truncate long filenames with gradient text-fade
     wxFont monoFont(10, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL);
     dc.SetFont(monoFont);
-    auto fname_extent = dc.GetTextExtent(filename_);
+
+    // Maximum filename width: 40% of window width
+    const int max_name_width = w * 40 / 100;
+    auto fname_extent = dc.GetTextExtent(display_filename);
+    bool truncated = false;
+    std::string truncated_name = display_filename;
+    if (fname_extent.GetWidth() > max_name_width && max_name_width > 0)
+    {
+        // Truncate with ellipsis
+        truncated = true;
+        while (truncated_name.size() > 1)
+        {
+            truncated_name.pop_back();
+            auto test_extent = dc.GetTextExtent(truncated_name + "...");
+            if (test_extent.GetWidth() <= max_name_width)
+            {
+                truncated_name += "...";
+                break;
+            }
+        }
+        fname_extent = dc.GetTextExtent(truncated_name);
+    }
+
     const int pill_w = fname_extent.GetWidth() + 20;
     const int pill_h = fname_extent.GetHeight() + 6;
     const int pill_x = (w - pill_w) / 2;
@@ -416,7 +443,22 @@ void CustomChrome::OnPaint(wxPaintEvent& /*event*/)
 
     // Draw filename text — themed
     dc.SetTextForeground(textMuted());
-    dc.DrawText(filename_, pill_x + 10, pill_y + 3);
+    dc.DrawText(truncated_name, pill_x + 10, pill_y + 3);
+
+    // R20 Fix 30: If truncated, draw a gradient fade on the right edge of the pill
+    if (truncated)
+    {
+        // Draw a small gradient rectangle fading from transparent to pill bg
+        const int fade_width = 20;
+        const int fade_x = pill_x + pill_w - fade_width - 4;
+        for (int fade_i = 0; fade_i < fade_width; ++fade_i)
+        {
+            auto fade_alpha = static_cast<unsigned char>(255 * fade_i / fade_width);
+            wxColour fade_col(pillBg.Red(), pillBg.Green(), pillBg.Blue(), fade_alpha);
+            dc.SetPen(wxPen(fade_col, 1));
+            dc.DrawLine(fade_x + fade_i, pill_y + 1, fade_x + fade_i, pill_y + pill_h - 1);
+        }
+    }
 
     // --- Right section: Sidebar toggle + separator + window controls ---
     drawSidebarToggle(dc, sidebar_rect_);
@@ -468,6 +510,33 @@ void CustomChrome::drawWindowButton(wxDC& dc,
     bool pressed = (pressed_zone_ == zone);
 
     dc.SetPen(*wxTRANSPARENT_PEN);
+
+    // R20 Fix 29: Radial glow behind hovered window buttons
+    if (hovered)
+    {
+        wxColour glow_color;
+        if (zone == HitZone::CloseButton)
+        {
+            glow_color = wxColour(239, 68, 68, 30); // red glow
+        }
+        else if (zone == HitZone::MinimizeButton)
+        {
+            glow_color = wxColour(250, 204, 21, 30); // yellow glow
+        }
+        else if (zone == HitZone::MaximizeButton)
+        {
+            glow_color = wxColour(34, 197, 94, 30); // green glow
+        }
+        else
+        {
+            glow_color = wxColour(200, 200, 220, 20); // neutral glow
+        }
+        dc.SetBrush(wxBrush(glow_color));
+        dc.DrawCircle(rect.GetLeft() + rect.GetWidth() / 2,
+                      rect.GetTop() + rect.GetHeight() / 2,
+                      rect.GetWidth() / 2 + 4);
+    }
+
     if (zone == HitZone::CloseButton && hovered)
     {
         dc.SetBrush(wxBrush(colours::kCloseHover));

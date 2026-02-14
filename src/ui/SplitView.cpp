@@ -553,6 +553,36 @@ void SplitView::OnDividerPaint(wxPaintEvent& /*event*/)
         int dot_y = center_y + idx * dot_gap;
         paint_dc.DrawCircle(center_x, dot_y, dot_size / 2);
     }
+
+    // R20 Fix 32: Draw floating percentage label during drag
+    if (is_dragging_)
+    {
+        int left_pct = static_cast<int>(std::round(split_ratio_ * 100.0));
+        int right_pct = 100 - left_pct;
+        wxString ratio_text = wxString::Format("%d / %d", left_pct, right_pct);
+
+        wxFont label_font(8, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_BOLD);
+        paint_dc.SetFont(label_font);
+
+        auto label_extent = paint_dc.GetTextExtent(ratio_text);
+        const int label_w = label_extent.GetWidth() + 12;
+        const int label_h = label_extent.GetHeight() + 6;
+        const int label_x = center_x - label_w / 2;
+        const int label_y = center_y - dot_gap * 2 - label_h - 4;
+
+        // Pill background
+        wxColour pill_bg(current_theme.colors.bg_header.to_rgba_string());
+        paint_dc.SetBrush(wxBrush(pill_bg));
+        paint_dc.SetPen(wxPen(line_col, 1));
+        paint_dc.DrawRoundedRectangle(label_x, label_y, label_w, label_h, 3);
+
+        // Text
+        wxColour label_fg(current_theme.colors.accent_primary.to_rgba_string());
+        paint_dc.SetTextForeground(label_fg);
+        paint_dc.DrawText(ratio_text,
+                          label_x + (label_w - label_extent.GetWidth()) / 2,
+                          label_y + (label_h - label_extent.GetHeight()) / 2);
+    }
 }
 
 // ═══════════════════════════════════════════════════════

@@ -80,6 +80,50 @@ PreviewPanel::PreviewPanel(wxWindow* parent,
     Bind(wxEVT_MOUSEWHEEL, &PreviewPanel::OnMouseWheel, this);
     Bind(wxEVT_KEY_DOWN, &PreviewPanel::OnKeyDown, this);
 
+    // R21 Fix 32: Scroll-to-top floating button
+    scroll_to_top_btn_ = new wxButton(
+        this, wxID_ANY, wxString::FromUTF8("\xe2\x86\x91"), wxDefaultPosition, wxSize(32, 32));
+    scroll_to_top_btn_->SetToolTip("Scroll to top");
+    scroll_to_top_btn_->Hide();
+    scroll_to_top_btn_->Bind(wxEVT_BUTTON, [this](wxCommandEvent& /*evt*/) { ScrollToTop(); });
+    // Monitor scroll events to show/hide the button
+    html_view_->Bind(wxEVT_SCROLLWIN_THUMBTRACK,
+                     [this](wxScrollWinEvent& evt)
+                     {
+                         evt.Skip();
+                         UpdateScrollToTopButton();
+                     });
+    html_view_->Bind(wxEVT_SCROLLWIN_THUMBRELEASE,
+                     [this](wxScrollWinEvent& evt)
+                     {
+                         evt.Skip();
+                         UpdateScrollToTopButton();
+                     });
+    html_view_->Bind(wxEVT_SCROLLWIN_LINEDOWN,
+                     [this](wxScrollWinEvent& evt)
+                     {
+                         evt.Skip();
+                         UpdateScrollToTopButton();
+                     });
+    html_view_->Bind(wxEVT_SCROLLWIN_LINEUP,
+                     [this](wxScrollWinEvent& evt)
+                     {
+                         evt.Skip();
+                         UpdateScrollToTopButton();
+                     });
+    html_view_->Bind(wxEVT_SCROLLWIN_PAGEDOWN,
+                     [this](wxScrollWinEvent& evt)
+                     {
+                         evt.Skip();
+                         UpdateScrollToTopButton();
+                     });
+    html_view_->Bind(wxEVT_SCROLLWIN_PAGEUP,
+                     [this](wxScrollWinEvent& evt)
+                     {
+                         evt.Skip();
+                         UpdateScrollToTopButton();
+                     });
+
     // Subscribe to editor content changes (debounced)
     content_changed_sub_ = event_bus_.subscribe<core::events::EditorContentChangedEvent>(
         [this](const core::events::EditorContentChangedEvent& evt)
@@ -607,6 +651,37 @@ code {{
     font-size: 12px;
     border: 1px solid {border_30};
 }}
+/* R21 Fix 34: Print-friendly CSS */
+@media print {{
+    body {{
+        background-color: #fff !important;
+        color: #000 !important;
+        font-family: Georgia, 'Times New Roman', serif;
+    }}
+    h1, h2, h3, h4, h5, h6 {{
+        color: #000 !important;
+        page-break-after: avoid;
+    }}
+    pre, code {{
+        background-color: #f5f5f5 !important;
+        color: #333 !important;
+        border-color: #ccc !important;
+    }}
+    a {{
+        color: #000 !important;
+        text-decoration: underline;
+    }}
+    .code-block-wrapper {{
+        border-left-color: #999 !important;
+    }}
+    table, th, td {{
+        border-color: #ccc !important;
+    }}
+    th {{
+        background-color: #eee !important;
+        color: #000 !important;
+    }}
+}}
 )",
                               fmt::arg("bg_app", c.bg_app.to_hex()),
                               fmt::arg("bg_panel", c.bg_panel.to_hex()),
@@ -855,6 +930,9 @@ void PreviewPanel::OnSize(wxSizeEvent& event)
     {
         resize_timer_.Start(kResizeDebounceMs, wxTIMER_ONE_SHOT);
     }
+
+    // R21 Fix 32: Reposition scroll-to-top button on resize
+    PositionScrollToTopButton();
 }
 
 void PreviewPanel::OnResizeTimer(wxTimerEvent& /*event*/)
@@ -866,6 +944,52 @@ void PreviewPanel::OnResizeTimer(wxTimerEvent& /*event*/)
     auto content = last_rendered_content_;
     last_rendered_content_.clear(); // Force re-render
     RenderContent(content);
+}
+
+// ═══════════════════════════════════════════════════════
+// R21 Fix 32: Scroll-to-top button
+// ═══════════════════════════════════════════════════════
+
+void PreviewPanel::UpdateScrollToTopButton()
+{
+    if (html_view_ == nullptr || scroll_to_top_btn_ == nullptr)
+    {
+        return;
+    }
+
+    // Show the button when scrolled past 500 pixels
+    constexpr int kScrollThreshold = 500;
+    int scroll_y = 0;
+    int scroll_x = 0;
+    html_view_->GetViewStart(&scroll_x, &scroll_y);
+    // wxHtmlWindow scroll units are typically 10px each
+    int scroll_pixels = scroll_y * 10;
+
+    bool should_show = (scroll_pixels > kScrollThreshold);
+    if (should_show != scroll_to_top_btn_->IsShown())
+    {
+        scroll_to_top_btn_->Show(should_show);
+        if (should_show)
+        {
+            PositionScrollToTopButton();
+        }
+    }
+}
+
+void PreviewPanel::PositionScrollToTopButton()
+{
+    if (scroll_to_top_btn_ == nullptr)
+    {
+        return;
+    }
+
+    wxSize panel_size = GetClientSize();
+    wxSize btn_size = scroll_to_top_btn_->GetSize();
+    constexpr int kMargin = 16;
+    scroll_to_top_btn_->SetPosition(
+        wxPoint(panel_size.GetWidth() - btn_size.GetWidth() - kMargin,
+                panel_size.GetHeight() - btn_size.GetHeight() - kMargin));
+    scroll_to_top_btn_->Raise(); // Ensure it's on top
 }
 
 // ═══════════════════════════════════════════════════════

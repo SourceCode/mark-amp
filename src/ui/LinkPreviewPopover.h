@@ -34,6 +34,7 @@ private:
     wxStaticText* link_label_{nullptr};
     wxStaticText* url_label_{nullptr};
     wxButton* open_btn_{nullptr};
+    wxButton* copy_btn_{nullptr}; // R21 Fix 20
 
     std::string current_url_;
 

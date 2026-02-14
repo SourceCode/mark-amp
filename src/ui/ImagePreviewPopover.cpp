@@ -41,6 +41,12 @@ void ImagePreviewPopover::CreateLayout()
     path_font.SetPointSize(path_font.GetPointSize() - 1);
     path_label_->SetFont(path_font);
 
+    // R21 Fix 17 & 18: Dimensions + file size label
+    dimensions_label_ = new wxStaticText(this, wxID_ANY, "");
+    auto dim_font = dimensions_label_->GetFont();
+    dim_font.SetPointSize(dim_font.GetPointSize() - 1);
+    dimensions_label_->SetFont(dim_font);
+
     error_label_ = new wxStaticText(this, wxID_ANY, "");
     error_label_->Hide();
 
@@ -49,6 +55,7 @@ void ImagePreviewPopover::CreateLayout()
     sizer->AddSpacer(4);
     sizer->Add(alt_label_, 0, wxLEFT | wxRIGHT, kPadding);
     sizer->Add(path_label_, 0, wxLEFT | wxRIGHT, kPadding);
+    sizer->Add(dimensions_label_, 0, wxLEFT | wxRIGHT, kPadding);
     sizer->Add(error_label_, 0, wxLEFT | wxRIGHT, kPadding);
     sizer->AddSpacer(kPadding);
 
@@ -93,6 +100,39 @@ auto ImagePreviewPopover::SetImage(const std::filesystem::path& image_path,
 
     alt_label_->SetLabel(wxString::FromUTF8(alt_text.empty() ? "(no alt text)" : alt_text));
     path_label_->SetLabel(wxString::FromUTF8(image_path.filename().string()));
+
+    // R21 Fix 17: Image dimensions label
+    // R21 Fix 18: File size label
+    {
+        auto orig_w = image.GetWidth();
+        auto orig_h = image.GetHeight();
+        std::string dim_str =
+            std::to_string(orig_w) + " \xC3\x97 " + std::to_string(orig_h) + " px";
+
+        // File size
+        std::error_code err_code;
+        auto file_size = std::filesystem::file_size(image_path, err_code);
+        if (!err_code)
+        {
+            if (file_size >= 1024 * 1024)
+            {
+                dim_str += "  \xE2\x80\xA2  " + std::to_string(file_size / (1024 * 1024)) + " MB";
+            }
+            else if (file_size >= 1024)
+            {
+                dim_str += "  \xE2\x80\xA2  " + std::to_string(file_size / 1024) + " KB";
+            }
+            else
+            {
+                dim_str += "  \xE2\x80\xA2  " + std::to_string(file_size) + " B";
+            }
+        }
+
+        if (dimensions_label_ != nullptr)
+        {
+            dimensions_label_->SetLabel(wxString::FromUTF8(dim_str));
+        }
+    }
 
     GetSizer()->Fit(this);
     return true;

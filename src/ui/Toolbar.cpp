@@ -81,6 +81,36 @@ Toolbar::Toolbar(wxWindow* parent, core::ThemeEngine& theme_engine, core::EventB
                            });
 
     RecalculateButtonRects();
+
+    // R20 Fix 8: Tooltip delay timer — waits 400ms before showing tooltip
+    tooltip_delay_timer_.SetOwner(this);
+    tooltip_delay_timer_.Bind(
+        wxEVT_TIMER,
+        [this](wxTimerEvent& /*evt*/)
+        {
+            tooltip_delay_timer_.Stop();
+            // Show the pending tooltip
+            if (pending_tooltip_index_ >= 0)
+            {
+                static const std::array<std::string, 4> kLeftTips = {"Editor Only (Ctrl+1)",
+                                                                     "Split View (Ctrl+2)",
+                                                                     "Preview Only (Ctrl+3)",
+                                                                     "Focus Mode (Ctrl+K)"};
+                static const std::array<std::string, 3> kRightTips = {
+                    "Save (Ctrl+S)", "Themes", "Settings"};
+
+                if (pending_tooltip_is_left_ &&
+                    pending_tooltip_index_ < static_cast<int>(kLeftTips.size()))
+                {
+                    SetToolTip(kLeftTips[static_cast<size_t>(pending_tooltip_index_)]);
+                }
+                else if (!pending_tooltip_is_left_ &&
+                         pending_tooltip_index_ < static_cast<int>(kRightTips.size()))
+                {
+                    SetToolTip(kRightTips[static_cast<size_t>(pending_tooltip_index_)]);
+                }
+            }
+        });
 }
 
 // ═══════════════════════════════════════════════════════
@@ -379,6 +409,28 @@ void Toolbar::OnPaint(wxPaintEvent& /*event*/)
     int bottom_y = GetClientSize().GetHeight() - 1;
     dc.DrawLine(0, bottom_y, GetClientSize().GetWidth(), bottom_y);
 
+    // R19 Fix 8: Subtle drop-shadow below toolbar bottom border
+    {
+        auto shadow_base = wxColour(t.colors.border_dark.to_rgba_string());
+        for (int shadow_row = 0; shadow_row < kDropShadowHeight; ++shadow_row)
+        {
+            int alpha = 60 - (shadow_row * 30);
+            if (alpha < 0)
+            {
+                alpha = 0;
+            }
+            dc.SetPen(wxPen(wxColour(shadow_base.Red(),
+                                     shadow_base.Green(),
+                                     shadow_base.Blue(),
+                                     static_cast<unsigned char>(alpha)),
+                            1));
+            dc.DrawLine(0,
+                        bottom_y + 1 + shadow_row,
+                        GetClientSize().GetWidth(),
+                        bottom_y + 1 + shadow_row);
+        }
+    }
+
     // Draw buttons using wxGraphicsContext
     std::unique_ptr<wxGraphicsContext> gc_owner(wxGraphicsContext::Create(dc));
     if (gc_owner == nullptr)
@@ -402,6 +454,29 @@ void Toolbar::OnPaint(wxPaintEvent& /*event*/)
             double uy = left_buttons_[static_cast<size_t>(idx)].rect.GetBottom();
             gc.StrokeLine(ux, uy, ux + uw, uy);
         }
+
+        // R20 Fix 10: Hover underline slide for inactive hovered buttons
+        if (left_buttons_[static_cast<size_t>(idx)].is_hovered &&
+            !left_buttons_[static_cast<size_t>(idx)].is_active)
+        {
+            auto muted = wxColour(t.colors.text_muted.to_rgba_string());
+            gc.SetPen(gc.CreatePen(
+                wxGraphicsPenInfo(muted).Width(static_cast<double>(kHoverUnderlineH))));
+            gc.SetBrush(*wxTRANSPARENT_BRUSH);
+            double ux = left_buttons_[static_cast<size_t>(idx)].rect.GetX() + 4;
+            double uw = left_buttons_[static_cast<size_t>(idx)].rect.GetWidth() - 8;
+            double uy = left_buttons_[static_cast<size_t>(idx)].rect.GetBottom() - 1;
+            gc.StrokeLine(ux, uy, ux + uw, uy);
+        }
+
+        // R20 Fix 7: Separator between view mode group and focus button
+        if (idx == 2 && left_buttons_.size() > 3)
+        {
+            auto sep_col = wxColour(t.colors.border_light.to_rgba_string());
+            gc.SetPen(gc.CreatePen(wxGraphicsPenInfo(sep_col).Width(1.0)));
+            int sep_x = (left_buttons_[2].rect.GetRight() + left_buttons_[3].rect.GetLeft()) / 2;
+            gc.StrokeLine(sep_x, 10, sep_x, GetClientSize().GetHeight() - 10);
+        }
     }
 
     // R17 Fix 5: Vertical separator between left and right button groups
@@ -417,6 +492,82 @@ void Toolbar::OnPaint(wxPaintEvent& /*event*/)
     for (const auto& btn : right_buttons_)
     {
         DrawButton(gc, btn, t);
+
+        // R20 Fix 10: Hover underline for right-group hovered buttons
+        if (btn.is_hovered && !btn.is_active)
+        {
+            auto muted = wxColour(t.colors.text_muted.to_rgba_string());
+            gc.SetPen(gc.CreatePen(
+                wxGraphicsPenInfo(muted).Width(static_cast<double>(kHoverUnderlineH))));
+            gc.SetBrush(*wxTRANSPARENT_BRUSH);
+            double ux = btn.rect.GetX() + 4;
+            double uw = btn.rect.GetWidth() - 8;
+            double uy = btn.rect.GetBottom() - 1;
+            gc.StrokeLine(ux, uy, ux + uw, uy);
+        }
+    }
+
+    // R20 Fix 9: Active mode badge — small count beside active view mode label
+    {
+        int active_count = 0;
+        for (const auto& btn : left_buttons_)
+        {
+            if (btn.is_active)
+            {
+                ++active_count;
+            }
+        }
+        if (active_count > 1)
+        {
+            // Find the last active button and draw a badge on it
+            for (int idx = static_cast<int>(left_buttons_.size()) - 1; idx >= 0; --idx)
+            {
+                if (left_buttons_[static_cast<size_t>(idx)].is_active)
+                {
+                    const auto& btn = left_buttons_[static_cast<size_t>(idx)];
+                    auto badge_text = std::to_string(active_count);
+                    auto badge_font = wxFont(wxFontInfo(7).Family(wxFONTFAMILY_SWISS).Bold());
+                    auto accent = wxColour(t.colors.accent_primary.to_rgba_string());
+                    gc.SetFont(badge_font, wxColour(255, 255, 255));
+                    wxDouble bw = 0;
+                    wxDouble bh = 0;
+                    gc.GetTextExtent(badge_text, &bw, &bh);
+                    double badge_x = btn.rect.GetRight() - bw - 2;
+                    double badge_y = btn.rect.GetY() - 2;
+                    gc.SetBrush(gc.CreateBrush(wxBrush(accent)));
+                    gc.SetPen(*wxTRANSPARENT_PEN);
+                    gc.DrawRoundedRectangle(badge_x - 3, badge_y, bw + 6, bh + 2, (bh + 2) / 2.0);
+                    gc.SetFont(badge_font, wxColour(255, 255, 255));
+                    gc.DrawText(badge_text, badge_x, badge_y + 1);
+                    break;
+                }
+            }
+        }
+    }
+
+    // R19 Fix 10: Zoom percentage badge (right-aligned) when zoom != 100%
+    if (zoom_level_ != 0)
+    {
+        std::string zoom_text = std::to_string(100 + zoom_level_ * 10) + "%";
+        auto zoom_font = wxFont(wxFontInfo(8).Family(wxFONTFAMILY_SWISS));
+        auto zoom_color = wxColour(t.colors.text_muted.to_rgba_string());
+        gc.SetFont(zoom_font, zoom_color);
+        wxDouble zw = 0;
+        wxDouble zh = 0;
+        gc.GetTextExtent(zoom_text, &zw, &zh);
+        double zoom_x = GetClientSize().GetWidth() - zw - 4;
+        if (!right_buttons_.empty())
+        {
+            zoom_x = right_buttons_.back().rect.GetLeft() - zw - 12;
+        }
+        double zoom_y = (kHeight - zh) / 2.0;
+        // Draw badge background pill
+        auto badge_bg = wxColour(t.colors.bg_app.to_rgba_string());
+        gc.SetBrush(gc.CreateBrush(wxBrush(badge_bg)));
+        gc.SetPen(*wxTRANSPARENT_PEN);
+        gc.DrawRoundedRectangle(zoom_x - 4, zoom_y - 1, zw + 8, zh + 2, (zh + 2) / 2.0);
+        gc.SetFont(zoom_font, zoom_color);
+        gc.DrawText(zoom_text, zoom_x, zoom_y);
     }
 }
 
@@ -444,7 +595,8 @@ void Toolbar::DrawButton(wxGraphicsContext& gc, const ButtonInfo& btn, const cor
         auto bg = c.accent_primary.with_alpha(0.20f).to_rgba_string();
         gc.SetBrush(gc.CreateBrush(wxBrush(wxColour(bg))));
         gc.SetPen(*wxTRANSPARENT_PEN);
-        gc.DrawRoundedRectangle(rx, ry, rw, rh, 4.0);
+        // R19 Fix 6: Pill shape for active buttons (half-height radius)
+        gc.DrawRoundedRectangle(rx, ry, rw, rh, rh / 2.0);
     }
     else if (btn.is_hovered)
     {
@@ -476,28 +628,47 @@ void Toolbar::DrawButton(wxGraphicsContext& gc, const ButtonInfo& btn, const cor
     double icon_x = rx + kButtonPadH;
     double icon_y = ry + (rh - kIconSize) / 2.0;
 
+    // R20 Fix 6: Scale icon down slightly when pressed
+    const bool is_pressed =
+        (pressed_button_index_ >= 0 &&
+         ((pressed_is_left_ && static_cast<size_t>(pressed_button_index_) < left_buttons_.size() &&
+           &left_buttons_[static_cast<size_t>(pressed_button_index_)] == &btn) ||
+          (!pressed_is_left_ &&
+           static_cast<size_t>(pressed_button_index_) < right_buttons_.size() &&
+           &right_buttons_[static_cast<size_t>(pressed_button_index_)] == &btn)));
+    double icon_scale = is_pressed ? static_cast<double>(kPressScale) : 1.0;
+    double actual_size = kIconSize * icon_scale;
+    if (is_pressed)
+    {
+        // Center the scaled-down icon
+        double offset = (kIconSize - actual_size) / 2.0;
+        icon_x += offset;
+        icon_y += offset;
+    }
+
     switch (btn.icon_type)
     {
         case 0:
-            DrawCodeIcon(gc, icon_x, icon_y, kIconSize);
+            DrawCodeIcon(gc, icon_x, icon_y, actual_size);
             break;
         case 1:
-            DrawColumnsIcon(gc, icon_x, icon_y, kIconSize);
+            DrawColumnsIcon(gc, icon_x, icon_y, actual_size);
             break;
         case 2:
-            DrawEyeIcon(gc, icon_x, icon_y, kIconSize);
+            DrawEyeIcon(gc, icon_x, icon_y, actual_size);
             break;
         case 3:
-            DrawSaveIcon(gc, icon_x, icon_y, kIconSize);
+            // R19 Fix 7: Apply pulse scale to save icon during animation
+            DrawSaveIcon(gc, icon_x, icon_y, actual_size * static_cast<double>(save_pulse_scale_));
             break;
         case 4:
-            DrawPaletteIcon(gc, icon_x, icon_y, kIconSize);
+            DrawPaletteIcon(gc, icon_x, icon_y, actual_size);
             break;
         case 5:
-            DrawGearIcon(gc, icon_x, icon_y, kIconSize);
+            DrawGearIcon(gc, icon_x, icon_y, actual_size);
             break;
         case 6:
-            DrawFocusIcon(gc, icon_x, icon_y, kIconSize);
+            DrawFocusIcon(gc, icon_x, icon_y, actual_size);
             break;
         default:
             break;
@@ -511,6 +682,40 @@ void Toolbar::DrawButton(wxGraphicsContext& gc, const ButtonInfo& btn, const cor
         double text_x = icon_x + kIconSize + 6;
         double text_y = ry + (rh - kFontSizeLabel - 2) / 2.0;
         gc.DrawText(btn.label, text_x, text_y);
+    }
+
+    // R19 Fix 9: Keyboard focus ring
+    if (focused_button_index_ >= 0)
+    {
+        bool is_focused_btn = false;
+        if (focus_is_left_)
+        {
+            for (size_t fi = 0; fi < left_buttons_.size(); ++fi)
+            {
+                if (static_cast<int>(fi) == focused_button_index_ && &left_buttons_[fi] == &btn)
+                {
+                    is_focused_btn = true;
+                }
+            }
+        }
+        else
+        {
+            for (size_t fi = 0; fi < right_buttons_.size(); ++fi)
+            {
+                if (static_cast<int>(fi) == focused_button_index_ && &right_buttons_[fi] == &btn)
+                {
+                    is_focused_btn = true;
+                }
+            }
+        }
+        if (is_focused_btn)
+        {
+            auto accent = wxColour(c.accent_primary.to_rgba_string());
+            gc.SetPen(
+                gc.CreatePen(wxGraphicsPenInfo(accent).Width(1.0).Style(wxPENSTYLE_SHORT_DASH)));
+            gc.SetBrush(*wxTRANSPARENT_BRUSH);
+            gc.DrawRoundedRectangle(rx - 1, ry - 1, rw + 2, rh + 2, 4.0);
+        }
     }
 }
 

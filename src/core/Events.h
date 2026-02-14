@@ -1422,4 +1422,21 @@ struct NewFileRequestEvent : Event
     }
 };
 
+// ── R19 events ──
+struct TabDuplicateRequestEvent : Event
+{
+    std::string file_path;
+
+    TabDuplicateRequestEvent() = default;
+    explicit TabDuplicateRequestEvent(std::string path)
+        : file_path(std::move(path))
+    {
+    }
+
+    [[nodiscard]] auto type_name() const -> std::string_view override
+    {
+        return "TabDuplicateRequestEvent";
+    }
+};
+
 } // namespace markamp::core::events
