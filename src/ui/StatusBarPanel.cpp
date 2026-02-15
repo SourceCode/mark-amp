@@ -763,6 +763,8 @@ auto StatusBarPanel::view_mode_label(core::events::ViewMode mode) -> std::string
             return "VIEW";
         case core::events::ViewMode::Split:
             return "SPLIT";
+        case core::events::ViewMode::LivePreview:
+            return "LIVE";
     }
     return "SPLIT"; // fallback
 }

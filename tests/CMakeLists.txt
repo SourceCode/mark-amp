@@ -83,6 +83,199 @@ add_library(markamp_core STATIC
     ${CMAKE_SOURCE_DIR}/src/ui/TreeViewHost.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/WebviewHostPanel.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/WalkthroughPanel.cpp
+    # V3 Phases 1–3: Block Data Model, ID Generation, Notebook
+    ${CMAKE_SOURCE_DIR}/src/core/Block.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/BlockID.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/Notebook.cpp
+    # V3 Phases 4–6: SQLite Storage, Document FS, Block Tree Index
+    ${CMAKE_SOURCE_DIR}/src/core/BlockDatabase.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/DocumentFileSystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/BlockTreeIndex.cpp
+    # V4 Phase 01: Block Model and Document Architecture
+    ${CMAKE_SOURCE_DIR}/src/core/WikiLink.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/WikiLinkParser.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/DocumentModel.cpp
+    # V4 Phase 02: Vault Management System
+    ${CMAKE_SOURCE_DIR}/src/core/VaultService.cpp
+    # V4 Phase 03: Bidirectional Link Index
+    ${CMAKE_SOURCE_DIR}/src/core/BacklinkIndex.cpp
+    # V4 Phase 04: Tag System
+    ${CMAKE_SOURCE_DIR}/src/core/TagService.cpp
+    # V4 Phase 05: Full-Text Search Engine
+    ${CMAKE_SOURCE_DIR}/src/core/SearchEngine.cpp
+    # V4 Phase 07: Graph Engine
+    ${CMAKE_SOURCE_DIR}/src/core/GraphEngine.cpp
+    # V4 Phase 06: Backlinks Panel
+    ${CMAKE_SOURCE_DIR}/src/ui/BacklinksPanel.cpp
+    # V4 Phase 08: Graph View Panel
+    ${CMAKE_SOURCE_DIR}/src/ui/GraphViewPanel.cpp
+    # V4 Phase 09: Daily Notes Service
+    ${CMAKE_SOURCE_DIR}/src/core/DailyNoteService.cpp
+    # V4 Phase 10: Embed Resolver
+    ${CMAKE_SOURCE_DIR}/src/core/EmbedResolver.cpp
+    # V4 Phase 11: Link Suggestion Service
+    ${CMAKE_SOURCE_DIR}/src/core/LinkSuggestionService.cpp
+    # V4 Phase 12: Outline Panel Controller
+    ${CMAKE_SOURCE_DIR}/src/core/OutlinePanelController.cpp
+    # V4 Phase 13: Live Preview Renderer
+    ${CMAKE_SOURCE_DIR}/src/ui/LivePreviewRenderer.cpp
+    # V4 Phase 14: Note Template Engine
+    ${CMAKE_SOURCE_DIR}/src/core/NoteTemplateEngine.cpp
+    # V4 Phase 15: Search Query Parser
+    ${CMAKE_SOURCE_DIR}/src/core/SearchQueryParser.cpp
+    # V4 Phase 16: Find/Replace
+    ${CMAKE_SOURCE_DIR}/src/core/FindReplaceService.cpp
+    # V4 Phase 17: Clipboard
+    ${CMAKE_SOURCE_DIR}/src/core/ClipboardService.cpp
+    # V4 Phase 18: LaTeX Engine
+    ${CMAKE_SOURCE_DIR}/src/core/LatexEngine.cpp
+    # V4 Phase 19: Pane Manager
+    ${CMAKE_SOURCE_DIR}/src/ui/PaneManager.cpp
+    # V4 Phase 20: Navigation Service
+    ${CMAKE_SOURCE_DIR}/src/ui/NavigationService.cpp
+    # V4 Phase 21: Workspace Layout
+    ${CMAKE_SOURCE_DIR}/src/ui/WorkspaceLayout.cpp
+    # V4 Phase 22: Vault Style Service
+    ${CMAKE_SOURCE_DIR}/src/core/VaultStyleService.cpp
+    # V4 Phase 23: Theme Marketplace
+    ${CMAKE_SOURCE_DIR}/src/core/ThemeMarketplace.cpp
+    # V4 Phase 24: Task Service
+    ${CMAKE_SOURCE_DIR}/src/core/TaskService.cpp
+    # V4 Phase 25: Kanban Engine
+    ${CMAKE_SOURCE_DIR}/src/ui/KanbanEngine.cpp
+    # V4 Phase 26: Calendar Engine
+    ${CMAKE_SOURCE_DIR}/src/ui/CalendarEngine.cpp
+    # V4 Phase 27: Presentation Engine
+    ${CMAKE_SOURCE_DIR}/src/ui/PresentationEngine.cpp
+    # V4 Phase 28: Encryption Service
+    ${CMAKE_SOURCE_DIR}/src/core/EncryptionService.cpp
+    # V4 Phase 29: Kernel Manager
+    ${CMAKE_SOURCE_DIR}/src/core/KernelManager.cpp
+    # V4 Phase 30: Kernel Adapters
+    ${CMAKE_SOURCE_DIR}/src/core/KernelAdapters.cpp
+    # V4 Phase 31: Cell Output Renderer
+    ${CMAKE_SOURCE_DIR}/src/ui/CellOutputRenderer.cpp
+    # V4 Phase 32: DataFrame Renderer
+    ${CMAKE_SOURCE_DIR}/src/ui/DataFrameRenderer.cpp
+    # V4 Phase 33: Widget Manager
+    ${CMAKE_SOURCE_DIR}/src/core/WidgetManager.cpp
+    # V4 Phase 34: Notebook Cell Manager
+    ${CMAKE_SOURCE_DIR}/src/core/NotebookCellManager.cpp
+    # V4 Phase 35: Git Service
+    ${CMAKE_SOURCE_DIR}/src/core/GitService.cpp
+    # V4 Phase 36: Local Graph Engine
+    ${CMAKE_SOURCE_DIR}/src/core/LocalGraphEngine.cpp
+    # V4 Phase 37: Notebook Export Engine
+    ${CMAKE_SOURCE_DIR}/src/core/NotebookExportEngine.cpp
+    # V4 Phase 38: Magic Command Engine
+    ${CMAKE_SOURCE_DIR}/src/core/MagicCommandEngine.cpp
+    # V4 Phase 39: File Snapshot Service
+    ${CMAKE_SOURCE_DIR}/src/core/FileSnapshotService.cpp
+    # V4 Phase 40: Notebook Diff Engine
+    ${CMAKE_SOURCE_DIR}/src/core/NotebookDiffEngine.cpp
+    # V5 Phase 01: Canvas Data Model & Coordinate System
+    ${CMAKE_SOURCE_DIR}/src/canvas/CanvasTypes.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/CanvasObject.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/Quadtree.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/ViewportTransform.cpp
+    # V5 Phase 02: Canvas Rendering Engine
+    ${CMAKE_SOURCE_DIR}/src/canvas/TileCache.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/CanvasRenderer.cpp
+    # V5 Phase 03: Canvas Input System
+    ${CMAKE_SOURCE_DIR}/src/canvas/CanvasInputManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/SelectTool.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/PanTool.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/CanvasPanel.cpp
+    # V5 Phase 04: Object Selection & Transform
+    ${CMAKE_SOURCE_DIR}/src/canvas/SelectionManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/SelectionRenderer.cpp
+    # V5 Phase 05: Canvas Serialization & Board Model
+    ${CMAKE_SOURCE_DIR}/src/canvas/Board.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/BoardSerializer.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/UndoRedoStack.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/CanvasCommands.cpp
+    # V5 Phase 06: Grid, Snap & Alignment
+    ${CMAKE_SOURCE_DIR}/src/canvas/SnapEngine.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/AlignmentGuides.cpp
+    # V5 Phase 07: Sticky Notes
+    ${CMAKE_SOURCE_DIR}/src/canvas/StickyNote.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/StickyNoteRenderer.cpp
+    # V5 Phase 08: Text Boxes
+    ${CMAKE_SOURCE_DIR}/src/canvas/TextBox.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/TextBoxRenderer.cpp
+    # V5 Phase 09: Shapes Library
+    ${CMAKE_SOURCE_DIR}/src/canvas/ShapeData.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/ShapeRenderer.cpp
+    # V5 Phase 10: Connectors & Lines
+    ${CMAKE_SOURCE_DIR}/src/canvas/ConnectorData.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/ConnectorRenderer.cpp
+    # V5 Phase 11: Freehand Drawing Tool
+    ${CMAKE_SOURCE_DIR}/src/canvas/FreehandPath.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/FreehandPathRenderer.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/DrawTool.cpp
+    # V5 Phase 12: Smart Drawing Recognition
+    ${CMAKE_SOURCE_DIR}/src/canvas/ShapeRecognizer.cpp
+    # V5 Phase 13: Image & File Objects
+    ${CMAKE_SOURCE_DIR}/src/canvas/ImageObject.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/ImageObjectRenderer.cpp
+    # V5 Phase 14: Frames
+    ${CMAKE_SOURCE_DIR}/src/canvas/FrameObject.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/FrameRenderer.cpp
+    # V5 Phase 15: Board Sections
+    ${CMAKE_SOURCE_DIR}/src/canvas/SectionObject.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/SectionRenderer.cpp
+    # V5 Phase 16: Object Grouping & Nesting
+    ${CMAKE_SOURCE_DIR}/src/canvas/GroupObject.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/GroupingService.cpp
+    # V5 Phase 17: Object Layering / Z-Index
+    ${CMAKE_SOURCE_DIR}/src/canvas/LayeringService.cpp
+    # V5 Phase 18: Object Locking
+    ${CMAKE_SOURCE_DIR}/src/canvas/LockingService.cpp
+    # V5 Phase 19: Table Creation & Editing
+    ${CMAKE_SOURCE_DIR}/src/canvas/TableObject.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/TableRenderer.cpp
+    # V5 Phase 20: Table Sorting & Filtering
+    ${CMAKE_SOURCE_DIR}/src/canvas/TableSortFilter.cpp
+    # V5 Phase 21: Object Metadata System
+    ${CMAKE_SOURCE_DIR}/src/canvas/MetadataPanel.cpp
+    # V5 Phase 22: Tags System
+    ${CMAKE_SOURCE_DIR}/src/canvas/TagManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/TagPanel.cpp
+    # V5 Phase 23: Minimap / Board Map
+    ${CMAKE_SOURCE_DIR}/src/canvas/MinimapPanel.cpp
+    # V5 Phase 24: Canvas Search
+    ${CMAKE_SOURCE_DIR}/src/canvas/CanvasSearch.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/SearchBar.cpp
+    # V5 Phase 25: Outline Panel
+    ${CMAKE_SOURCE_DIR}/src/canvas/OutlinePanel.cpp
+    # V5 Phase 26: Cross-Board Linking
+    ${CMAKE_SOURCE_DIR}/src/canvas/CrossBoardLink.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/BoardNavigator.cpp
+    # V5 Phase 27: PDF Import & Page Rendering
+    ${CMAKE_SOURCE_DIR}/src/canvas/PDFPageObject.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/PDFImporter.cpp
+    # V5 Phase 28: Embedded Video
+    ${CMAKE_SOURCE_DIR}/src/canvas/VideoEmbedObject.cpp
+    # V5 Phase 29: Bookmark Cards
+    ${CMAKE_SOURCE_DIR}/src/canvas/BookmarkCardObject.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/MetadataScraper.cpp
+    # V5 Phase 30: Custom Icons & Emoji Packs
+    ${CMAKE_SOURCE_DIR}/src/canvas/IconObject.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/IconLibrary.cpp
+    # V5 Phase 31: Smart Layout Engine
+    ${CMAKE_SOURCE_DIR}/src/canvas/LayoutEngine.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/StickyAggregator.cpp
+    # V5 Phase 32: Mind Map Tool
+    ${CMAKE_SOURCE_DIR}/src/canvas/MindMapNode.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/MindMapController.cpp
+    # V5 Phase 33: Kanban Board
+    ${CMAKE_SOURCE_DIR}/src/canvas/KanbanObjects.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/KanbanController.cpp
+    # V5 Phase 34: Diagram Libraries (UML/BPMN)
+    ${CMAKE_SOURCE_DIR}/src/canvas/DiagramShapeObject.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/DiagramLibraryPanel.cpp
+    # V5 Phase 35: Board Templates System
+    ${CMAKE_SOURCE_DIR}/src/canvas/BoardTemplate.cpp
 )
 target_include_directories(markamp_core PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(markamp_core PUBLIC markamp_dependencies)
@@ -403,3 +596,1009 @@ target_link_libraries(test_phase20_perf PRIVATE
     markamp_core
 )
 add_test(NAME test_phase20_perf COMMAND test_phase20_perf)
+
+# ============================================================================
+# V3 Phase 01: Block Data Model test
+# ============================================================================
+add_executable(test_block_model
+    unit/test_block_model.cpp
+)
+target_include_directories(test_block_model PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_block_model PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_block_model COMMAND test_block_model)
+
+# ============================================================================
+# V3 Phase 02: Block ID Generation test
+# ============================================================================
+add_executable(test_block_id
+    unit/test_block_id.cpp
+)
+target_include_directories(test_block_id PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_block_id PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_block_id COMMAND test_block_id)
+
+# ============================================================================
+# V3 Phase 03: Notebook Data Model test
+# ============================================================================
+add_executable(test_notebook
+    unit/test_notebook.cpp
+)
+target_include_directories(test_notebook PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_notebook PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_notebook COMMAND test_notebook)
+
+# ============================================================================
+# V3 Phases 4–6: BlockDatabase, DocumentFileSystem, BlockTreeIndex test
+# ============================================================================
+add_executable(test_phases_4_6
+    unit/test_phases_4_6.cpp
+)
+target_include_directories(test_phases_4_6 PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_phases_4_6 PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_phases_4_6 COMMAND test_phases_4_6)
+
+# ============================================================================
+# V4 Phase 01: Document Model test
+# ============================================================================
+add_executable(test_document_model
+    unit/test_document_model.cpp
+)
+target_include_directories(test_document_model PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_document_model PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_document_model COMMAND test_document_model)
+
+# ============================================================================
+# V4 Phase 02: Vault Service test
+# ============================================================================
+add_executable(test_vault_service
+    unit/test_vault_service.cpp
+)
+target_include_directories(test_vault_service PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_vault_service PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_vault_service COMMAND test_vault_service)
+
+# ============================================================================
+# V4 Phase 03: Backlink Index test
+# ============================================================================
+add_executable(test_backlink_index
+    unit/test_backlink_index.cpp
+)
+target_include_directories(test_backlink_index PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_backlink_index PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_backlink_index COMMAND test_backlink_index)
+
+# ============================================================================
+# V4 Phase 04: Tag Service test
+# ============================================================================
+add_executable(test_tag_service
+    unit/test_tag_service.cpp
+)
+target_include_directories(test_tag_service PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_tag_service PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_tag_service COMMAND test_tag_service)
+
+# ============================================================================
+# V4 Phase 05: Search Engine test
+# ============================================================================
+add_executable(test_search_engine
+    unit/test_search_engine.cpp
+)
+target_include_directories(test_search_engine PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_search_engine PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_search_engine COMMAND test_search_engine)
+
+# ============================================================================
+# V4 Phase 07: Graph Engine test
+# ============================================================================
+add_executable(test_graph_engine
+    unit/test_graph_engine.cpp
+)
+target_include_directories(test_graph_engine PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_graph_engine PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_graph_engine COMMAND test_graph_engine)
+
+# ============================================================================
+# V4 Phase 06: Backlinks Panel test
+# ============================================================================
+add_executable(test_backlinks_panel
+    unit/test_backlinks_panel.cpp
+)
+target_include_directories(test_backlinks_panel PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_backlinks_panel PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_backlinks_panel COMMAND test_backlinks_panel)
+
+# ============================================================================
+# V4 Phase 08: Graph View Panel test
+# ============================================================================
+add_executable(test_graph_view_panel
+    unit/test_graph_view_panel.cpp
+)
+target_include_directories(test_graph_view_panel PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_graph_view_panel PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_graph_view_panel COMMAND test_graph_view_panel)
+
+# ============================================================================
+# V4 Phase 09: Daily Notes test
+# ============================================================================
+add_executable(test_daily_notes
+    unit/test_daily_notes.cpp
+)
+target_include_directories(test_daily_notes PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_daily_notes PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_daily_notes COMMAND test_daily_notes)
+
+# ============================================================================
+# V4 Phase 10: Embed Resolver test
+# ============================================================================
+add_executable(test_embed_resolver
+    unit/test_embed_resolver.cpp
+)
+target_include_directories(test_embed_resolver PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_embed_resolver PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_embed_resolver COMMAND test_embed_resolver)
+
+# ============================================================================
+# V4 Phase 11: Link Suggestions test
+# ============================================================================
+add_executable(test_link_suggestions
+    unit/test_link_suggestions.cpp
+)
+target_include_directories(test_link_suggestions PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_link_suggestions PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_link_suggestions COMMAND test_link_suggestions)
+
+# ============================================================================
+# V4 Phase 12: Outline Panel test
+# ============================================================================
+add_executable(test_outline_panel
+    unit/test_outline_panel.cpp
+)
+target_include_directories(test_outline_panel PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_outline_panel PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_outline_panel COMMAND test_outline_panel)
+
+# ============================================================================
+# V4 Phase 13: Live Preview test
+# ============================================================================
+add_executable(test_live_preview
+    unit/test_live_preview.cpp
+)
+target_include_directories(test_live_preview PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_live_preview PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_live_preview COMMAND test_live_preview)
+
+# ============================================================================
+# V4 Phase 14: Note Template Engine test
+# ============================================================================
+add_executable(test_note_template_engine
+    unit/test_note_template_engine.cpp
+)
+target_include_directories(test_note_template_engine PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_note_template_engine PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_note_template_engine COMMAND test_note_template_engine)
+
+# ============================================================================
+# V4 Phase 15: Search Query Parser test
+# ============================================================================
+add_executable(test_search_query_parser
+    unit/test_search_query_parser.cpp
+)
+target_include_directories(test_search_query_parser PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_search_query_parser PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_search_query_parser COMMAND test_search_query_parser)
+
+# ============================================================================
+# V4 Phase 16: Find/Replace test
+# ============================================================================
+add_executable(test_find_replace
+    unit/test_find_replace.cpp
+)
+target_include_directories(test_find_replace PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_find_replace PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_find_replace COMMAND test_find_replace)
+
+# ============================================================================
+# V4 Phase 17: Clipboard Service test
+# ============================================================================
+add_executable(test_clipboard_service
+    unit/test_clipboard_service.cpp
+)
+target_include_directories(test_clipboard_service PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_clipboard_service PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_clipboard_service COMMAND test_clipboard_service)
+
+# ============================================================================
+# V4 Phase 18: LaTeX Engine test
+# ============================================================================
+add_executable(test_latex_engine
+    unit/test_latex_engine.cpp
+)
+target_include_directories(test_latex_engine PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_latex_engine PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_latex_engine COMMAND test_latex_engine)
+
+# ============================================================================
+# V4 Phase 19: Pane Manager test
+# ============================================================================
+add_executable(test_pane_manager
+    unit/test_pane_manager.cpp
+)
+target_include_directories(test_pane_manager PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_pane_manager PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_pane_manager COMMAND test_pane_manager)
+
+# ============================================================================
+# V4 Phase 20: Navigation Service test
+# ============================================================================
+add_executable(test_navigation_service
+    unit/test_navigation_service.cpp
+)
+target_include_directories(test_navigation_service PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_navigation_service PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_navigation_service COMMAND test_navigation_service)
+
+# ============================================================================
+# V4 Phase 21: Workspace Layout test
+# ============================================================================
+add_executable(test_workspace_layout
+    unit/test_workspace_layout.cpp
+)
+target_include_directories(test_workspace_layout PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_workspace_layout PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_workspace_layout COMMAND test_workspace_layout)
+
+# ============================================================================
+# V4 Phase 22: Vault Style Service test
+# ============================================================================
+add_executable(test_vault_style
+    unit/test_vault_style.cpp
+)
+target_include_directories(test_vault_style PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_vault_style PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_vault_style COMMAND test_vault_style)
+
+# ============================================================================
+# V4 Phase 23: Theme Marketplace test
+# ============================================================================
+add_executable(test_theme_marketplace
+    unit/test_theme_marketplace.cpp
+)
+target_include_directories(test_theme_marketplace PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_theme_marketplace PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_theme_marketplace COMMAND test_theme_marketplace)
+
+# ============================================================================
+# V4 Phase 24: Task Service test
+# ============================================================================
+add_executable(test_task_service
+    unit/test_task_service.cpp
+)
+target_include_directories(test_task_service PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_task_service PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_task_service COMMAND test_task_service)
+
+# ============================================================================
+# V4 Phase 25: Kanban Engine test
+# ============================================================================
+add_executable(test_kanban_engine
+    unit/test_kanban_engine.cpp
+)
+target_include_directories(test_kanban_engine PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_kanban_engine PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_kanban_engine COMMAND test_kanban_engine)
+
+# ============================================================================
+# V4 Phase 26: Calendar Engine test
+# ============================================================================
+add_executable(test_calendar
+    unit/test_calendar.cpp
+)
+target_include_directories(test_calendar PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_calendar PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_calendar COMMAND test_calendar)
+
+# ============================================================================
+# V4 Phase 27: Presentation Engine test
+# ============================================================================
+add_executable(test_presentation
+    unit/test_presentation.cpp
+)
+target_include_directories(test_presentation PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_presentation PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_presentation COMMAND test_presentation)
+
+# ============================================================================
+# V4 Phase 28: Encryption Service test
+# ============================================================================
+add_executable(test_encryption_service
+    unit/test_encryption_service.cpp
+)
+target_include_directories(test_encryption_service PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_encryption_service PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_encryption_service COMMAND test_encryption_service)
+
+# ============================================================================
+# V4 Phase 29: Kernel Manager test
+# ============================================================================
+add_executable(test_kernel_manager
+    unit/test_kernel_manager.cpp
+)
+target_include_directories(test_kernel_manager PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_kernel_manager PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_kernel_manager COMMAND test_kernel_manager)
+
+# ============================================================================
+# V4 Phase 30: Kernel Adapters test
+# ============================================================================
+add_executable(test_kernel_adapters
+    unit/test_kernel_adapters.cpp
+)
+target_include_directories(test_kernel_adapters PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_kernel_adapters PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_kernel_adapters COMMAND test_kernel_adapters)
+
+# ============================================================================
+# V4 Phase 31: Cell Output Renderer test
+# ============================================================================
+add_executable(test_cell_output
+    unit/test_cell_output.cpp
+)
+target_include_directories(test_cell_output PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_cell_output PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_cell_output COMMAND test_cell_output)
+
+# ============================================================================
+# V4 Phase 32: DataFrame Renderer test
+# ============================================================================
+add_executable(test_dataframe_renderer
+    unit/test_dataframe_renderer.cpp
+)
+target_include_directories(test_dataframe_renderer PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_dataframe_renderer PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_dataframe_renderer COMMAND test_dataframe_renderer)
+
+# ============================================================================
+# V4 Phase 33: Widget Manager test
+# ============================================================================
+add_executable(test_widget_manager
+    unit/test_widget_manager.cpp
+)
+target_include_directories(test_widget_manager PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_widget_manager PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_widget_manager COMMAND test_widget_manager)
+
+# ============================================================================
+# V4 Phase 34: Notebook Cells test
+# ============================================================================
+add_executable(test_notebook_cells
+    unit/test_notebook_cells.cpp
+)
+target_include_directories(test_notebook_cells PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_notebook_cells PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_notebook_cells COMMAND test_notebook_cells)
+
+# ============================================================================
+# V4 Phase 35: Git Service test
+# ============================================================================
+add_executable(test_git_service
+    unit/test_git_service.cpp
+)
+target_include_directories(test_git_service PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_git_service PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_git_service COMMAND test_git_service)
+
+# ============================================================================
+# V4 Phase 36: Local Graph Engine test
+# ============================================================================
+add_executable(test_local_graph
+    unit/test_local_graph.cpp
+)
+target_include_directories(test_local_graph PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_local_graph PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_local_graph COMMAND test_local_graph)
+
+# ============================================================================
+# V4 Phase 37: Notebook Export Engine test
+# ============================================================================
+add_executable(test_notebook_export
+    unit/test_notebook_export.cpp
+)
+target_include_directories(test_notebook_export PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_notebook_export PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_notebook_export COMMAND test_notebook_export)
+
+# ============================================================================
+# V4 Phase 38: Magic Commands test
+# ============================================================================
+add_executable(test_magic_commands
+    unit/test_magic_commands.cpp
+)
+target_include_directories(test_magic_commands PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_magic_commands PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_magic_commands COMMAND test_magic_commands)
+
+# ============================================================================
+# V4 Phase 39: File Snapshot Service test
+# ============================================================================
+add_executable(test_file_snapshots
+    unit/test_file_snapshots.cpp
+)
+target_include_directories(test_file_snapshots PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_file_snapshots PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_file_snapshots COMMAND test_file_snapshots)
+
+# ============================================================================
+# V4 Phase 40: Notebook Diff Engine test
+# ============================================================================
+add_executable(test_notebook_diff
+    unit/test_notebook_diff.cpp
+)
+target_include_directories(test_notebook_diff PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_notebook_diff PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_notebook_diff COMMAND test_notebook_diff)
+
+# ============================================================================
+# V5 Phase 01: Canvas Types test
+# ============================================================================
+add_executable(test_canvas_types
+    unit/test_canvas_types.cpp
+)
+target_include_directories(test_canvas_types PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_canvas_types PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_canvas_types COMMAND test_canvas_types)
+
+# ============================================================================
+# V5 Phase 01: Quadtree test
+# ============================================================================
+add_executable(test_quadtree
+    unit/test_quadtree.cpp
+)
+target_include_directories(test_quadtree PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_quadtree PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_quadtree COMMAND test_quadtree)
+
+# ============================================================================
+# V5 Phase 01: Viewport Transform test
+# ============================================================================
+add_executable(test_viewport_transform
+    unit/test_viewport_transform.cpp
+)
+target_include_directories(test_viewport_transform PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_viewport_transform PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_viewport_transform COMMAND test_viewport_transform)
+
+# ============================================================================
+# V5 Phase 02: Canvas Renderer/TileCache test
+# ============================================================================
+add_executable(test_canvas_renderer
+    unit/test_canvas_renderer.cpp
+)
+target_include_directories(test_canvas_renderer PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_canvas_renderer PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_canvas_renderer COMMAND test_canvas_renderer)
+
+# ============================================================================
+# V5 Phase 03: Canvas Input System test
+# ============================================================================
+add_executable(test_canvas_input
+    unit/test_canvas_input.cpp
+)
+target_include_directories(test_canvas_input PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_canvas_input PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_canvas_input COMMAND test_canvas_input)
+
+# ============================================================================
+# V5 Phase 04: Object Selection & Transform test
+# ============================================================================
+add_executable(test_selection_manager
+    unit/test_selection_manager.cpp
+)
+target_include_directories(test_selection_manager PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_selection_manager PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_selection_manager COMMAND test_selection_manager)
+
+# ============================================================================
+# V5 Phase 05: Board Model test
+# ============================================================================
+add_executable(test_board_model
+    unit/test_board_model.cpp
+)
+target_include_directories(test_board_model PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_board_model PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_board_model COMMAND test_board_model)
+
+# ============================================================================
+# V5 Phase 05: Board Serializer test
+# ============================================================================
+add_executable(test_board_serializer
+    unit/test_board_serializer.cpp
+)
+target_include_directories(test_board_serializer PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_board_serializer PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_board_serializer COMMAND test_board_serializer)
+
+# ============================================================================
+# V5 Phase 05: Undo/Redo test
+# ============================================================================
+add_executable(test_undo_redo
+    unit/test_undo_redo.cpp
+)
+target_include_directories(test_undo_redo PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_undo_redo PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_undo_redo COMMAND test_undo_redo)
+
+# ============================================================================
+# V5 Phase 06: Snap Engine test
+# ============================================================================
+add_executable(test_snap_engine
+    unit/test_snap_engine.cpp
+)
+target_include_directories(test_snap_engine PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_snap_engine PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_snap_engine COMMAND test_snap_engine)
+
+# ============================================================================
+# V5 Phase 07: Sticky Note test
+# ============================================================================
+add_executable(test_sticky_note
+    unit/test_sticky_note.cpp
+)
+target_include_directories(test_sticky_note PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_sticky_note PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_sticky_note COMMAND test_sticky_note)
+
+# ============================================================================
+# V5 Phase 08: Text Box test
+# ============================================================================
+add_executable(test_text_box
+    unit/test_text_box.cpp
+)
+target_include_directories(test_text_box PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_text_box PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_text_box COMMAND test_text_box)
+
+# ============================================================================
+# V5 Phase 09: Shapes test
+# ============================================================================
+add_executable(test_shapes
+    unit/test_shapes.cpp
+)
+target_include_directories(test_shapes PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_shapes PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_shapes COMMAND test_shapes)
+
+# ============================================================================
+# V5 Phase 10: Connectors test
+# ============================================================================
+add_executable(test_connectors
+    unit/test_connectors.cpp
+)
+target_include_directories(test_connectors PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_connectors PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_connectors COMMAND test_connectors)
+
+# ============================================================================
+# V5 Phase 11: Freehand Drawing test
+# ============================================================================
+add_executable(test_freehand_path
+    unit/test_freehand_path.cpp
+)
+target_include_directories(test_freehand_path PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_freehand_path PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_freehand_path COMMAND test_freehand_path)
+
+# ============================================================================
+# V5 Phase 12: Shape Recognizer test
+# ============================================================================
+add_executable(test_shape_recognizer
+    unit/test_shape_recognizer.cpp
+)
+target_include_directories(test_shape_recognizer PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_shape_recognizer PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_shape_recognizer COMMAND test_shape_recognizer)
+
+# ============================================================================
+# V5 Phase 13: Image Object test
+# ============================================================================
+add_executable(test_image_object
+    unit/test_image_object.cpp
+)
+target_include_directories(test_image_object PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_image_object PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_image_object COMMAND test_image_object)
+
+# ============================================================================
+# V5 Phase 14: Frame Object test
+# ============================================================================
+add_executable(test_frame_object
+    unit/test_frame_object.cpp
+)
+target_include_directories(test_frame_object PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_frame_object PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_frame_object COMMAND test_frame_object)
+
+# ============================================================================
+# V5 Phase 15: Section Object test
+# ============================================================================
+add_executable(test_section_object
+    unit/test_section_object.cpp
+)
+target_include_directories(test_section_object PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_section_object PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_section_object COMMAND test_section_object)
+
+# --- V5 Phase 16: Object Grouping & Nesting ---
+add_executable(test_group_object
+    unit/test_group_object.cpp
+)
+target_include_directories(test_group_object PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_group_object PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_group_object COMMAND test_group_object)
+
+# --- V5 Phase 17: Object Layering / Z-Index ---
+add_executable(test_layering_service
+    unit/test_layering_service.cpp
+)
+target_include_directories(test_layering_service PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_layering_service PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_layering_service COMMAND test_layering_service)
+
+# --- V5 Phase 18: Object Locking ---
+add_executable(test_locking_service
+    unit/test_locking_service.cpp
+)
+target_include_directories(test_locking_service PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_locking_service PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_locking_service COMMAND test_locking_service)
+
+# --- V5 Phase 19: Table Creation & Editing ---
+add_executable(test_table_object
+    unit/test_table_object.cpp
+)
+target_include_directories(test_table_object PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_table_object PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_table_object COMMAND test_table_object)
+
+# --- V5 Phase 20: Table Sorting & Filtering ---
+add_executable(test_table_sort_filter
+    unit/test_table_sort_filter.cpp
+)
+target_include_directories(test_table_sort_filter PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_table_sort_filter PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_table_sort_filter COMMAND test_table_sort_filter)
+
+# --- V5 Phase 21: Metadata Panel test ---
+add_executable(test_metadata_panel
+    unit/test_metadata_panel.cpp
+)
+target_include_directories(test_metadata_panel PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_metadata_panel PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_metadata_panel COMMAND test_metadata_panel)
+
+# --- V5 Phase 22: Tag Manager test ---
+add_executable(test_tag_manager
+    unit/test_tag_manager.cpp
+)
+target_include_directories(test_tag_manager PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_tag_manager PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_tag_manager COMMAND test_tag_manager)
+
+# --- V5 Phase 23: Minimap test ---
+add_executable(test_minimap
+    unit/test_minimap.cpp
+)
+target_include_directories(test_minimap PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_minimap PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_minimap COMMAND test_minimap)
+
+# --- V5 Phase 24: Canvas Search test ---
+add_executable(test_canvas_search
+    unit/test_canvas_search.cpp
+)
+target_include_directories(test_canvas_search PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_canvas_search PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_canvas_search COMMAND test_canvas_search)
+
+# V5 Phase 26: Cross-Board Linking tests
+add_executable(test_cross_board_link unit/test_cross_board_link.cpp)
+target_link_libraries(test_cross_board_link PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_cross_board_link COMMAND test_cross_board_link)
+
+# V5 Phase 27: PDF Import tests
+add_executable(test_pdf_import unit/test_pdf_import.cpp)
+target_link_libraries(test_pdf_import PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_pdf_import COMMAND test_pdf_import)
+
+# V5 Phase 28: Embedded Video tests
+add_executable(test_video_embed unit/test_video_embed.cpp)
+target_link_libraries(test_video_embed PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_video_embed COMMAND test_video_embed)
+
+# V5 Phase 29: Bookmark Cards tests
+add_executable(test_bookmark_card unit/test_bookmark_card.cpp)
+target_link_libraries(test_bookmark_card PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_bookmark_card COMMAND test_bookmark_card)
+
+# V5 Phase 30: Custom Icons & Emoji Packs tests
+add_executable(test_icon_library unit/test_icon_library.cpp)
+target_link_libraries(test_icon_library PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_icon_library COMMAND test_icon_library)
+
+# V5 Phase 31: Layout Engine tests
+add_executable(test_layout_engine unit/test_layout_engine.cpp)
+target_link_libraries(test_layout_engine PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_layout_engine COMMAND test_layout_engine)
+
+# V5 Phase 31: Sticky Aggregator tests
+add_executable(test_sticky_aggregator unit/test_sticky_aggregator.cpp)
+target_link_libraries(test_sticky_aggregator PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_sticky_aggregator COMMAND test_sticky_aggregator)
+
+# V5 Phase 32: Mind Map tests
+add_executable(test_mind_map unit/test_mind_map.cpp)
+target_link_libraries(test_mind_map PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_mind_map COMMAND test_mind_map)
+
+# V5 Phase 33: Kanban tests
+add_executable(test_kanban unit/test_kanban.cpp)
+target_link_libraries(test_kanban PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_kanban COMMAND test_kanban)
+
+# V5 Phase 34: Diagram Shapes tests
+add_executable(test_diagram_shapes unit/test_diagram_shapes.cpp)
+target_link_libraries(test_diagram_shapes PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_diagram_shapes COMMAND test_diagram_shapes)
+
+# V5 Phase 35: Board Templates tests
+add_executable(test_board_templates unit/test_board_templates.cpp)
+target_link_libraries(test_board_templates PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_board_templates COMMAND test_board_templates)

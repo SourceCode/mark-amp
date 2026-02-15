@@ -84,7 +84,8 @@ enum class ViewMode
 {
     Editor,
     Preview,
-    Split
+    Split,
+    LivePreview
 };
 
 enum class WrapMode
@@ -601,6 +602,1397 @@ MARKAMP_DECLARE_EVENT_WITH_FIELDS(ShowQuickPickRequestEvent)
 std::string title;
 std::string placeholder;
 bool can_pick_many{false};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V3 Phase 01: Block lifecycle events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BlockCreatedEvent)
+std::string block_id;
+std::string block_type; // type abbreviation
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BlockUpdatedEvent)
+std::string block_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BlockDeletedEvent)
+std::string block_id;
+std::string parent_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BlockMovedEvent)
+std::string block_id;
+std::string old_parent_id;
+std::string new_parent_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BlockFoldedEvent)
+std::string block_id;
+bool folded{false};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V3 Phase 03: Notebook lifecycle events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NotebookCreatedEvent)
+std::string notebook_id;
+std::string name;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NotebookRenamedEvent)
+std::string notebook_id;
+std::string new_name;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NotebookRemovedEvent)
+std::string notebook_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NotebookOpenedEvent)
+std::string notebook_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NotebookClosedEvent)
+std::string notebook_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT(NotebooksSortedEvent);
+
+// ============================================================================
+// V3 Document events (Phase 5: DocumentFileSystem)
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DocumentLoadedEvent)
+std::string box_id;
+std::string path;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DocumentSavedEvent)
+std::string box_id;
+std::string path;
+std::string block_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DocumentCreatedEvent)
+std::string box_id;
+std::string block_id;
+std::string title;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DocumentRenamedEvent)
+std::string box_id;
+std::string block_id;
+std::string title;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DocumentRemovedEvent)
+std::string box_id;
+std::string block_id;
+std::string path;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DocumentMovedEvent)
+std::string box_id;
+std::string from_path;
+std::string to_path;
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V3 Block CRUD events (Phase 7: BlockService)
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TransactionPerformedEvent)
+std::string txn_id;
+int operation_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TransactionUndoneEvent)
+std::string txn_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TransactionRedoneEvent)
+std::string txn_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BlockInsertedEvent)
+std::string block_id;
+std::string parent_id;
+std::string doc_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BlockContentUpdatedEvent)
+std::string block_id;
+std::string doc_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(HeadingFoldedEvent)
+std::string heading_id;
+bool folded{false};
+int affected_block_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V3 Attribute events (Phase 8: AttributeService)
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BlockAttrsChangedEvent)
+std::string block_id;
+std::vector<std::string> changed_keys;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BlockBookmarkChangedEvent)
+std::string block_id;
+std::string bookmark_label;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BlockMemoChangedEvent)
+std::string block_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BlockNameChangedEvent)
+std::string block_id;
+std::string new_name;
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V3 Block reference events (Phase 9: RefParser/RefResolver)
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BlockRefCreatedEvent)
+std::string source_block_id;
+std::string def_block_id;
+std::string ref_type;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BlockRefDeletedEvent)
+std::string source_block_id;
+std::string def_block_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BlockRefUpdatedEvent)
+std::string source_block_id;
+std::vector<std::string> old_def_ids;
+std::vector<std::string> new_def_ids;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BlockRefResolvedEvent)
+std::string source_block_id;
+std::string def_block_id;
+bool target_exists{false};
+std::string display_text;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BlockRefNavigateRequestEvent)
+std::string target_block_id;
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V3 Backlink events (Phase 10: BacklinkService)
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BacklinksChangedEvent)
+std::string def_block_id;
+int backlink_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(MentionsChangedEvent)
+std::string block_id;
+int mention_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BacklinkPanelOpenRequestEvent)
+std::string block_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(GraphViewOpenRequestEvent)
+std::string focal_block_id;
+int depth{2};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V3 Outline events (Phase 11: OutlineService)
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(OutlineChangedEvent)
+std::string root_id;
+int heading_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(OutlineScrollToEvent)
+std::string block_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(OutlineActiveHeadingChangedEvent)
+std::string root_id;
+std::string heading_text;
+int heading_level{0};
+int source_line{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(OutlinePanelOpenRequestEvent)
+std::string root_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BreadcrumbNavigateEvent)
+std::string root_id;
+std::string heading_text;
+int source_line{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V3 Tag events (Phase 12: TagService)
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TagRenamedEvent)
+std::string old_path;
+std::string new_path;
+int affected_block_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TagRemovedEvent)
+std::string tag_path;
+int affected_block_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TagsChangedEvent)
+std::string block_id;
+std::vector<std::string> old_tags;
+std::vector<std::string> new_tags;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TagPanelOpenRequestEvent)
+std::string initial_tag;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TagSelectedEvent)
+std::string tag_path;
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V3 Bookmark events (Phase 13: BookmarkService)
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BookmarkAddedEvent)
+std::string block_id;
+std::string label;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BookmarkRemovedEvent)
+std::string block_id;
+std::string previous_label;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BookmarkRenamedEvent)
+std::string old_label;
+std::string new_label;
+int affected_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BookmarkPanelOpenRequestEvent)
+std::string initial_label;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BookmarkNavigateEvent)
+std::string block_id;
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V3 Search events (Phase 14: SearchService)
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SearchCompletedEvent)
+std::string query_string;
+int result_count{0};
+double elapsed_ms{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SearchIndexUpdatedEvent)
+std::string block_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SearchIndexRebuiltEvent)
+int total_blocks{0};
+double elapsed_ms{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(GlobalSearchRequestEvent)
+std::string initial_query;
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V3 SQL Query events (Phase 15: QueryService)
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(QueryExecutedEvent)
+std::string sql;
+double elapsed_ms{0.0};
+int row_count{0};
+bool success{true};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(QueryErrorEvent)
+std::string sql;
+std::string error_message;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(QueryPanelOpenRequestEvent)
+std::string initial_sql;
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V3 Search UI events (Phase 16: SearchPanel)
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SearchPanelOpenedEvent)
+std::string initial_query;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SearchPanelClosedEvent)
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SearchResultNavigatedEvent)
+std::string block_id;
+int result_index{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SearchReplaceCompletedEvent)
+std::string search_query;
+std::string replace_text;
+int replaced_count{0};
+int blocks_modified{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// Attribute View data model events (Phase 17)
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AVCreatedEvent)
+std::string av_id;
+std::string name;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AVDeletedEvent)
+std::string av_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AVKeyAddedEvent)
+std::string av_id;
+std::string key_id;
+std::string key_name;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AVKeyRemovedEvent)
+std::string av_id;
+std::string key_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AVRowAddedEvent)
+std::string av_id;
+std::string block_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AVRowRemovedEvent)
+std::string av_id;
+std::string block_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AVValueChangedEvent)
+std::string av_id;
+std::string key_id;
+std::string block_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AVSavedEvent)
+std::string av_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AVLoadedEvent)
+std::string av_id;
+std::string name;
+int key_count{0};
+int row_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// Attribute View table interaction events (Phase 19)
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AVCellEditedEvent)
+std::string av_id;
+std::string key_id;
+std::string block_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AVColumnAddedEvent)
+std::string av_id;
+std::string key_id;
+std::string key_name;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AVColumnRemovedEvent)
+std::string av_id;
+std::string key_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AVColumnReorderedEvent)
+std::string av_id;
+std::string key_id;
+int old_index;
+int new_index;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AVColumnResizedEvent)
+std::string av_id;
+std::string key_id;
+int new_width;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AVViewChangedEvent)
+std::string av_id;
+std::string view_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AVPageChangedEvent)
+std::string av_id;
+int page;
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// Attribute View filter/sort events (Phase 20)
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AVFilterChangedEvent)
+std::string av_id;
+std::string view_id;
+int active_filter_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AVSortChangedEvent)
+std::string av_id;
+std::string view_id;
+int active_sort_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// Attribute View gallery events (Phase 21)
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AVGalleryCardClickedEvent)
+std::string av_id;
+std::string block_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AVGalleryViewConfigChangedEvent)
+std::string av_id;
+std::string view_id;
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// Attribute View kanban events (Phase 22)
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AVKanbanCardMovedEvent)
+std::string av_id;
+std::string block_id;
+std::string old_value;
+std::string new_value;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AVKanbanLaneCollapsedEvent)
+std::string av_id;
+std::string option_name;
+bool collapsed;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AVKanbanCardClickedEvent)
+std::string av_id;
+std::string block_id;
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// Attribute View relation/rollup events (Phase 23)
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AVRelationChangedEvent)
+std::string source_av_id;
+std::string source_block_id;
+std::string relation_key_id;
+int target_count;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AVTwoWayRelationCreatedEvent)
+std::string source_av_id;
+std::string source_key_id;
+std::string target_av_id;
+std::string target_key_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AVRollupRecalculatedEvent)
+std::string av_id;
+int values_updated;
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// FSRS Scheduling Events (Phase 24)
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FSRSCardScheduledEvent)
+std::string card_id;
+std::string deck_id;
+std::string rating;
+double new_stability;
+double new_difficulty;
+double interval_days;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FSRSParametersChangedEvent)
+std::string deck_id;
+double request_retention;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FSRSCardStateChangedEvent)
+std::string card_id;
+std::string old_state;
+std::string new_state;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FlashcardStoreLoadedEvent)
+int deck_count;
+int card_count;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FlashcardStoreSavedEvent)
+int decks_saved;
+int cards_saved;
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// Deck Management Events (Phase 25)
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DeckCreatedEvent)
+std::string deck_id;
+std::string deck_name;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DeckDeletedEvent)
+std::string deck_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DeckRenamedEvent)
+std::string deck_id;
+std::string old_name;
+std::string new_name;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CardsAddedToDeckEvent)
+std::string deck_id;
+int card_count;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CardsRemovedFromDeckEvent)
+std::string deck_id;
+int card_count;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CardResetEvent)
+int card_count;
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// Review Session Events (Phase 26)
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ReviewSessionStartedEvent)
+std::string deck_id;
+int total_cards;
+int due_cards;
+int new_cards;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ReviewSessionCompletedEvent)
+std::string deck_id;
+int cards_reviewed;
+int again_count;
+int good_count;
+int total_seconds;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CardReviewedEvent)
+std::string card_id;
+std::string deck_id;
+std::string rating;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ReviewUndoEvent)
+std::string card_id;
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// Knowledge Graph Data Events (Phase 27)
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(GraphDataComputedEvent)
+std::string scope; // "global", "local", "notebook"
+int node_count;
+int link_count;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(GraphFilterChangedEvent)
+int min_refs;
+bool show_daily_notes;
+bool show_orphans;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT(GraphCacheInvalidatedEvent);
+
+// ============================================================================
+// Knowledge Graph Visualization Events (Phase 28)
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(GraphNodeClickedEvent)
+std::string block_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(GraphNodeHoveredEvent)
+std::string block_id;
+std::string label;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT(GraphLayoutCompleteEvent);
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ShowLocalGraphRequestEvent)
+std::string center_block_id;
+int depth;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT(ShowGlobalGraphRequestEvent);
+
+// ============================================================================
+// V4 Phase 01: Document Model events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DocumentParsedEvent)
+std::string document_id;
+int link_count{0};
+int tag_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FrontmatterChangedEvent)
+std::string document_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(WikiLinkResolvedEvent)
+std::string source_doc_id;
+std::string target_path;
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V4 Phase 02: Vault Management events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(VaultOpenedEvent)
+std::string vault_path;
+int document_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(VaultClosedEvent)
+std::string vault_path;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(VaultDocumentCreatedEvent)
+std::string document_id;
+std::string title;
+std::string file_path;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(VaultDocumentRenamedEvent)
+std::string document_id;
+std::string old_title;
+std::string new_title;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(VaultDocumentDeletedEvent)
+std::string document_id;
+std::string file_path;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(VaultFileChangedEvent)
+std::string file_path;
+std::string change_type; // "created", "modified", "deleted"
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(VaultReindexedEvent)
+int document_count{0};
+double elapsed_ms{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V4 Phase 03: Backlink Index events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BacklinkIndexRebuiltEvent)
+int total_links{0};
+int document_count{0};
+double elapsed_ms{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BacklinkIndexUpdatedEvent)
+std::string document_id;
+int backlink_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BacklinksQueryEvent)
+std::string document_id;
+int result_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V4 Phase 04: Tag System events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TagIndexRebuiltEvent)
+int unique_tags{0};
+int total_tag_assignments{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(VaultTagRenamedEvent)
+std::string old_tag;
+std::string new_tag;
+int documents_modified{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(VaultTagDeletedEvent)
+std::string tag;
+int documents_modified{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V4 Phase 05: Search Engine events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(VaultSearchIndexRebuiltEvent)
+int document_count{0};
+int term_count{0};
+double elapsed_ms{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V4 Phase 06: Backlinks Panel events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FileOpenRequestEvent)
+std::string file_path;
+int line_number{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BacklinksPanelRefreshedEvent)
+std::string document_id;
+int linked_count{0};
+int unlinked_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V4 Phase 07: Graph Engine events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(GraphComputedEvent)
+int node_count{0};
+int edge_count{0};
+int cluster_count{0};
+double elapsed_ms{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(GraphLayoutIterationEvent)
+int iteration{0};
+double kinetic_energy{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT(GraphInvalidatedEvent);
+
+// ============================================================================
+// V4 Phase 08: Graph View Interactive UI events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(GraphNodeSelectedEvent)
+std::string document_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(GraphNodeDoubleClickedEvent)
+std::string document_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(GraphViewZoomChangedEvent)
+double zoom_level{1.0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V4 Phase 09: Daily Notes events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DailyNoteOpenedEvent)
+std::string document_id;
+std::string date_string;
+bool newly_created{false};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT(OpenTodayNoteRequestEvent);
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DailyNoteNavigateEvent)
+std::string direction;
+std::string from_date;
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V4 Phase 10: Embed / Transclusion events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(EmbedResolvedEvent)
+std::string source_doc_id;
+std::string target_path;
+bool success{false};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TransclusionUpdatedEvent)
+std::string source_doc_id;
+std::string embedded_doc_id;
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V4 Phase 11: Link Suggestion events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(LinkAutocompleteTriggerEvent)
+std::string prefix;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(LinkSuggestionsReadyEvent)
+std::string document_id;
+int suggestion_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V4 Phase 12: Outline Panel events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ScrollToLineRequestEvent)
+int line_number{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(OutlineUpdatedEvent)
+int heading_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V4 Phase 13: Live Preview events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(LivePreviewCursorLineChangedEvent)
+int old_line{-1};
+int new_line{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V4 Phase 14: Template events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TemplateAppliedEvent)
+std::string template_name;
+std::string document_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TemplateInsertRequestEvent)
+std::string template_name;
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V4 Phase 16: Find/Replace events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FindCompletedEvent)
+int match_count{0};
+int files_with_matches{0};
+double elapsed_ms{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ReplaceCompletedEvent)
+int replacements{0};
+int files_modified{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V4 Phase 17: Clipboard events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PasteProcessedEvent)
+std::string content_type;
+bool converted{false};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ImagePastedEvent)
+std::string saved_path;
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V4 Phase 18: LaTeX events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(LatexRenderErrorEvent)
+std::string latex_source;
+std::string error_message;
+int line_number{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V4 Phase 19: Pane events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PaneSplitEvent)
+int new_pane_id{0};
+std::string direction;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PaneClosedEvent)
+int pane_id{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PaneFocusChangedEvent)
+int pane_id{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V4 Phase 20: Navigation events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(WikiLinkClickedEvent)
+std::string link_target;
+bool ctrl_held{false};
+bool alt_held{false};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NavigationEvent)
+std::string document_id;
+std::string direction;
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V4 Phase 21: Layout events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(LayoutChangedEvent)
+std::string preset_name;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PanelVisibilityChangedEvent)
+std::string panel_id;
+bool visible{false};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PanelMovedEvent)
+std::string panel_id;
+int new_position{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V4 Phase 22: Vault style events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(VaultStyleLoadedEvent)
+std::string vault_path;
+bool has_custom_css{false};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(VaultStyleChangedEvent)
+std::string css_content;
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V4 Phase 23: Theme marketplace events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ThemeInstalledEvent)
+std::string theme_id;
+std::string theme_name;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ThemeUninstalledEvent)
+std::string theme_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ThemeMarketplaceRefreshedEvent)
+int theme_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V4 Phase 24: Task management events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TaskIndexRebuiltEvent)
+int total_tasks{0};
+int completed{0};
+int overdue{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TaskToggledEvent)
+std::string task_id;
+int new_status{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V4 Phase 25: Kanban events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(KanbanCardMovedEvent)
+std::string task_id;
+std::string from_column;
+std::string to_column;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(KanbanBoardLoadedEvent)
+std::string document_id;
+int column_count{0};
+int card_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V4 Phase 26: Calendar events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CalendarDateSelectedEvent)
+std::string date_string; // YYYY-MM-DD
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CalendarMonthChangedEvent)
+int year{0};
+unsigned month{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V4 Phase 27: Presentation events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PresentationStartedEvent)
+int slide_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT(PresentationEndedEvent);
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SlideChangedEvent)
+int slide_index{0};
+int total_slides{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V4 Phase 28: Encryption events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DocumentEncryptedEvent)
+std::string document_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DocumentDecryptedEvent)
+std::string document_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PasswordRequiredEvent)
+std::string document_id;
+std::string file_path;
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V4 Phase 29: Kernel events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(KernelStartedEvent)
+std::string kernel_id;
+std::string language;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(KernelStoppedEvent)
+std::string kernel_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(KernelStateChangedEvent)
+std::string kernel_id;
+int state{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CellExecutionCompletedEvent)
+std::string cell_id;
+std::string kernel_id;
+bool success{false};
+double elapsed_ms{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CellOutputEvent)
+std::string cell_id;
+std::string kernel_id;
+std::string mime_type;
+std::string content;
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V4 Phase 30: Kernel adapter events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(KernelLanguageDetectedEvent)
+std::string language;
+int environment_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(MagicCommandExecutedEvent)
+std::string command;
+std::string result;
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V4 Phase 31: Cell output events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CellOutputRenderedEvent)
+std::string cell_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CellOutputClearedEvent)
+std::string cell_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CellOutputCollapsedEvent)
+std::string cell_id;
+bool collapsed{false};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V4 Phase 32: DataFrame/Chart events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DataFrameRenderedEvent)
+std::string cell_id;
+int rows{0};
+int columns{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ChartRenderedEvent)
+std::string cell_id;
+std::string format;
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V4 Phase 33: Widget events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(WidgetCreatedEvent)
+std::string widget_id;
+std::string widget_type;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(WidgetUpdatedEvent)
+std::string widget_id;
+std::string property;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(WidgetDestroyedEvent)
+std::string widget_id;
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V4 Phase 34: Notebook cell events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CellAddedEvent)
+std::string cell_id;
+int position{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CellRemovedEvent)
+std::string cell_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CellMovedEvent)
+std::string cell_id;
+int old_position{0};
+int new_position{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CellExecutionRecordedEvent)
+std::string cell_id;
+int execution_count{0};
+double elapsed_ms{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(VariablesRefreshedEvent)
+int variable_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V4 Phase 35: Git events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(GitRepoOpenedEvent)
+std::string path;
+std::string branch;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(GitStatusChangedEvent)
+int modified{0};
+int staged{0};
+int untracked{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(GitCommitCreatedEvent)
+std::string hash;
+std::string message;
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V4 Phase 36: Local Graph events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(LocalGraphBuiltEvent)
+std::string focus_id;
+int node_count{0};
+int edge_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(LocalGraphFilteredEvent)
+std::string tag;
+int remaining_nodes{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V4 Phase 37: Notebook Export events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NotebookExportStartedEvent)
+int cell_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NotebookExportCompletedEvent)
+std::string format;
+bool success{false};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V4 Phase 38: Magic Command events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(MagicExecutedEvent)
+std::string command;
+bool success{false};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(EnvironmentChangedEvent)
+std::string environment;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(EnvironmentDetectedEvent)
+int count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V4 Phase 39: Snapshot events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SnapshotCreatedEvent)
+std::string snapshot_id;
+std::string file_path;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SnapshotRestoredEvent)
+std::string snapshot_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SnapshotsPrunedEvent)
+std::string file_path;
+int pruned_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V4 Phase 40: Notebook Diff events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NotebookDiffComputedEvent)
+int cells_changed{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NotebookMergeCompletedEvent)
+int conflicts{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V5 Canvas events (Phases 1-5)
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasViewportChangedEvent)
+double zoom{1.0};
+double pan_x{0.0};
+double pan_y{0.0};
+double visible_min_x{0.0};
+double visible_min_y{0.0};
+double visible_max_x{0.0};
+double visible_max_y{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasObjectAddedEvent)
+uint64_t object_id{0};
+uint8_t object_type{0}; // CanvasObjectType as uint8_t
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasObjectRemovedEvent)
+uint64_t object_id{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasObjectModifiedEvent)
+uint64_t object_id{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasToolChangedEvent)
+uint8_t tool_mode{0}; // ToolMode as uint8_t
+std::string tool_name;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasSelectionChangedEvent)
+std::vector<uint64_t> selected_ids;
+int count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasObjectHoveredEvent)
+uint64_t object_id{0}; // 0 = no hover
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasObjectMovedEvent)
+std::vector<uint64_t> object_ids;
+double delta_x{0.0};
+double delta_y{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasObjectResizedEvent)
+std::vector<uint64_t> object_ids;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasObjectRotatedEvent)
+std::vector<uint64_t> object_ids;
+double angle_radians{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasUndoRedoChangedEvent)
+bool can_undo{false};
+bool can_redo{false};
+std::string undo_description;
+std::string redo_description;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BoardSavedEvent)
+std::string board_id;
+std::string file_path;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BoardLoadedEvent)
+std::string board_id;
+std::string board_name;
 MARKAMP_DECLARE_EVENT_END;
 
 } // namespace markamp::core::events

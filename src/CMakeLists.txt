@@ -110,6 +110,267 @@ add_executable(markamp
     rendering/HtmlRenderer.cpp
     rendering/CodeBlockRenderer.cpp
     rendering/MermaidBlockRenderer.cpp
+    # V3 Phases 1–3: Block Data Model, ID Generation, Notebook
+    core/Block.cpp
+    core/BlockID.cpp
+    core/Notebook.cpp
+    # V3 Phases 4–6: SQLite Storage, Document FS, Block Tree Index
+    core/BlockDatabase.cpp
+    core/DocumentFileSystem.cpp
+    core/BlockTreeIndex.cpp
+    # V3 Phases 7–10: Core CRUD, IAL, References, Backlinks
+    core/IALParser.cpp
+    core/BlockService.cpp
+    core/AttributeService.cpp
+    core/BlockRef.cpp
+    core/RefParser.cpp
+    core/RefResolver.cpp
+    core/Backlink.cpp
+    core/BacklinkService.cpp
+    # V3 Phases 11–16: Navigation & Query
+    core/Outline.cpp
+    core/OutlineService.cpp
+    core/Tag.cpp
+    core/Bookmark.cpp
+    core/BookmarkService.cpp
+    core/Search.cpp
+    core/SearchService.cpp
+    core/SqlQuery.cpp
+    core/QueryService.cpp
+    ui/SearchPanel.cpp
+
+    # ── Attribute Views (Phases 17–23) ──
+    core/av/AVTypes.cpp
+    core/av/AVValue.cpp
+    core/av/AttributeView.cpp
+    core/av/AttributeViewStore.cpp
+    core/av/AVColumnType.cpp
+    core/av/AVFormatters.cpp
+    core/av/AVValidators.cpp
+    core/av/AVFilter.cpp
+    core/av/AVSort.cpp
+    core/av/AVQueryEngine.cpp
+    core/av/AVRelationService.cpp
+    core/av/AVRollupEngine.cpp
+    ui/av/AVTablePanel.cpp
+    ui/av/AVCellRenderer.cpp
+    ui/av/AVCellEditor.cpp
+    ui/av/AVHeaderRenderer.cpp
+    ui/av/AVFilterBar.cpp
+    ui/av/AVGalleryPanel.cpp
+    ui/av/AVGalleryCard.cpp
+    ui/av/AVGalleryConfig.cpp
+    ui/av/AVKanbanPanel.cpp
+    ui/av/AVKanbanLane.cpp
+    ui/av/AVKanbanCard.cpp
+    ui/av/AVRelationEditor.cpp
+    ui/av/AVRollupConfigDialog.cpp
+    # Phase 24: FSRS Scheduling Algorithm
+    core/fsrs/FSRSTypes.cpp
+    core/fsrs/FSRSEngine.cpp
+    core/fsrs/FlashcardStore.cpp
+    core/fsrs/FSRSReviewSession.cpp
+    # Phase 25: Flashcard Deck Management
+    core/DeckStore.cpp
+    core/DeckManager.cpp
+    # Phase 26: Review Session & UI
+    core/ReviewSession.cpp
+    core/CardFactory.cpp
+    ui/FlashcardReviewPanel.cpp
+    ui/FlashcardBrowserPanel.cpp
+    # Phase 27: Knowledge Graph Data
+    core/ReferenceScanner.cpp
+    core/GraphService.cpp
+    # Phase 28: Knowledge Graph Visualization
+    core/ForceDirectedLayout.cpp
+    ui/GraphPanel.cpp
+    ui/GraphMiniMap.cpp
+    ui/GraphFilterBar.cpp
+    # V4 Phase 01: Block Model and Document Architecture
+    core/WikiLink.cpp
+    core/WikiLinkParser.cpp
+    core/DocumentModel.cpp
+    # V4 Phase 02: Vault Management System
+    core/VaultService.cpp
+    # V4 Phase 03: Bidirectional Link Index
+    core/BacklinkIndex.cpp
+    # V4 Phase 04: Tag System
+    core/TagService.cpp
+    # V4 Phase 05: Full-Text Search Engine
+    core/SearchEngine.cpp
+    # V4 Phase 07: Graph Engine
+    core/GraphEngine.cpp
+    # V4 Phase 06: Backlinks Panel
+    ui/BacklinksPanel.cpp
+    # V4 Phase 08: Graph View Panel
+    ui/GraphViewPanel.cpp
+    # V4 Phase 09: Daily Notes Service
+    core/DailyNoteService.cpp
+    # V4 Phase 10: Embed Resolver
+    core/EmbedResolver.cpp
+    # V4 Phase 11: Link Suggestion Service
+    core/LinkSuggestionService.cpp
+    # V4 Phase 12: Outline Panel Controller
+    core/OutlinePanelController.cpp
+    # V4 Phase 13: Live Preview Renderer
+    ui/LivePreviewRenderer.cpp
+    # V4 Phase 14: Note Template Engine
+    core/NoteTemplateEngine.cpp
+    # V4 Phase 15: Search Query Parser
+    core/SearchQueryParser.cpp
+    # V4 Phase 16: Find/Replace
+    core/FindReplaceService.cpp
+    # V4 Phase 17: Clipboard
+    core/ClipboardService.cpp
+    # V4 Phase 18: LaTeX Engine
+    core/LatexEngine.cpp
+    # V4 Phase 19: Pane Manager
+    ui/PaneManager.cpp
+    # V4 Phase 20: Navigation Service
+    ui/NavigationService.cpp
+    # V4 Phase 21: Workspace Layout
+    ui/WorkspaceLayout.cpp
+    # V4 Phase 22: Vault Style Service
+    core/VaultStyleService.cpp
+    # V4 Phase 23: Theme Marketplace
+    core/ThemeMarketplace.cpp
+    # V4 Phase 24: Task Service
+    core/TaskService.cpp
+    # V4 Phase 25: Kanban Engine
+    ui/KanbanEngine.cpp
+    # V4 Phase 26: Calendar Engine
+    ui/CalendarEngine.cpp
+    # V4 Phase 27: Presentation Engine
+    ui/PresentationEngine.cpp
+    # V4 Phase 28: Encryption Service
+    core/EncryptionService.cpp
+    # V4 Phase 29: Kernel Manager
+    core/KernelManager.cpp
+    # V4 Phase 30: Kernel Adapters
+    core/KernelAdapters.cpp
+    # V4 Phase 31: Cell Output Renderer
+    ui/CellOutputRenderer.cpp
+    # V4 Phase 32: DataFrame Renderer
+    ui/DataFrameRenderer.cpp
+    # V4 Phase 33: Widget Manager
+    core/WidgetManager.cpp
+    # V4 Phase 34: Notebook Cell Manager
+    core/NotebookCellManager.cpp
+    # V4 Phase 35: Git Service
+    core/GitService.cpp
+    # V4 Phase 36: Local Graph Engine
+    core/LocalGraphEngine.cpp
+    # V4 Phase 37: Notebook Export Engine
+    core/NotebookExportEngine.cpp
+    # V4 Phase 38: Magic Command Engine
+    core/MagicCommandEngine.cpp
+    # V4 Phase 39: File Snapshot Service
+    core/FileSnapshotService.cpp
+    # V4 Phase 40: Notebook Diff Engine
+    core/NotebookDiffEngine.cpp
+    # V5 Phase 01: Canvas Data Model & Coordinate System
+    canvas/CanvasTypes.cpp
+    canvas/CanvasObject.cpp
+    canvas/Quadtree.cpp
+    canvas/ViewportTransform.cpp
+    # V5 Phase 02: Canvas Rendering Engine
+    canvas/CanvasRenderer.cpp
+    canvas/TileCache.cpp
+    ui/CanvasPanel.cpp
+    # V5 Phase 03: Canvas Input System
+    canvas/CanvasInputManager.cpp
+    canvas/SelectTool.cpp
+    canvas/PanTool.cpp
+    # V5 Phase 04: Object Selection & Transform
+    canvas/SelectionManager.cpp
+    canvas/SelectionRenderer.cpp
+    # V5 Phase 05: Canvas Serialization & Board Model
+    canvas/Board.cpp
+    canvas/BoardSerializer.cpp
+    canvas/UndoRedoStack.cpp
+    canvas/CanvasCommands.cpp
+    # V5 Phase 06: Grid, Snap & Alignment
+    canvas/SnapEngine.cpp
+    canvas/AlignmentGuides.cpp
+    # V5 Phase 07: Sticky Notes
+    canvas/StickyNote.cpp
+    canvas/StickyNoteRenderer.cpp
+    # V5 Phase 08: Text Boxes
+    canvas/TextBox.cpp
+    canvas/TextBoxRenderer.cpp
+    # V5 Phase 09: Shapes Library
+    canvas/ShapeData.cpp
+    canvas/ShapeRenderer.cpp
+    # V5 Phase 10: Connectors & Lines
+    canvas/ConnectorData.cpp
+    canvas/ConnectorRenderer.cpp
+    # V5 Phase 11: Freehand Drawing Tool
+    canvas/FreehandPath.cpp
+    canvas/FreehandPathRenderer.cpp
+    canvas/DrawTool.cpp
+    # V5 Phase 12: Smart Drawing Recognition
+    canvas/ShapeRecognizer.cpp
+    # V5 Phase 13: Image & File Objects
+    canvas/ImageObject.cpp
+    canvas/ImageObjectRenderer.cpp
+    # V5 Phase 14: Frames
+    canvas/FrameObject.cpp
+    canvas/FrameRenderer.cpp
+    # V5 Phase 15: Board Sections
+    canvas/SectionObject.cpp
+    canvas/SectionRenderer.cpp
+    # V5 Phase 16: Object Grouping & Nesting
+    canvas/GroupObject.cpp
+    canvas/GroupingService.cpp
+    # V5 Phase 17: Object Layering / Z-Index
+    canvas/LayeringService.cpp
+    # V5 Phase 18: Object Locking
+    canvas/LockingService.cpp
+    # V5 Phase 19: Table Creation & Editing
+    canvas/TableObject.cpp
+    canvas/TableRenderer.cpp
+    # V5 Phase 20: Table Sorting & Filtering
+    canvas/TableSortFilter.cpp
+    # V5 Phase 21: Object Metadata System
+    canvas/MetadataPanel.cpp
+    # V5 Phase 22: Tags System
+    canvas/TagManager.cpp
+    canvas/TagPanel.cpp
+    # V5 Phase 23: Minimap / Board Map
+    canvas/MinimapPanel.cpp
+    # V5 Phase 24: Canvas Search
+    canvas/CanvasSearch.cpp
+    canvas/SearchBar.cpp
+    # V5 Phase 25: Outline Panel
+    canvas/OutlinePanel.cpp
+    # V5 Phase 26: Cross-Board Linking
+    canvas/CrossBoardLink.cpp
+    canvas/BoardNavigator.cpp
+    # V5 Phase 27: PDF Import & Page Rendering
+    canvas/PDFPageObject.cpp
+    canvas/PDFImporter.cpp
+    # V5 Phase 28: Embedded Video
+    canvas/VideoEmbedObject.cpp
+    # V5 Phase 29: Bookmark Cards
+    canvas/BookmarkCardObject.cpp
+    canvas/MetadataScraper.cpp
+    # V5 Phase 30: Custom Icons & Emoji Packs
+    canvas/IconObject.cpp
+    canvas/IconLibrary.cpp
+    # V5 Phase 31: Smart Layout Engine
+    canvas/LayoutEngine.cpp
+    canvas/StickyAggregator.cpp
+    # V5 Phase 32: Mind Map Tool
+    canvas/MindMapNode.cpp
+    canvas/MindMapController.cpp
+    # V5 Phase 33: Kanban Board
+    canvas/KanbanObjects.cpp
+    canvas/KanbanController.cpp
+    # V5 Phase 34: Diagram Libraries (UML/BPMN)
+    canvas/DiagramShapeObject.cpp
+    canvas/DiagramLibraryPanel.cpp
+    # V5 Phase 35: Board Templates System
+    canvas/BoardTemplate.cpp
 )
 
 # Platform-specific sources

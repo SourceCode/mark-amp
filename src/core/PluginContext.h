@@ -24,6 +24,14 @@ namespace markamp::core
 class EventBus;
 class Config;
 class FeatureRegistry;
+class TagService;
+class SearchEngine;
+class GraphEngine;
+class DailyNoteService;
+class NoteTemplateEngine;
+class EmbedResolver;
+class LinkSuggestionService;
+class OutlinePanelController;
 
 // Forward declarations for P1–P4 services
 class SnippetEngine;
@@ -35,6 +43,8 @@ class EnvironmentService;
 class GrammarEngine;
 class TerminalService;
 class TaskRunnerService;
+class VaultService;
+class BacklinkIndex;
 
 /// Unified plugin context providing access to all VS Code-equivalent API services.
 /// This is the single source of truth passed to plugins during activation, giving
@@ -129,6 +139,42 @@ struct PluginContext
     GrammarEngine* grammar_engine{nullptr};
     TerminalService* terminal_service{nullptr};
     TaskRunnerService* task_runner_service{nullptr};
+
+    // ── V4 Phase 02: Vault Management ──
+
+    VaultService* vault_service{nullptr};
+
+    // ── V4 Phase 03: Backlink Index ──
+
+    BacklinkIndex* backlink_index{nullptr};
+
+    // ── V4 Phase 04: Tag System ──
+
+    TagService* tag_service{nullptr};
+
+    // ── V4 Phase 05: Search Engine ──
+
+    SearchEngine* search_engine{nullptr};
+
+    // ── V4 Phase 09: Daily Notes ──
+
+    DailyNoteService* daily_note_service{nullptr};
+
+    // ── V4 Phase 10: Embed Resolver ──
+
+    EmbedResolver* embed_resolver{nullptr};
+
+    // ── V4 Phase 11: Link Suggestion Service ──
+
+    LinkSuggestionService* link_suggestion_service{nullptr};
+
+    // ── V4 Phase 12: Outline Panel Controller ──
+
+    OutlinePanelController* outline_panel_controller{nullptr};
+
+    // ── V4 Phase 14: Note Template Engine ──
+
+    NoteTemplateEngine* note_template_engine{nullptr};
 };
 
 } // namespace markamp::core

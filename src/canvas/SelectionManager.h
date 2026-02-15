@@ -1,0 +1,111 @@
+#pragma once
+
+#include "canvas/CanvasObject.h"
+#include "canvas/CanvasTypes.h"
+#include "core/EventBus.h"
+
+#include <memory>
+#include <optional>
+#include <unordered_set>
+#include <vector>
+
+namespace markamp::canvas
+{
+
+/// Handle type for resize/rotate handles.
+enum class HandleType : uint8_t
+{
+    TopLeft,
+    TopCenter,
+    TopRight,
+    MiddleLeft,
+    MiddleRight,
+    BottomLeft,
+    BottomCenter,
+    BottomRight,
+    Rotation,
+    None
+};
+
+/// Snapshot of an object's transform, used for cancel-and-restore.
+struct TransformSnapshot
+{
+    ObjectId id{kInvalidObjectId};
+    Transform2D transform;
+};
+
+/// Manages object selection state and interactive transforms (move, resize, rotate).
+class SelectionManager
+{
+public:
+    explicit SelectionManager(std::shared_ptr<core::EventBus> event_bus);
+
+    // ── Selection State ────────────────────────────────────────────
+
+    auto select(ObjectId obj_id) -> void;
+    auto add_to_selection(ObjectId obj_id) -> void;
+    auto remove_from_selection(ObjectId obj_id) -> void;
+    auto toggle_selection(ObjectId obj_id) -> void;
+    auto clear_selection() -> void;
+    auto select_all(const std::vector<ObjectId>& ids) -> void;
+
+    [[nodiscard]] auto is_selected(ObjectId obj_id) const -> bool;
+    [[nodiscard]] auto selected_ids() const -> std::vector<ObjectId>;
+    [[nodiscard]] auto selection_count() const -> size_t;
+
+    // ── Selection Bounds ───────────────────────────────────────────
+
+    /// Compute the combined AABB of all selected objects.
+    [[nodiscard]] auto
+    selection_bounds(const std::vector<std::unique_ptr<CanvasObject>>& objects) const
+        -> std::optional<AABB>;
+
+    // ── Move Transform ─────────────────────────────────────────────
+
+    auto begin_move(const std::vector<std::unique_ptr<CanvasObject>>& objects) -> void;
+    auto update_move(double delta_x,
+                     double delta_y,
+                     std::vector<std::unique_ptr<CanvasObject>>& objects) -> void;
+    auto end_move() -> void;
+    auto cancel_move(std::vector<std::unique_ptr<CanvasObject>>& objects) -> void;
+
+    // ── Resize Transform ───────────────────────────────────────────
+
+    auto begin_resize(const std::vector<std::unique_ptr<CanvasObject>>& objects, HandleType handle)
+        -> void;
+    auto update_resize(double delta_x,
+                       double delta_y,
+                       std::vector<std::unique_ptr<CanvasObject>>& objects) -> void;
+    auto end_resize() -> void;
+    auto cancel_resize(std::vector<std::unique_ptr<CanvasObject>>& objects) -> void;
+
+    // ── Rotate Transform ───────────────────────────────────────────
+
+    auto begin_rotate(const std::vector<std::unique_ptr<CanvasObject>>& objects) -> void;
+    auto update_rotate(double delta_radians, std::vector<std::unique_ptr<CanvasObject>>& objects)
+        -> void;
+    auto end_rotate() -> void;
+    auto cancel_rotate(std::vector<std::unique_ptr<CanvasObject>>& objects) -> void;
+
+    // ── State Queries ──────────────────────────────────────────────
+
+    [[nodiscard]] auto is_moving() const -> bool;
+    [[nodiscard]] auto is_resizing() const -> bool;
+    [[nodiscard]] auto is_rotating() const -> bool;
+    [[nodiscard]] auto active_handle() const -> HandleType;
+
+private:
+    std::shared_ptr<core::EventBus> event_bus_;
+    std::unordered_set<ObjectId> selection_;
+    std::vector<TransformSnapshot> snapshots_;
+    HandleType active_handle_{HandleType::None};
+    bool is_moving_{false};
+    bool is_resizing_{false};
+    bool is_rotating_{false};
+
+    auto save_snapshots(const std::vector<std::unique_ptr<CanvasObject>>& objects) -> void;
+    auto restore_snapshots(std::vector<std::unique_ptr<CanvasObject>>& objects) -> void;
+    auto publish_selection_changed() -> void;
+};
+
+} // namespace markamp::canvas

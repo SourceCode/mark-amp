@@ -13,7 +13,11 @@
         "yaml-cpp",
         "libzip",
         "openssl",
-        "cpp-httplib"
+        "cpp-httplib",
+        {
+            "name": "sqlite3",
+            "features": ["fts5"]
+        }
     ],
     "overrides": []
 }

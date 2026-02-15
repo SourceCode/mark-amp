@@ -182,6 +182,7 @@ void SplitView::StartTransition(core::events::ViewMode target_mode)
             transition_start_ratio_ = 0.0; // preview takes all
             break;
         case core::events::ViewMode::Split:
+        case core::events::ViewMode::LivePreview:
             transition_start_ratio_ = split_ratio_;
             break;
     }
@@ -195,6 +196,7 @@ void SplitView::StartTransition(core::events::ViewMode target_mode)
             transition_target_ratio_ = 0.0;
             break;
         case core::events::ViewMode::Split:
+        case core::events::ViewMode::LivePreview:
             transition_target_ratio_ = split_ratio_;
             break;
     }
@@ -724,6 +726,7 @@ void SplitView::UpdateLayout()
             break;
 
         case core::events::ViewMode::Split:
+        case core::events::ViewMode::LivePreview:
         {
             int split_pos = static_cast<int>(static_cast<double>(width) * split_ratio_);
             split_pos = std::clamp(split_pos, kDividerWidth * 2, width - kDividerWidth * 2);

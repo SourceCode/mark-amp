@@ -1,0 +1,123 @@
+#include "UndoRedoStack.h"
+
+namespace markamp::canvas
+{
+
+// ── ICanvasCommand defaults ────────────────────────────────────
+
+auto ICanvasCommand::can_merge_with(const ICanvasCommand& /*other*/) const -> bool
+{
+    return false;
+}
+
+auto ICanvasCommand::merge_with(const ICanvasCommand& /*other*/) -> bool
+{
+    return false;
+}
+
+// ── UndoRedoStack ──────────────────────────────────────────────
+
+UndoRedoStack::UndoRedoStack(size_t max_history)
+    : max_history_(max_history)
+{
+}
+
+auto UndoRedoStack::execute(std::unique_ptr<ICanvasCommand> cmd) -> void
+{
+    cmd->execute();
+    undo_stack_.push_back(std::move(cmd));
+    redo_stack_.clear();
+
+    // Trim history if over limit.
+    if (undo_stack_.size() > max_history_)
+    {
+        undo_stack_.erase(undo_stack_.begin());
+    }
+}
+
+auto UndoRedoStack::execute_or_merge(std::unique_ptr<ICanvasCommand> cmd) -> void
+{
+    if (!undo_stack_.empty() && undo_stack_.back()->can_merge_with(*cmd))
+    {
+        undo_stack_.back()->merge_with(*cmd);
+        cmd->execute(); // Still execute the action.
+    }
+    else
+    {
+        execute(std::move(cmd));
+    }
+}
+
+auto UndoRedoStack::undo() -> bool
+{
+    if (undo_stack_.empty())
+    {
+        return false;
+    }
+
+    auto cmd = std::move(undo_stack_.back());
+    undo_stack_.pop_back();
+    cmd->undo();
+    redo_stack_.push_back(std::move(cmd));
+    return true;
+}
+
+auto UndoRedoStack::redo() -> bool
+{
+    if (redo_stack_.empty())
+    {
+        return false;
+    }
+
+    auto cmd = std::move(redo_stack_.back());
+    redo_stack_.pop_back();
+    cmd->execute();
+    undo_stack_.push_back(std::move(cmd));
+    return true;
+}
+
+auto UndoRedoStack::can_undo() const -> bool
+{
+    return !undo_stack_.empty();
+}
+
+auto UndoRedoStack::can_redo() const -> bool
+{
+    return !redo_stack_.empty();
+}
+
+auto UndoRedoStack::undo_count() const -> size_t
+{
+    return undo_stack_.size();
+}
+
+auto UndoRedoStack::redo_count() const -> size_t
+{
+    return redo_stack_.size();
+}
+
+auto UndoRedoStack::undo_description() const -> std::string
+{
+    if (undo_stack_.empty())
+    {
+        return {};
+    }
+    return undo_stack_.back()->description();
+}
+
+auto UndoRedoStack::redo_description() const -> std::string
+{
+    if (redo_stack_.empty())
+    {
+        return {};
+    }
+    return redo_stack_.back()->description();
+}
+
+auto UndoRedoStack::clear() -> void
+{
+    undo_stack_.clear();
+    redo_stack_.clear();
+}
+
+} // namespace markamp::canvas
