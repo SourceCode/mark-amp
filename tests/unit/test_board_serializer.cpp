@@ -32,7 +32,7 @@ public:
 
 TEST_CASE("BoardSerializer format version", "[canvas][serializer]")
 {
-    REQUIRE(BoardSerializer::kFormatVersion == 1);
+    REQUIRE(BoardSerializer::kFormatVersion == 2);
 }
 
 TEST_CASE("BoardSerializer register factory", "[canvas][serializer]")

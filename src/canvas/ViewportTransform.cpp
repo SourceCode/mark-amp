@@ -130,4 +130,70 @@ auto ViewportTransform::fit_to_bounds(const AABB& world_bounds, double padding) 
     pan_.y = content_center.y - (screen_height_ / zoom_) / 2.0;
 }
 
+// --- Navigation helpers (#17–22) ---
+
+auto ViewportTransform::zoom_to_fit_selection(const AABB& selection, double padding) -> void
+{
+    fit_to_bounds(selection, padding);
+}
+
+auto ViewportTransform::zoom_to_percent(double percent) -> void
+{
+    set_zoom(percent / 100.0);
+}
+
+auto ViewportTransform::zoom_in() -> void
+{
+    set_zoom(zoom_ + kZoomStep);
+}
+
+auto ViewportTransform::zoom_out() -> void
+{
+    set_zoom(zoom_ - kZoomStep);
+}
+
+auto ViewportTransform::center_on_point(const Point2D& world_pt) -> void
+{
+    pan_.x = world_pt.x - (screen_width_ / zoom_) / 2.0;
+    pan_.y = world_pt.y - (screen_height_ / zoom_) / 2.0;
+}
+
+auto ViewportTransform::is_point_visible(const Point2D& world_pt) const -> bool
+{
+    return visible_region().contains(world_pt);
+}
+
+auto ViewportTransform::zoom_percent() const -> double
+{
+    return zoom_ * 100.0;
+}
+
+// --- Batch 3 (#13-16) ---
+
+auto ViewportTransform::zoom_to_object(const AABB& obj_bounds, double padding) -> void
+{
+    fit_to_bounds(obj_bounds, padding);
+}
+
+auto ViewportTransform::zoom_to_100() -> void
+{
+    zoom_ = 1.0;
+}
+
+auto ViewportTransform::screen_center_world() const -> Point2D
+{
+    return screen_to_world(Point2D{screen_width_ / 2.0, screen_height_ / 2.0});
+}
+
+auto ViewportTransform::clamp_pan(const AABB& content_bounds, double margin) -> void
+{
+    const double limit_min_x = content_bounds.min_x - margin;
+    const double limit_max_x = content_bounds.max_x + margin;
+    const double limit_min_y = content_bounds.min_y - margin;
+    const double limit_max_y = content_bounds.max_y + margin;
+
+    pan_.x = std::clamp(pan_.x, limit_min_x, limit_max_x);
+    pan_.y = std::clamp(pan_.y, limit_min_y, limit_max_y);
+}
+
 } // namespace markamp::canvas

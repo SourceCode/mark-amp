@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ThemeAwareWindow.h"
+#include "core/DiagnosticsService.h"
 #include "core/EventBus.h"
 #include "core/Events.h"
 #include "core/ThemeEngine.h"
@@ -33,6 +34,54 @@ class FeatureRegistry;
 
 namespace markamp::ui
 {
+
+/// V8 Phase 9: Logical state layers that compose the editor surface.
+/// Priority order (lower = higher visual priority when layers overlap):
+///   Cursor → Selection → Diagnostics → ActiveLine → Search → CodeActions → WriteMode
+enum class EditorStateLayer
+{
+    kCursor,      // Caret position and blink
+    kSelection,   // Text selection(s) and multi-cursors
+    kDiagnostics, // Error/warn/info squiggles from linting
+    kActiveLine,  // Active line highlight band
+    kSearch,      // Find/replace match highlights
+    kCodeActions, // Quick-fix lightbulb margin
+    kWriteMode    // Typewriter / Zen mode dimming
+};
+
+/// V8 Phase 10: Per-line diagnostic state for gutter indicators.
+struct DiagnosticIndicator
+{
+    int line{0}; ///< Source line (0-based)
+    core::DiagnosticSeverity severity{core::DiagnosticSeverity::kError};
+    std::string message;             ///< Primary diagnostic message
+    bool quick_fix_available{false}; ///< Show lightbulb affordance
+};
+
+/// V8 Phase 10: Editor productivity modes with per-mode configurations.
+enum class ProductivityMode
+{
+    kWriting, // Generous line spacing, minimal diagnostics, live preview sync
+    kReview,  // Compact lines, full diagnostics, side-by-side preview
+    kRefactor // Minimap on, aggressive diagnostics, no preview sync
+};
+
+/// V8 Phase 10: Actions available on preview content blocks.
+enum class PreviewBlockAction
+{
+    kCopyCode,       // Copy code block contents
+    kCollapseToggle, // Toggle section collapse/expand
+    kOpenSource,     // Navigate to source line in editor
+    kEditSection     // Open "edit this section" flow
+};
+
+/// V8 Phase 10: Reading profiles for preview typography and spacing.
+enum class ReadingProfile
+{
+    kDocumentation, // Default spacing, readable widths
+    kPresentation,  // Larger type, increased spacing
+    kPrintReady     // Print-optimized margins and typography
+};
 
 /// Text editor panel wrapping wxStyledTextCtrl (Scintilla) for markdown editing.
 /// Features: markdown syntax highlighting, undo/redo, find/replace,
@@ -396,6 +445,12 @@ public:
     void LoadPreferences(core::Config& config);
     void SavePreferences(core::Config& config) const;
 
+    // ── V8 Phase 10: Productivity modes ──
+    void SetProductivityMode(ProductivityMode mode);
+    [[nodiscard]] auto GetProductivityMode() const -> ProductivityMode;
+    [[nodiscard]] auto diagnostic_indicators() const -> const std::vector<DiagnosticIndicator>&;
+    void set_diagnostic_indicators(std::vector<DiagnosticIndicator> indicators);
+
     // ── Constants ──
     static constexpr int kDefaultFontSize = 13;
     static constexpr int kDefaultTabSize = 4;
@@ -661,6 +716,10 @@ private:
     bool syntax_highlight_constants_{true};
     bool syntax_highlight_preprocessor_{true};
     bool syntax_dim_whitespace_{false};
+
+    // ── V8 Phase 10: Code Intelligence state ──
+    ProductivityMode current_productivity_mode_{ProductivityMode::kWriting};
+    std::vector<DiagnosticIndicator> diagnostic_indicators_;
 };
 
 } // namespace markamp::ui

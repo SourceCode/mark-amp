@@ -2,6 +2,7 @@
 
 #include "Logger.h"
 #include "SPSCQueue.h"
+#include "TracyIntegration.h"
 
 #include <concepts>
 #include <functional>
@@ -139,6 +140,7 @@ template <typename T>
     requires std::derived_from<T, Event>
 void EventBus::publish(const T& event)
 {
+    MARKAMP_TRACY_ZONE("EventBus::publish");
     // COW — grab shared_ptr snapshot under lock; handlers execute outside lock
     std::shared_ptr<HandlerList> snapshot;
     {
@@ -169,6 +171,7 @@ template <typename T>
     requires std::derived_from<T, Event>
 void EventBus::publish_fast(const T& event)
 {
+    MARKAMP_TRACY_ZONE("EventBus::publish_fast");
     // Lock-free fast path: atomic load of the handler snapshot.
     // No mutex needed — the COW pattern guarantees the shared_ptr
     // snapshot is always a valid, immutable list.

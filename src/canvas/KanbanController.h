@@ -2,6 +2,8 @@
 
 #include "canvas/CanvasTypes.h"
 
+#include <cstddef>
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -35,6 +37,38 @@ public:
 
     /// Re-layout all columns and their cards.
     auto relayout() -> void;
+
+    // ── Workflow helpers (#15-18) ───────────────────────────────
+
+    /// Remove a card from its column and mark it archived.
+    auto archive_card(ObjectId card_id) -> void;
+
+    /// Clone a card and insert the copy in the same column.
+    auto duplicate_card(ObjectId card_id) -> ObjectId;
+
+    /// Swap the positions of two columns.
+    auto reorder_column(ObjectId col_a, ObjectId col_b) -> void;
+
+    /// Statistics for a single column.
+    struct ColumnStats
+    {
+        size_t card_count{0};
+        bool wip_exceeded{false};
+        int total_story_points{0};
+    };
+
+    /// Return statistics for a column.
+    [[nodiscard]] auto column_stats(ObjectId column_id) const -> ColumnStats;
+
+    // ── Filtering & Aggregation (#34-35) ───────────────────────
+
+    /// Filter cards across all columns by predicate. Returns matching card IDs.
+    [[nodiscard]] auto
+    filter_cards(const std::function<bool(const class KanbanCard&)>& predicate) const
+        -> std::vector<ObjectId>;
+
+    /// Sum story points across all columns.
+    [[nodiscard]] auto total_story_points() const -> int;
 
 private:
     Board& board_;

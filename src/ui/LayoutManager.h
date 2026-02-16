@@ -2,9 +2,11 @@
 
 #include "ThemeAwareWindow.h"
 #include "core/EventBus.h"
+#include "core/Events.h"
 #include "core/FileNode.h"
 #include "core/ThemeEngine.h"
 
+#include <wx/button.h>
 #include <wx/notebook.h>
 #include <wx/sizer.h>
 #include <wx/srchctrl.h>
@@ -55,6 +57,8 @@ enum class SidebarMode
     kExplorer,
     kExtensions
 };
+
+class CanvasWorkspacePanel;
 
 /// Orchestrates the three-zone layout below CustomChrome:
 ///   Sidebar (256px) | Content Area (flex)
@@ -132,6 +136,16 @@ public:
     void ShowBottomPanel(bool show);
     [[nodiscard]] auto is_bottom_panel_visible() const -> bool;
 
+    // V8 Phase 6: Canvas mode switching
+    void ShowCanvasWorkspace();
+    void ShowEditorWorkspace();
+    [[nodiscard]] auto is_canvas_mode() const -> bool;
+    [[nodiscard]] auto canvas_workspace() -> CanvasWorkspacePanel*;
+
+    // V8 Phase 11: Unified workbench mode
+    void SetWorkbenchMode(core::events::WorkbenchMode mode);
+    [[nodiscard]] auto GetWorkbenchMode() const -> core::events::WorkbenchMode;
+
 protected:
     void OnThemeChanged(const core::Theme& new_theme) override;
 
@@ -154,6 +168,9 @@ private:
     Toolbar* toolbar_{nullptr};
     wxStaticText* file_count_label_{nullptr};
     wxStaticText* header_label_{nullptr};    // R3 Fix 19
+    wxPanel* header_panel_{nullptr};         // V8 Phase 1: theme hot-swap
+    wxPanel* footer_panel_{nullptr};         // V8 Phase 1: theme hot-swap
+    wxButton* collapse_btn_{nullptr};        // V8 Phase 1: theme hot-swap
     BreadcrumbBar* breadcrumb_bar_{nullptr}; // R3 Fix 14
 
     // Bottom panel host (Output, Problems, Walkthrough tabs)
@@ -174,6 +191,15 @@ private:
     core::Subscription show_extensions_sub_;
     core::Subscription show_explorer_sub_;
     core::Subscription feature_toggled_sub_;
+
+    // V8 Phase 6: Canvas workspace
+    CanvasWorkspacePanel* canvas_workspace_{nullptr};
+    bool canvas_mode_{false};
+    core::Subscription board_open_sub_;
+
+    // V8 Phase 11: Unified workbench mode
+    core::events::WorkbenchMode workbench_mode_{core::events::WorkbenchMode::kEditor};
+    core::Subscription workbench_mode_switch_sub_;
 
     // Sizer management
     wxBoxSizer* main_sizer_{nullptr};
@@ -215,6 +241,7 @@ private:
     };
     std::unordered_map<std::string, FileBuffer> file_buffers_;
     std::string active_file_path_;
+    std::string workspace_name_; // V8 Phase 1: Project-first sidebar header
 
     // Event subscriptions for tabs
     core::Subscription tab_switched_sub_;

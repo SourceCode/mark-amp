@@ -20,6 +20,13 @@ public:
     /// Parse YAML frontmatter content into a Theme object.
     static auto parse_yaml_content(const std::string& yaml_content)
         -> std::expected<Theme, std::string>;
+
+    // V8 Phase 12 (Phase 40): VSCode theme import
+
+    /// Load a VSCode-compatible theme JSON file.
+    /// Returns the parsed Theme or an error message.
+    static auto load_vscode_theme(const std::filesystem::path& path)
+        -> std::expected<Theme, std::string>;
 };
 
 } // namespace markamp::core

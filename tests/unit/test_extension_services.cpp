@@ -1,3 +1,4 @@
+#include "core/ContextKeyService.h"
 #include "core/DecorationService.h"
 #include "core/DiagnosticsService.h"
 #include "core/FileSystemProviderRegistry.h"

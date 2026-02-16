@@ -27,6 +27,7 @@ add_library(markamp_core STATIC
     ${CMAKE_SOURCE_DIR}/src/core/ShortcutManager.cpp
     ${CMAKE_SOURCE_DIR}/src/core/AccessibilityManager.cpp
     ${CMAKE_SOURCE_DIR}/src/core/Profiler.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/StartupTimer.cpp
     ${CMAKE_SOURCE_DIR}/src/core/MermaidRenderer.cpp
     ${CMAKE_SOURCE_DIR}/src/core/HtmlSanitizer.cpp
     ${CMAKE_SOURCE_DIR}/src/core/PieceTable.cpp
@@ -133,6 +134,20 @@ add_library(markamp_core STATIC
     ${CMAKE_SOURCE_DIR}/src/ui/PaneManager.cpp
     # V4 Phase 20: Navigation Service
     ${CMAKE_SOURCE_DIR}/src/ui/NavigationService.cpp
+    # V8 Phase 11: Tool Window Host
+    ${CMAKE_SOURCE_DIR}/src/ui/ToolWindowHost.cpp
+    # V8 Phase 12: Surface link router + transition coordinator
+    ${CMAKE_SOURCE_DIR}/src/core/SurfaceLink.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/SurfaceTransitionCoordinator.cpp
+    # V8 Phase 12: VSCode theme infrastructure
+    ${CMAKE_SOURCE_DIR}/src/core/VsCodeThemeAdapter.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/ThemeScopeMapper.cpp
+    # V8 Phase 13: FX Engine
+    ${CMAKE_SOURCE_DIR}/src/rendering/FxEngine.cpp
+    ${CMAKE_SOURCE_DIR}/src/rendering/FxMotionPreset.cpp
+    ${CMAKE_SOURCE_DIR}/src/rendering/TextFxRenderer.cpp
+    ${CMAKE_SOURCE_DIR}/src/rendering/FxPresetRegistry.cpp
+    ${CMAKE_SOURCE_DIR}/src/rendering/FxSafetyController.cpp
     # V4 Phase 21: Workspace Layout
     ${CMAKE_SOURCE_DIR}/src/ui/WorkspaceLayout.cpp
     # V4 Phase 22: Vault Style Service
@@ -276,6 +291,14 @@ add_library(markamp_core STATIC
     ${CMAKE_SOURCE_DIR}/src/canvas/DiagramLibraryPanel.cpp
     # V5 Phase 35: Board Templates System
     ${CMAKE_SOURCE_DIR}/src/canvas/BoardTemplate.cpp
+    # V8 Phase 5: Settings Catalog
+    ${CMAKE_SOURCE_DIR}/src/core/SettingsCatalog.cpp
+    # V8 Phase 7: Realtime Collaboration
+    ${CMAKE_SOURCE_DIR}/src/core/CanvasCollabService.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/CommentObject.cpp
+    # V8 Phase 8: Canvas Apps Marketplace
+    ${CMAKE_SOURCE_DIR}/src/canvas/AppWidgetObject.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/CanvasIntegrationService.cpp
 )
 target_include_directories(markamp_core PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(markamp_core PUBLIC markamp_dependencies)
@@ -1602,3 +1625,349 @@ target_link_libraries(test_board_templates PRIVATE
     markamp_core
 )
 add_test(NAME test_board_templates COMMAND test_board_templates)
+
+# ============================================================================
+# V6 Phase 03: Startup Timer & Profiler Refactor
+# ============================================================================
+add_executable(test_startup_timer unit/test_startup_timer.cpp)
+target_include_directories(test_startup_timer PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_startup_timer PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_startup_timer COMMAND test_startup_timer)
+
+# ============================================================================
+# V6 Phase 05: Tracy Profiler Integration
+# ============================================================================
+add_executable(test_tracy_integration unit/test_tracy_integration.cpp)
+target_include_directories(test_tracy_integration PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_tracy_integration PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_tracy_integration COMMAND test_tracy_integration)
+
+# Phase 10: Allocator tests
+add_executable(test_allocator unit/test_allocator.cpp)
+target_include_directories(test_allocator PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_allocator PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_allocator COMMAND test_allocator)
+
+# Phase 11: Constexpr table tests
+add_executable(test_constexpr_tables unit/test_constexpr_tables.cpp)
+target_include_directories(test_constexpr_tables PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_constexpr_tables PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_constexpr_tables COMMAND test_constexpr_tables)
+
+# Phase 12: Lazy Service tests
+add_executable(test_lazy_service unit/test_lazy_service.cpp)
+target_include_directories(test_lazy_service PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_lazy_service PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_lazy_service COMMAND test_lazy_service)
+
+# Phase 13: Deferred loading tests
+add_executable(test_deferred_loading unit/test_deferred_loading.cpp)
+target_include_directories(test_deferred_loading PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_deferred_loading PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_deferred_loading COMMAND test_deferred_loading)
+
+# Phase 14: Arena expansion tests
+add_executable(test_arena_expansion unit/test_arena_expansion.cpp)
+target_include_directories(test_arena_expansion PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_arena_expansion PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_arena_expansion COMMAND test_arena_expansion)
+
+# Phase 16: Profiler v2 tests
+add_executable(test_profiler_v2 unit/test_profiler_v2.cpp)
+target_include_directories(test_profiler_v2 PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_profiler_v2 PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_profiler_v2 COMMAND test_profiler_v2)
+
+# Phase 17: ResolvedConfig strategy tests
+add_executable(test_resolved_config unit/test_resolved_config.cpp)
+target_include_directories(test_resolved_config PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_resolved_config PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_resolved_config COMMAND test_resolved_config)
+
+# Phase 18: Incremental rendering pipeline tests
+add_executable(test_incremental_rendering unit/test_incremental_rendering.cpp)
+target_include_directories(test_incremental_rendering PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_incremental_rendering PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_incremental_rendering COMMAND test_incremental_rendering)
+
+# Phase 19: Bounded containers and memory budget tests
+add_executable(test_bounded_containers unit/test_bounded_containers.cpp)
+target_include_directories(test_bounded_containers PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_bounded_containers PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_bounded_containers COMMAND test_bounded_containers)
+
+add_executable(test_memory_budget unit/test_memory_budget.cpp)
+target_include_directories(test_memory_budget PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_memory_budget PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_memory_budget COMMAND test_memory_budget)
+
+# Phase 20: FlatEventBus tests
+add_executable(test_eventbus_v2 unit/test_eventbus_v2.cpp)
+target_include_directories(test_eventbus_v2 PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_eventbus_v2 PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_eventbus_v2 COMMAND test_eventbus_v2)
+
+# Phase 21: SnapshotStore tests
+add_executable(test_lockfree_snapshot unit/test_lockfree_snapshot.cpp)
+target_include_directories(test_lockfree_snapshot PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_lockfree_snapshot PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_lockfree_snapshot COMMAND test_lockfree_snapshot)
+
+# Phase 22: ThreadBoundary tests
+add_executable(test_thread_boundary unit/test_thread_boundary.cpp)
+target_include_directories(test_thread_boundary PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_thread_boundary PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_thread_boundary COMMAND test_thread_boundary)
+
+# Phase 23: SoA storage tests
+add_executable(test_soa_storage unit/test_soa_storage.cpp)
+target_include_directories(test_soa_storage PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_soa_storage PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_soa_storage COMMAND test_soa_storage)
+
+# Phase 24: Plugin isolation tests
+add_executable(test_plugin_isolation unit/test_plugin_isolation.cpp)
+target_include_directories(test_plugin_isolation PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_plugin_isolation PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_plugin_isolation COMMAND test_plugin_isolation)
+
+# Phase 25: UB edge case tests
+add_executable(test_ub_edge_cases unit/test_ub_edge_cases.cpp)
+target_include_directories(test_ub_edge_cases PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_ub_edge_cases PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_ub_edge_cases COMMAND test_ub_edge_cases)
+
+# Phase 26: Constexpr map tests
+add_executable(test_constexpr_map unit/test_constexpr_map.cpp)
+target_include_directories(test_constexpr_map PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_constexpr_map PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_constexpr_map COMMAND test_constexpr_map)
+
+# Phase 27: Frame budget enforcement tests
+add_executable(test_frame_budget_enforcement unit/test_frame_budget_enforcement.cpp)
+target_include_directories(test_frame_budget_enforcement PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_frame_budget_enforcement PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_frame_budget_enforcement COMMAND test_frame_budget_enforcement)
+
+# Phase 28: Incremental tokenization tests
+add_executable(test_incremental_tokenization unit/test_incremental_tokenization.cpp)
+target_include_directories(test_incremental_tokenization PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_incremental_tokenization PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_incremental_tokenization COMMAND test_incremental_tokenization)
+
+# Phase 29: Structured logging tests
+add_executable(test_structured_logging unit/test_structured_logging.cpp)
+target_include_directories(test_structured_logging PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_structured_logging PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+    spdlog::spdlog
+)
+add_test(NAME test_structured_logging COMMAND test_structured_logging)
+
+# Phase 30: Crash reporter tests
+add_executable(test_crash_reporter unit/test_crash_reporter.cpp)
+target_include_directories(test_crash_reporter PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_crash_reporter PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_crash_reporter COMMAND test_crash_reporter)
+
+# Phase 31: Watchdog tests
+add_executable(test_watchdog unit/test_watchdog.cpp)
+target_include_directories(test_watchdog PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_watchdog PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_watchdog COMMAND test_watchdog)
+
+# Phase 32: Health panel tests
+add_executable(test_health_panel unit/test_health_panel.cpp)
+target_include_directories(test_health_panel PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_health_panel PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_health_panel COMMAND test_health_panel)
+
+# Phase 33: Extension resource tracking tests
+add_executable(test_extension_resource_tracking unit/test_extension_resource_tracking.cpp)
+target_include_directories(test_extension_resource_tracking PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_extension_resource_tracking PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_extension_resource_tracking COMMAND test_extension_resource_tracking)
+
+# Phase 35: Large file mode tests
+add_executable(test_large_file_mode unit/test_large_file_mode.cpp)
+target_include_directories(test_large_file_mode PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_large_file_mode PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_large_file_mode COMMAND test_large_file_mode)
+
+# Phase 37: Chaos engine tests
+add_executable(test_chaos_engine chaos/test_chaos_engine.cpp)
+target_include_directories(test_chaos_engine PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_chaos_engine PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_chaos_engine COMMAND test_chaos_engine)
+
+# Phase 39: Load test harness tests
+add_executable(test_load_harness load/test_load_harness.cpp)
+target_include_directories(test_load_harness PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_load_harness PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_load_harness COMMAND test_load_harness)
+
+# V8 Phase 5: SettingsCatalog tests
+add_executable(test_settings_catalog unit/test_settings_catalog.cpp)
+target_include_directories(test_settings_catalog PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_settings_catalog PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_settings_catalog COMMAND test_settings_catalog)
+
+# V8 Phase 5: SettingsPanel staged-edit API compile tests
+add_executable(test_settings_panel unit/test_settings_panel.cpp)
+target_include_directories(test_settings_panel PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_settings_panel PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_settings_panel COMMAND test_settings_panel)
+
+# V8 Phase 6: Canvas Workbench Shell compile tests
+add_executable(test_canvas_workspace unit/test_canvas_workspace.cpp)
+target_include_directories(test_canvas_workspace PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_canvas_workspace PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_canvas_workspace COMMAND test_canvas_workspace)
+
+# V8 Phase 7: Realtime Collaboration tests
+add_executable(test_canvas_collab unit/test_canvas_collab.cpp)
+target_include_directories(test_canvas_collab PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_canvas_collab PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_canvas_collab COMMAND test_canvas_collab)
+
+# V8 Phase 8: Canvas Apps Marketplace tests
+add_executable(test_canvas_apps unit/test_canvas_apps.cpp)
+target_include_directories(test_canvas_apps PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_canvas_apps PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_canvas_apps COMMAND test_canvas_apps)
+
+# V8 Phase 10: Code Intelligence UX tests
+add_executable(test_code_intelligence unit/test_code_intelligence.cpp)
+target_include_directories(test_code_intelligence PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_code_intelligence PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_code_intelligence COMMAND test_code_intelligence)
+
+# V8 Phase 11: Unified Workbench Navigation tests
+add_executable(test_workbench_navigation unit/test_workbench_navigation.cpp)
+target_include_directories(test_workbench_navigation PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_workbench_navigation PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_workbench_navigation COMMAND test_workbench_navigation)
+
+# V8 Phase 12: Surface Link Router + Theme Infrastructure
+add_executable(test_phase12_surface_theme unit/test_phase12_surface_theme.cpp)
+target_include_directories(test_phase12_surface_theme PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_phase12_surface_theme PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_phase12_surface_theme COMMAND test_phase12_surface_theme)
+
+# V8 Phase 13: FX Engine tests
+add_executable(test_phase13_fx_engine unit/test_phase13_fx_engine.cpp)
+target_include_directories(test_phase13_fx_engine PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_phase13_fx_engine PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_phase13_fx_engine COMMAND test_phase13_fx_engine)

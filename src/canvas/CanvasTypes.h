@@ -132,7 +132,8 @@ enum class CanvasObjectType : uint8_t
     Icon,
     Comment,
     DiagramShape,
-    CrossBoardLink
+    CrossBoardLink,
+    AppWidget // V8 Phase 8: In-canvas widget host
 };
 
 } // namespace markamp::canvas

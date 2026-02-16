@@ -198,6 +198,99 @@ auto FreehandPath::simplify(double tolerance) -> void
     mark_dirty();
 }
 
+// ── Path Shape (#13-14) ────────────────────────────────────────
+
+auto FreehandPath::is_closed() const -> bool
+{
+    return closed_;
+}
+auto FreehandPath::set_closed(bool closed) -> void
+{
+    closed_ = closed;
+    mark_dirty();
+}
+auto FreehandPath::fill_color() const -> CanvasColor
+{
+    return fill_color_;
+}
+auto FreehandPath::set_fill_color(CanvasColor color) -> void
+{
+    fill_color_ = color;
+    mark_dirty();
+}
+
+// ── Computed & Operations (#15-18) ─────────────────────────────
+
+auto FreehandPath::total_length() const -> double
+{
+    double length = 0.0;
+    for (size_t idx = 1; idx < points_.size(); ++idx)
+    {
+        length += points_[idx].distance_to(points_[idx - 1]);
+    }
+    return length;
+}
+
+auto FreehandPath::bounding_center() const -> Point2D
+{
+    const auto bounds = local_bounds();
+    return bounds.center();
+}
+
+auto FreehandPath::reverse() -> void
+{
+    std::reverse(points_.begin(), points_.end());
+    mark_dirty();
+}
+
+auto FreehandPath::erase_points_in(const AABB& region) -> void
+{
+    points_.erase(std::remove_if(points_.begin(),
+                                 points_.end(),
+                                 [&region](const Point2D& point)
+                                 {
+                                     return point.x >= region.min_x && point.x <= region.max_x &&
+                                            point.y >= region.min_y && point.y <= region.max_y;
+                                 }),
+                  points_.end());
+    mark_dirty();
+}
+
+// --- Batch 7 (#37-39) ---
+
+auto FreehandPath::is_empty() const -> bool
+{
+    return points_.empty();
+}
+
+auto FreehandPath::clear_points() -> void
+{
+    points_.clear();
+    mark_dirty();
+}
+
+auto FreehandPath::subsample(size_t max_points) -> void
+{
+    if (points_.size() <= max_points || max_points < 2)
+    {
+        return;
+    }
+
+    std::vector<Point2D> sampled;
+    sampled.reserve(max_points);
+
+    const double step =
+        static_cast<double>(points_.size() - 1) / static_cast<double>(max_points - 1);
+    for (size_t idx = 0; idx < max_points; ++idx)
+    {
+        const size_t src_idx = static_cast<size_t>(static_cast<double>(idx) * step);
+        sampled.push_back(points_[std::min(src_idx, points_.size() - 1)]);
+    }
+
+    points_ = std::move(sampled);
+    mark_dirty();
+}
+
 // ── CanvasObject overrides ──────────────────────────────────────
 
 auto FreehandPath::local_bounds() const -> AABB
@@ -235,6 +328,8 @@ auto FreehandPath::clone() const -> std::unique_ptr<CanvasObject>
     copy->stroke_color_ = stroke_color_;
     copy->stroke_width_ = stroke_width_;
     copy->smoothing_factor_ = smoothing_factor_;
+    copy->closed_ = closed_;
+    copy->fill_color_ = fill_color_;
     copy->set_transform(transform());
     copy->set_z_index(z_index());
     copy->set_name(name());

@@ -32,10 +32,21 @@ public:
                                      bool case_sensitive = false) -> std::vector<SearchResult>;
 
     /// Extract all searchable text from a canvas object.
-    /// Switches on object type: StickyNote→text(), TextBox→text(),
-    /// Shape→text(), Connector→label(), Frame/Section→title(),
-    /// Table→concatenated cell text, default→name().
     [[nodiscard]] static auto extract_text(const CanvasObject& obj) -> std::string;
+
+    /// (#27) Find objects of a specific type.
+    [[nodiscard]] static auto search_by_type(const Board& board, CanvasObjectType obj_type)
+        -> std::vector<ObjectId>;
+
+    /// (#28) Find objects with a matching tag.
+    [[nodiscard]] static auto search_by_tag(const Board& board, const std::string& tag)
+        -> std::vector<ObjectId>;
+
+    /// (#29) Search-and-replace across all text-containing objects. Returns count of replacements.
+    [[nodiscard]] static auto replace_text(Board& board,
+                                           const std::string& find_str,
+                                           const std::string& replace_str,
+                                           bool case_sensitive = false) -> int;
 };
 
 } // namespace markamp::canvas

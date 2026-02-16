@@ -37,8 +37,8 @@ TEST_CASE("BuiltInPlugins: all 7 plugins register", "[builtin][plugins]")
 
     register_builtin_plugins(pm, features);
 
-    REQUIRE(pm.plugin_count() == 7);
-    REQUIRE(features.feature_count() == 7);
+    REQUIRE(pm.plugin_count() == 15);
+    REQUIRE(features.feature_count() == 15);
 }
 
 TEST_CASE("BuiltInPlugins: all features enabled by default", "[builtin][plugins]")

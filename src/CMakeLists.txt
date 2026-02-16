@@ -7,6 +7,13 @@ add_executable(markamp
     ui/ThemeAwareWindow.cpp
     ui/ThemedScrollbar.cpp
     ui/LayoutManager.cpp
+    ui/ToolWindowHost.cpp
+    # V8 Phase 12: Surface link router + transition coordinator
+    core/SurfaceLink.cpp
+    ui/SurfaceTransitionCoordinator.cpp
+    # V8 Phase 12: VSCode theme infrastructure
+    core/VsCodeThemeAdapter.cpp
+    core/ThemeScopeMapper.cpp
     ui/SplitterBar.cpp
     ui/StatusBarPanel.cpp
     ui/FileTreeCtrl.cpp
@@ -27,6 +34,7 @@ add_executable(markamp
     ui/TableEditorOverlay.cpp
     ui/TabBar.cpp
     ui/SettingsPanel.cpp
+    ui/SettingsDialog.cpp
     ui/NotificationManager.cpp
     ui/ActivityBar.cpp
     ui/ExtensionsBrowserPanel.cpp
@@ -79,6 +87,7 @@ add_executable(markamp
     core/AppState.cpp
     core/Command.cpp
     core/Config.cpp
+    core/SettingsCatalog.cpp
     core/Color.cpp
     core/Theme.cpp
     core/BuiltInThemes.cpp
@@ -98,6 +107,7 @@ add_executable(markamp
     core/ShortcutManager.cpp
     core/AccessibilityManager.cpp
     core/Profiler.cpp
+    core/StartupTimer.cpp
     core/MermaidRenderer.cpp
     core/MathRenderer.cpp
     core/HtmlSanitizer.cpp
@@ -110,6 +120,12 @@ add_executable(markamp
     rendering/HtmlRenderer.cpp
     rendering/CodeBlockRenderer.cpp
     rendering/MermaidBlockRenderer.cpp
+    # V8 Phase 13: FX Engine
+    rendering/FxEngine.cpp
+    rendering/FxMotionPreset.cpp
+    rendering/TextFxRenderer.cpp
+    rendering/FxPresetRegistry.cpp
+    rendering/FxSafetyController.cpp
     # V3 Phases 1–3: Block Data Model, ID Generation, Notebook
     core/Block.cpp
     core/BlockID.cpp
@@ -277,6 +293,16 @@ add_executable(markamp
     canvas/CanvasRenderer.cpp
     canvas/TileCache.cpp
     ui/CanvasPanel.cpp
+    # V8 Phase 6: Canvas Workbench Shell
+    ui/CanvasWorkspacePanel.cpp
+    # V8 Phase 7: Realtime Collaboration
+    core/CanvasCollabService.cpp
+    canvas/CommentObject.cpp
+    ui/CanvasCommentsPanel.cpp
+    ui/CanvasFacilitationPanel.cpp
+    # V8 Phase 8: Canvas Apps Marketplace
+    canvas/AppWidgetObject.cpp
+    core/CanvasIntegrationService.cpp
     # V5 Phase 03: Canvas Input System
     canvas/CanvasInputManager.cpp
     canvas/SelectTool.cpp
@@ -408,6 +434,18 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "Src" FILES
     ui/ThemedScrollbar.cpp
     ui/LayoutManager.h
     ui/LayoutManager.cpp
+    ui/ToolWindowHost.h
+    ui/ToolWindowHost.cpp
+    # V8 Phase 12: Surface link router + transition coordinator
+    core/SurfaceLink.h
+    core/SurfaceLink.cpp
+    ui/SurfaceTransitionCoordinator.h
+    ui/SurfaceTransitionCoordinator.cpp
+    # V8 Phase 12: VSCode theme infrastructure
+    core/VsCodeThemeAdapter.h
+    core/VsCodeThemeAdapter.cpp
+    core/ThemeScopeMapper.h
+    core/ThemeScopeMapper.cpp
     ui/SplitterBar.h
     ui/SplitterBar.cpp
     ui/StatusBarPanel.h
@@ -448,6 +486,8 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "Src" FILES
     ui/TabBar.cpp
     ui/SettingsPanel.h
     ui/SettingsPanel.cpp
+    ui/SettingsDialog.h
+    ui/SettingsDialog.cpp
     ui/NotificationManager.h
     ui/NotificationManager.cpp
     ui/ActivityBar.h
@@ -488,6 +528,8 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "Src" FILES
     core/Command.cpp
     core/Config.h
     core/Config.cpp
+    core/SettingsCatalog.h
+    core/SettingsCatalog.cpp
     core/Color.h
     core/Color.cpp
     core/Theme.h
@@ -599,6 +641,8 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "Src" FILES
     core/AccessibilityManager.cpp
     core/Profiler.h
     core/Profiler.cpp
+    core/StartupTimer.h
+    core/StartupTimer.cpp
     core/MermaidRenderer.h
     core/MermaidRenderer.cpp
     core/IMathRenderer.h
@@ -654,6 +698,18 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "Src" FILES
     rendering/ScrollBlit.h
     rendering/SelectionPainter.h
     rendering/ViewportCache.h
+    # V8 Phase 13: FX Engine
+    rendering/FxPass.h
+    rendering/FxEngine.h
+    rendering/FxEngine.cpp
+    rendering/FxMotionPreset.h
+    rendering/FxMotionPreset.cpp
+    rendering/TextFxRenderer.h
+    rendering/TextFxRenderer.cpp
+    rendering/FxPresetRegistry.h
+    rendering/FxPresetRegistry.cpp
+    rendering/FxSafetyController.h
+    rendering/FxSafetyController.cpp
     # Platform
     platform/PlatformAbstraction.h
     platform/MacPlatform.h
@@ -664,6 +720,8 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "Src" FILES
 # Apply quality tooling per-target
 markamp_set_warnings(markamp)
 markamp_configure_sanitizers(markamp)
+markamp_configure_lto(markamp)
+markamp_configure_tracy(markamp)
 
 # Link all third-party dependencies
 target_link_libraries(markamp PRIVATE markamp_dependencies)

@@ -245,4 +245,76 @@ auto OutlinePanel::set_visible(bool visible) -> void
     visible_ = visible;
 }
 
+// ── Batch 7 (#37-40) ──────────────────────────────────────────────
+
+auto OutlinePanel::filter_by_type(CanvasObjectType type) const -> std::vector<const OutlineEntry*>
+{
+    std::vector<const OutlineEntry*> result;
+    for (const auto& entry : entries_)
+    {
+        if (entry.type == type)
+        {
+            result.push_back(&entry);
+        }
+    }
+    return result;
+}
+
+auto OutlinePanel::search_entries(const std::string& query) const
+    -> std::vector<const OutlineEntry*>
+{
+    std::vector<const OutlineEntry*> result;
+    std::string lower_query = query;
+    std::transform(lower_query.begin(),
+                   lower_query.end(),
+                   lower_query.begin(),
+                   [](unsigned char chr) { return static_cast<char>(std::tolower(chr)); });
+
+    for (const auto& entry : entries_)
+    {
+        std::string lower_label = entry.label;
+        std::transform(lower_label.begin(),
+                       lower_label.end(),
+                       lower_label.begin(),
+                       [](unsigned char chr) { return static_cast<char>(std::tolower(chr)); });
+        if (lower_label.find(lower_query) != std::string::npos)
+        {
+            result.push_back(&entry);
+        }
+    }
+    return result;
+}
+
+auto OutlinePanel::collapse_all() -> void
+{
+    for (auto& entry : entries_)
+    {
+        if (entry.is_container)
+        {
+            entry.is_expanded = false;
+        }
+    }
+}
+
+auto OutlinePanel::expand_all() -> void
+{
+    for (auto& entry : entries_)
+    {
+        if (entry.is_container)
+        {
+            entry.is_expanded = true;
+        }
+    }
+}
+
+auto OutlinePanel::selected_entry_id() const -> ObjectId
+{
+    return selected_entry_id_;
+}
+
+auto OutlinePanel::set_selected_entry_id(ObjectId entry_id) -> void
+{
+    selected_entry_id_ = entry_id;
+}
+
 } // namespace markamp::canvas

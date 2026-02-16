@@ -357,9 +357,8 @@ void Toolbar::OnMouseDown(wxMouseEvent& event)
             }
             else if (i == 2)
             {
-                // R17 Fix 4: Settings button opens settings panel
-                event_bus_.publish(core::events::ActivityBarSelectionEvent(
-                    core::events::ActivityBarItem::Settings));
+                // Phase 5: Settings button publishes SettingsOpenRequestEvent
+                event_bus_.publish(core::events::SettingsOpenRequestEvent{});
             }
             return;
         }
@@ -528,7 +527,7 @@ void Toolbar::OnPaint(wxPaintEvent& /*event*/)
                     auto badge_text = std::to_string(active_count);
                     auto badge_font = wxFont(wxFontInfo(7).Family(wxFONTFAMILY_SWISS).Bold());
                     auto accent = wxColour(t.colors.accent_primary.to_rgba_string());
-                    gc.SetFont(badge_font, wxColour(255, 255, 255));
+                    gc.SetFont(badge_font, theme_engine().color(core::ThemeColorToken::BgApp));
                     wxDouble bw = 0;
                     wxDouble bh = 0;
                     gc.GetTextExtent(badge_text, &bw, &bh);
@@ -586,7 +585,9 @@ void Toolbar::DrawButton(wxGraphicsContext& gc, const ButtonInfo& btn, const cor
     // R5 Fix 20: Green flash for save button after save
     if (save_flash_active_ && btn.icon_type == 3)
     {
-        gc.SetBrush(gc.CreateBrush(wxBrush(wxColour(50, 205, 50, 80)))); // lime green flash
+        auto flash_col = theme_engine().color(core::ThemeColorToken::SuccessColor);
+        gc.SetBrush(gc.CreateBrush(
+            wxBrush(wxColour(flash_col.Red(), flash_col.Green(), flash_col.Blue(), 80))));
         gc.SetPen(*wxTRANSPARENT_PEN);
         gc.DrawRoundedRectangle(rx, ry, rw, rh, 4.0);
     }

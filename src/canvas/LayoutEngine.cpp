@@ -30,6 +30,8 @@ auto LayoutEngine::compute_layout(const std::vector<std::pair<ObjectId, AABB>>& 
             return layout_linear(objects, false, options.spacing);
         case LayoutType::Circular:
             return layout_circular(objects, options.radius);
+        case LayoutType::Spiral:
+            return layout_spiral(objects, options);
     }
     return {};
 }
@@ -237,6 +239,106 @@ auto LayoutEngine::layout_circular(const std::vector<std::pair<ObjectId, AABB>>&
         results.push_back(
             {objects[idx].first, {radius * std::cos(angle), radius * std::sin(angle)}});
     }
+    return results;
+}
+
+auto LayoutEngine::layout_spiral(const std::vector<std::pair<ObjectId, AABB>>& objects,
+                                 const LayoutOptions& options) const -> std::vector<LayoutResult>
+{
+    std::vector<LayoutResult> results;
+    results.reserve(objects.size());
+
+    // Archimedean spiral: r = a + b*θ
+    constexpr double kTurnsPerObject = 0.4;
+    const double arm_spacing = options.spacing + options.padding;
+
+    for (size_t idx = 0; idx < objects.size(); ++idx)
+    {
+        const double angle = 2.0 * M_PI * kTurnsPerObject * static_cast<double>(idx);
+        const double radius = arm_spacing * angle / (2.0 * M_PI);
+        results.push_back({objects[idx].first,
+                           {options.center.x + radius * std::cos(angle),
+                            options.center.y + radius * std::sin(angle)}});
+    }
+    return results;
+}
+
+// --- Batch 8 (#46-48) ---
+
+auto LayoutEngine::layout_type_name(LayoutType type) -> std::string
+{
+    switch (type)
+    {
+        case LayoutType::Grid:
+            return "Grid";
+        case LayoutType::Radial:
+            return "Radial";
+        case LayoutType::Tree:
+            return "Tree";
+        case LayoutType::ForceDirected:
+            return "Force Directed";
+        case LayoutType::Horizontal:
+            return "Horizontal";
+        case LayoutType::Vertical:
+            return "Vertical";
+        case LayoutType::Circular:
+            return "Circular";
+        case LayoutType::Spiral:
+            return "Spiral";
+    }
+    return "Unknown";
+}
+
+auto LayoutEngine::available_layouts() -> std::vector<LayoutType>
+{
+    return {LayoutType::Grid,
+            LayoutType::Radial,
+            LayoutType::Tree,
+            LayoutType::ForceDirected,
+            LayoutType::Horizontal,
+            LayoutType::Vertical,
+            LayoutType::Circular,
+            LayoutType::Spiral};
+}
+
+auto LayoutEngine::compute_compact_layout(const std::vector<std::pair<ObjectId, AABB>>& objects,
+                                          double padding) const -> std::vector<LayoutResult>
+{
+    // Simple row-packing: place objects left-to-right, wrapping when
+    // the row exceeds a adaptive width (sqrt(total area) * 2).
+    double total_area = 0.0;
+    for (const auto& obj_pair : objects)
+    {
+        const auto& bounds = obj_pair.second;
+        total_area += (bounds.max_x - bounds.min_x) * (bounds.max_y - bounds.min_y);
+    }
+
+    const double row_width = std::max(200.0, std::sqrt(total_area) * 2.0);
+    std::vector<LayoutResult> results;
+    results.reserve(objects.size());
+
+    double cursor_x = 0.0;
+    double cursor_y = 0.0;
+    double row_height = 0.0;
+
+    for (const auto& obj_pair : objects)
+    {
+        const auto& bounds = obj_pair.second;
+        const double obj_width = bounds.max_x - bounds.min_x;
+        const double obj_height = bounds.max_y - bounds.min_y;
+
+        if (cursor_x + obj_width > row_width && cursor_x > 0.0)
+        {
+            cursor_x = 0.0;
+            cursor_y += row_height + padding;
+            row_height = 0.0;
+        }
+
+        results.push_back({obj_pair.first, {cursor_x, cursor_y}});
+        cursor_x += obj_width + padding;
+        row_height = std::max(row_height, obj_height);
+    }
+
     return results;
 }
 

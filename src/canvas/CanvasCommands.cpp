@@ -231,4 +231,290 @@ auto ReorderZCommand::description() const -> std::string
     return "Reorder Z";
 }
 
+// ── RemotePatchCommand ─────────────────────────────────────────
+
+RemotePatchCommand::RemotePatchCommand(Board& board,
+                                       ObjectId obj_id,
+                                       std::string patch_type,
+                                       std::string patch_json,
+                                       std::string participant_id)
+    : board_(board)
+    , target_id_(obj_id)
+    , patch_type_(std::move(patch_type))
+    , patch_json_(std::move(patch_json))
+    , participant_id_(std::move(participant_id))
+{
+}
+
+auto RemotePatchCommand::execute() -> void
+{
+    // Save state for undo.
+    const auto* obj = board_.get_object(target_id_);
+    if (obj != nullptr)
+    {
+        previous_state_ = obj->to_json();
+    }
+    // Apply patch — stub: real implementation would parse patch_json_.
+}
+
+auto RemotePatchCommand::undo() -> void
+{
+    auto* obj = board_.get_object_mut(target_id_);
+    if (obj != nullptr && !previous_state_.empty())
+    {
+        obj->from_json(previous_state_);
+    }
+}
+
+auto RemotePatchCommand::description() const -> std::string
+{
+    return "Remote Patch (" + patch_type_ + ")";
+}
+
+auto RemotePatchCommand::patch_type() const -> const std::string&
+{
+    return patch_type_;
+}
+
+auto RemotePatchCommand::patch_json() const -> const std::string&
+{
+    return patch_json_;
+}
+
+auto RemotePatchCommand::source_participant() const -> const std::string&
+{
+    return participant_id_;
+}
+
+// ── GroupObjectsCommand (#30) ──────────────────────────────────
+
+GroupObjectsCommand::GroupObjectsCommand(Board& board, std::vector<ObjectId> child_ids)
+    : board_(board)
+    , child_ids_(std::move(child_ids))
+{
+}
+
+namespace
+{
+
+/// Minimal concrete subclass for group containers.
+class GroupObject final : public CanvasObject
+{
+public:
+    GroupObject()
+        : CanvasObject(CanvasObjectType::Group)
+    {
+    }
+
+    [[nodiscard]] auto local_bounds() const -> AABB override
+    {
+        return {0.0, 0.0, 0.0, 0.0};
+    }
+
+    [[nodiscard]] auto clone() const -> std::unique_ptr<CanvasObject> override
+    {
+        auto copy = std::make_unique<GroupObject>();
+        copy->set_name(name());
+        return copy;
+    }
+};
+
+} // anonymous namespace
+
+auto GroupObjectsCommand::execute() -> void
+{
+    // Save previous parent IDs.
+    previous_parents_.clear();
+    for (const auto child_id : child_ids_)
+    {
+        const auto* obj = board_.get_object(child_id);
+        previous_parents_.push_back(obj != nullptr ? obj->parent_id() : kInvalidObjectId);
+    }
+
+    // Create a Group canvas object to act as the parent.
+    auto group_obj = std::make_unique<GroupObject>();
+    group_obj->set_name("Group");
+    group_id_ = board_.add_object(std::move(group_obj));
+
+    // Re-parent children under the group.
+    for (const auto child_id : child_ids_)
+    {
+        auto* child = board_.get_object_mut(child_id);
+        if (child != nullptr)
+        {
+            child->set_parent_id(group_id_);
+        }
+    }
+}
+
+auto GroupObjectsCommand::undo() -> void
+{
+    // Restore original parent IDs.
+    for (size_t idx = 0; idx < child_ids_.size(); ++idx)
+    {
+        auto* child = board_.get_object_mut(child_ids_[idx]);
+        if (child != nullptr)
+        {
+            child->set_parent_id(idx < previous_parents_.size() ? previous_parents_[idx]
+                                                                : kInvalidObjectId);
+        }
+    }
+    // Remove the group object.
+    if (group_id_ != kInvalidObjectId)
+    {
+        board_.remove_object(group_id_);
+        group_id_ = kInvalidObjectId;
+    }
+}
+
+auto GroupObjectsCommand::description() const -> std::string
+{
+    return "Group Objects";
+}
+
+auto GroupObjectsCommand::group_id() const -> ObjectId
+{
+    return group_id_;
+}
+
+// ── Batch 10 (#58-60) ──────────────────────────────────────────
+
+ResizeObjectCommand::ResizeObjectCommand(Board& board,
+                                         ObjectId obj_id,
+                                         double new_width,
+                                         double new_height)
+    : board_(board)
+    , target_id_(obj_id)
+    , new_width_(new_width)
+    , new_height_(new_height)
+{
+}
+
+auto ResizeObjectCommand::execute() -> void
+{
+    auto* obj = board_.get_object_mut(target_id_);
+    if (obj == nullptr)
+    {
+        return;
+    }
+    old_width_ = obj->world_bounds().width();
+    old_height_ = obj->world_bounds().height();
+    // Apply through transform scaling.
+    if (old_width_ > 0.0 && old_height_ > 0.0)
+    {
+        auto xform = obj->transform();
+        xform.scale_x *= (new_width_ / old_width_);
+        xform.scale_y *= (new_height_ / old_height_);
+        obj->set_transform(xform);
+    }
+    obj->mark_dirty();
+}
+
+auto ResizeObjectCommand::undo() -> void
+{
+    auto* obj = board_.get_object_mut(target_id_);
+    if (obj != nullptr)
+    {
+        if (old_width_ > 0.0 && old_height_ > 0.0)
+        {
+            auto xform = obj->transform();
+            xform.scale_x *= (old_width_ / new_width_);
+            xform.scale_y *= (old_height_ / new_height_);
+            obj->set_transform(xform);
+        }
+        obj->mark_dirty();
+    }
+}
+
+auto ResizeObjectCommand::description() const -> std::string
+{
+    return "Resize Object";
+}
+
+SetStyleCommand::SetStyleCommand(Board& board,
+                                 ObjectId obj_id,
+                                 CanvasColor new_stroke,
+                                 CanvasColor new_fill)
+    : board_(board)
+    , target_id_(obj_id)
+    , new_stroke_(new_stroke)
+    , new_fill_(new_fill)
+{
+}
+
+auto SetStyleCommand::execute() -> void
+{
+    auto* obj = board_.get_object_mut(target_id_);
+    if (obj == nullptr)
+    {
+        return;
+    }
+    old_stroke_ = obj->custom_color();
+    obj->set_custom_color(new_stroke_);
+    obj->mark_dirty();
+}
+
+auto SetStyleCommand::undo() -> void
+{
+    auto* obj = board_.get_object_mut(target_id_);
+    if (obj != nullptr)
+    {
+        obj->set_custom_color(old_stroke_);
+        obj->mark_dirty();
+    }
+}
+
+auto SetStyleCommand::description() const -> std::string
+{
+    return "Set Style";
+}
+
+DuplicateObjectsCommand::DuplicateObjectsCommand(Board& board,
+                                                 std::vector<ObjectId> source_ids,
+                                                 Point2D offset)
+    : board_(board)
+    , source_ids_(std::move(source_ids))
+    , offset_(offset)
+{
+}
+
+auto DuplicateObjectsCommand::execute() -> void
+{
+    created_ids_.clear();
+    for (const auto src_id : source_ids_)
+    {
+        const auto* src_obj = board_.get_object(src_id);
+        if (src_obj == nullptr)
+        {
+            continue;
+        }
+        auto cloned = src_obj->clone();
+        auto xform = cloned->transform();
+        xform.tx += offset_.x;
+        xform.ty += offset_.y;
+        cloned->set_transform(xform);
+        const auto new_id = board_.add_object(std::move(cloned));
+        created_ids_.push_back(new_id);
+    }
+}
+
+auto DuplicateObjectsCommand::undo() -> void
+{
+    for (const auto created_id : created_ids_)
+    {
+        board_.remove_object(created_id);
+    }
+    created_ids_.clear();
+}
+
+auto DuplicateObjectsCommand::description() const -> std::string
+{
+    return "Duplicate Objects";
+}
+
+auto DuplicateObjectsCommand::duplicated_ids() const -> const std::vector<ObjectId>&
+{
+    return created_ids_;
+}
+
 } // namespace markamp::canvas

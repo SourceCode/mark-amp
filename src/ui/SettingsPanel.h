@@ -21,17 +21,19 @@
 #include <functional>
 #include <set>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace markamp::core
 {
 class Config;
+class SettingsCatalog;
 } // namespace markamp::core
 
 namespace markamp::ui
 {
 
-/// Definition of a single configurable setting displayed in the Settings panel.
+/// Definition of a single configurable preference displayed in the Preferences panel.
 /// Mirrors VS Code's `IConfigurationPropertySchema`.
 struct SettingDefinition
 {
@@ -44,18 +46,35 @@ struct SettingDefinition
     std::vector<std::string> choices; // For choice type only
     int min_int{0};                   // For integer type
     int max_int{100};                 // For integer type
+
+    // Batch 1: Schema enhancements
+    std::vector<std::string> tags; // Searchable keyword tags
+    bool deprecated{false};        // Gray out with strikethrough
+    bool experimental{false};      // Show [experimental] badge
+    bool restart_required{false};  // Show ⚠️ "Requires restart" hint
+    double min_double{0.0};        // Range for Double type
+    double max_double{100.0};      // Range for Double type
+    int order_priority{100};       // Sort weight within category (lower = higher)
 };
 
-/// Settings panel inspired by VS Code's settingsEditor2.
-/// Displays configurable settings grouped by category with a search/filter bar.
+/// Preferences panel inspired by VS Code's settingsEditor2.
+/// Displays configurable preferences grouped by category with a search/filter bar.
 /// Changes are written to Config immediately and fire SettingChangedEvent.
 class SettingsPanel : public wxPanel
 {
 public:
+    /// Construct with manual setting registration (sidebar usage).
     SettingsPanel(wxWindow* parent,
                   core::ThemeEngine& theme_engine,
                   core::EventBus& event_bus,
                   core::Config& config);
+
+    /// Construct with catalog-driven settings (dialog usage, staged edits enabled).
+    SettingsPanel(wxWindow* parent,
+                  core::ThemeEngine& theme_engine,
+                  core::EventBus& event_bus,
+                  core::Config& config,
+                  core::SettingsCatalog& catalog);
 
     /// Register a setting definition
     void RegisterSetting(SettingDefinition definition);
@@ -69,9 +88,52 @@ public:
     /// Refresh all controls to reflect current Config values
     void RefreshValues();
 
+    // ── Staged-edit API ──
+
+    /// Flush all pending changes to Config, publish SettingsBatchChangedEvent, clear buffer.
+    void ApplyPendingChanges();
+
+    /// Discard all pending changes and rebuild UI from Config.
+    void DiscardPendingChanges();
+
+    /// Whether there are uncommitted changes in the buffer.
+    [[nodiscard]] auto HasPendingChanges() const -> bool;
+
+    /// Number of uncommitted changes in the buffer.
+    [[nodiscard]] auto PendingChangeCount() const -> std::size_t;
+
+    /// Set the search field text programmatically (for deep-linking).
+    void SetSearchText(const std::string& query);
+
+    /// Focus the search control (for auto-focus on dialog open).
+    void FocusSearch();
+
+    /// Reset all settings to their default values.
+    void RestoreAllDefaults();
+
     static constexpr int kCategoryPadding = 12;
     static constexpr int kSettingRowHeight = 44;
     static constexpr int kMaxVisibleSettings = 50;
+
+    // ── Batch 6: Preferences query API ──
+
+    /// Total number of registered setting definitions.
+    [[nodiscard]] auto setting_count() const -> std::size_t;
+
+    /// Number of currently visible (filtered) settings.
+    [[nodiscard]] auto filtered_count() const -> std::size_t;
+
+    /// Number of settings whose current value differs from the default.
+    [[nodiscard]] auto modified_count() const -> std::size_t;
+
+    /// Get the current Config value for a setting by ID.
+    [[nodiscard]] auto GetSettingValue(const std::string& setting_id) const -> std::string;
+
+    /// Programmatically set a setting value.
+    void SetSettingValue(const std::string& setting_id, const std::string& value);
+
+    /// Reset all settings in a category to their default values.
+    void ResetCategoryToDefaults(const std::string& category);
 
 private:
     core::ThemeEngine& theme_engine_;
@@ -86,6 +148,21 @@ private:
 
     std::vector<SettingDefinition> definitions_;
     std::vector<wxWindow*> setting_widgets_;
+
+    /// Catalog-driven mode: pointer is non-null when constructed with SettingsCatalog.
+    core::SettingsCatalog* catalog_{nullptr};
+
+    /// Staged-edit buffer: setting_id → pending new value (not yet committed to Config).
+    std::unordered_map<std::string, std::string> pending_changes_;
+
+    /// Whether staged-edit mode is active (true when catalog_ is set).
+    [[nodiscard]] auto is_staged_mode() const -> bool
+    {
+        return catalog_ != nullptr;
+    }
+
+    /// Populate definitions_ from SettingsCatalog entries.
+    void PopulateFromCatalog();
 
     void CreateLayout();
     void RebuildSettingsList();
@@ -106,9 +183,22 @@ private:
     auto CreateIntegerSetting(wxWindow* parent, const SettingDefinition& def) -> wxPanel*;
     auto CreateStringSetting(wxWindow* parent, const SettingDefinition& def) -> wxPanel*;
     auto CreateChoiceSetting(wxWindow* parent, const SettingDefinition& def) -> wxPanel*;
+    auto CreateDoubleSetting(wxWindow* parent, const SettingDefinition& def) -> wxPanel*;
+    auto CreateFilePathSetting(wxWindow* parent, const SettingDefinition& def) -> wxPanel*;
+    auto CreateColorSetting(wxWindow* parent, const SettingDefinition& def) -> wxPanel*;
+    auto CreateKeyBindingSetting(wxWindow* parent, const SettingDefinition& def) -> wxPanel*;
+    auto CreateStringListSetting(wxWindow* parent, const SettingDefinition& def) -> wxPanel*;
 
     // Phase 9: collapsible state
     std::set<std::string> collapsed_categories_;
+
+    // Batch 6: filtered count tracker
+    std::size_t filtered_count_{0};
+
+    // Batch 6: UI enhancement members
+    wxStaticText* status_bar_label_{nullptr};
+    wxStaticText* breadcrumb_label_{nullptr};
+    wxCheckBox* show_modified_only_{nullptr};
 
     // Theme subscription
     core::Subscription theme_sub_;

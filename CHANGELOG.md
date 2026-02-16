@@ -1,5 +1,43 @@
 # MarkAmp Release History
 
+## v2.2.15 — 2026-02-16
+
+### Highlights
+
+V8 platform milestone: FX Core Engine (Phase 13), Surface & Theme system (Phase 12), Settings catalog UI refactor, canvas collaboration infrastructure, code intelligence stubs, workbench navigation framework, and 8 new built-in plugins. Total built-in plugins grows from 7 to 15 with FX Engine, Text FX Renderer, VSCode Theme Adapter, Canvas Collaboration, Canvas Apps & Widgets, Kanban Board, Mind Map, and Diagram Library. 149 test targets, 100% pass rate. 108 files changed (+7,465 / −130).
+
+### Added
+
+- **FX Core Engine** (`FxPass`, `FxEngine`, `FxMotionPreset`, `TextFxRenderer`, `FxPresetRegistry`, `FxSafetyController`) — visual effects pipeline with pass-based compositing, motion presets, and safety limits
+- **Surface & Theme System** (Phase 12) — `SurfaceTheme` integration with theme-aware FX rendering, comprehensive FX settings in `Theme.h`
+- **VSCode Theme Adapter** built-in plugin — loads and adapts VS Code color themes
+- **Canvas Collaboration** built-in plugin — real-time collaboration infrastructure for canvas boards
+- **Canvas Apps & Widgets** built-in plugin — extensible widget framework for canvas objects
+- **Kanban Board** built-in plugin — Kanban-style project management on canvas
+- **Mind Map** built-in plugin — mind-mapping with auto-layout on canvas
+- **Diagram Library** built-in plugin — reusable diagram templates and shapes
+- **Code Intelligence** stubs — foundation for language server integration
+- **Workbench Navigation** framework — multi-panel navigation infrastructure
+- **Settings Catalog** UI — refactored settings panel with catalog-based registration
+- Theme fidelity pass — replaced hard-coded `wxColour()` calls with `theme_engine().color()` tokens
+
+### Changed
+
+- `BuiltInPlugins` registry expanded from 7 to 15 plugins (15 features)
+- `BoardSerializer::kFormatVersion` bumped to 2 for new canvas object types
+- `SettingsPanel` refactored to use catalog constructor with pragma-managed `-Wmissing-field-initializers`
+- Canvas system: `Board`, `BoardSerializer`, `CanvasRenderer`, `SelectionManager`, `SnapEngine`, `Quadtree`, `ViewportTransform`, and all canvas objects updated for collaboration and new object types
+- Core: `Config`, `EventBus`, `Events`, `ExtensionSandbox`, `FrameArena`, `IPlugin`, `PluginContext`, `Profiler`, `Theme`, `ThemeEngine`, `ThemeLoader` enhanced
+- UI: `EditorPanel`, `SettingsPanel`, `LayoutManager`, `NavigationService`, `SplitView`, `TabBar`, `Toolbar` refined
+- `vcpkg.json` version synced from 1.9.12 to 2.2.15; added `sqlite3` (fts5), `tracy`, `benchmark`, `mimalloc` dependencies
+- Test suite expanded to 149 targets (from 111)
+
+### Fixed
+
+- Fixed stale test assertions in `test_service_wiring`, `test_builtin_plugin_behavior` (plugin/feature count 7→15), and `test_board_serializer` (format version 1→2)
+- Transform2D API: replaced non-existent `set_translation()`/`translation()` with direct `tx`/`ty` field access
+- Clang-tidy: extensive const-correctness, short parameter name, static method, and cognitive complexity fixes
+
 ## v2.1.14 — 2026-02-15
 
 ### Highlights

@@ -1,23 +1,26 @@
 {
-    "name": "markamp",
-    "version-semver": "1.9.12",
-    "description": "Cross-platform Markdown viewer and editor with retro-futuristic UI",
-    "homepage": "https://github.com/markamp/markamp",
-    "dependencies": [
-        "wxwidgets",
-        "nlohmann-json",
-        "md4c",
-        "catch2",
-        "fmt",
-        "spdlog",
-        "yaml-cpp",
-        "libzip",
-        "openssl",
-        "cpp-httplib",
-        {
-            "name": "sqlite3",
-            "features": ["fts5"]
-        }
-    ],
-    "overrides": []
+  "name": "markamp",
+  "version-semver": "2.2.15",
+  "description": "Cross-platform Markdown viewer and editor with retro-futuristic UI",
+  "homepage": "https://github.com/markamp/markamp",
+  "dependencies": [
+    "wxwidgets",
+    "nlohmann-json",
+    "md4c",
+    "catch2",
+    "fmt",
+    "spdlog",
+    "yaml-cpp",
+    "libzip",
+    "openssl",
+    "cpp-httplib",
+    {
+      "name": "sqlite3",
+      "features": ["fts5"]
+    },
+    "tracy",
+    "benchmark",
+    "mimalloc"
+  ],
+  "overrides": []
 }

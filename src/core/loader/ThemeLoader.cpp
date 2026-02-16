@@ -1,6 +1,7 @@
 #include "ThemeLoader.h"
 
 #include "core/Logger.h"
+#include "core/VsCodeThemeAdapter.h"
 
 #include <fstream>
 #include <sstream>
@@ -167,6 +168,36 @@ auto ThemeLoader::parse_yaml_content(const std::string& yaml_content)
     {
         return std::unexpected(std::string("YAML parsing error: ") + e.what());
     }
+}
+
+// ============================================================================
+// V8 Phase 12 (Phase 40): VSCode theme import
+// ============================================================================
+
+auto ThemeLoader::load_vscode_theme(const std::filesystem::path& path)
+    -> std::expected<Theme, std::string>
+{
+    auto result = VsCodeThemeAdapter::parse_json(path);
+    if (!result.has_value())
+    {
+        return std::unexpected(result.error());
+    }
+
+    const auto& [colors, token_rules] = *result;
+    auto theme = VsCodeThemeAdapter::convert_to_theme(path.stem().string(), colors, token_rules);
+    theme.source = "vscode-import";
+
+    if (!theme.is_valid())
+    {
+        std::string error_msg = "Invalid imported theme:";
+        for (const auto& err : theme.validation_errors())
+        {
+            error_msg += " " + err + ";";
+        }
+        return std::unexpected(error_msg);
+    }
+
+    return theme;
 }
 
 } // namespace markamp::core

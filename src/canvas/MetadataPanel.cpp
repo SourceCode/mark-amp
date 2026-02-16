@@ -55,6 +55,8 @@ auto type_to_string(CanvasObjectType obj_type) -> std::string
             return "DiagramShape";
         case CanvasObjectType::CrossBoardLink:
             return "CrossBoardLink";
+        case CanvasObjectType::AppWidget:
+            return "AppWidget";
     }
     return "Unknown";
 }

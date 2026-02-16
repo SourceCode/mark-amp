@@ -60,6 +60,15 @@ enum class ThemeColorToken
     RenderBlockquoteBg,
     RenderTableBorder,
     RenderTableHeaderBg,
+
+    // V8 Phase 9: Semantic editor tokens
+    EditorActiveLine,
+    EditorGutterError,
+    EditorGutterWarn,
+    EditorGutterInfo,
+    EditorMatchHighlight,
+    EditorFindHit,
+    EditorQuickFix,
 };
 
 /// Font tokens for themed text rendering.
@@ -77,7 +86,7 @@ enum class ThemeFontToken
 
 /// Total number of ThemeColorToken values.
 static constexpr std::size_t kColorTokenCount =
-    static_cast<std::size_t>(ThemeColorToken::RenderTableHeaderBg) + 1;
+    static_cast<std::size_t>(ThemeColorToken::EditorQuickFix) + 1;
 
 /// Runtime theme engine — applies colors to wxWidgets components and
 /// enables instant theme hot-swapping via EventBus notifications.

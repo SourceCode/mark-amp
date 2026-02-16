@@ -99,6 +99,17 @@ void Profiler::record(std::string_view name, double duration_ms)
     data.durations_ms.push_back(duration_ms);
 }
 
+void Profiler::record(ProfileId profile_id, double duration_ms)
+{
+    auto idx = static_cast<std::size_t>(profile_id);
+    if (idx >= kProfileIdCount)
+    {
+        return;
+    }
+    const std::lock_guard lock(mutex_);
+    fixed_timings_.at(idx).samples.push(duration_ms);
+}
+
 auto Profiler::results() const -> std::vector<TimingResult>
 {
     const std::lock_guard lock(mutex_);
@@ -128,6 +139,42 @@ auto Profiler::results() const -> std::vector<TimingResult>
         out.push_back(std::move(result));
     }
 
+    // Phase 16: Include ProfileId-based fixed timing data
+    for (std::size_t idx = 0; idx < kProfileIdCount; ++idx)
+    {
+        const auto& ring = fixed_timings_.at(idx).samples;
+        if (ring.empty())
+        {
+            continue;
+        }
+
+        TimingResult result;
+        result.name = std::string(kProfileIdNames.at(idx));
+        result.call_count = ring.size();
+
+        double sum = 0.0;
+        double min_val = ring.at(0);
+        double max_val = ring.at(0);
+        for (std::size_t sample_idx = 0; sample_idx < ring.size(); ++sample_idx)
+        {
+            double val = ring.at(sample_idx);
+            sum += val;
+            if (val < min_val)
+            {
+                min_val = val;
+            }
+            if (val > max_val)
+            {
+                max_val = val;
+            }
+        }
+        result.avg_ms = sum / static_cast<double>(result.call_count);
+        result.min_ms = min_val;
+        result.max_ms = max_val;
+
+        out.push_back(std::move(result));
+    }
+
     // Sort by name for deterministic output
     std::sort(out.begin(),
               out.end(),
@@ -141,6 +188,11 @@ void Profiler::reset()
     std::lock_guard lock(mutex_);
     timings_.clear();
     pending_.clear();
+    // Phase 16: Also clear fixed timing data
+    for (auto& ftd : fixed_timings_)
+    {
+        ftd.samples.clear();
+    }
 }
 
 void Profiler::dump_to_log() const

@@ -191,6 +191,102 @@ auto ConnectorObject::set_label(const std::string& label) -> void
     mark_dirty();
 }
 
+// ── Routing & Appearance (#7-10) ──────────────────────────────
+
+auto ConnectorObject::routing() const -> ConnectorRouting
+{
+    return routing_;
+}
+auto ConnectorObject::set_routing(ConnectorRouting routing) -> void
+{
+    routing_ = routing;
+    mark_dirty();
+}
+auto ConnectorObject::dash_pattern() const -> double
+{
+    return dash_pattern_;
+}
+auto ConnectorObject::set_dash_pattern(double length) -> void
+{
+    dash_pattern_ = std::max(1.0, length);
+    mark_dirty();
+}
+auto ConnectorObject::opacity() const -> double
+{
+    return opacity_;
+}
+auto ConnectorObject::set_opacity(double opacity_val) -> void
+{
+    opacity_ = std::clamp(opacity_val, 0.0, 1.0);
+    mark_dirty();
+}
+
+// ── Computed (#11-12) ─────────────────────────────────────────
+
+auto ConnectorObject::is_bidirectional() const -> bool
+{
+    return start_arrow_ != ArrowheadStyle::kNone && end_arrow_ != ArrowheadStyle::kNone;
+}
+
+auto ConnectorObject::total_length(const Board& board) const -> double
+{
+    std::vector<Point2D> all_points;
+    all_points.push_back(resolve_start(board));
+    for (const auto& waypoint : waypoints_)
+    {
+        all_points.push_back(waypoint);
+    }
+    all_points.push_back(resolve_end(board));
+
+    double length = 0.0;
+    for (size_t idx = 1; idx < all_points.size(); ++idx)
+    {
+        length += all_points[idx].distance_to(all_points[idx - 1]);
+    }
+    return length;
+}
+
+// ── Batch 6 (#31-36) ─────────────────────────────────────────────
+
+auto ConnectorObject::is_self_loop() const -> bool
+{
+    return start_.is_attached() && end_.is_attached() && start_.object_id == end_.object_id;
+}
+
+auto ConnectorObject::is_attached_to(ObjectId obj_id) const -> bool
+{
+    return start_.object_id == obj_id || end_.object_id == obj_id;
+}
+
+auto ConnectorObject::detach_start() -> void
+{
+    start_.object_id = kInvalidObjectId;
+    mark_dirty();
+}
+
+auto ConnectorObject::detach_end() -> void
+{
+    end_.object_id = kInvalidObjectId;
+    mark_dirty();
+}
+
+auto ConnectorObject::reverse_direction() -> void
+{
+    std::swap(start_, end_);
+    std::swap(start_arrow_, end_arrow_);
+    if (!waypoints_.empty())
+    {
+        std::reverse(waypoints_.begin(), waypoints_.end());
+    }
+    mark_dirty();
+}
+
+auto ConnectorObject::set_color_from_theme(const CanvasColor& themed_color) -> void
+{
+    line_color_ = themed_color;
+    mark_dirty();
+}
+
 // ── CanvasObject overrides ─────────────────────────────────────
 
 auto ConnectorObject::local_bounds() const -> AABB
@@ -240,6 +336,9 @@ auto ConnectorObject::clone() const -> std::unique_ptr<CanvasObject>
     copy->start_arrow_ = start_arrow_;
     copy->end_arrow_ = end_arrow_;
     copy->label_ = label_;
+    copy->routing_ = routing_;
+    copy->dash_pattern_ = dash_pattern_;
+    copy->opacity_ = opacity_;
     copy->set_transform(transform());
     copy->set_z_index(z_index());
     copy->set_name(name());

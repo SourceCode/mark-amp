@@ -172,4 +172,128 @@ auto KanbanController::position_cards_in_column(ObjectId column_id) -> void
     }
 }
 
+// ── Workflow helpers (#15-18) ───────────────────────────────
+
+auto KanbanController::archive_card(ObjectId card_id) -> void
+{
+    auto* card = dynamic_cast<KanbanCard*>(board_.get_object_mut(card_id));
+    if (card == nullptr)
+    {
+        return;
+    }
+
+    // Remove from column.
+    const ObjectId col_id = card->column_id();
+    auto* column = dynamic_cast<KanbanColumn*>(board_.get_object_mut(col_id));
+    if (column != nullptr)
+    {
+        column->remove_card(card_id);
+        position_cards_in_column(col_id);
+    }
+
+    // Mark archived via metadata.
+    card->set_metadata("archived", "true");
+}
+
+auto KanbanController::duplicate_card(ObjectId card_id) -> ObjectId
+{
+    const auto* card = dynamic_cast<const KanbanCard*>(board_.get_object(card_id));
+    if (card == nullptr)
+    {
+        return kInvalidObjectId;
+    }
+
+    auto copy_ptr = card->clone();
+    auto* copy = dynamic_cast<KanbanCard*>(copy_ptr.get());
+    if (copy == nullptr)
+    {
+        return kInvalidObjectId;
+    }
+
+    const ObjectId col_id = card->column_id();
+    const ObjectId new_id = board_.add_object(std::move(copy_ptr));
+
+    auto* column = dynamic_cast<KanbanColumn*>(board_.get_object_mut(col_id));
+    if (column != nullptr)
+    {
+        column->add_card(new_id);
+        position_cards_in_column(col_id);
+    }
+
+    return new_id;
+}
+
+auto KanbanController::reorder_column(ObjectId col_a, ObjectId col_b) -> void
+{
+    auto iter_a = std::find(column_ids_.begin(), column_ids_.end(), col_a);
+    auto iter_b = std::find(column_ids_.begin(), column_ids_.end(), col_b);
+    if (iter_a == column_ids_.end() || iter_b == column_ids_.end())
+    {
+        return;
+    }
+    std::swap(*iter_a, *iter_b);
+    relayout();
+}
+
+auto KanbanController::column_stats(ObjectId column_id) const -> ColumnStats
+{
+    ColumnStats stats;
+    const auto* column = dynamic_cast<const KanbanColumn*>(board_.get_object(column_id));
+    if (column == nullptr)
+    {
+        return stats;
+    }
+
+    stats.card_count = column->card_ids().size();
+    stats.wip_exceeded =
+        (column->wip_limit() > 0) && (static_cast<int>(stats.card_count) > column->wip_limit());
+
+    for (const auto& cid : column->card_ids())
+    {
+        const auto* card = dynamic_cast<const KanbanCard*>(board_.get_object(cid));
+        if (card != nullptr)
+        {
+            stats.total_story_points += card->story_points();
+        }
+    }
+
+    return stats;
+}
+
+// ── Filtering & Aggregation (#34-35) ───────────────────────
+
+auto KanbanController::filter_cards(const std::function<bool(const KanbanCard&)>& predicate) const
+    -> std::vector<ObjectId>
+{
+    std::vector<ObjectId> result;
+    for (const auto& col_id : column_ids_)
+    {
+        const auto* column = dynamic_cast<const KanbanColumn*>(board_.get_object(col_id));
+        if (column == nullptr)
+        {
+            continue;
+        }
+        for (const auto& card_id : column->card_ids())
+        {
+            const auto* card = dynamic_cast<const KanbanCard*>(board_.get_object(card_id));
+            if (card != nullptr && predicate(*card))
+            {
+                result.push_back(card_id);
+            }
+        }
+    }
+    return result;
+}
+
+auto KanbanController::total_story_points() const -> int
+{
+    int total = 0;
+    for (const auto& col_id : column_ids_)
+    {
+        const auto stats = column_stats(col_id);
+        total += stats.total_story_points;
+    }
+    return total;
+}
+
 } // namespace markamp::canvas

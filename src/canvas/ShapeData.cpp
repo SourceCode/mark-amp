@@ -81,6 +81,36 @@ auto ShapeObject::set_text_style(const TextStyle& style) -> void
     mark_dirty();
 }
 
+// --- Batch 9 (#49-51) ---
+
+auto ShapeObject::has_text() const -> bool
+{
+    return !text_.empty();
+}
+
+auto ShapeObject::area() const -> double
+{
+    if (shape_type_ == ShapeType::kEllipse)
+    {
+        return 3.14159265358979323846 * (width_ / 2.0) * (height_ / 2.0);
+    }
+    return width_ * height_;
+}
+
+auto ShapeObject::perimeter_estimate() const -> double
+{
+    if (shape_type_ == ShapeType::kEllipse)
+    {
+        // Ramanujan's approximation for ellipse perimeter.
+        const double semi_a = width_ / 2.0;
+        const double semi_b = height_ / 2.0;
+        return 3.14159265358979323846 *
+               (3.0 * (semi_a + semi_b) -
+                std::sqrt((3.0 * semi_a + semi_b) * (semi_a + 3.0 * semi_b)));
+    }
+    return 2.0 * (width_ + height_);
+}
+
 // ── CanvasObject overrides ─────────────────────────────────────
 
 auto ShapeObject::local_bounds() const -> AABB

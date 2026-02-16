@@ -41,6 +41,76 @@
       "cacheVariables": {
         "BUILD_SHARED_LIBS": "OFF"
       }
+    },
+    {
+      "name": "debug-asan",
+      "displayName": "Debug + ASan + UBSan",
+      "description": "Debug build with AddressSanitizer and UndefinedBehaviorSanitizer enabled",
+      "inherits": "debug",
+      "binaryDir": "${sourceDir}/build/debug-asan",
+      "cacheVariables": {
+        "MARKAMP_ENABLE_ASAN": "ON",
+        "MARKAMP_ENABLE_UBSAN": "ON"
+      }
+    },
+    {
+      "name": "debug-tsan",
+      "displayName": "Debug + TSan",
+      "description": "Debug build with ThreadSanitizer enabled",
+      "inherits": "debug",
+      "binaryDir": "${sourceDir}/build/debug-tsan",
+      "cacheVariables": {
+        "MARKAMP_ENABLE_TSAN": "ON"
+      }
+    },
+    {
+      "name": "debug-lsan",
+      "displayName": "Debug + LSan",
+      "description": "Debug build with standalone LeakSanitizer enabled",
+      "inherits": "debug",
+      "binaryDir": "${sourceDir}/build/debug-lsan",
+      "cacheVariables": {
+        "MARKAMP_ENABLE_LSAN": "ON"
+      }
+    },
+    {
+      "name": "debug-clang-tidy",
+      "displayName": "Debug + clang-tidy",
+      "description": "Debug build with clang-tidy static analysis enabled during compilation",
+      "inherits": "debug",
+      "binaryDir": "${sourceDir}/build/debug-clang-tidy",
+      "cacheVariables": {
+        "MARKAMP_ENABLE_CLANG_TIDY": "ON"
+      }
+    },
+    {
+      "name": "release-lto",
+      "displayName": "Release + LTO",
+      "description": "Release build with Link-Time Optimization for maximum binary size and performance",
+      "inherits": "release",
+      "binaryDir": "${sourceDir}/build/release-lto",
+      "cacheVariables": {
+        "MARKAMP_ENABLE_LTO": "ON",
+        "CMAKE_INTERPROCEDURAL_OPTIMIZATION": "TRUE"
+      }
+    },
+    {
+      "name": "profile",
+      "displayName": "Profile",
+      "description": "Release-optimized build with debug info and frame pointers for profiling",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/profile",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "CMAKE_CXX_FLAGS": "-O2 -g -fno-omit-frame-pointer",
+        "MARKAMP_BUILD_TESTS": "ON",
+        "MARKAMP_PROFILE_BUILD": "ON",
+        "MARKAMP_ENABLE_TRACY": "ON",
+        "CMAKE_MAKE_PROGRAM": "/opt/homebrew/bin/ninja"
+      },
+      "environment": {
+        "VCPKG_ROOT": "${sourceDir}/external/vcpkg"
+      }
     }
   ],
   "buildPresets": [
@@ -55,12 +125,66 @@
     {
       "name": "release-static-build",
       "configurePreset": "release-static"
+    },
+    {
+      "name": "debug-asan-build",
+      "configurePreset": "debug-asan"
+    },
+    {
+      "name": "debug-tsan-build",
+      "configurePreset": "debug-tsan"
+    },
+    {
+      "name": "debug-lsan-build",
+      "configurePreset": "debug-lsan"
+    },
+    {
+      "name": "debug-clang-tidy-build",
+      "configurePreset": "debug-clang-tidy"
+    },
+    {
+      "name": "release-lto-build",
+      "configurePreset": "release-lto"
+    },
+    {
+      "name": "profile-build",
+      "configurePreset": "profile"
     }
   ],
   "testPresets": [
     {
       "name": "debug-test",
       "configurePreset": "debug",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "debug-asan-test",
+      "configurePreset": "debug-asan",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "debug-tsan-test",
+      "configurePreset": "debug-tsan",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "debug-lsan-test",
+      "configurePreset": "debug-lsan",
       "output": {
         "outputOnFailure": true
       },

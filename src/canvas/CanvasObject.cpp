@@ -18,6 +18,7 @@ auto CanvasObject::next_id() -> ObjectId
 CanvasObject::CanvasObject(CanvasObjectType type)
     : id_(next_id())
     , type_(type)
+    , creation_order_(id_)
 {
 }
 
@@ -232,6 +233,121 @@ auto CanvasObject::set_parent_id(ObjectId parent) -> void
     mark_dirty();
 }
 
+// --- Tooltip (#1) ---
+
+auto CanvasObject::tooltip() const -> const std::string&
+{
+    return tooltip_;
+}
+
+auto CanvasObject::set_tooltip(const std::string& tip) -> void
+{
+    tooltip_ = tip;
+    mark_dirty();
+}
+
+// --- Hyperlink (#2) ---
+
+auto CanvasObject::hyperlink() const -> const std::string&
+{
+    return hyperlink_;
+}
+
+auto CanvasObject::set_hyperlink(const std::string& url) -> void
+{
+    hyperlink_ = url;
+    mark_dirty();
+}
+
+// --- Layer (#3) ---
+
+auto CanvasObject::layer() const -> int
+{
+    return layer_;
+}
+
+auto CanvasObject::set_layer(int layer_index) -> void
+{
+    layer_ = layer_index;
+    mark_dirty();
+}
+
+// --- Blend Mode (#4) ---
+
+auto CanvasObject::blend_mode() const -> BlendMode
+{
+    return blend_mode_;
+}
+
+auto CanvasObject::set_blend_mode(BlendMode mode) -> void
+{
+    blend_mode_ = mode;
+    mark_dirty();
+}
+
+// --- Aspect Lock (#5) ---
+
+auto CanvasObject::is_aspect_locked() const -> bool
+{
+    return aspect_locked_;
+}
+
+auto CanvasObject::set_aspect_locked(bool locked) -> void
+{
+    aspect_locked_ = locked;
+    mark_dirty();
+}
+
+// --- Flip (#6) ---
+
+auto CanvasObject::is_flipped_horizontal() const -> bool
+{
+    return flip_horizontal_;
+}
+
+auto CanvasObject::set_flipped_horizontal(bool flipped) -> void
+{
+    flip_horizontal_ = flipped;
+    mark_dirty();
+}
+
+auto CanvasObject::is_flipped_vertical() const -> bool
+{
+    return flip_vertical_;
+}
+
+auto CanvasObject::set_flipped_vertical(bool flipped) -> void
+{
+    flip_vertical_ = flipped;
+    mark_dirty();
+}
+
+// --- Shadow (#7) ---
+
+auto CanvasObject::shadow() const -> const ObjectShadow&
+{
+    return shadow_;
+}
+
+auto CanvasObject::set_shadow(const ObjectShadow& shd) -> void
+{
+    shadow_ = shd;
+    mark_dirty();
+}
+
+// --- Border (#8) ---
+
+auto CanvasObject::border() const -> const ObjectBorder&
+{
+    return border_;
+}
+
+auto CanvasObject::set_border(const ObjectBorder& brd) -> void
+{
+    border_ = brd;
+    mark_dirty();
+}
+
 // --- Serialization (base implementation) ---
 
 auto CanvasObject::to_json() const -> std::string
@@ -260,6 +376,56 @@ auto CanvasObject::mark_dirty() -> void
 auto CanvasObject::mark_clean() -> void
 {
     dirty_ = false;
+}
+
+// --- Batch 2 (#7-12) ---
+
+auto CanvasObject::custom_color() const -> const CanvasColor&
+{
+    return custom_color_;
+}
+
+auto CanvasObject::set_custom_color(const CanvasColor& color) -> void
+{
+    custom_color_ = color;
+    mark_dirty();
+}
+
+auto CanvasObject::creation_order() const -> uint64_t
+{
+    return creation_order_;
+}
+
+auto CanvasObject::annotation() const -> const std::string&
+{
+    return annotation_;
+}
+
+auto CanvasObject::set_annotation(const std::string& note) -> void
+{
+    annotation_ = note;
+    mark_dirty();
+}
+
+auto CanvasObject::is_template() const -> bool
+{
+    return is_template_;
+}
+
+auto CanvasObject::set_template(bool is_tpl) -> void
+{
+    is_template_ = is_tpl;
+    mark_dirty();
+}
+
+auto CanvasObject::world_center() const -> Point2D
+{
+    return world_bounds().center();
+}
+
+auto CanvasObject::distance_to(const CanvasObject& other) const -> double
+{
+    return world_center().distance_to(other.world_center());
 }
 
 } // namespace markamp::canvas

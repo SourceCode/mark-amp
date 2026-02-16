@@ -1,5 +1,8 @@
 #pragma once
 
+#include "ProfilerIds.h"
+#include "RingBuffer.h"
+
 #include <array>
 #include <atomic>
 #include <chrono>
@@ -30,11 +33,19 @@ private:
     std::chrono::high_resolution_clock::time_point start_;
 };
 
+// Forward declaration for ScopedIdTimer
+class Profiler;
+
 /// Thread-safe performance profiler singleton.
 /// Collects named timing samples and provides aggregate statistics.
 class Profiler
 {
 public:
+    /// Default constructor — allows injection of standalone instances.
+    /// For shared global profiling, use instance().
+    Profiler() = default;
+
+    /// Global singleton accessor (convenience, used by MARKAMP_PROFILE_SCOPE macro).
     static auto instance() -> Profiler&;
 
     // ── Manual timing ──
@@ -49,6 +60,10 @@ public:
     // ── Record a completed measurement ──
 
     void record(std::string_view name, double duration_ms);
+
+    /// Record a timing by ProfileId — zero allocation, O(1) array index.
+    /// Phase 16 fast path.
+    void record(ProfileId profile_id, double duration_ms);
 
     // ── Results ──
 
@@ -70,8 +85,6 @@ public:
     [[nodiscard]] static auto memory_usage_mb() -> double;
 
 private:
-    Profiler() = default;
-
     struct TimingData
     {
         std::vector<double> durations_ms;
@@ -85,12 +98,58 @@ private:
     mutable std::mutex mutex_;
     std::unordered_map<std::string, TimingData> timings_;
     std::unordered_map<std::string, PendingTimer> pending_;
+
+    /// Phase 16: Fixed-size ring buffer array indexed by ProfileId.
+    /// Zero allocation on the recording hot path.
+    static constexpr std::size_t kRingBufferCapacity = 1024;
+    struct FixedTimingData
+    {
+        RingBuffer<double, kRingBufferCapacity> samples;
+    };
+    std::array<FixedTimingData, kProfileIdCount> fixed_timings_{};
+};
+
+/// RAII scoped timer for ProfileId-based timing (Phase 16 fast path).
+/// Records via Profiler::record(ProfileId, double) — zero allocation.
+class ScopedIdTimer
+{
+public:
+    explicit ScopedIdTimer(ProfileId profile_id)
+        : id_(profile_id)
+        , start_(std::chrono::high_resolution_clock::now())
+    {
+    }
+
+    ~ScopedIdTimer()
+    {
+        auto end = std::chrono::high_resolution_clock::now();
+        auto duration_ms = std::chrono::duration<double, std::milli>(end - start_).count();
+        if (duration_ms < 0.0)
+        {
+            duration_ms = 0.0;
+        }
+        Profiler::instance().record(id_, duration_ms);
+    }
+
+    ScopedIdTimer(const ScopedIdTimer&) = delete;
+    auto operator=(const ScopedIdTimer&) -> ScopedIdTimer& = delete;
+    ScopedIdTimer(ScopedIdTimer&&) = delete;
+    auto operator=(ScopedIdTimer&&) -> ScopedIdTimer& = delete;
+
+private:
+    ProfileId id_;
+    std::chrono::high_resolution_clock::time_point start_;
 };
 
 // Convenience macro — creates a unique variable per line
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define MARKAMP_PROFILE_SCOPE(name)                                                                \
     auto _profiler_scope_##__LINE__ = markamp::core::Profiler::instance().scope(name)
+
+// Phase 16: ID-based profiling macro — zero allocation fast path
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define MARKAMP_PROFILE_SCOPE_ID(profile_id)                                                       \
+    markamp::core::ScopedIdTimer _profiler_id_scope_##__LINE__(profile_id)
 
 // ═══════════════════════════════════════════════════════
 // Budget guard — debug-mode latency assertion

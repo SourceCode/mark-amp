@@ -23,6 +23,9 @@ struct TemplateInfo
     std::string thumbnail_path;
     std::filesystem::path template_path;
     bool is_builtin{false};
+    std::vector<std::string> tags; // (#29) searchable tags
+    double rating{0.0};            // (#29) user rating 0-5
+    int usage_count{0};            // (#29) how often used
 };
 
 /// Manages a library of board templates (built-in and user-created).
@@ -59,6 +62,27 @@ public:
 
     /// Total number of templates.
     [[nodiscard]] auto template_count() const -> size_t;
+
+    // ── Improvements (#29-30) ─────────────────────────────────
+
+    /// Delete a user template by id (built-ins cannot be deleted).
+    auto delete_template(const std::string& template_id) -> bool;
+
+    /// Sort templates by rating descending (most popular first).
+    auto sort_by_rating() -> void;
+
+    /// Sort templates by usage count descending.
+    auto sort_by_popularity() -> void;
+
+    // ── Batch 10 (#57-58) ─────────────────────────────────────────
+
+    /// Clone an existing template with a new id and name.
+    auto duplicate_template(const std::string& source_id,
+                            const std::string& new_id,
+                            const std::string& new_name) -> bool;
+
+    /// Look up a template by its ID.
+    [[nodiscard]] auto template_by_id(const std::string& template_id) const -> const TemplateInfo*;
 
 private:
     std::vector<TemplateInfo> templates_;

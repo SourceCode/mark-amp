@@ -33,6 +33,22 @@ public:
     using SegmentClickCallback = std::function<void(const std::string& path)>;
     void SetSegmentClickCallback(SegmentClickCallback callback);
 
+    // V8 Phase 12 (Phase 38): Cross-surface traversal segments
+
+    /// A breadcrumb segment representing a cross-surface traversal point.
+    struct TraversalSegment
+    {
+        std::string surface_label; ///< e.g. "Editor", "Canvas"
+        std::string anchor_label;  ///< e.g. "main.md:42", "board:node-7"
+        int nav_entry_index{-1};   ///< Index into global navigation timeline
+    };
+
+    /// Set traversal breadcrumb segments for cross-surface navigation display.
+    void SetTraversalSegments(const std::vector<TraversalSegment>& segments);
+
+    /// Get the current traversal segments.
+    [[nodiscard]] auto GetTraversalSegments() const -> const std::vector<TraversalSegment>&;
+
 private:
     void Rebuild();
     void OnLabelClick(wxMouseEvent& event); // R3 Fix 20
@@ -45,6 +61,9 @@ private:
     std::vector<std::string> heading_segments_;
     wxStaticText* label_{nullptr};
     SegmentClickCallback segment_click_callback_; // R3 Fix 20
+
+    // V8 Phase 12 (Phase 38): Cross-surface traversal
+    std::vector<TraversalSegment> traversal_segments_;
 };
 
 } // namespace markamp::ui

@@ -1,6 +1,8 @@
 #include "Board.h"
 
 #include <algorithm>
+#include <cstdint>
+#include <set>
 
 namespace markamp::canvas
 {
@@ -217,6 +219,7 @@ auto Board::is_dirty() const -> bool
 auto Board::mark_dirty() -> void
 {
     dirty_ = true;
+    ++metadata_.version;
 }
 auto Board::clear_dirty() -> void
 {
@@ -247,6 +250,281 @@ auto Board::rebuild_index() -> void
     {
         id_to_index_[objects_[idx]->id()] = idx;
     }
+}
+
+// ── Query Helpers ────────────────────────────────────────────────
+
+auto Board::find_objects_by_type(CanvasObjectType type) const -> std::vector<ObjectId>
+{
+    std::vector<ObjectId> result;
+    for (const auto& obj : objects_)
+    {
+        if (obj->type() == type)
+        {
+            result.push_back(obj->id());
+        }
+    }
+    return result;
+}
+
+auto Board::find_objects_in_region(const AABB& region) const -> std::vector<ObjectId>
+{
+    std::vector<ObjectId> result;
+    for (const auto& obj : objects_)
+    {
+        if (obj->world_bounds().intersects(region))
+        {
+            result.push_back(obj->id());
+        }
+    }
+    return result;
+}
+
+auto Board::object_count_by_type() const -> std::unordered_map<uint8_t, size_t>
+{
+    std::unordered_map<uint8_t, size_t> counts;
+    for (const auto& obj : objects_)
+    {
+        ++counts[static_cast<uint8_t>(obj->type())];
+    }
+    return counts;
+}
+
+// ── Bulk Operations ──────────────────────────────────────────────
+
+auto Board::clear_all_objects() -> void
+{
+    objects_.clear();
+    id_to_index_.clear();
+    dirty_ = true;
+    ++metadata_.version;
+}
+
+auto Board::sort_objects_by_position() -> void
+{
+    std::sort(objects_.begin(),
+              objects_.end(),
+              [](const std::unique_ptr<CanvasObject>& lhs, const std::unique_ptr<CanvasObject>& rhs)
+              {
+                  const auto lhs_bounds = lhs->world_bounds();
+                  const auto rhs_bounds = rhs->world_bounds();
+                  if (lhs_bounds.min_y != rhs_bounds.min_y)
+                  {
+                      return lhs_bounds.min_y < rhs_bounds.min_y;
+                  }
+                  return lhs_bounds.min_x < rhs_bounds.min_x;
+              });
+    rebuild_index();
+    dirty_ = true;
+}
+
+// ── Analytics ────────────────────────────────────────────────────
+
+auto Board::statistics() const -> BoardStatistics
+{
+    BoardStatistics stats;
+    stats.total_objects = objects_.size();
+    stats.type_counts = object_count_by_type();
+    stats.bounds = content_bounds();
+    stats.favorite = metadata_.favorite;
+    stats.version = metadata_.version;
+    return stats;
+}
+
+// ── Object Helpers (#38-40) ────────────────────────────────────
+
+auto Board::duplicate_object(ObjectId obj_id, double offset_x, double offset_y) -> ObjectId
+{
+    const auto* original = get_object(obj_id);
+    if (original == nullptr)
+    {
+        return kInvalidObjectId;
+    }
+
+    auto cloned = original->clone();
+    auto xform = cloned->transform();
+    xform.tx += offset_x;
+    xform.ty += offset_y;
+    cloned->set_transform(xform);
+    cloned->set_name(original->name() + " (copy)");
+
+    return add_object(std::move(cloned));
+}
+
+auto Board::layer_count() const -> int
+{
+    std::set<int> layers;
+    for (const auto& obj : objects_)
+    {
+        layers.insert(obj->layer());
+    }
+    return static_cast<int>(layers.size());
+}
+
+auto Board::objects_on_layer(int layer_index) const -> std::vector<ObjectId>
+{
+    std::vector<ObjectId> result;
+    for (const auto& obj : objects_)
+    {
+        if (obj->layer() == layer_index)
+        {
+            result.push_back(obj->id());
+        }
+    }
+    return result;
+}
+
+// ── Utility (#25-30) ───────────────────────────────────────────────
+
+auto Board::rename_object(ObjectId obj_id, const std::string& new_name) -> bool
+{
+    auto* obj = get_object_mut(obj_id);
+    if (obj == nullptr)
+    {
+        return false;
+    }
+    obj->set_name(new_name);
+    return true;
+}
+
+auto Board::move_object(ObjectId obj_id, double delta_x, double delta_y) -> bool
+{
+    auto* obj = get_object_mut(obj_id);
+    if (obj == nullptr)
+    {
+        return false;
+    }
+    auto xform = obj->transform();
+    xform.tx += delta_x;
+    xform.ty += delta_y;
+    obj->set_transform(xform);
+    return true;
+}
+
+auto Board::resize_object(ObjectId obj_id, double scale_x, double scale_y) -> bool
+{
+    auto* obj = get_object_mut(obj_id);
+    if (obj == nullptr)
+    {
+        return false;
+    }
+    auto xform = obj->transform();
+    xform.scale_x *= scale_x;
+    xform.scale_y *= scale_y;
+    obj->set_transform(xform);
+    return true;
+}
+
+auto Board::find_objects_by_name(const std::string& substring) const -> std::vector<ObjectId>
+{
+    std::vector<ObjectId> result;
+    for (const auto& obj : objects_)
+    {
+        if (obj->name().find(substring) != std::string::npos)
+        {
+            result.push_back(obj->id());
+        }
+    }
+    return result;
+}
+
+auto Board::total_bounds_area() const -> double
+{
+    const auto bounds = content_bounds();
+    const double width = bounds.max_x - bounds.min_x;
+    const double height = bounds.max_y - bounds.min_y;
+    return width * height;
+}
+
+auto Board::has_object(ObjectId obj_id) const -> bool
+{
+    return get_object(obj_id) != nullptr;
+}
+
+// ── Batch 1 (#1-6) ────────────────────────────────────────────────
+
+auto Board::find_objects_by_tag(const std::string& tag) const -> std::vector<ObjectId>
+{
+    std::vector<ObjectId> result;
+    for (const auto& obj : objects_)
+    {
+        const auto& obj_tags = obj->tags();
+        if (std::find(obj_tags.begin(), obj_tags.end(), tag) != obj_tags.end())
+        {
+            result.push_back(obj->id());
+        }
+    }
+    return result;
+}
+
+auto Board::find_topmost_at(const Point2D& point) const -> ObjectId
+{
+    ObjectId topmost = kInvalidObjectId;
+    int highest_z = std::numeric_limits<int>::min();
+
+    for (const auto& obj : objects_)
+    {
+        if (obj->world_bounds().contains(point) && obj->z_index() > highest_z)
+        {
+            highest_z = obj->z_index();
+            topmost = obj->id();
+        }
+    }
+    return topmost;
+}
+
+auto Board::compact_z_indices() -> void
+{
+    // Gather objects sorted by current z-index.
+    std::vector<CanvasObject*> sorted;
+    sorted.reserve(objects_.size());
+    for (const auto& obj : objects_)
+    {
+        sorted.push_back(obj.get());
+    }
+    std::sort(sorted.begin(),
+              sorted.end(),
+              [](const CanvasObject* lhs, const CanvasObject* rhs)
+              { return lhs->z_index() < rhs->z_index(); });
+
+    for (size_t idx = 0; idx < sorted.size(); ++idx)
+    {
+        sorted[idx]->set_z_index(static_cast<int>(idx));
+    }
+    dirty_ = true;
+}
+
+auto Board::swap_z_order(ObjectId first_id, ObjectId second_id) -> bool
+{
+    auto* first_obj = get_object_mut(first_id);
+    auto* second_obj = get_object_mut(second_id);
+    if (first_obj == nullptr || second_obj == nullptr)
+    {
+        return false;
+    }
+    const int temp_z = first_obj->z_index();
+    first_obj->set_z_index(second_obj->z_index());
+    second_obj->set_z_index(temp_z);
+    dirty_ = true;
+    return true;
+}
+
+auto Board::lock_all() -> void
+{
+    for (auto& obj : objects_)
+    {
+        obj->set_locked(true);
+    }
+    dirty_ = true;
+}
+
+auto Board::unlock_all() -> void
+{
+    for (auto& obj : objects_)
+    {
+        obj->set_locked(false);
+    }
+    dirty_ = true;
 }
 
 } // namespace markamp::canvas

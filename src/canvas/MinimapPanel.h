@@ -55,6 +55,16 @@ public:
     [[nodiscard]] auto viewport_region() const -> const AABB&;
     [[nodiscard]] auto entries() const -> const std::vector<MinimapEntry>&;
 
+    // ── Batch 7 (#41-42) ──────────────────────────────────────────
+
+    /// User-adjustable minimap zoom factor.
+    [[nodiscard]] auto zoom_factor() const -> double;
+    auto set_zoom_factor(double factor) -> void;
+
+    /// Highlight specific objects on the minimap.
+    auto highlight_objects(const std::vector<ObjectId>& ids) -> void;
+    [[nodiscard]] auto highlighted_ids() const -> const std::vector<ObjectId>&;
+
 private:
     AABB content_bounds_{0.0, 0.0, 1000.0, 1000.0};
     AABB viewport_region_{0.0, 0.0, 500.0, 500.0};
@@ -64,6 +74,8 @@ private:
     double panel_height_{150.0};
     OnNavigateCallback on_navigate_;
     bool dragging_{false};
+    double zoom_factor_{1.0};
+    std::vector<ObjectId> highlighted_ids_;
 
     static constexpr double kMarginFraction = 0.05;
 };

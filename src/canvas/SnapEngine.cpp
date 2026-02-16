@@ -181,4 +181,48 @@ auto SnapEngine::set_config(const SnapConfig& cfg) -> void
     config_ = cfg;
 }
 
+auto SnapEngine::snap_angle(double angle_radians) const -> double
+{
+    if (!config_.snap_angle_enabled)
+    {
+        return angle_radians;
+    }
+    constexpr double kAngleStep = M_PI / 12.0; // 15 degrees
+    return std::round(angle_radians / kAngleStep) * kAngleStep;
+}
+
+// --- Batch 4 (#23-24) ---
+
+auto SnapEngine::snap_to_center(const Point2D& point, const AABB& reference, double threshold) const
+    -> Point2D
+{
+    const auto ref_center = reference.center();
+    Point2D result = point;
+
+    if (std::abs(point.x - ref_center.x) < threshold)
+    {
+        result.x = ref_center.x;
+    }
+    if (std::abs(point.y - ref_center.y) < threshold)
+    {
+        result.y = ref_center.y;
+    }
+    return result;
+}
+
+auto SnapEngine::custom_guides() const -> const std::vector<GuideLine>&
+{
+    return custom_guides_;
+}
+
+auto SnapEngine::add_custom_guide(const GuideLine& guide) -> void
+{
+    custom_guides_.push_back(guide);
+}
+
+auto SnapEngine::clear_custom_guides() -> void
+{
+    custom_guides_.clear();
+}
+
 } // namespace markamp::canvas

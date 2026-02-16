@@ -87,6 +87,127 @@ auto KanbanCard::set_card_index(int index) -> void
     mark_dirty();
 }
 
+// ── Labels (#9) ─────────────────────────────────────────────
+
+auto KanbanCard::labels() const -> const std::vector<std::string>&
+{
+    return labels_;
+}
+auto KanbanCard::add_label(const std::string& label) -> void
+{
+    labels_.push_back(label);
+    mark_dirty();
+}
+auto KanbanCard::remove_label(const std::string& label) -> void
+{
+    labels_.erase(std::remove(labels_.begin(), labels_.end(), label), labels_.end());
+    mark_dirty();
+}
+auto KanbanCard::clear_labels() -> void
+{
+    labels_.clear();
+    mark_dirty();
+}
+
+// ── Checklist (#10) ─────────────────────────────────────────
+
+auto KanbanCard::checklist() const -> const std::vector<ChecklistItem>&
+{
+    return checklist_;
+}
+auto KanbanCard::add_checklist_item(const std::string& text) -> void
+{
+    checklist_.push_back({text, false});
+    mark_dirty();
+}
+auto KanbanCard::toggle_checklist_item(size_t index) -> void
+{
+    if (index < checklist_.size())
+    {
+        checklist_[index].done = !checklist_[index].done;
+        mark_dirty();
+    }
+}
+auto KanbanCard::checklist_progress() const -> double
+{
+    if (checklist_.empty())
+    {
+        return 0.0;
+    }
+    const auto done_count = std::count_if(
+        checklist_.begin(), checklist_.end(), [](const ChecklistItem& item) { return item.done; });
+    return static_cast<double>(done_count) / static_cast<double>(checklist_.size());
+}
+
+// ── Story Points (#11) ─────────────────────────────────────
+
+auto KanbanCard::story_points() const -> int
+{
+    return story_points_;
+}
+auto KanbanCard::set_story_points(int points) -> void
+{
+    story_points_ = points;
+    mark_dirty();
+}
+
+// ── Timestamps (#12) ───────────────────────────────────────
+
+auto KanbanCard::created_at() const -> const std::string&
+{
+    return created_at_;
+}
+auto KanbanCard::set_created_at(const std::string& timestamp) -> void
+{
+    created_at_ = timestamp;
+    mark_dirty();
+}
+auto KanbanCard::completed_at() const -> const std::string&
+{
+    return completed_at_;
+}
+auto KanbanCard::set_completed_at(const std::string& timestamp) -> void
+{
+    completed_at_ = timestamp;
+    mark_dirty();
+}
+
+// ── Attachment count (#31) ──────────────────────────────────
+
+auto KanbanCard::attachment_count() const -> int
+{
+    return attachment_count_;
+}
+auto KanbanCard::set_attachment_count(int count) -> void
+{
+    attachment_count_ = count;
+    mark_dirty();
+}
+
+// ── Comment count (#32) ─────────────────────────────────────
+
+auto KanbanCard::comment_count() const -> int
+{
+    return comment_count_;
+}
+auto KanbanCard::set_comment_count(int count) -> void
+{
+    comment_count_ = count;
+    mark_dirty();
+}
+
+// ── Archived (#33) ─────────────────────────────────────────
+
+auto KanbanCard::is_archived() const -> bool
+{
+    return archived_;
+}
+auto KanbanCard::set_archived(bool archived) -> void
+{
+    archived_ = archived;
+    mark_dirty();
+}
+
 auto KanbanCard::local_bounds() const -> AABB
 {
     return {0.0, 0.0, 260.0, 80.0};
@@ -101,7 +222,23 @@ auto KanbanCard::to_json() const -> std::string
         << ",\"assignee\":\"" << assignee_ << "\""
         << ",\"due_date\":\"" << due_date_ << "\""
         << ",\"priority\":" << priority_ << ",\"column_id\":" << column_id_
-        << ",\"card_index\":" << card_index_ << "}";
+        << ",\"card_index\":" << card_index_ << ",\"story_points\":" << story_points_
+        << ",\"created_at\":\"" << created_at_ << "\""
+        << ",\"completed_at\":\"" << completed_at_ << "\"";
+
+    // Labels.
+    oss << ",\"labels\":[";
+    for (size_t idx = 0; idx < labels_.size(); ++idx)
+    {
+        if (idx > 0)
+        {
+            oss << ",";
+        }
+        oss << "\"" << labels_[idx] << "\"";
+    }
+    oss << "]";
+
+    oss << "}";
     return oss.str();
 }
 
@@ -120,6 +257,21 @@ auto KanbanCard::clone() const -> std::unique_ptr<CanvasObject>
     copy->set_priority(priority_);
     copy->set_column_id(column_id_);
     copy->set_card_index(card_index_);
+    copy->set_story_points(story_points_);
+    copy->set_created_at(created_at_);
+    copy->set_completed_at(completed_at_);
+    for (const auto& label : labels_)
+    {
+        copy->add_label(label);
+    }
+    for (const auto& item : checklist_)
+    {
+        copy->add_checklist_item(item.text);
+        if (item.done)
+        {
+            copy->toggle_checklist_item(copy->checklist().size() - 1);
+        }
+    }
     copy->set_name(name());
     return copy;
 }
@@ -192,9 +344,33 @@ auto KanbanColumn::column_width() const -> double
 {
     return column_width_;
 }
-auto KanbanColumn::set_column_width(double w) -> void
+auto KanbanColumn::set_column_width(double width) -> void
 {
-    column_width_ = w;
+    column_width_ = width;
+    mark_dirty();
+}
+
+// ── Collapsed (#13) ────────────────────────────────────────
+
+auto KanbanColumn::is_collapsed() const -> bool
+{
+    return collapsed_;
+}
+auto KanbanColumn::set_collapsed(bool collapsed) -> void
+{
+    collapsed_ = collapsed;
+    mark_dirty();
+}
+
+// ── Sort Order (#14) ───────────────────────────────────────
+
+auto KanbanColumn::sort_order() const -> KanbanSortOrder
+{
+    return sort_order_;
+}
+auto KanbanColumn::set_sort_order(KanbanSortOrder order) -> void
+{
+    sort_order_ = order;
     mark_dirty();
 }
 
@@ -211,7 +387,9 @@ auto KanbanColumn::to_json() const -> std::string
     std::ostringstream oss;
     oss << "{\"type\":\"KanbanColumn\""
         << ",\"title\":\"" << title_ << "\""
-        << ",\"wip_limit\":" << wip_limit_ << ",\"width\":" << column_width_ << ",\"cards\":[";
+        << ",\"wip_limit\":" << wip_limit_ << ",\"width\":" << column_width_
+        << ",\"collapsed\":" << (collapsed_ ? "true" : "false")
+        << ",\"sort_order\":" << static_cast<int>(sort_order_) << ",\"cards\":[";
     for (size_t idx = 0; idx < card_ids_.size(); ++idx)
     {
         if (idx > 0)
@@ -239,8 +417,48 @@ auto KanbanColumn::clone() const -> std::unique_ptr<CanvasObject>
         copy->add_card(card_id);
     }
     copy->set_column_width(column_width_);
+    copy->set_collapsed(collapsed_);
+    copy->set_sort_order(sort_order_);
     copy->set_name(name());
     return copy;
+}
+
+// ── Batch 9 (#49-51) ──────────────────────────────────────────────
+
+auto KanbanColumn::description() const -> const std::string&
+{
+    return description_;
+}
+
+auto KanbanColumn::set_description(const std::string& desc) -> void
+{
+    description_ = desc;
+    mark_dirty();
+}
+
+auto KanbanColumn::is_over_wip_limit() const -> bool
+{
+    if (wip_limit_ <= 0)
+    {
+        return false;
+    }
+    return static_cast<int>(card_ids_.size()) > wip_limit_;
+}
+
+auto KanbanColumn::move_card_to_position(ObjectId card_id, int position) -> void
+{
+    // Remove the card from its current position.
+    auto iter = std::find(card_ids_.begin(), card_ids_.end(), card_id);
+    if (iter == card_ids_.end())
+    {
+        return;
+    }
+    card_ids_.erase(iter);
+
+    // Insert at the new position (clamped).
+    const int clamped_pos = std::clamp(position, 0, static_cast<int>(card_ids_.size()));
+    card_ids_.insert(card_ids_.begin() + clamped_pos, card_id);
+    mark_dirty();
 }
 
 } // namespace markamp::canvas

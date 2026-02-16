@@ -54,7 +54,11 @@ enum class SettingType
     Integer,
     Double,
     String,
-    Choice
+    Choice,
+    FilePath,
+    Color,
+    KeyBinding,
+    StringList
 };
 
 struct SettingContribution

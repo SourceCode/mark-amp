@@ -1,6 +1,7 @@
 #include "LayoutManager.h"
 
 #include "BreadcrumbBar.h"
+#include "CanvasWorkspacePanel.h"
 #include "EditorPanel.h"
 #include "ExtensionsBrowserPanel.h"
 #include "FileTreeCtrl.h"
@@ -1688,6 +1689,24 @@ LayoutManager::LayoutManager(wxWindow* parent,
             MARKAMP_LOG_INFO(
                 "Feature toggled: {} = {}", evt.feature_id, evt.enabled ? "on" : "off");
         });
+
+    // V8 Phase 6: Subscribe to board open requests
+    board_open_sub_ = event_bus_.subscribe<core::events::BoardOpenRequestEvent>(
+        [this](const core::events::BoardOpenRequestEvent& evt)
+        {
+            ShowCanvasWorkspace();
+            if (canvas_workspace_ != nullptr)
+            {
+                if (evt.board_id.empty())
+                {
+                    canvas_workspace_->NewBoard();
+                }
+                else
+                {
+                    canvas_workspace_->LoadBoard(evt.board_id);
+                }
+            }
+        });
 }
 
 void LayoutManager::SaveFile(const std::string& path)
@@ -1709,12 +1728,12 @@ void LayoutManager::CreateLayout()
     auto* sidebar_sizer = new wxBoxSizer(wxVERTICAL);
 
     // Header: "EXPLORER"
-    auto* header_panel = new wxPanel(sidebar_panel_, wxID_ANY, wxDefaultPosition, wxSize(-1, 40));
-    header_panel->SetBackgroundColour(theme_engine().color(core::ThemeColorToken::BgHeader));
+    header_panel_ = new wxPanel(sidebar_panel_, wxID_ANY, wxDefaultPosition, wxSize(-1, 40));
+    header_panel_->SetBackgroundColour(theme_engine().color(core::ThemeColorToken::BgHeader));
 
     // Fix 11: Render "EXPLORER" label in header
     auto* header_sizer = new wxBoxSizer(wxHORIZONTAL);
-    header_label_ = new wxStaticText(header_panel, wxID_ANY, "EXPLORER");
+    header_label_ = new wxStaticText(header_panel_, wxID_ANY, "EXPLORER");
     header_label_->SetFont(
         theme_engine().font(core::ThemeFontToken::MonoRegular).Bold().Scaled(0.85f));
     header_label_->SetForegroundColour(theme_engine().color(core::ThemeColorToken::TextMuted));
@@ -1723,26 +1742,26 @@ void LayoutManager::CreateLayout()
     header_sizer->AddStretchSpacer();
 
     // R4 Fix 15: Collapse All button in sidebar header
-    auto* collapse_btn = new wxButton(
-        header_panel, wxID_ANY, "\xE2\x96\xBE", wxDefaultPosition, wxSize(28, 28), wxBORDER_NONE);
-    collapse_btn->SetToolTip("Collapse All");
-    collapse_btn->SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular).Scaled(0.85f));
-    collapse_btn->SetForegroundColour(theme_engine().color(core::ThemeColorToken::TextMuted));
-    collapse_btn->SetBackgroundColour(theme_engine().color(core::ThemeColorToken::BgHeader));
-    collapse_btn->Bind(wxEVT_BUTTON,
-                       [this](wxCommandEvent& /*evt*/)
-                       {
-                           if (file_tree_ != nullptr)
-                           {
-                               file_tree_->CollapseAllNodes();
-                           }
-                       });
-    header_sizer->Add(collapse_btn, 0, wxALIGN_CENTER_VERTICAL);
+    collapse_btn_ = new wxButton(
+        header_panel_, wxID_ANY, "\xE2\x96\xBE", wxDefaultPosition, wxSize(28, 28), wxBORDER_NONE);
+    collapse_btn_->SetToolTip("Collapse All");
+    collapse_btn_->SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular).Scaled(0.85f));
+    collapse_btn_->SetForegroundColour(theme_engine().color(core::ThemeColorToken::TextMuted));
+    collapse_btn_->SetBackgroundColour(theme_engine().color(core::ThemeColorToken::BgHeader));
+    collapse_btn_->Bind(wxEVT_BUTTON,
+                        [this](wxCommandEvent& /*evt*/)
+                        {
+                            if (file_tree_ != nullptr)
+                            {
+                                file_tree_->CollapseAllNodes();
+                            }
+                        });
+    header_sizer->Add(collapse_btn_, 0, wxALIGN_CENTER_VERTICAL);
     header_sizer->AddSpacer(4);
 
-    header_panel->SetSizer(header_sizer);
+    header_panel_->SetSizer(header_sizer);
 
-    sidebar_sizer->Add(header_panel, 0, wxEXPAND);
+    sidebar_sizer->Add(header_panel_, 0, wxEXPAND);
 
     // R5 Fix 7: Use wxSearchCtrl for built-in clear/cancel button
     // Phase 8: Wrap explorer widgets in a container panel for sidebar switching
@@ -1830,16 +1849,16 @@ void LayoutManager::CreateLayout()
     } // end: Fix 14 conditional sample tree
 
     // Footer — Fix 13: show file count
-    auto* footer_panel = new wxPanel(explorer_panel_, wxID_ANY, wxDefaultPosition, wxSize(-1, 28));
-    footer_panel->SetBackgroundColour(theme_engine().color(core::ThemeColorToken::BgApp));
+    footer_panel_ = new wxPanel(explorer_panel_, wxID_ANY, wxDefaultPosition, wxSize(-1, 28));
+    footer_panel_->SetBackgroundColour(theme_engine().color(core::ThemeColorToken::BgApp));
     auto* footer_sizer = new wxBoxSizer(wxHORIZONTAL);
-    file_count_label_ = new wxStaticText(footer_panel, wxID_ANY, "");
+    file_count_label_ = new wxStaticText(footer_panel_, wxID_ANY, "");
     file_count_label_->SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular).Scaled(0.8f));
     file_count_label_->SetForegroundColour(theme_engine().color(core::ThemeColorToken::TextMuted));
     footer_sizer->AddSpacer(12);
     footer_sizer->Add(file_count_label_, 1, wxALIGN_CENTER_VERTICAL);
-    footer_panel->SetSizer(footer_sizer);
-    explorer_sizer->Add(footer_panel, 0, wxEXPAND);
+    footer_panel_->SetSizer(footer_sizer);
+    explorer_sizer->Add(footer_panel_, 0, wxEXPAND);
 
     explorer_panel_->SetSizer(explorer_sizer);
     sidebar_sizer->Add(explorer_panel_, 1, wxEXPAND);
@@ -1982,10 +2001,12 @@ void LayoutManager::SetWorkspaceRoot(const std::string& root_path)
         file_tree_->SetWorkspaceRoot(root_path);
     }
     // R3 Fix 19: Update sidebar header with workspace folder name
+    // V8 Phase 1 Task 4: Store workspace name for project-first sidebar header
     if (header_label_ != nullptr)
     {
         std::string folder_name = std::filesystem::path(root_path).filename().string();
         std::transform(folder_name.begin(), folder_name.end(), folder_name.begin(), ::toupper);
+        workspace_name_ = folder_name;
         header_label_->SetLabel(folder_name);
     }
 }
@@ -2096,6 +2117,35 @@ void LayoutManager::OnThemeChanged(const core::Theme& new_theme)
             theme_engine().color(core::ThemeColorToken::BgPanel).ChangeLightness(110));
         search_field_->SetForegroundColour(theme_engine().color(core::ThemeColorToken::TextMain));
         search_field_->Refresh();
+    }
+
+    // V8 Phase 1: Re-apply theme tokens to sidebar header/footer/collapse button
+    if (header_panel_ != nullptr)
+    {
+        header_panel_->SetBackgroundColour(theme_engine().color(core::ThemeColorToken::BgHeader));
+        header_panel_->Refresh();
+    }
+    if (header_label_ != nullptr)
+    {
+        header_label_->SetForegroundColour(theme_engine().color(core::ThemeColorToken::TextMuted));
+        header_label_->Refresh();
+    }
+    if (collapse_btn_ != nullptr)
+    {
+        collapse_btn_->SetForegroundColour(theme_engine().color(core::ThemeColorToken::TextMuted));
+        collapse_btn_->SetBackgroundColour(theme_engine().color(core::ThemeColorToken::BgHeader));
+        collapse_btn_->Refresh();
+    }
+    if (footer_panel_ != nullptr)
+    {
+        footer_panel_->SetBackgroundColour(theme_engine().color(core::ThemeColorToken::BgApp));
+        footer_panel_->Refresh();
+    }
+    if (file_count_label_ != nullptr)
+    {
+        file_count_label_->SetForegroundColour(
+            theme_engine().color(core::ThemeColorToken::TextMuted));
+        file_count_label_->Refresh();
     }
 
     sidebar_panel_->Refresh();
@@ -2212,7 +2262,8 @@ void LayoutManager::SetSidebarMode(SidebarMode mode)
             }
             if (header_label_ != nullptr)
             {
-                header_label_->SetLabel("EXPLORER");
+                // V8 Phase 1 Task 4: Show project name instead of generic "EXPLORER"
+                header_label_->SetLabel(workspace_name_.empty() ? "EXPLORER" : workspace_name_);
             }
             break;
         }
@@ -2268,6 +2319,121 @@ void LayoutManager::SetExtensionServices(core::IExtensionManagementService* mgmt
 {
     ext_mgmt_service_ = mgmt_service;
     ext_gallery_service_ = gallery_service;
+}
+
+// --- V8 Phase 6: Canvas mode switching ---
+
+void LayoutManager::ShowCanvasWorkspace()
+{
+    if (canvas_mode_)
+    {
+        return;
+    }
+
+    // Create canvas workspace lazily on first use
+    if (canvas_workspace_ == nullptr)
+    {
+        canvas_workspace_ = new CanvasWorkspacePanel(this, event_bus_, theme_engine(), config_);
+    }
+
+    // Hide editor content, show canvas workspace
+    if (content_panel_ != nullptr)
+    {
+        content_panel_->Hide();
+    }
+    canvas_workspace_->Show();
+
+    // Replace content in body sizer
+    if (body_sizer_ != nullptr)
+    {
+        body_sizer_->Add(canvas_workspace_, 1, wxEXPAND);
+        body_sizer_->Layout();
+    }
+
+    canvas_mode_ = true;
+
+    core::events::CanvasModeActivatedEvent evt;
+    event_bus_.publish(evt);
+
+    MARKAMP_LOG_INFO("Switched to canvas mode");
+}
+
+void LayoutManager::ShowEditorWorkspace()
+{
+    if (!canvas_mode_)
+    {
+        return;
+    }
+
+    // Hide canvas workspace, show editor content
+    if (canvas_workspace_ != nullptr)
+    {
+        canvas_workspace_->Hide();
+        if (body_sizer_ != nullptr)
+        {
+            body_sizer_->Detach(canvas_workspace_);
+        }
+    }
+    if (content_panel_ != nullptr)
+    {
+        content_panel_->Show();
+    }
+    if (body_sizer_ != nullptr)
+    {
+        body_sizer_->Layout();
+    }
+
+    canvas_mode_ = false;
+
+    core::events::CanvasModeDeactivatedEvent evt;
+    event_bus_.publish(evt);
+
+    MARKAMP_LOG_INFO("Switched to editor mode");
+}
+
+auto LayoutManager::is_canvas_mode() const -> bool
+{
+    return canvas_mode_;
+}
+
+auto LayoutManager::canvas_workspace() -> CanvasWorkspacePanel*
+{
+    return canvas_workspace_;
+}
+
+// ═══════════════════════════════════════════════════════
+// V8 Phase 11: Unified workbench mode
+// ═══════════════════════════════════════════════════════
+
+void LayoutManager::SetWorkbenchMode(core::events::WorkbenchMode mode)
+{
+    if (mode == workbench_mode_)
+    {
+        return;
+    }
+
+    auto previous = workbench_mode_;
+    workbench_mode_ = mode;
+
+    // Map workbench modes to canvas/editor switching
+    if (mode == core::events::WorkbenchMode::kCanvas)
+    {
+        ShowCanvasWorkspace();
+    }
+    else if (previous == core::events::WorkbenchMode::kCanvas)
+    {
+        ShowEditorWorkspace();
+    }
+
+    core::events::WorkbenchModeChangedEvent evt;
+    evt.previous_mode = previous;
+    evt.new_mode = mode;
+    event_bus_.publish(evt);
+}
+
+auto LayoutManager::GetWorkbenchMode() const -> core::events::WorkbenchMode
+{
+    return workbench_mode_;
 }
 
 // --- Multi-file tab management ---

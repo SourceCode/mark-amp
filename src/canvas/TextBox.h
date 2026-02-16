@@ -66,6 +66,19 @@ public:
     [[nodiscard]] auto fill_color() const -> CanvasColor;
     auto set_fill_color(const CanvasColor& color) -> void;
 
+    // ── Batch 5 (#28-30) ──────────────────────────────────────────
+
+    /// Count lines (newlines + 1) in the text box content.
+    [[nodiscard]] auto line_count() const -> size_t;
+
+    /// Custom line spacing multiplier (default 1.4).
+    [[nodiscard]] auto line_spacing() const -> double;
+    auto set_line_spacing(double spacing) -> void;
+
+    /// Custom inner padding (default 10.0).
+    [[nodiscard]] auto padding() const -> double;
+    auto set_padding(double pad) -> void;
+
     // ── CanvasObject overrides ─────────────────────────────────
 
     [[nodiscard]] auto local_bounds() const -> AABB override;
@@ -82,6 +95,8 @@ private:
     CanvasColor border_color_{0, 0, 0, 255};
     bool has_fill_{false};
     CanvasColor fill_color_{255, 255, 255, 255};
+    double line_spacing_{1.4};
+    double padding_{10.0};
 
     static constexpr double kMinWidth = 40.0;
     static constexpr double kMinHeight = 20.0;

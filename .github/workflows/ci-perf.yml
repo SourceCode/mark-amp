@@ -1,0 +1,35 @@
+# CI Performance Checks — Phase 34
+#
+# Runs sanitizer builds and performance-sensitive tests.
+
+name: Performance Checks
+
+on:
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  sanitizer-build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        sanitizer: [asan, ubsan, tsan]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build
+
+      - name: Configure (${{ matrix.sanitizer }})
+        run: |
+          cmake -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DMARKAMP_SANITIZER=${{ matrix.sanitizer }}
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Run tests
+        run: ctest --test-dir build --output-on-failure -j4

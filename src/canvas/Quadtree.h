@@ -50,6 +50,17 @@ public:
     /// Total number of entries stored.
     [[nodiscard]] auto size() const -> size_t;
 
+    // ── Batch 10 (#55-57) ──────────────────────────────────────────
+
+    /// Returns true if the tree has no entries.
+    [[nodiscard]] auto is_empty() const -> bool;
+
+    /// Count entries within a specific region.
+    [[nodiscard]] auto entry_count_in(const AABB& region) const -> size_t;
+
+    /// Return the configured max depth of the tree.
+    [[nodiscard]] auto depth() const -> int;
+
 private:
     struct Node
     {

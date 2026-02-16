@@ -1,17 +1,9 @@
 #pragma once
 
-#include "ContextKeyService.h"
-#include "DecorationService.h"
-#include "DiagnosticsService.h"
-#include "FileSystemProviderRegistry.h"
-#include "InputBoxService.h"
-#include "LanguageProviderRegistry.h"
-#include "NotificationService.h"
-#include "OutputChannelService.h"
-#include "QuickPickService.h"
-#include "StatusBarItemService.h"
-#include "TreeDataProviderRegistry.h"
-#include "WebviewService.h"
+// Phase 15: Forward declarations replace direct includes.
+// PluginContext stores only T* pointers, so incomplete types are sufficient.
+// This reduces the include chain from 12 headers to zero,
+// speeding up incremental builds for any file that includes PluginContext.h.
 
 #include <functional>
 #include <string>
@@ -32,6 +24,20 @@ class NoteTemplateEngine;
 class EmbedResolver;
 class LinkSuggestionService;
 class OutlinePanelController;
+
+// Forward declarations for extension API services (Phase 15: replaced #includes)
+class ContextKeyService;
+class OutputChannelService;
+class DiagnosticsService;
+class TreeDataProviderRegistry;
+class WebviewService;
+class DecorationService;
+class FileSystemProviderRegistry;
+class LanguageProviderRegistry;
+class NotificationService;
+class StatusBarItemService;
+class InputBoxService;
+class QuickPickService;
 
 // Forward declarations for P1–P4 services
 class SnippetEngine;

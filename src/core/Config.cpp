@@ -549,6 +549,145 @@ void Config::rebuild_cache()
     cached_.mouse_wheel_zoom = get_bool("editor.mouse_wheel_zoom", false);
     cached_.bracket_pair_colorization = get_bool("editor.bracket_pair_colorization", false);
     cached_.dim_whitespace = get_bool("syntax.dim_whitespace", false);
+    cached_.format_on_save = get_bool("editor.formatOnSave", false);
+    cached_.format_on_paste = get_bool("editor.formatOnPaste", false);
+    cached_.linked_editing = get_bool("editor.linkedEditing", false);
+}
+
+// ── Batch 9: Additional Config methods ──
+
+auto Config::has_key(std::string_view key) const -> bool
+{
+    auto key_str = std::string(key);
+    return data_[key_str] && data_[key_str].IsDefined();
+}
+
+void Config::remove(std::string_view key)
+{
+    auto key_str = std::string(key);
+    if (data_[key_str])
+    {
+        data_.remove(key_str);
+    }
+    rebuild_cache();
+}
+
+auto Config::all_keys() const -> std::vector<std::string>
+{
+    std::vector<std::string> keys;
+    if (data_.IsMap())
+    {
+        for (const auto& pair : data_)
+        {
+            keys.push_back(pair.first.as<std::string>());
+        }
+    }
+    return keys;
+}
+
+auto Config::key_count() const -> std::size_t
+{
+    if (data_.IsMap())
+    {
+        return data_.size();
+    }
+    return 0;
+}
+
+// ── New Batch 9: Config profile support implementations (#55-58) ──
+
+void Config::export_to_json(const std::filesystem::path& path) const
+{
+    std::ofstream ofs(path);
+    if (!ofs.is_open())
+    {
+        return;
+    }
+    // Simple JSON export from YAML data
+    ofs << "{\n";
+    bool first = true;
+    if (data_.IsMap())
+    {
+        for (const auto& pair : data_)
+        {
+            if (!first)
+            {
+                ofs << ",\n";
+            }
+            first = false;
+            ofs << "  \"" << pair.first.as<std::string>() << "\": \""
+                << pair.second.as<std::string>("") << "\"";
+        }
+    }
+    ofs << "\n}\n";
+}
+
+void Config::import_from_json(const std::filesystem::path& path)
+{
+    std::ifstream ifs(path);
+    if (!ifs.is_open())
+    {
+        return;
+    }
+    // Simple JSON import — parse key:value pairs
+    std::string content((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
+    // Basic JSON parser for flat key-value objects
+    std::size_t pos = 0;
+    while ((pos = content.find('"', pos)) != std::string::npos)
+    {
+        ++pos;
+        const auto key_end = content.find('"', pos);
+        if (key_end == std::string::npos)
+        {
+            break;
+        }
+        const std::string key = content.substr(pos, key_end - pos);
+        pos = key_end + 1;
+
+        const auto val_start = content.find('"', pos);
+        if (val_start == std::string::npos)
+        {
+            break;
+        }
+        const auto val_end = content.find('"', val_start + 1);
+        if (val_end == std::string::npos)
+        {
+            break;
+        }
+        const std::string value = content.substr(val_start + 1, val_end - val_start - 1);
+        pos = val_end + 1;
+
+        data_[key] = value;
+    }
+    rebuild_cache();
+}
+
+auto Config::diff(const Config& other) const -> std::vector<std::string>
+{
+    std::vector<std::string> differing_keys;
+    if (!data_.IsMap())
+    {
+        return differing_keys;
+    }
+    for (const auto& pair : data_)
+    {
+        const auto key = pair.first.as<std::string>();
+        const auto this_val = pair.second.as<std::string>("");
+        const auto other_val = other.get_string(key, "");
+        if (this_val != other_val)
+        {
+            differing_keys.push_back(key);
+        }
+    }
+    return differing_keys;
+}
+
+auto Config::snapshot() const -> Config
+{
+    Config copy;
+    copy.data_ = YAML::Clone(data_);
+    copy.rebuild_cache();
+    return copy;
 }
 
 } // namespace markamp::core

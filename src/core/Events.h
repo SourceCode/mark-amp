@@ -1,6 +1,7 @@
 #pragma once
 
 #include "EventBus.h"
+#include "SurfaceLink.h"
 
 #include <string>
 #include <vector>
@@ -148,7 +149,8 @@ MARKAMP_DECLARE_EVENT_END;
 enum class ScrollSyncMode
 {
     Proportional,
-    HeadingAnchor
+    HeadingAnchor,
+    CursorAnchored // V8 Phase 9: sync preview to cursor line
 };
 
 MARKAMP_DECLARE_EVENT_WITH_FIELDS(ScrollSyncModeChangedEvent)
@@ -279,7 +281,11 @@ MARKAMP_DECLARE_EVENT(GoToLineRequestEvent);
 // Settings events
 // ============================================================================
 
-MARKAMP_DECLARE_EVENT(SettingsOpenRequestEvent);
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SettingsOpenRequestEvent)
+std::string setting_id; ///< Deep-link to specific setting (optional)
+std::string query;      ///< Pre-fill search query (optional)
+std::string scope;      ///< Target scope: "application", "workspace", "project" (optional)
+};
 
 MARKAMP_DECLARE_EVENT_WITH_FIELDS(SettingChangedEvent)
 std::string key;
@@ -296,6 +302,74 @@ MARKAMP_DECLARE_EVENT_END;
 MARKAMP_DECLARE_EVENT_WITH_FIELDS(SettingsBatchChangedEvent)
 std::vector<std::string> changed_keys;
 MARKAMP_DECLARE_EVENT_END;
+
+// ── Batch 10: Settings profile + validation events (#59-60) ──
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SettingsProfileChangedEvent)
+std::string profile_name;
+
+SettingsProfileChangedEvent() = default;
+explicit SettingsProfileChangedEvent(std::string name)
+    : profile_name(std::move(name))
+{
+}
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SettingsValidationErrorEvent)
+std::string setting_id;
+std::string message;
+
+SettingsValidationErrorEvent() = default;
+SettingsValidationErrorEvent(std::string id_val, std::string msg)
+    : setting_id(std::move(id_val))
+    , message(std::move(msg))
+{
+}
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SettingsCategoryChangedEvent)
+std::string category;
+
+SettingsCategoryChangedEvent() = default;
+explicit SettingsCategoryChangedEvent(std::string cat)
+    : category(std::move(cat))
+{
+}
+MARKAMP_DECLARE_EVENT_END;
+
+// Batch 10: Additional Preferences events
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SettingsResetEvent)
+std::string setting_id; ///< Empty = reset all
+
+SettingsResetEvent() = default;
+explicit SettingsResetEvent(std::string sid)
+    : setting_id(std::move(sid))
+{
+}
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SettingsSearchEvent)
+std::string query;
+
+SettingsSearchEvent() = default;
+explicit SettingsSearchEvent(std::string search_query)
+    : query(std::move(search_query))
+{
+}
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SettingsImportedEvent)
+std::string file_path;
+int setting_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SettingsExportedEvent)
+std::string file_path;
+int setting_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT(PreferencesOpenedEvent);
 
 // ============================================================================
 // Plugin events
@@ -384,7 +458,10 @@ enum class ActivityBarItem
     Search,
     Settings,
     Themes,
-    Extensions
+    Extensions,
+    kNotebooks, // V8 Phase 11
+    kCanvas,    // V8 Phase 11
+    kGraph      // V8 Phase 11
 };
 
 MARKAMP_DECLARE_EVENT_WITH_FIELDS(ActivityBarSelectionEvent)
@@ -1993,6 +2070,361 @@ MARKAMP_DECLARE_EVENT_END;
 MARKAMP_DECLARE_EVENT_WITH_FIELDS(BoardLoadedEvent)
 std::string board_id;
 std::string board_name;
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V8 Phase 6: Canvas Workbench Shell events
+// ============================================================================
+
+/// Requests that a board be opened (or a new one created).
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BoardOpenRequestEvent)
+std::string board_id;   ///< Board ID to open; empty = create new board
+std::string board_name; ///< Optional display name for new boards
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when the layout switches into canvas mode.
+MARKAMP_DECLARE_EVENT(CanvasModeActivatedEvent);
+
+/// Fired when the layout leaves canvas mode and returns to editor.
+MARKAMP_DECLARE_EVENT(CanvasModeDeactivatedEvent);
+
+// ============================================================================
+// V8 Phase 7: Realtime Collaboration events
+// ============================================================================
+
+/// A participant has joined the current board session.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasSessionJoinedEvent)
+std::string session_id;       ///< Session identifier
+std::string participant_id;   ///< Unique user/participant ID
+std::string participant_name; ///< Display name
+std::string avatar_url;       ///< Optional avatar URL
+MARKAMP_DECLARE_EVENT_END;
+
+/// A participant has left the current board session.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasSessionLeftEvent)
+std::string session_id;
+std::string participant_id;
+MARKAMP_DECLARE_EVENT_END;
+
+/// A remote participant's presence state was updated (active, idle, away).
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasPresenceUpdatedEvent)
+std::string participant_id;
+std::string status; ///< "active", "idle", or "away"
+MARKAMP_DECLARE_EVENT_END;
+
+/// A remote participant moved their cursor on the canvas.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasRemoteCursorMovedEvent)
+std::string participant_id;
+double cursor_x{0.0};
+double cursor_y{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// A remote participant changed their selection on the canvas.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasRemoteSelectionChangedEvent)
+std::string participant_id;
+std::vector<std::string> selected_object_ids; ///< Object IDs selected by remote user
+MARKAMP_DECLARE_EVENT_END;
+
+/// A remote participant applied a patch to a canvas object.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasRemoteObjectPatchedEvent)
+std::string participant_id;
+std::string object_id;  ///< Target object identifier
+std::string patch_type; ///< "move", "resize", "style", "content", etc.
+std::string patch_json; ///< Serialized patch data
+MARKAMP_DECLARE_EVENT_END;
+
+/// A collaborative vote was started on the board.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasVoteStartedEvent)
+std::string vote_id;
+std::string topic;
+std::string initiator_id;
+std::vector<std::string> options; ///< Voting options
+MARKAMP_DECLARE_EVENT_END;
+
+/// A vote received an update (new vote cast or vote closed).
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasVoteUpdatedEvent)
+std::string vote_id;
+std::string voter_id;
+std::string chosen_option;
+bool is_closed{false}; ///< True when the vote is finalized
+MARKAMP_DECLARE_EVENT_END;
+
+/// A facilitation timer was updated (started, ticked, or stopped).
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasTimerUpdatedEvent)
+std::string timer_id;
+int remaining_seconds{0};
+bool is_running{false};
+bool is_expired{false};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V8 Phase 8: Canvas Apps Marketplace events
+// ============================================================================
+
+/// A canvas-capable extension has been registered with the marketplace.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasAppRegisteredEvent)
+std::string app_id;
+std::string app_name;
+std::string extension_id;
+MARKAMP_DECLARE_EVENT_END;
+
+/// An app widget has been inserted onto the canvas.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasWidgetInsertedEvent)
+std::string widget_id;
+std::string app_id;
+std::string object_id; ///< Canvas object hosting the widget
+MARKAMP_DECLARE_EVENT_END;
+
+/// A widget sync job has started.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasWidgetSyncStartedEvent)
+std::string widget_id;
+std::string provider_id;
+MARKAMP_DECLARE_EVENT_END;
+
+/// A widget sync job completed successfully.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasWidgetSyncCompletedEvent)
+std::string widget_id;
+std::string provider_id;
+int items_synced{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// A widget sync job failed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasWidgetSyncFailedEvent)
+std::string widget_id;
+std::string provider_id;
+std::string error_message;
+MARKAMP_DECLARE_EVENT_END;
+
+/// A canvas app attempted an operation without required permissions.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasWidgetPermissionDeniedEvent)
+std::string app_id;
+std::string requested_scope;
+std::string denied_reason;
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V6 Phase 13: Deferred loading events
+// ============================================================================
+
+/// Published after first frame rendered — triggers deferred theme/extension loading.
+MARKAMP_DECLARE_EVENT(StartupDeferralEvent);
+
+/// Published when background user theme scanning completes.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(UserThemesLoadedEvent)
+int theme_count{0}; ///< Number of user themes discovered
+MARKAMP_DECLARE_EVENT_END;
+
+/// Published when background extension scanning finishes.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ExtensionsScanCompleteEvent)
+int extension_count{0}; ///< Number of extensions discovered
+int activated_count{0}; ///< Number of extensions successfully activated
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V8 Phase 10: Code Intelligence UX events
+// ============================================================================
+
+/// User clicked a severity icon in the editor gutter.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DiagnosticIndicatorClickedEvent)
+int line{0};              ///< Source line number (0-based)
+std::uint8_t severity{0}; ///< DiagnosticSeverity as uint8_t
+std::string message;      ///< Diagnostic message text
+MARKAMP_DECLARE_EVENT_END;
+
+/// Quick-fix lightbulb or Ctrl+. invoked at cursor.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(QuickFixRequestedEvent)
+int line{0};
+int character{0};
+std::string file_uri;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Inline "peek problem" overlay requested at a diagnostic range.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PeekProblemRequestedEvent)
+int start_line{0};
+int start_char{0};
+int end_line{0};
+int end_char{0};
+std::string file_uri;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Preview render error mapped back to a source line.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PreviewRenderErrorEvent)
+int source_line{0};        ///< Line in the markdown source
+std::string error_message; ///< Render error description
+std::string block_type;    ///< e.g. "mermaid", "math", "code"
+MARKAMP_DECLARE_EVENT_END;
+
+/// User clicked "jump to source" from a preview error context.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(JumpToSourceFromPreviewEvent)
+int target_line{0};
+int target_character{0};
+std::string file_uri;
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V8 Phase 11: Unified Workbench Navigation + Tool Window events
+// ============================================================================
+
+/// Workbench surface mode for unified navigation.
+enum class WorkbenchMode : std::uint8_t
+{
+    kEditor,
+    kCanvas,
+    kNotebook,
+    kGraph,
+    kSettings
+};
+
+/// Dock position for tool window panels.
+enum class DockPosition : std::uint8_t
+{
+    kLeft,
+    kRight,
+    kBottom
+};
+
+/// Fired when the workbench mode has successfully changed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(WorkbenchModeChangedEvent)
+WorkbenchMode previous_mode{WorkbenchMode::kEditor};
+WorkbenchMode new_mode{WorkbenchMode::kEditor};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Request to switch to a specific workbench mode.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(WorkbenchModeSwitchRequestEvent)
+WorkbenchMode target_mode{WorkbenchMode::kEditor};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Request to toggle a tool window panel's visibility.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ToolWindowToggleRequestEvent)
+std::string panel_id;
+bool visible{true};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a tool window's dock position changes.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ToolWindowDockPositionChangedEvent)
+std::string panel_id;
+DockPosition dock_position{DockPosition::kBottom};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V8 Phase 11 (Phase 29): Surface Link events
+// ============================================================================
+
+/// Request to open a surface link (cross-surface navigation).
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(OpenSurfaceLinkRequestEvent)
+SurfaceLink link;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Request to reveal a specific anchor in any surface.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(RevealInSurfaceRequestEvent)
+LinkAnchor target;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a surface link has been successfully resolved.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SurfaceLinkResolvedEvent)
+SurfaceLink link;
+bool success{true};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when surface traversal fails.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SurfaceTraversalFailedEvent)
+LinkAnchor target;
+std::string error_message;
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V8 Phase 12 (Phase 36): Surface Transition events
+// ============================================================================
+
+/// Fired when a surface transition begins.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SurfaceTransitionStartEvent)
+SurfaceKind from_surface{SurfaceKind::kEditor};
+SurfaceKind to_surface{SurfaceKind::kEditor};
+std::string reason;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a surface transition completes successfully.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SurfaceTransitionCompleteEvent)
+SurfaceKind from_surface{SurfaceKind::kEditor};
+SurfaceKind to_surface{SurfaceKind::kEditor};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a surface transition is cancelled (e.g. rapid repeated jumps).
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SurfaceTransitionCancelEvent)
+std::string reason;
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V8 Phase 12 (Phase 37): Paired Traverse Mode events
+// ============================================================================
+
+/// Request to pair two surfaces together.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PairSurfacesRequestEvent)
+SurfaceKind primary{SurfaceKind::kEditor};
+SurfaceKind secondary{SurfaceKind::kPreview};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when surface pairing changes.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PairSurfacesChangedEvent)
+SurfaceKind primary{SurfaceKind::kEditor};
+SurfaceKind secondary{SurfaceKind::kPreview};
+bool paired{false};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V8 Phase 12 (Phases 40, 43): VSCode Theme events
+// ============================================================================
+
+/// Request to import a VSCode theme file.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ImportVsCodeThemeRequestEvent)
+std::string file_path;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Theme compatibility report after import analysis.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ThemeCompatibilityReportEvent)
+std::string theme_name;
+std::string compatibility; ///< "full", "mapped", "partial"
+int supported_tokens{0};
+int total_tokens{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Request to auto-repair a theme (fix contrast, fill missing tokens).
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ThemeRepairRequestEvent)
+std::string theme_name;
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V8 Phase 13 (Phase 46): FX Engine events
+// ============================================================================
+
+/// Fired when the FX preset is changed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FxPresetChangedEvent)
+std::string preset_name;
+std::string previous_preset;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when the FX master toggle changes.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FxMasterToggleEvent)
+bool enabled{false};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when the FX quality tier changes.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FxQualityTierChangedEvent)
+std::string tier_name; ///< "Cinematic", "Balanced", etc.
+std::string previous_tier;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when FX safety mode changes (reduced motion, low power, etc.).
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FxSafetyModeChangedEvent)
+std::string mode_name; ///< "reduced_motion", "low_power", etc.
+bool enabled{false};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when the FX engine auto-degrades quality due to frame budget violations.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FxAutoDegrade)
+std::string from_tier;
+std::string to_tier;
+uint32_t violation_count{0};
 MARKAMP_DECLARE_EVENT_END;
 
 } // namespace markamp::core::events

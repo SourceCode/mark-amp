@@ -86,10 +86,62 @@ auto MindMapNode::height() const -> double
 {
     return height_;
 }
-auto MindMapNode::set_dimensions(double w, double h) -> void
+auto MindMapNode::set_dimensions(double node_width, double node_height) -> void
 {
-    width_ = w;
-    height_ = h;
+    width_ = node_width;
+    height_ = node_height;
+    mark_dirty();
+}
+
+// ── Extended properties (#19-23) ────────────────────────────
+
+auto MindMapNode::icon() const -> const std::string&
+{
+    return icon_;
+}
+auto MindMapNode::set_icon(const std::string& icon_name) -> void
+{
+    icon_ = icon_name;
+    mark_dirty();
+}
+
+auto MindMapNode::notes() const -> const std::string&
+{
+    return notes_;
+}
+auto MindMapNode::set_notes(const std::string& notes_text) -> void
+{
+    notes_ = notes_text;
+    mark_dirty();
+}
+
+auto MindMapNode::is_collapsed() const -> bool
+{
+    return collapsed_;
+}
+auto MindMapNode::set_collapsed(bool collapsed) -> void
+{
+    collapsed_ = collapsed;
+    mark_dirty();
+}
+
+auto MindMapNode::priority() const -> int
+{
+    return priority_;
+}
+auto MindMapNode::set_priority(int level) -> void
+{
+    priority_ = std::clamp(level, 0, 3);
+    mark_dirty();
+}
+
+auto MindMapNode::progress() const -> int
+{
+    return progress_;
+}
+auto MindMapNode::set_progress(int percent) -> void
+{
+    progress_ = std::clamp(percent, 0, 100);
     mark_dirty();
 }
 
@@ -105,7 +157,10 @@ auto MindMapNode::to_json() const -> std::string
         << ",\"text\":\"" << text_ << "\""
         << ",\"parent_id\":" << parent_node_id_ << ",\"connector_id\":" << connector_id_
         << ",\"depth\":" << depth_ << ",\"width\":" << width_ << ",\"height\":" << height_
-        << ",\"children\":[";
+        << ",\"icon\":\"" << icon_ << "\""
+        << ",\"notes\":\"" << notes_ << "\""
+        << ",\"collapsed\":" << (collapsed_ ? "true" : "false") << ",\"priority\":" << priority_
+        << ",\"progress\":" << progress_ << ",\"children\":[";
     for (size_t idx = 0; idx < child_node_ids_.size(); ++idx)
     {
         if (idx > 0)
@@ -136,8 +191,20 @@ auto MindMapNode::clone() const -> std::unique_ptr<CanvasObject>
     copy->set_node_color(node_color_);
     copy->set_depth(depth_);
     copy->set_dimensions(width_, height_);
+    copy->set_icon(icon_);
+    copy->set_notes(notes_);
+    copy->set_collapsed(collapsed_);
+    copy->set_priority(priority_);
+    copy->set_progress(progress_);
     copy->set_name(name());
     return copy;
+}
+
+// ── Batch 9 (#54) ─────────────────────────────────────────────────
+
+auto MindMapNode::is_leaf() const -> bool
+{
+    return child_node_ids_.empty();
 }
 
 } // namespace markamp::canvas

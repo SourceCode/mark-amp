@@ -49,6 +49,38 @@ public:
     /// Fit a world-space AABB into the current screen, adjusting zoom and pan.
     auto fit_to_bounds(const AABB& world_bounds, double padding = 50.0) -> void;
 
+    // --- Navigation helpers (#17–22) ---
+    /// Zoom to fit a selection AABB with padding.
+    auto zoom_to_fit_selection(const AABB& selection, double padding = 60.0) -> void;
+    /// Set zoom from a percentage (e.g. 150 = 150%).
+    auto zoom_to_percent(double percent) -> void;
+    /// Step zoom in by kZoomStep.
+    auto zoom_in() -> void;
+    /// Step zoom out by kZoomStep.
+    auto zoom_out() -> void;
+    /// Pan so that the given world point is centered on screen.
+    auto center_on_point(const Point2D& world_pt) -> void;
+    /// Returns true if a world point falls within the visible region.
+    [[nodiscard]] auto is_point_visible(const Point2D& world_pt) const -> bool;
+    /// Returns zoom as a percentage for display.
+    [[nodiscard]] auto zoom_percent() const -> double;
+
+    static constexpr double kZoomStep = 0.1;
+
+    // ── Batch 3 (#13-16) ──────────────────────────────────────────
+
+    /// Center and zoom to fit a single object's bounds with padding.
+    auto zoom_to_object(const AABB& obj_bounds, double padding = 80.0) -> void;
+
+    /// Reset zoom to exactly 1.0 (100%) while keeping pan unchanged.
+    auto zoom_to_100() -> void;
+
+    /// Return the world-space point at the center of the screen.
+    [[nodiscard]] auto screen_center_world() const -> Point2D;
+
+    /// Constrain pan so the view doesn't drift far from content.
+    auto clamp_pan(const AABB& content_bounds, double margin = 500.0) -> void;
+
 private:
     double zoom_{1.0};
     Point2D pan_{0.0, 0.0};

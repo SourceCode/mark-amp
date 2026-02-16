@@ -35,6 +35,29 @@ public:
     [[nodiscard]] auto width() const -> double;
     [[nodiscard]] auto height() const -> double;
 
+    // ── Improvements (#33-36) ─────────────────────────────────
+
+    [[nodiscard]] auto tooltip() const -> const std::string&;
+    auto set_tooltip(const std::string& tip) -> void;
+
+    [[nodiscard]] auto link_color() const -> const CanvasColor&;
+    auto set_link_color(const CanvasColor& color) -> void;
+
+    [[nodiscard]] auto is_bidirectional() const -> bool;
+    auto set_bidirectional(bool bidirectional) -> void;
+
+    [[nodiscard]] auto last_verified_at() const -> const std::string&;
+    auto set_last_verified_at(const std::string& timestamp) -> void;
+
+    // ── Batch 10 (#55-56) ─────────────────────────────────────────
+
+    /// Check if the link target is broken (empty board_id).
+    [[nodiscard]] auto is_broken() const -> bool;
+
+    /// Short badge label overlay (e.g. "NEW", "3").
+    [[nodiscard]] auto badge_text() const -> const std::string&;
+    auto set_badge_text(const std::string& text) -> void;
+
     [[nodiscard]] auto local_bounds() const -> AABB override;
     [[nodiscard]] auto to_json() const -> std::string override;
     auto from_json(const std::string& json) -> void override;
@@ -45,6 +68,11 @@ private:
     std::string display_text_{"Link to board"};
     double width_{200.0};
     double height_{60.0};
+    std::string tooltip_;
+    CanvasColor link_color_{66, 133, 244, 255};
+    bool bidirectional_{false};
+    std::string last_verified_at_;
+    std::string badge_text_;
 };
 
 } // namespace markamp::canvas

@@ -140,4 +140,100 @@ auto CanvasRenderer::render_wireframe(wxGraphicsContext& gc,
     gc.DrawRectangle(screen_box.min_x, screen_box.min_y, screen_box.width(), screen_box.height());
 }
 
+// --- Minimap (#26) ---
+
+auto CanvasRenderer::render_minimap(wxGraphicsContext& gc,
+                                    const std::vector<CanvasObject*>& objects,
+                                    const ViewportTransform& viewport,
+                                    double minimap_width,
+                                    double minimap_height) -> void
+{
+    // Compute world extent of all objects.
+    AABB world_extent{0.0, 0.0, 0.0, 0.0};
+    bool first = true;
+    for (const auto* obj : objects)
+    {
+        if (obj == nullptr || !obj->is_visible())
+        {
+            continue;
+        }
+        if (first)
+        {
+            world_extent = obj->world_bounds();
+            first = false;
+        }
+        else
+        {
+            world_extent = world_extent.merged(obj->world_bounds());
+        }
+    }
+    if (first)
+    {
+        return; // no objects
+    }
+
+    // Draw minimap background in bottom-right corner.
+    const double margin = 10.0;
+    const double map_x = viewport.screen_width() - minimap_width - margin;
+    const double map_y = viewport.screen_height() - minimap_height - margin;
+
+    gc.SetBrush(gc.CreateBrush(wxBrush(wxColour(30, 30, 30, 180))));
+    gc.SetPen(gc.CreatePen(wxGraphicsPenInfo(wxColour(100, 100, 100, 200)).Width(1)));
+    gc.DrawRectangle(map_x, map_y, minimap_width, minimap_height);
+
+    // Scale factor: world -> minimap.
+    const double scale_x = minimap_width / world_extent.width();
+    const double scale_y = minimap_height / world_extent.height();
+    const double scale = std::min(scale_x, scale_y) * 0.9;
+
+    // Draw each object as a small rect.
+    gc.SetBrush(gc.CreateBrush(wxBrush(wxColour(120, 180, 255, 120))));
+    gc.SetPen(*wxTRANSPARENT_PEN);
+    for (const auto* obj : objects)
+    {
+        if (obj == nullptr || !obj->is_visible())
+        {
+            continue;
+        }
+        const auto wb = obj->world_bounds();
+        const double rx = map_x + (wb.min_x - world_extent.min_x) * scale;
+        const double ry = map_y + (wb.min_y - world_extent.min_y) * scale;
+        const double rw = std::max(2.0, wb.width() * scale);
+        const double rh = std::max(2.0, wb.height() * scale);
+        gc.DrawRectangle(rx, ry, rw, rh);
+    }
+
+    // Draw visible region indicator.
+    const auto vis = viewport.visible_region();
+    gc.SetBrush(*wxTRANSPARENT_BRUSH);
+    gc.SetPen(gc.CreatePen(wxGraphicsPenInfo(wxColour(255, 200, 50, 200)).Width(2)));
+    const double vx = map_x + (vis.min_x - world_extent.min_x) * scale;
+    const double vy = map_y + (vis.min_y - world_extent.min_y) * scale;
+    const double vw = vis.width() * scale;
+    const double vh = vis.height() * scale;
+    gc.DrawRectangle(vx, vy, vw, vh);
+}
+
+// --- Batch 3 (#17-18) ---
+
+auto CanvasRenderer::background_color() const -> const CanvasColor&
+{
+    return background_color_;
+}
+
+auto CanvasRenderer::set_background_color(const CanvasColor& color) -> void
+{
+    background_color_ = color;
+}
+
+auto CanvasRenderer::debug_wireframes() const -> bool
+{
+    return debug_wireframes_;
+}
+
+auto CanvasRenderer::set_debug_wireframes(bool enabled) -> void
+{
+    debug_wireframes_ = enabled;
+}
+
 } // namespace markamp::canvas

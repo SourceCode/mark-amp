@@ -16,6 +16,7 @@ struct SnapConfig
     double snap_threshold{8.0}; // Pixels in screen space
     bool object_snap_enabled{true};
     CanvasColor guide_color{255, 0, 200, 180}; // Magenta
+    bool snap_angle_enabled{false};            // 15° angle snapping for connectors
 };
 
 /// Type of alignment guide line.
@@ -79,8 +80,24 @@ public:
     [[nodiscard]] auto config() const -> const SnapConfig&;
     auto set_config(const SnapConfig& cfg) -> void;
 
+    /// Snap an angle (radians) to the nearest 15° increment.
+    [[nodiscard]] auto snap_angle(double angle_radians) const -> double;
+
+    // ── Batch 4 (#23-24) ──────────────────────────────────────────
+
+    /// Snap a point to the center of a given reference AABB (object center snap).
+    [[nodiscard]] auto snap_to_center(const Point2D& point,
+                                      const AABB& reference,
+                                      double threshold = 8.0) const -> Point2D;
+
+    /// User-defined custom guide lines (in world coordinates).
+    [[nodiscard]] auto custom_guides() const -> const std::vector<GuideLine>&;
+    auto add_custom_guide(const GuideLine& guide) -> void;
+    auto clear_custom_guides() -> void;
+
 private:
     SnapConfig config_;
+    std::vector<GuideLine> custom_guides_;
 };
 
 } // namespace markamp::canvas

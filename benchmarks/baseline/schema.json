@@ -1,0 +1,51 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MarkAmp Benchmark Baseline",
+  "description": "Schema for Google Benchmark JSON output used as performance regression baseline",
+  "type": "object",
+  "required": ["context", "benchmarks"],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "description": "Schema version for forward compatibility",
+      "const": 1
+    },
+    "context": {
+      "type": "object",
+      "description": "Machine and build metadata",
+      "properties": {
+        "date": { "type": "string" },
+        "host_name": { "type": "string" },
+        "executable": { "type": "string" },
+        "num_cpus": { "type": "integer" },
+        "mhz_per_cpu": { "type": "integer" },
+        "caches": { "type": "array" },
+        "library_build_type": { "type": "string" },
+        "commit_hash": { "type": "string" },
+        "timestamp": { "type": "string" }
+      }
+    },
+    "benchmarks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "iterations", "real_time", "cpu_time", "time_unit"],
+        "properties": {
+          "name": { "type": "string" },
+          "family_index": { "type": "integer" },
+          "per_family_instance_index": { "type": "integer" },
+          "run_name": { "type": "string" },
+          "run_type": { "type": "string" },
+          "repetitions": { "type": "integer" },
+          "threads": { "type": "integer" },
+          "iterations": { "type": "integer" },
+          "real_time": { "type": "number" },
+          "cpu_time": { "type": "number" },
+          "time_unit": { "type": "string", "enum": ["ns", "us", "ms", "s"] },
+          "bytes_per_second": { "type": "number" },
+          "items_per_second": { "type": "number" }
+        }
+      }
+    }
+  }
+}

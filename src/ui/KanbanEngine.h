@@ -30,7 +30,8 @@ struct KanbanColumn
     int line_number{0};
     std::vector<markamp::core::Task> cards;
     std::string color_hex;
-    int max_cards{0}; // 0 = unlimited (WIP limit)
+    int max_cards{0};       // 0 = unlimited (WIP limit)
+    int completed_count{0}; // (#37) number of completed cards
 };
 
 // ============================================================================
@@ -72,6 +73,25 @@ public:
     /// Toggle a card's checkbox status in the markdown.
     [[nodiscard]] static auto toggle_card(const std::string& markdown, int col_idx, int card_idx)
         -> std::string;
+
+    // ── Improvements (#37-38) ─────────────────────────────────
+
+    /// Add a new card to a column at a given row, returning updated markdown.
+    [[nodiscard]] static auto
+    add_card(const std::string& markdown, int col_idx, int at_row, const std::string& card_title)
+        -> std::string;
+
+    /// Per-column statistics.
+    struct ColumnStatistics
+    {
+        int total_cards{0};
+        int completed_cards{0};
+        bool wip_exceeded{false};
+    };
+
+    /// Get statistics for all columns in the board.
+    [[nodiscard]] static auto column_statistics(const KanbanBoard& board)
+        -> std::vector<ColumnStatistics>;
 
 private:
     markamp::core::EventBus& event_bus_;

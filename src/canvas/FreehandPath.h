@@ -51,6 +51,32 @@ public:
     /// Removes points that deviate less than `tolerance` from the simplified line.
     auto simplify(double tolerance) -> void;
 
+    // ── Path Shape (#13-14) ────────────────────────────────────
+
+    [[nodiscard]] auto is_closed() const -> bool;
+    auto set_closed(bool closed) -> void;
+
+    [[nodiscard]] auto fill_color() const -> CanvasColor;
+    auto set_fill_color(CanvasColor color) -> void;
+
+    // ── Computed & Operations (#15-18) ─────────────────────────
+
+    [[nodiscard]] auto total_length() const -> double;
+    [[nodiscard]] auto bounding_center() const -> Point2D;
+    auto reverse() -> void;
+    auto erase_points_in(const AABB& region) -> void;
+
+    // ── Batch 7 (#37-39) ──────────────────────────────────────────
+
+    /// Returns true if the path has zero points.
+    [[nodiscard]] auto is_empty() const -> bool;
+
+    /// Remove all points from the path.
+    auto clear_points() -> void;
+
+    /// Downsample the path to at most max_points, evenly spaced.
+    auto subsample(size_t max_points) -> void;
+
     // ── CanvasObject overrides ─────────────────────────────────
 
     [[nodiscard]] auto local_bounds() const -> AABB override;
@@ -63,6 +89,8 @@ private:
     CanvasColor stroke_color_{0, 0, 0, 255}; // Black
     double stroke_width_{2.0};
     double smoothing_factor_{0.5};
+    bool closed_{false};
+    CanvasColor fill_color_{0, 0, 0, 0};
 
     /// Recursive RDP helper.
     static auto rdp_simplify(const std::vector<Point2D>& points,

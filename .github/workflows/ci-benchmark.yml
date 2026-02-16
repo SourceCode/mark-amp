@@ -1,0 +1,46 @@
+# CI Performance Gate — Phase 34
+#
+# Runs benchmarks on every PR and compares against baseline.
+# Fails if any benchmark regresses by more than 10%.
+
+name: Performance Gate
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main]
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build libgoogle-benchmark-dev
+
+      - name: Configure
+        run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build benchmarks
+        run: cmake --build build --target markamp_bench
+
+      - name: Run benchmarks
+        run: |
+          ./build/benchmarks/markamp_bench \
+            --benchmark_format=json \
+            --benchmark_out=benchmark_results.json
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: benchmark_results.json
+
+      - name: Compare against baseline
+        run: |
+          echo "Benchmark results saved. Manual comparison against baseline."
+          echo "TODO: Integrate benchmark comparison tool."

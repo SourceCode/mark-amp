@@ -76,6 +76,17 @@ public:
     [[nodiscard]] auto text_style() const -> const TextStyle&;
     auto set_text_style(const TextStyle& style) -> void;
 
+    // ── Batch 9 (#49-51) ──────────────────────────────────────────
+
+    /// Returns true if the shape contains embedded text.
+    [[nodiscard]] auto has_text() const -> bool;
+
+    /// Approximate area of the shape (width × height for bounding box).
+    [[nodiscard]] auto area() const -> double;
+
+    /// Approximate perimeter based on shape type.
+    [[nodiscard]] auto perimeter_estimate() const -> double;
+
     // ── CanvasObject overrides ─────────────────────────────────
 
     [[nodiscard]] auto local_bounds() const -> AABB override;

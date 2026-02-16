@@ -37,7 +37,31 @@ public:
 
     [[nodiscard]] auto width() const -> double;
     [[nodiscard]] auto height() const -> double;
-    auto set_dimensions(double w, double h) -> void;
+    auto set_dimensions(double node_width, double node_height) -> void;
+
+    // ── Extended properties (#19-23) ────────────────────────────
+
+    [[nodiscard]] auto icon() const -> const std::string&;
+    auto set_icon(const std::string& icon_name) -> void;
+
+    [[nodiscard]] auto notes() const -> const std::string&;
+    auto set_notes(const std::string& notes_text) -> void;
+
+    [[nodiscard]] auto is_collapsed() const -> bool;
+    auto set_collapsed(bool collapsed) -> void;
+
+    /// Priority level (clamped 0-3).
+    [[nodiscard]] auto priority() const -> int;
+    auto set_priority(int level) -> void;
+
+    /// Progress percentage (clamped 0-100).
+    [[nodiscard]] auto progress() const -> int;
+    auto set_progress(int percent) -> void;
+
+    // ── Batch 9 (#54) ─────────────────────────────────────────────
+
+    /// Returns true if this node has no children.
+    [[nodiscard]] auto is_leaf() const -> bool;
 
     [[nodiscard]] auto local_bounds() const -> AABB override;
     [[nodiscard]] auto to_json() const -> std::string override;
@@ -53,6 +77,11 @@ private:
     int depth_{0};
     double width_{120.0};
     double height_{40.0};
+    std::string icon_;
+    std::string notes_;
+    bool collapsed_{false};
+    int priority_{0};
+    int progress_{0};
 };
 
 } // namespace markamp::canvas

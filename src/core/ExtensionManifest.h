@@ -1,5 +1,7 @@
 #pragma once
 
+#include "CanvasAppManifest.h"
+
 #include <algorithm>
 #include <optional>
 #include <string>
@@ -399,6 +401,9 @@ struct ExtensionManifest
     // -- Repository info --
     std::optional<RepositoryInfo> repository;
     std::string bugs_url;
+
+    // -- V8 Phase 8: Canvas app contributions --
+    CanvasAppManifest canvas_app;
 
     /// Derive an ExtensionIdentifier from publisher + name.
     [[nodiscard]] auto identifier() const -> ExtensionIdentifier;

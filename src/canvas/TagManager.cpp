@@ -113,4 +113,89 @@ auto TagManager::tag_count() const -> size_t
     return tags_.size();
 }
 
+// ── Batch 8 (#43-46) ──────────────────────────────────────────────
+
+auto TagManager::rename_tag(const std::string& old_name, const std::string& new_name) -> void
+{
+    auto tag_iter = tags_.find(old_name);
+    if (tag_iter == tags_.end() || old_name == new_name)
+    {
+        return;
+    }
+
+    // Move tag info to new name.
+    TagInfo renamed_info = tag_iter->second;
+    renamed_info.name = new_name;
+
+    // Merge into existing new-name entry if it exists.
+    auto dest_iter = tags_.find(new_name);
+    if (dest_iter != tags_.end())
+    {
+        dest_iter->second.usage_count += renamed_info.usage_count;
+    }
+    else
+    {
+        tags_[new_name] = renamed_info;
+    }
+    tags_.erase(tag_iter);
+
+    // Transfer object associations.
+    auto obj_iter = tag_to_objects_.find(old_name);
+    if (obj_iter != tag_to_objects_.end())
+    {
+        tag_to_objects_[new_name].insert(obj_iter->second.begin(), obj_iter->second.end());
+        tag_to_objects_.erase(obj_iter);
+    }
+}
+
+auto TagManager::delete_tag(const std::string& tag_name) -> void
+{
+    tags_.erase(tag_name);
+    tag_to_objects_.erase(tag_name);
+}
+
+auto TagManager::merge_tags(const std::string& source, const std::string& destination) -> void
+{
+    if (source == destination)
+    {
+        return;
+    }
+
+    auto src_tag = tags_.find(source);
+    auto dst_tag = tags_.find(destination);
+    if (src_tag == tags_.end())
+    {
+        return;
+    }
+
+    // Ensure destination exists.
+    if (dst_tag == tags_.end())
+    {
+        tags_[destination].name = destination;
+        tags_[destination].usage_count = 0;
+    }
+
+    tags_[destination].usage_count += src_tag->second.usage_count;
+
+    // Move object associations.
+    auto src_objs = tag_to_objects_.find(source);
+    if (src_objs != tag_to_objects_.end())
+    {
+        tag_to_objects_[destination].insert(src_objs->second.begin(), src_objs->second.end());
+        tag_to_objects_.erase(src_objs);
+    }
+
+    tags_.erase(source);
+}
+
+auto TagManager::most_used_tags(size_t top_n) const -> std::vector<TagInfo>
+{
+    auto sorted = all_tags(); // Already sorted by usage_count descending.
+    if (sorted.size() > top_n)
+    {
+        sorted.resize(top_n);
+    }
+    return sorted;
+}
+
 } // namespace markamp::canvas

@@ -524,6 +524,32 @@ void EditorPanel::SavePreferences(core::Config& config) const
 }
 
 // ═══════════════════════════════════════════════════════
+// V8 Phase 10: Productivity modes + diagnostic indicators
+// ═══════════════════════════════════════════════════════
+
+void EditorPanel::SetProductivityMode(ProductivityMode mode)
+{
+    current_productivity_mode_ = mode;
+    // TODO(Phase 10 Batch 5): apply per-mode configs
+}
+
+auto EditorPanel::GetProductivityMode() const -> ProductivityMode
+{
+    return current_productivity_mode_;
+}
+
+auto EditorPanel::diagnostic_indicators() const -> const std::vector<DiagnosticIndicator>&
+{
+    return diagnostic_indicators_;
+}
+
+void EditorPanel::set_diagnostic_indicators(std::vector<DiagnosticIndicator> indicators)
+{
+    diagnostic_indicators_ = std::move(indicators);
+    // TODO(Phase 10 Batch 2): wire to Scintilla margin markers
+}
+
+// ═══════════════════════════════════════════════════════
 // R22: VS Code-Equivalent Settings — Scintilla integration
 // ═══════════════════════════════════════════════════════
 

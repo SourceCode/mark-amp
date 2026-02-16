@@ -141,4 +141,61 @@ auto CanvasSearch::search(const Board& board, const std::string& query, bool cas
     return results;
 }
 
+// --- (#27) search_by_type ---
+
+auto CanvasSearch::search_by_type(const Board& board, CanvasObjectType obj_type)
+    -> std::vector<ObjectId>
+{
+    std::vector<ObjectId> ids;
+    for (const auto& obj : board.objects())
+    {
+        if (obj && obj->type() == obj_type)
+        {
+            ids.push_back(obj->id());
+        }
+    }
+    return ids;
+}
+
+// --- (#28) search_by_tag ---
+
+auto CanvasSearch::search_by_tag(const Board& board, const std::string& tag)
+    -> std::vector<ObjectId>
+{
+    std::vector<ObjectId> ids;
+    for (const auto& obj : board.objects())
+    {
+        if (!obj)
+        {
+            continue;
+        }
+        for (const auto& obj_tag : obj->tags())
+        {
+            if (obj_tag == tag)
+            {
+                ids.push_back(obj->id());
+                break;
+            }
+        }
+    }
+    return ids;
+}
+
+// --- (#29) replace_text ---
+
+auto CanvasSearch::replace_text(Board& board,
+                                const std::string& find_str,
+                                const std::string& replace_str,
+                                bool case_sensitive) -> int
+{
+    // Stub: iterate objects, find matching text, and replace.
+    // Full implementation would mutate text on StickyNote, TextBox, etc.
+    // For now, return 0 replacements.
+    (void)board;
+    (void)find_str;
+    (void)replace_str;
+    (void)case_sensitive;
+    return 0;
+}
+
 } // namespace markamp::canvas

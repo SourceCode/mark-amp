@@ -106,7 +106,10 @@ MainFrame::MainFrame(const wxString& title,
     SetMinSize(wxSize(app::MarkAmpApp::kMinWidth, app::MarkAmpApp::kMinHeight));
 
     // Dark background (will be overridden by theme)
-    SetBackgroundColour(wxColour(20, 20, 30));
+    if (theme_engine_ != nullptr)
+    {
+        SetBackgroundColour(theme_engine_->color(core::ThemeColorToken::BgApp));
+    }
 
     // Set application icon (window icon on Linux/Windows, dock icon on macOS)
     wxInitAllImageHandlers();
@@ -669,7 +672,12 @@ enum MenuId : int
     kMenuZoomOut,
     kMenuZoomReset,
     kMenuConvertEolLf,
-    kMenuConvertEolCrlf
+    kMenuConvertEolCrlf,
+    // Phase 5 — Settings
+    kMenuPreferences = wxID_PREFERENCES,
+    // V8 Phase 6 — Canvas Workbench
+    kMenuNewBoard = wxID_HIGHEST + 500,
+    kMenuCanvasMode
 };
 
 // (Moved logic to end of file to fix redefinition and structure)
@@ -683,6 +691,9 @@ void MainFrame::createMenuBar()
     fileMenu->Append(wxID_NEW, "&New\tCtrl+N");
     fileMenu->Append(wxID_OPEN, "&Open Folder...\tCtrl+O");
     fileMenu->Append(kMenuOpenFile, "Open &File...\tCtrl+Shift+O");
+    fileMenu->AppendSeparator();
+    // V8 Phase 6: New Board
+    fileMenu->Append(kMenuNewBoard, "New &Board...\tCtrl+Shift+B");
 
     auto* recentMenu = new wxMenu;
     fileMenu->AppendSubMenu(recentMenu, "Open &Recent");
@@ -946,6 +957,9 @@ void MainFrame::createMenuBar()
     view_menu->AppendCheckItem(kMenuWordWrap, "&Word Wrap\tCtrl+Alt+W");
     view_menu->Check(kMenuWordWrap, true); // default on
     view_menu->AppendSeparator();
+    // V8 Phase 6: Canvas Mode toggle
+    view_menu->AppendCheckItem(kMenuCanvasMode, "Canvas &Mode\tCtrl+4");
+    view_menu->AppendSeparator();
     // R9: View additions — toggles for editor features
     view_menu->AppendCheckItem(kMenuToggleAutoIndent, "Toggle &Auto-Indent");
     view_menu->Check(kMenuToggleAutoIndent, true);
@@ -1009,6 +1023,9 @@ void MainFrame::createMenuBar()
     // --- Window menu ---
     auto* window_menu = new wxMenu();
     window_menu->Append(kMenuThemeGallery, "Theme &Gallery...\tCtrl+T");
+    window_menu->AppendSeparator();
+    // Phase 5: Settings / Preferences — on macOS wxID_PREFERENCES auto-moves to App menu
+    window_menu->Append(kMenuPreferences, "&Preferences...\tCtrl+,");
     menu_bar->Append(window_menu, "&Window");
 
     // --- Help menu ---
@@ -1456,6 +1473,18 @@ void MainFrame::createMenuBar()
         },
         kMenuAbout);
 
+    // Phase 5: Preferences menu handler → opens Settings
+    Bind(
+        wxEVT_MENU,
+        [this]([[maybe_unused]] wxCommandEvent& evt)
+        {
+            if (event_bus_ != nullptr)
+            {
+                event_bus_->publish(core::events::SettingsOpenRequestEvent{});
+            }
+        },
+        kMenuPreferences);
+
     // View mode menu items → EventBus
     if (event_bus_ != nullptr)
     {
@@ -1485,6 +1514,35 @@ void MainFrame::createMenuBar()
                 event_bus_->publish(e);
             },
             kMenuViewPreview);
+
+        // V8 Phase 6: New Board menu handler
+        Bind(
+            wxEVT_MENU,
+            [this]([[maybe_unused]] wxCommandEvent& evt)
+            {
+                core::events::BoardOpenRequestEvent board_evt;
+                event_bus_->publish(board_evt);
+            },
+            kMenuNewBoard);
+
+        // V8 Phase 6: Canvas Mode toggle handler
+        Bind(
+            wxEVT_MENU,
+            [this]([[maybe_unused]] wxCommandEvent& evt)
+            {
+                if (layout_ != nullptr)
+                {
+                    if (layout_->is_canvas_mode())
+                    {
+                        layout_->ShowEditorWorkspace();
+                    }
+                    else
+                    {
+                        layout_->ShowCanvasWorkspace();
+                    }
+                }
+            },
+            kMenuCanvasMode);
 
         Bind(
             wxEVT_MENU,
@@ -1609,6 +1667,17 @@ void MainFrame::createMenuBar()
                 // Delay title update to next event loop iteration
                 // so the tab is actually closed before we query the active path
                 CallAfter([this]() { updateWindowTitle(); });
+            }));
+
+        // Phase 5: Settings open request handler
+        subscriptions_.push_back(event_bus_->subscribe<core::events::SettingsOpenRequestEvent>(
+            [this](const core::events::SettingsOpenRequestEvent& /*evt*/)
+            {
+                // For now, publish an ActivityBarSelectionEvent to show the
+                // settings panel in the sidebar. In Batch 3, this will open
+                // the full SettingsDialog with deep-linking and staged edits.
+                event_bus_->publish(core::events::ActivityBarSelectionEvent(
+                    core::events::ActivityBarItem::Settings));
             }));
     }
 }
@@ -2850,6 +2919,84 @@ void MainFrame::RegisterPaletteCommands()
     reg_r15("Select to Matching Bracket",
             "Edit",
             []() { return core::events::SelectToBracketRequestEvent{}; });
+
+    // ── V8 Phase 1: Notebook/Canvas palette commands ──
+    command_palette_->RegisterCommand({"New Notebook",
+                                       "Notebook",
+                                       "",
+                                       [this]()
+                                       {
+                                           if (event_bus_ != nullptr)
+                                           {
+                                               core::events::NotebookCreatedEvent evt;
+                                               evt.name = "Untitled Notebook";
+                                               event_bus_->publish(evt);
+                                           }
+                                       }});
+    command_palette_->RegisterCommand({"Open Notebook",
+                                       "Notebook",
+                                       "",
+                                       [this]()
+                                       {
+                                           if (event_bus_ != nullptr)
+                                           {
+                                               core::events::NotebookOpenedEvent evt;
+                                               event_bus_->publish(evt);
+                                           }
+                                       }});
+    command_palette_->RegisterCommand({"Canvas: New Board",
+                                       "Canvas",
+                                       "",
+                                       [this]()
+                                       {
+                                           if (event_bus_ != nullptr)
+                                           {
+                                               core::events::BoardOpenRequestEvent evt;
+                                               event_bus_->publish(evt);
+                                           }
+                                       }});
+    command_palette_->RegisterCommand({"Canvas: Toggle Canvas Mode",
+                                       "Canvas",
+                                       "",
+                                       [this]()
+                                       {
+                                           if (layout_ != nullptr)
+                                           {
+                                               if (layout_->is_canvas_mode())
+                                               {
+                                                   layout_->ShowEditorWorkspace();
+                                               }
+                                               else
+                                               {
+                                                   layout_->ShowCanvasWorkspace();
+                                               }
+                                           }
+                                       }});
+    command_palette_->RegisterCommand({"Canvas: Select Tool",
+                                       "Canvas",
+                                       "",
+                                       [this]()
+                                       {
+                                           if (event_bus_ != nullptr)
+                                           {
+                                               core::events::CanvasToolChangedEvent evt;
+                                               evt.tool_name = "select";
+                                               event_bus_->publish(evt);
+                                           }
+                                       }});
+
+    // ── Phase 5: Preferences palette command ──
+    command_palette_->RegisterCommand({"Open Preferences",
+                                       "Preferences",
+                                       "Ctrl+,",
+                                       [this]()
+                                       {
+                                           if (event_bus_ != nullptr)
+                                           {
+                                               event_bus_->publish(
+                                                   core::events::SettingsOpenRequestEvent{});
+                                           }
+                                       }});
 
     MARKAMP_LOG_DEBUG("Registered {} palette commands",
                       shortcut_manager_.get_all_shortcuts().size());

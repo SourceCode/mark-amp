@@ -235,4 +235,21 @@ auto Quadtree::remove_from(Node& node, ObjectId obj_id) -> bool
     return false;
 }
 
+// --- Batch 10 (#55-57) ---
+
+auto Quadtree::is_empty() const -> bool
+{
+    return total_entries_ == 0;
+}
+
+auto Quadtree::entry_count_in(const AABB& region) const -> size_t
+{
+    return query_region(region).size();
+}
+
+auto Quadtree::depth() const -> int
+{
+    return max_depth_;
+}
+
 } // namespace markamp::canvas

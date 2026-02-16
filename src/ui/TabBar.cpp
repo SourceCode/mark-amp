@@ -1357,14 +1357,17 @@ auto markamp::ui::TabBar::GetGroupColorTint(const std::string& file_path) const 
         const std::size_t hash_val = std::hash<std::string>{}(parent);
         const int hue_index = static_cast<int>(hash_val % kGroupColorCount);
 
-        // 6 distinct pastel tint colors
-        static const std::array<wxColour, kGroupColorCount> kGroupColors = {{
-            wxColour(100, 149, 237), // Cornflower blue
-            wxColour(144, 238, 144), // Light green
-            wxColour(255, 182, 193), // Light pink
-            wxColour(255, 218, 130), // Gold
-            wxColour(186, 152, 255), // Lavender
-            wxColour(100, 220, 220), // Cyan
+        // 6 theme-derived tint colors (lightened for pastel effect)
+        const auto& teng = theme_engine();
+        static const auto make_tint = [](const wxColour& col) -> wxColour
+        { return col.ChangeLightness(160); };
+        const std::array<wxColour, kGroupColorCount> kGroupColors = {{
+            make_tint(teng.color(core::ThemeColorToken::AccentPrimary)),
+            make_tint(teng.color(core::ThemeColorToken::SuccessColor)),
+            make_tint(teng.color(core::ThemeColorToken::SyntaxKeyword)),
+            make_tint(teng.color(core::ThemeColorToken::AccentSecondary)),
+            make_tint(teng.color(core::ThemeColorToken::SyntaxType)),
+            make_tint(teng.color(core::ThemeColorToken::SyntaxString)),
         }};
 
         return kGroupColors.at(static_cast<size_t>(hue_index));

@@ -1,8 +1,11 @@
 #pragma once
 
+#include <chrono>
+#include <cstddef>
 #include <filesystem>
 #include <functional>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 namespace markamp::canvas
@@ -14,6 +17,7 @@ struct BoardInfo
     std::string id;
     std::string name;
     std::filesystem::path path;
+    std::chrono::system_clock::time_point modified_at; // (#31)
 };
 
 /// Scans a workspace directory for board files and provides navigation
@@ -32,9 +36,29 @@ public:
     auto navigate_to(const std::string& board_id) -> void;
     auto set_on_board_open(OnBoardOpenCallback callback) -> void;
 
+    // ── Improvements (#31-32) ─────────────────────────────────
+
+    /// Return the N most-recently-modified boards.
+    [[nodiscard]] auto recent_boards(size_t max_count) const -> std::vector<const BoardInfo*>;
+
+    /// Search boards by name (case-insensitive substring).
+    [[nodiscard]] auto search_boards(const std::string& query) const
+        -> std::vector<const BoardInfo*>;
+
+    // ── Batch 8 (#47-48) ──────────────────────────────────────────
+
+    /// Mark/unmark a board as favorite.
+    auto set_favorite(const std::string& board_id, bool is_favorite) -> void;
+    [[nodiscard]] auto is_favorite(const std::string& board_id) const -> bool;
+    [[nodiscard]] auto favorite_boards() const -> std::vector<const BoardInfo*>;
+
+    /// Sort boards alphabetically by name.
+    auto sort_boards_by_name() -> void;
+
 private:
     std::vector<BoardInfo> boards_;
     OnBoardOpenCallback on_board_open_;
+    std::unordered_set<std::string> favorite_ids_;
 };
 
 } // namespace markamp::canvas

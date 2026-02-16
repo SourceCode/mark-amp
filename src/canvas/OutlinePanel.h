@@ -61,12 +61,33 @@ public:
     [[nodiscard]] auto is_visible() const -> bool;
     auto set_visible(bool visible) -> void;
 
+    // ── Batch 7 (#37-40) ──────────────────────────────────────────
+
+    /// Filter entries by a specific CanvasObjectType.
+    [[nodiscard]] auto filter_by_type(CanvasObjectType type) const
+        -> std::vector<const OutlineEntry*>;
+
+    /// Substring search on entry labels.
+    [[nodiscard]] auto search_entries(const std::string& query) const
+        -> std::vector<const OutlineEntry*>;
+
+    /// Collapse all container entries.
+    auto collapse_all() -> void;
+
+    /// Expand all container entries.
+    auto expand_all() -> void;
+
+    /// Currently highlighted entry.
+    [[nodiscard]] auto selected_entry_id() const -> ObjectId;
+    auto set_selected_entry_id(ObjectId entry_id) -> void;
+
 private:
     std::vector<OutlineEntry> entries_;
     bool visible_{false};
     [[maybe_unused]] double scroll_offset_{0.0};
     OnNavigateCallback on_navigate_;
     OnReorderCallback on_reorder_;
+    ObjectId selected_entry_id_{kInvalidObjectId};
 };
 
 } // namespace markamp::canvas

@@ -5,6 +5,7 @@
 
 #include "core/EventBus.h"
 #include "core/Events.h"
+#include "core/SurfaceLink.h"
 #include "core/VaultService.h"
 
 namespace markamp::ui
@@ -154,6 +155,47 @@ auto NavigationService::breadcrumb_trail(int pane_id) const -> std::vector<std::
 auto NavigationService::can_resolve(const std::string& link_target) const -> bool
 {
     return vault_service_.resolve_wikilink(link_target).has_value();
+}
+
+// ============================================================================
+// V8 Phase 12 (Phase 35): Surface link routing
+// ============================================================================
+
+auto NavigationService::navigate_via_link(int pane_id, const core::SurfaceLink& link)
+    -> core::LinkResolveResult
+{
+    core::SurfaceLinkRouter router(event_bus_);
+    auto result = router.resolve(link);
+
+    if (result.status == core::LinkResolveStatus::kResolved)
+    {
+        // Record in pane history with cross-surface fields
+        NavigationEntry entry;
+        entry.document_id = link.to.file_path;
+        entry.from_surface =
+            std::string(core::SurfaceLinkRouter::surface_name(link.from.surface_kind));
+        entry.to_surface = std::string(core::SurfaceLinkRouter::surface_name(link.to.surface_kind));
+        entry.board_id = link.to.board_id;
+        entry.object_id = link.to.object_id;
+        entry.cell_id = link.to.cell_id;
+        entry.cursor_line = link.to.line;
+
+        histories_[pane_id].push(entry);
+        global_timeline_.push_back(entry);
+    }
+
+    return result;
+}
+
+auto NavigationService::resolve_link(const core::SurfaceLink& link) -> core::LinkResolveResult
+{
+    core::SurfaceLinkRouter router(event_bus_);
+    return router.resolve(link);
+}
+
+auto NavigationService::global_timeline() const -> const std::vector<NavigationEntry>&
+{
+    return global_timeline_;
 }
 
 } // namespace markamp::ui

@@ -482,27 +482,28 @@ void FileTreeCtrl::DrawNode(wxDC& dc, const core::FileNode& node, int depth, int
             };
             if (ends_with(".md") || ends_with(".txt"))
             {
-                ext_color = wxColour(100, 149, 237); // cornflower blue
+                ext_color = theme_engine().color(core::ThemeColorToken::AccentPrimary);
             }
             else if (ends_with(".json") || ends_with(".yml") || ends_with(".yaml"))
             {
-                ext_color = wxColour(230, 200, 50); // yellow
+                ext_color =
+                    theme_engine().color(core::ThemeColorToken::SyntaxNumber); // warm accent
             }
             else if (ends_with(".cpp") || ends_with(".h") || ends_with(".hpp") || ends_with(".c"))
             {
-                ext_color = wxColour(150, 100, 200); // purple
+                ext_color = theme_engine().color(core::ThemeColorToken::SyntaxKeyword);
             }
             else if (ends_with(".js") || ends_with(".ts") || ends_with(".jsx") || ends_with(".tsx"))
             {
-                ext_color = wxColour(80, 200, 120); // green
+                ext_color = theme_engine().color(core::ThemeColorToken::SuccessColor);
             }
             else if (ends_with(".html") || ends_with(".htm") || ends_with(".css"))
             {
-                ext_color = wxColour(255, 140, 60); // orange
+                ext_color = theme_engine().color(core::ThemeColorToken::AccentSecondary);
             }
             else if (ends_with(".py") || ends_with(".rb") || ends_with(".go") || ends_with(".rs"))
             {
-                ext_color = wxColour(220, 100, 100); // red-ish
+                ext_color = theme_engine().color(core::ThemeColorToken::ErrorColor);
             }
             // Draw a small 4px colored dot next to the icon as extension indicator
             if (ext_color.IsOk())
@@ -515,6 +516,15 @@ void FileTreeCtrl::DrawNode(wxDC& dc, const core::FileNode& node, int depth, int
 
         // 3. Draw Text
         // Fix 4: Distinct colors for selected vs hovered vs normal
+        // V8 Phase 1 Task 3: Bold font + TextMain for open folders
+        bool is_open_folder = node.is_folder() && node.is_open;
+        if (is_open_folder)
+        {
+            wxFont bold_font = dc.GetFont();
+            bold_font.SetWeight(wxFONTWEIGHT_BOLD);
+            dc.SetFont(bold_font);
+        }
+
         if (is_selected)
         {
             dc.SetTextForeground(
@@ -522,6 +532,11 @@ void FileTreeCtrl::DrawNode(wxDC& dc, const core::FileNode& node, int depth, int
         }
         else if (is_hovered)
         {
+            dc.SetTextForeground(theme_engine().color(core::ThemeColorToken::TextMain));
+        }
+        else if (is_open_folder)
+        {
+            // Open folders use TextMain for emphasis
             dc.SetTextForeground(theme_engine().color(core::ThemeColorToken::TextMain));
         }
         else
@@ -647,6 +662,12 @@ void FileTreeCtrl::DrawNode(wxDC& dc, const core::FileNode& node, int depth, int
                     dc.DrawText(meta_text, meta_x, text_y);
                 }
             }
+        }
+
+        // V8 Phase 1 Task 3: Restore regular font after open folder text draw
+        if (is_open_folder)
+        {
+            dc.SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular));
         }
 
         // Chevron for folders (right-aligned)

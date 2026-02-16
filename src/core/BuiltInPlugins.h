@@ -18,6 +18,16 @@ inline constexpr auto kThemeGallery = "theme-gallery";
 inline constexpr auto kLinkPreview = "link-preview";
 inline constexpr auto kImagePreview = "image-preview";
 inline constexpr auto kBreadcrumb = "breadcrumb";
+
+// V8 extension extraction — features promoted from hard-coded core to built-in plugins
+inline constexpr auto kFxEngine = "fx-engine";
+inline constexpr auto kTextFx = "text-fx";
+inline constexpr auto kVscodeThemes = "vscode-themes";
+inline constexpr auto kCanvasCollab = "canvas-collab";
+inline constexpr auto kCanvasApps = "canvas-apps";
+inline constexpr auto kKanban = "kanban";
+inline constexpr auto kMindMap = "mind-map";
+inline constexpr auto kDiagramLibrary = "diagram-library";
 } // namespace builtin_features
 
 /// Register all built-in features as plugins + feature-registry entries.

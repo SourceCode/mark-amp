@@ -151,4 +151,26 @@ auto MinimapPanel::entries() const -> const std::vector<MinimapEntry>&
     return entries_;
 }
 
+// ── Batch 7 (#41-42) ──────────────────────────────────────────────
+
+auto MinimapPanel::zoom_factor() const -> double
+{
+    return zoom_factor_;
+}
+
+auto MinimapPanel::set_zoom_factor(double factor) -> void
+{
+    zoom_factor_ = std::max(0.1, std::min(factor, 10.0));
+}
+
+auto MinimapPanel::highlight_objects(const std::vector<ObjectId>& ids) -> void
+{
+    highlighted_ids_ = ids;
+}
+
+auto MinimapPanel::highlighted_ids() const -> const std::vector<ObjectId>&
+{
+    return highlighted_ids_;
+}
+
 } // namespace markamp::canvas

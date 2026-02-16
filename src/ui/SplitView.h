@@ -3,6 +3,7 @@
 #include "ThemeAwareWindow.h"
 #include "core/EventBus.h"
 #include "core/Events.h"
+#include "core/SurfaceLink.h"
 
 #include <wx/timer.h>
 
@@ -27,9 +28,26 @@ class PreviewPanel;
 /// Snap presets for split ratio (double-click divider to cycle).
 enum class SnapPreset
 {
-    Even,       // 50/50
-    EditorWide, // 70/30
-    PreviewWide // 30/70
+    Even,        // 50/50
+    EditorWide,  // 70/30
+    PreviewWide, // 30/70
+
+    // V8 Phase 9: Named workspace presets with animated transitions
+    EditorFocus, // 85/15 — minimal preview, keyboard-centric editing
+    Balanced,    // 50/50 — alias for Even (canonical preset name)
+    Review,      // 40/60 — emphasis on rendered preview
+    PreviewFocus // 15/85 — full preview, editor as sidebar
+};
+
+// V8 Phase 12 (Phase 37): Paired traverse surface combinations
+enum class PairMode : std::uint8_t
+{
+    kNone,          ///< No pairing
+    kEditorPreview, ///< Editor + Preview (default split)
+    kEditorCanvas,  ///< Editor + Canvas
+    kPreviewGraph,  ///< Preview + Graph
+    kEditorGraph,   ///< Editor + Graph
+    kEditorNotebook ///< Editor + Notebook
 };
 
 /// Manages the three view modes: Editor, Split, Preview.
@@ -78,6 +96,11 @@ public:
 
     /// Enable or disable Mermaid rendering (forwards to PreviewPanel).
     void set_mermaid_enabled(bool enabled);
+
+    // V8 Phase 12 (Phase 37): Paired traverse mode
+    void SetPairMode(PairMode mode);
+    [[nodiscard]] auto GetPairMode() const -> PairMode;
+    [[nodiscard]] auto IsPaired() const -> bool;
 
     // Divider constants
     static constexpr int kDividerWidth = 6;     // visual width
@@ -174,6 +197,10 @@ private:
     core::Subscription content_sub_;
     core::Subscription scroll_sync_sub_;
     core::Subscription focus_mode_sub_;
+
+    // V8 Phase 12 (Phase 37): Paired traverse mode
+    PairMode pair_mode_{PairMode::kNone};
+    core::Subscription pair_request_sub_;
 
     // Persistence
     void SaveSplitRatio();

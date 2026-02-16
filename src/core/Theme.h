@@ -34,6 +34,15 @@ struct ThemeColors
     Color editor_cursor;
     Color editor_gutter;
 
+    // V8 Phase 9: Semantic editor state colors
+    Color editor_active_line{30, 30, 55};      // Active line highlight
+    Color editor_gutter_error{220, 60, 60};    // Gutter error marker
+    Color editor_gutter_warn{220, 180, 50};    // Gutter warning marker
+    Color editor_gutter_info{80, 160, 240};    // Gutter info marker
+    Color editor_match_highlight{60, 60, 100}; // Word match highlight
+    Color editor_find_hit{120, 100, 40};       // Find search hit
+    Color editor_quick_fix{60, 120, 60};       // Quick-fix lightbulb
+
     // UI specific
     Color list_hover;
     Color list_selected;
@@ -149,11 +158,211 @@ struct WindowEffects
     auto operator==(const WindowEffects&) const -> bool = default;
 };
 
+/// V8 Phase 13 (Phase 47): Compiz/Beryl-style transition/motion effects.
+struct TransitionEffects
+{
+    // Wobbly drag
+    float wobbly_stiffness{0.5F};        ///< 0.0–1.0
+    float wobbly_damping{0.7F};          ///< 0.0–1.0
+    float wobbly_max_displacement{8.0F}; ///< pixels
+
+    // Glide transitions
+    float glide_duration_ms{250.0F}; ///< milliseconds
+    float glide_overshoot{0.05F};    ///< 0.0–0.3
+
+    // Zoom/fade
+    float zoom_fade_scale_min{0.9F}; ///< 0.5–1.0
+    float zoom_fade_scale_max{1.0F};
+
+    // Magic lamp minimize
+    float magic_lamp_bend{0.4F}; ///< 0.0–1.0
+    float magic_lamp_duration_ms{350.0F};
+
+    // Burn/fade close
+    float burn_close_particle_density{0.6F};
+    float burn_close_fade_speed{1.0F};
+
+    // Expo overview
+    float expo_spacing{0.1F};
+    float expo_blur{0.3F};
+    float expo_anim_speed{1.0F};
+
+    // Cube workspace
+    float cube_perspective{0.8F};
+    float cube_rotation_speed{1.0F};
+
+    auto operator==(const TransitionEffects&) const -> bool = default;
+};
+
+/// V8 Phase 13 (Phase 48): Text visual effects.
+struct TextEffects
+{
+    // Stroke / outline
+    bool stroke_enabled{false};
+    float stroke_width{1.0F};
+    Color stroke_color{0, 0, 0};
+
+    // Soft shadow
+    bool shadow_enabled{false};
+    float shadow_offset_x{1.0F};
+    float shadow_offset_y{1.0F};
+    float shadow_blur{2.0F};
+    uint8_t shadow_alpha{80};
+
+    // Outer glow
+    bool outer_glow_enabled{false};
+    float outer_glow_radius{3.0F};
+    Color outer_glow_color{100, 99, 255};
+    uint8_t outer_glow_alpha{40};
+
+    // Inner glow
+    bool inner_glow_enabled{false};
+    float inner_glow_radius{2.0F};
+    Color inner_glow_color{255, 255, 255};
+    uint8_t inner_glow_alpha{30};
+
+    // Gradient fill
+    bool gradient_fill_enabled{false};
+    Color gradient_start{100, 99, 255};
+    Color gradient_end{255, 100, 200};
+    float gradient_angle{90.0F}; ///< degrees
+
+    // Bloom
+    bool bloom_enabled{false};
+    float bloom_threshold{0.8F};
+    float bloom_intensity{0.3F};
+
+    // CRT / scanline mode
+    bool crt_mode{false};
+    uint8_t crt_scanline_alpha{20};
+    float crt_curvature{0.02F};
+
+    // Subpixel hinting
+    bool subpixel_hinting{true};
+    float subpixel_strength{0.8F};
+
+    // Readability clamp
+    float readability_min_contrast{4.5F}; ///< WCAG AA target
+    bool readability_halo_guard{true};
+
+    auto operator==(const TextEffects&) const -> bool = default;
+};
+
+/// V8 Phase 13 (Phase 49): UI element effects.
+struct UiElementEffects
+{
+    // Hover glow
+    float hover_glow_radius{4.0F};
+    Color hover_glow_color{100, 99, 255};
+    uint8_t hover_glow_alpha{30};
+
+    // Active pill bloom
+    float active_pill_bloom{0.3F};
+    float active_pill_corner_radius{4.0F};
+
+    // Button press depth
+    float button_press_depth{1.0F};
+    float button_shadow_reduction{0.3F};
+
+    // Focus ring
+    Color focus_ring_color{100, 99, 255};
+    float focus_ring_thickness{2.0F};
+    bool focus_ring_pulse{false};
+
+    // Panel drop shadow
+    float panel_shadow_blur{8.0F};
+    float panel_shadow_spread{2.0F};
+    uint8_t panel_shadow_alpha{40};
+
+    // Tooltip frost
+    float tooltip_blur{6.0F};
+    Color tooltip_tint{30, 30, 50};
+    bool tooltip_border_glow{false};
+
+    // Badge glow
+    float badge_glow_alpha{0.4F};
+    bool badge_glow_pulse{false};
+
+    auto operator==(const UiElementEffects&) const -> bool = default;
+};
+
+/// V8 Phase 13: Editor-specific effects.
+struct EditorEffects
+{
+    // Caret glow
+    bool caret_glow_enabled{false};
+    float caret_glow_radius{3.0F};
+    uint8_t caret_glow_alpha{40};
+
+    // Selection shimmer
+    bool selection_shimmer{false};
+    float selection_shimmer_speed{1.0F};
+
+    // Active line glow
+    bool active_line_glow{false};
+    float active_line_glow_strength{0.2F};
+    float active_line_glow_spread{2.0F};
+
+    // Diagnostic pulse (per-severity)
+    bool diagnostic_pulse{false};
+
+    auto operator==(const EditorEffects&) const -> bool = default;
+};
+
+/// V8 Phase 13: Canvas-specific effects.
+struct CanvasEffects
+{
+    // Object shadow
+    float object_shadow_blur{6.0F};
+    uint8_t object_shadow_alpha{50};
+    float object_shadow_elevation{2.0F};
+
+    // Selection outline glow
+    Color selection_glow_color{100, 99, 255};
+    float selection_glow_width{2.0F};
+    bool selection_glow_pulse{false};
+
+    // Connector neon
+    float connector_neon_intensity{0.3F};
+
+    // Sticky note lighting
+    bool sticky_note_lighting{false};
+
+    // Minimap heat
+    float minimap_heat_strength{0.3F};
+
+    auto operator==(const CanvasEffects&) const -> bool = default;
+};
+
+/// V8 Phase 13: Top-level FX settings grouping all effect categories.
+struct FxSettings
+{
+    // Global controls
+    bool master_enabled{false};            ///< Global FX on/off
+    bool reduced_motion{false};            ///< Accessibility: force static
+    bool low_power_mode{false};            ///< Disable expensive passes
+    bool text_safety_mode{false};          ///< No distortion/chroma on text
+    bool high_contrast_guard{true};        ///< Auto-adjust for contrast
+    float max_frame_time_budget_ms{16.0F}; ///< Hard cap for adaptive downgrade
+
+    // Per-category effect settings
+    TransitionEffects transition;
+    TextEffects text;
+    UiElementEffects ui_elements;
+    EditorEffects editor;
+    CanvasEffects canvas;
+
+    auto operator==(const FxSettings&) const -> bool = default;
+};
+
 /// Full theme data with ID, name, and color tokens.
 struct Theme
 {
     std::string id;
     std::string name;
+    std::string author;      ///< Theme author (for VSCode imports)
+    std::string description; ///< Theme description
+    std::string source;      ///< "built-in", "custom", "extension", "vscode-import"
     ThemeColors colors;
 
     // Phase 4: Layered token system (optional — populated from ThemeColors if empty)
@@ -171,6 +380,9 @@ struct Theme
     // Phase 4D+: Comprehensive window effects
     WindowEffects effects;
 
+    // V8 Phase 13 (Phase 46–56): Full FX pipeline settings
+    FxSettings fx_settings;
+
     // Validation
     [[nodiscard]] auto is_valid() const -> bool;
     [[nodiscard]] auto validation_errors() const -> std::vector<std::string>;
@@ -187,6 +399,16 @@ struct Theme
 
     /// Populate chrome/syntax/render layers from the flat ThemeColors struct.
     void sync_layers_from_colors();
+
+    // V8 Phase 12 (Phase 41): Interactive state tokens
+    Color hover_bg_token{50, 50, 80};       ///< Hover background
+    Color active_bg_token{40, 40, 70};      ///< Active/pressed background
+    Color pressed_bg_token{35, 35, 65};     ///< Pressed state background
+    Color focus_border_token{100, 99, 255}; ///< Focus ring/border
+    Color error_fg_token{220, 60, 60};      ///< Error foreground
+    Color warning_fg_token{220, 180, 50};   ///< Warning foreground
+    Color info_fg_token{80, 160, 240};      ///< Info foreground
+    Color success_fg_token{60, 180, 90};    ///< Success foreground
 
     auto operator==(const Theme&) const -> bool = default;
 };

@@ -3,6 +3,7 @@
 #include "core/Config.h"
 #include "core/Events.h"
 #include "core/Logger.h"
+#include "core/SettingsCatalog.h"
 
 #include <wx/button.h>
 #include <wx/sizer.h>
@@ -30,6 +31,53 @@ SettingsPanel::SettingsPanel(wxWindow* parent,
     // Subscribe to theme changes
     theme_sub_ = event_bus_.subscribe<core::events::ThemeChangedEvent>(
         [this](const core::events::ThemeChangedEvent& /*evt*/) { ApplyTheme(); });
+}
+
+SettingsPanel::SettingsPanel(wxWindow* parent,
+                             core::ThemeEngine& theme_engine,
+                             core::EventBus& event_bus,
+                             core::Config& config,
+                             core::SettingsCatalog& catalog)
+    : wxPanel(parent, wxID_ANY)
+    , theme_engine_(theme_engine)
+    , event_bus_(event_bus)
+    , config_(config)
+    , catalog_(&catalog)
+{
+    CreateLayout();
+    PopulateFromCatalog();
+    ApplyTheme();
+
+    theme_sub_ = event_bus_.subscribe<core::events::ThemeChangedEvent>(
+        [this](const core::events::ThemeChangedEvent& /*evt*/) { ApplyTheme(); });
+}
+
+void SettingsPanel::PopulateFromCatalog()
+{
+    if (catalog_ == nullptr)
+    {
+        return;
+    }
+    definitions_.clear();
+    for (const auto& entry : catalog_->all_settings())
+    {
+        SettingDefinition def;
+        def.setting_id = entry.setting_id;
+        def.label = entry.label;
+        def.description = entry.description;
+        def.category = entry.group;
+        def.type = entry.type;
+        def.default_value = entry.default_value;
+        def.choices = entry.choices;
+        def.min_int = entry.min_int;
+        def.max_int = entry.max_int;
+        def.deprecated = entry.deprecated;
+        def.experimental = entry.experimental;
+        def.restart_required = entry.restart_required;
+        def.order_priority = entry.order_priority;
+        definitions_.push_back(std::move(def));
+    }
+    RebuildSettingsList();
 }
 
 void SettingsPanel::CreateLayout()
@@ -118,6 +166,8 @@ void SettingsPanel::RegisterSetting(SettingDefinition definition)
     definitions_.push_back(std::move(definition));
 }
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmissing-field-initializers"
 void SettingsPanel::RegisterBuiltinSettings()
 {
     // Editor settings
@@ -727,6 +777,7 @@ void SettingsPanel::RegisterBuiltinSettings()
 
     RebuildSettingsList();
 }
+#pragma clang diagnostic pop
 
 void SettingsPanel::RebuildSettingsList()
 {
@@ -874,6 +925,18 @@ void SettingsPanel::RebuildSettingsList()
                     break;
                 case core::SettingType::Choice:
                     widget = CreateChoiceSetting(scroll_area_, def);
+                    break;
+                case core::SettingType::KeyBinding:
+                    widget = CreateKeyBindingSetting(scroll_area_, def);
+                    break;
+                case core::SettingType::StringList:
+                    widget = CreateStringListSetting(scroll_area_, def);
+                    break;
+                case core::SettingType::FilePath:
+                    widget = CreateStringSetting(scroll_area_, def);
+                    break;
+                case core::SettingType::Color:
+                    widget = CreateStringSetting(scroll_area_, def);
                     break;
             }
 
@@ -1278,6 +1341,210 @@ void SettingsPanel::OnCollapsibleToggle(const std::string& category)
         collapsed_categories_.insert(category);
     }
     RebuildSettingsList();
+}
+
+void SettingsPanel::SetSearchText(const std::string& query)
+{
+    if (search_ctrl_ != nullptr)
+    {
+        search_ctrl_->SetValue(query);
+        RebuildSettingsList();
+    }
+}
+
+void SettingsPanel::FocusSearch()
+{
+    if (search_ctrl_ != nullptr)
+    {
+        search_ctrl_->SetFocus();
+    }
+}
+
+void SettingsPanel::RestoreAllDefaults()
+{
+    for (const auto& def : definitions_)
+    {
+        ResetSettingToDefault(def.setting_id, def.default_value);
+    }
+    RebuildSettingsList();
+}
+
+// ── Staged-edit API ──
+
+void SettingsPanel::ApplyPendingChanges()
+{
+    for (const auto& [setting_id, new_value] : pending_changes_)
+    {
+        config_.set(setting_id, new_value);
+    }
+    if (!pending_changes_.empty())
+    {
+        event_bus_.publish(core::events::SettingsBatchChangedEvent{});
+    }
+    pending_changes_.clear();
+    RebuildSettingsList();
+}
+
+void SettingsPanel::DiscardPendingChanges()
+{
+    pending_changes_.clear();
+    RebuildSettingsList();
+}
+
+auto SettingsPanel::HasPendingChanges() const -> bool
+{
+    return !pending_changes_.empty();
+}
+
+auto SettingsPanel::PendingChangeCount() const -> std::size_t
+{
+    return pending_changes_.size();
+}
+
+// ── Query API ──
+
+auto SettingsPanel::setting_count() const -> std::size_t
+{
+    return definitions_.size();
+}
+
+auto SettingsPanel::filtered_count() const -> std::size_t
+{
+    return filtered_count_;
+}
+
+auto SettingsPanel::modified_count() const -> std::size_t
+{
+    std::size_t count = 0;
+    for (const auto& def : definitions_)
+    {
+        if (IsSettingModified(def))
+        {
+            ++count;
+        }
+    }
+    return count;
+}
+
+auto SettingsPanel::GetSettingValue(const std::string& setting_id) const -> std::string
+{
+    return config_.get_string(setting_id, "");
+}
+
+void SettingsPanel::SetSettingValue(const std::string& setting_id, const std::string& value)
+{
+    OnSettingChanged(setting_id, value);
+}
+
+void SettingsPanel::ResetCategoryToDefaults(const std::string& category)
+{
+    for (const auto& def : definitions_)
+    {
+        if (def.category == category)
+        {
+            ResetSettingToDefault(def.setting_id, def.default_value);
+        }
+    }
+    RebuildSettingsList();
+}
+
+auto SettingsPanel::CreateKeyBindingSetting(wxWindow* parent, const SettingDefinition& def)
+    -> wxPanel*
+{
+    auto* panel = new wxPanel(parent);
+    auto* sizer = new wxBoxSizer(wxHORIZONTAL);
+
+    auto* label = new wxStaticText(panel, wxID_ANY, def.label);
+    label->SetToolTip(def.description);
+    sizer->Add(label, 1, wxALIGN_CENTER_VERTICAL);
+
+    const std::string current_val = config_.get_string(def.setting_id, def.default_value);
+    auto* text_ctrl =
+        new wxTextCtrl(panel, wxID_ANY, current_val, wxDefaultPosition, wxSize(160, -1));
+    text_ctrl->SetEditable(false);
+
+    const std::string setting_id = def.setting_id;
+
+    auto* record_btn =
+        new wxButton(panel, wxID_ANY, "Record Shortcut", wxDefaultPosition, wxSize(120, -1));
+    record_btn->SetToolTip("Press to capture a new keyboard shortcut");
+    record_btn->Bind(wxEVT_BUTTON,
+                     [this, text_ctrl, record_btn, setting_id](wxCommandEvent& /*evt*/)
+                     {
+                         record_btn->SetLabel("Press keys...");
+                         record_btn->Bind(
+                             wxEVT_KEY_DOWN,
+                             [this, text_ctrl, record_btn, setting_id](wxKeyEvent& key_evt)
+                             {
+                                 wxString combo;
+                                 if (key_evt.ControlDown())
+                                     combo += "Ctrl+";
+                                 if (key_evt.AltDown())
+                                     combo += "Alt+";
+                                 if (key_evt.ShiftDown())
+                                     combo += "Shift+";
+                                 if (key_evt.MetaDown())
+                                     combo += "Cmd+";
+
+                                 const int kc = key_evt.GetKeyCode();
+                                 if (kc >= 'A' && kc <= 'Z')
+                                 {
+                                     combo += static_cast<char>(kc);
+                                 }
+                                 else if (kc >= WXK_F1 && kc <= WXK_F12)
+                                 {
+                                     combo += wxString::Format("F%d", kc - WXK_F1 + 1);
+                                 }
+                                 else
+                                 {
+                                     combo += wxString::Format("0x%X", kc);
+                                 }
+
+                                 text_ctrl->SetValue(combo);
+                                 OnSettingChanged(setting_id, combo.ToStdString());
+                                 record_btn->SetLabel("Record Shortcut");
+                             });
+                     });
+
+    sizer->Add(text_ctrl, 0, wxALIGN_CENTER_VERTICAL);
+    sizer->Add(record_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 4);
+    sizer->Add(CreateResetButton(panel, def), 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 4);
+    panel->SetSizer(sizer);
+    return panel;
+}
+
+auto SettingsPanel::CreateStringListSetting(wxWindow* parent, const SettingDefinition& def)
+    -> wxPanel*
+{
+    auto* panel = new wxPanel(parent);
+    auto* sizer = new wxBoxSizer(wxHORIZONTAL);
+
+    auto* label = new wxStaticText(panel, wxID_ANY, def.label);
+    label->SetToolTip(def.description);
+    sizer->Add(label, 1, wxALIGN_TOP | wxTOP, 4);
+
+    // Display comma-separated values as newline-separated in a multi-line text area
+    const std::string current_val = config_.get_string(def.setting_id, def.default_value);
+    std::string display_val = current_val;
+    std::replace(display_val.begin(), display_val.end(), ',', '\n');
+
+    auto* text_ctrl = new wxTextCtrl(
+        panel, wxID_ANY, display_val, wxDefaultPosition, wxSize(200, 80), wxTE_MULTILINE);
+
+    const std::string setting_id = def.setting_id;
+    text_ctrl->Bind(wxEVT_TEXT,
+                    [this, setting_id](wxCommandEvent& evt)
+                    {
+                        // Convert newlines back to commas for storage
+                        std::string val = evt.GetString().ToStdString();
+                        std::replace(val.begin(), val.end(), '\n', ',');
+                        OnSettingChanged(setting_id, val);
+                    });
+
+    sizer->Add(text_ctrl, 0, wxALIGN_TOP);
+    sizer->Add(CreateResetButton(panel, def), 0, wxALIGN_TOP | wxLEFT, 4);
+    panel->SetSizer(sizer);
+    return panel;
 }
 
 } // namespace markamp::ui

@@ -175,4 +175,109 @@ auto MindMapController::layout_subtree(
     }
 }
 
+// ── Expansion (#24-26) ───────────────────────────────────────
+
+auto MindMapController::toggle_collapse(ObjectId node_id) -> void
+{
+    auto* node = dynamic_cast<MindMapNode*>(board_.get_object_mut(node_id));
+    if (node == nullptr)
+    {
+        return;
+    }
+    node->set_collapsed(!node->is_collapsed());
+
+    // Re-layout from root so the tree adjusts.
+    const ObjectId root_id = find_root(node_id);
+    if (root_id != kInvalidObjectId)
+    {
+        relayout(root_id);
+    }
+}
+
+auto MindMapController::node_count(ObjectId root_id) const -> size_t
+{
+    const auto* node = dynamic_cast<const MindMapNode*>(board_.get_object(root_id));
+    if (node == nullptr)
+    {
+        return 0;
+    }
+
+    size_t total = 1;
+    for (const auto& child_id : node->child_node_ids())
+    {
+        total += node_count(child_id);
+    }
+    return total;
+}
+
+auto MindMapController::reparent_node(ObjectId node_id, ObjectId new_parent_id) -> void
+{
+    auto* node = dynamic_cast<MindMapNode*>(board_.get_object_mut(node_id));
+    if (node == nullptr)
+    {
+        return;
+    }
+
+    // Remove from old parent.
+    if (node->parent_node_id() != kInvalidObjectId)
+    {
+        auto* old_parent =
+            dynamic_cast<MindMapNode*>(board_.get_object_mut(node->parent_node_id()));
+        if (old_parent != nullptr)
+        {
+            old_parent->remove_child_node_id(node_id);
+        }
+    }
+
+    // Add to new parent.
+    auto* new_parent = dynamic_cast<MindMapNode*>(board_.get_object_mut(new_parent_id));
+    if (new_parent != nullptr)
+    {
+        new_parent->add_child_node_id(node_id);
+        node->set_parent_node_id(new_parent_id);
+        node->set_depth(new_parent->depth() + 1);
+    }
+}
+
+// ── Depth & Search (#36-37) ──────────────────────────────
+
+auto MindMapController::max_depth(ObjectId root_id) const -> size_t
+{
+    const auto* node = dynamic_cast<const MindMapNode*>(board_.get_object(root_id));
+    if (node == nullptr)
+    {
+        return 0;
+    }
+
+    size_t deepest = 0;
+    for (const auto& child_id : node->child_node_ids())
+    {
+        deepest = std::max(deepest, max_depth(child_id));
+    }
+    return deepest + 1;
+}
+
+auto MindMapController::find_by_text(ObjectId root_id, const std::string& query) const
+    -> std::vector<ObjectId>
+{
+    std::vector<ObjectId> matches;
+    const auto* node = dynamic_cast<const MindMapNode*>(board_.get_object(root_id));
+    if (node == nullptr)
+    {
+        return matches;
+    }
+
+    if (node->text().find(query) != std::string::npos)
+    {
+        matches.push_back(root_id);
+    }
+
+    for (const auto& child_id : node->child_node_ids())
+    {
+        auto child_matches = find_by_text(child_id, query);
+        matches.insert(matches.end(), child_matches.begin(), child_matches.end());
+    }
+    return matches;
+}
+
 } // namespace markamp::canvas

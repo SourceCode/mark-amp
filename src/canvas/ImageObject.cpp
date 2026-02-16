@@ -1,8 +1,10 @@
 #include "ImageObject.h"
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <sstream>
+#include <unordered_map>
 
 namespace markamp::canvas
 {
@@ -17,6 +19,7 @@ ImageObject::ImageObject()
 auto ImageObject::load_from_file(const std::string& path) -> bool
 {
     file_path_ = path;
+    format_ = detect_image_format(path);
     // In a real implementation, we'd use wxImage to read actual dimensions.
     // For now, we keep the defaults or previously-set values.
     mark_dirty();
@@ -135,6 +138,36 @@ auto ImageObject::set_alt_text(const std::string& text) -> void
     alt_text_ = text;
 }
 
+// --- Batch 7 (#40-42) ---
+
+auto ImageObject::reset_to_original_size() -> void
+{
+    width_ = original_width_;
+    height_ = original_height_;
+    mark_dirty();
+}
+
+auto ImageObject::scale_to_fit(double max_width, double max_height) -> void
+{
+    if (original_width_ < 1e-6 || original_height_ < 1e-6)
+    {
+        return;
+    }
+
+    const double scale_x = max_width / original_width_;
+    const double scale_y = max_height / original_height_;
+    const double scale = std::min(scale_x, scale_y);
+
+    width_ = original_width_ * scale;
+    height_ = original_height_ * scale;
+    mark_dirty();
+}
+
+auto ImageObject::is_loaded() const -> bool
+{
+    return !file_path_.empty();
+}
+
 // ── CanvasObject overrides ──────────────────────────────────────
 
 auto ImageObject::local_bounds() const -> AABB
@@ -153,6 +186,7 @@ auto ImageObject::clone() const -> std::unique_ptr<CanvasObject>
     copy->maintain_aspect_ = maintain_aspect_;
     copy->crop_region_ = crop_region_;
     copy->alt_text_ = alt_text_;
+    copy->format_ = format_;
     copy->set_transform(transform());
     copy->set_z_index(z_index());
     copy->set_name(name());
@@ -183,6 +217,196 @@ auto ImageObject::to_json() const -> std::string
 auto ImageObject::from_json(const std::string& /*json*/) -> void
 {
     // Stub: real JSON parsing would populate fields.
+}
+
+auto ImageObject::format() const -> ImageFormat
+{
+    return format_;
+}
+
+// ── Free functions: Image format support ────────────────────────
+
+auto detect_image_format(const std::string& path) -> ImageFormat
+{
+    // Find the last dot.
+    const auto dot_pos = path.rfind('.');
+    if (dot_pos == std::string::npos || dot_pos + 1 >= path.size())
+    {
+        return ImageFormat::kUnknown;
+    }
+
+    std::string ext = path.substr(dot_pos + 1);
+    std::transform(ext.begin(),
+                   ext.end(),
+                   ext.begin(),
+                   [](unsigned char chr) { return static_cast<char>(std::tolower(chr)); });
+
+    // Static lookup table.
+    static const std::unordered_map<std::string, ImageFormat> kExtMap = {
+        // PNG
+        {"png", ImageFormat::kPng},
+        // JPEG
+        {"jpg", ImageFormat::kJpeg},
+        {"jpeg", ImageFormat::kJpeg},
+        {"jpe", ImageFormat::kJpeg},
+        {"jfif", ImageFormat::kJpeg},
+        // GIF
+        {"gif", ImageFormat::kGif},
+        // WebP
+        {"webp", ImageFormat::kWebP},
+        // AVIF
+        {"avif", ImageFormat::kAvif},
+        // SVG
+        {"svg", ImageFormat::kSvg},
+        {"svgz", ImageFormat::kSvg},
+        // BMP
+        {"bmp", ImageFormat::kBmp},
+        {"dib", ImageFormat::kBmp},
+        // TIFF
+        {"tif", ImageFormat::kTiff},
+        {"tiff", ImageFormat::kTiff},
+        // ICO
+        {"ico", ImageFormat::kIco},
+        {"cur", ImageFormat::kIco},
+        // HEIF
+        {"heif", ImageFormat::kHeif},
+        {"heic", ImageFormat::kHeif},
+        {"hif", ImageFormat::kHeif},
+        // JPEG XL
+        {"jxl", ImageFormat::kJxl},
+        // OpenEXR
+        {"exr", ImageFormat::kExr},
+        // DDS
+        {"dds", ImageFormat::kDds},
+        // TGA
+        {"tga", ImageFormat::kTga},
+        // PSD
+        {"psd", ImageFormat::kPsd},
+        {"psb", ImageFormat::kPsd},
+        // RAW
+        {"raw", ImageFormat::kRaw},
+        {"cr2", ImageFormat::kRaw},
+        {"cr3", ImageFormat::kRaw},
+        {"nef", ImageFormat::kRaw},
+        {"arw", ImageFormat::kRaw},
+        {"dng", ImageFormat::kRaw},
+        {"orf", ImageFormat::kRaw},
+        {"rw2", ImageFormat::kRaw},
+        // PDF
+        {"pdf", ImageFormat::kPdf},
+    };
+
+    const auto iter = kExtMap.find(ext);
+    if (iter != kExtMap.end())
+    {
+        return iter->second;
+    }
+    return ImageFormat::kUnknown;
+}
+
+auto image_format_name(ImageFormat fmt) -> std::string
+{
+    switch (fmt)
+    {
+        case ImageFormat::kUnknown:
+            return "Unknown";
+        case ImageFormat::kPng:
+            return "PNG";
+        case ImageFormat::kJpeg:
+            return "JPEG";
+        case ImageFormat::kGif:
+            return "GIF";
+        case ImageFormat::kWebP:
+            return "WebP";
+        case ImageFormat::kAvif:
+            return "AVIF";
+        case ImageFormat::kSvg:
+            return "SVG";
+        case ImageFormat::kBmp:
+            return "BMP";
+        case ImageFormat::kTiff:
+            return "TIFF";
+        case ImageFormat::kIco:
+            return "ICO";
+        case ImageFormat::kHeif:
+            return "HEIF";
+        case ImageFormat::kJxl:
+            return "JPEG XL";
+        case ImageFormat::kExr:
+            return "OpenEXR";
+        case ImageFormat::kDds:
+            return "DDS";
+        case ImageFormat::kTga:
+            return "TGA";
+        case ImageFormat::kPsd:
+            return "PSD";
+        case ImageFormat::kRaw:
+            return "RAW";
+        case ImageFormat::kPdf:
+            return "PDF";
+    }
+    return "Unknown";
+}
+
+auto image_format_mime_type(ImageFormat fmt) -> std::string
+{
+    switch (fmt)
+    {
+        case ImageFormat::kPng:
+            return "image/png";
+        case ImageFormat::kJpeg:
+            return "image/jpeg";
+        case ImageFormat::kGif:
+            return "image/gif";
+        case ImageFormat::kWebP:
+            return "image/webp";
+        case ImageFormat::kAvif:
+            return "image/avif";
+        case ImageFormat::kSvg:
+            return "image/svg+xml";
+        case ImageFormat::kBmp:
+            return "image/bmp";
+        case ImageFormat::kTiff:
+            return "image/tiff";
+        case ImageFormat::kIco:
+            return "image/x-icon";
+        case ImageFormat::kHeif:
+            return "image/heif";
+        case ImageFormat::kJxl:
+            return "image/jxl";
+        case ImageFormat::kExr:
+            return "image/x-exr";
+        case ImageFormat::kDds:
+            return "image/vnd-ms.dds";
+        case ImageFormat::kTga:
+            return "image/x-tga";
+        case ImageFormat::kPsd:
+            return "image/vnd.adobe.photoshop";
+        case ImageFormat::kRaw:
+            return "image/x-raw";
+        case ImageFormat::kPdf:
+            return "application/pdf";
+        case ImageFormat::kUnknown:
+            return "";
+    }
+    return "";
+}
+
+auto is_web_image_format(ImageFormat fmt) -> bool
+{
+    switch (fmt)
+    {
+        case ImageFormat::kPng:
+        case ImageFormat::kJpeg:
+        case ImageFormat::kGif:
+        case ImageFormat::kWebP:
+        case ImageFormat::kAvif:
+        case ImageFormat::kSvg:
+        case ImageFormat::kIco:
+            return true;
+        default:
+            return false;
+    }
 }
 
 } // namespace markamp::canvas

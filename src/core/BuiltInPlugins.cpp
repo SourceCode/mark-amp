@@ -262,6 +262,239 @@ public:
     }
 };
 
+// ── V8 Extension Extraction: FX Engine Plugin ──
+
+class FxEnginePlugin final : public BuiltInPlugin
+{
+public:
+    FxEnginePlugin()
+        : BuiltInPlugin(
+              PluginManifest{
+                  .id = "markamp.fx-engine",
+                  .name = "FX Engine",
+                  .version = "1.0.0",
+                  .description =
+                      "Compiz/Beryl-style compositor effects: blur, glow, shadow, wobbly windows, "
+                      "transitions, and visual presets",
+                  .author = "MarkAmp",
+                  .contributes =
+                      {.settings = {{.id = "fx-engine.enabled",
+                                     .label = "Enable FX Engine",
+                                     .description =
+                                         "Enable real-time compositor and visual effects",
+                                     .category = "Visual Effects",
+                                     .type = SettingType::Boolean,
+                                     .default_value = "true"}},
+                       .commands = {{.id = "feature.toggle.fx-engine",
+                                     .title = "Toggle FX Engine"}}}},
+              builtin_features::kFxEngine)
+    {
+    }
+};
+
+// ── V8 Extension Extraction: Text FX Plugin ──
+
+class TextFxPlugin final : public BuiltInPlugin
+{
+public:
+    TextFxPlugin()
+        : BuiltInPlugin(
+              PluginManifest{
+                  .id = "markamp.text-fx",
+                  .name = "Text FX Renderer",
+                  .version = "1.0.0",
+                  .description =
+                      "Text visual effects: glow, shadow, neon, gradient, bloom, CRT mode, and "
+                      "per-token FX channels",
+                  .author = "MarkAmp",
+                  .contributes =
+                      {.settings = {{.id = "text-fx.enabled",
+                                     .label = "Enable Text FX",
+                                     .description = "Enable text rendering effects in editor and "
+                                                    "preview",
+                                     .category = "Visual Effects",
+                                     .type = SettingType::Boolean,
+                                     .default_value = "true"}},
+                       .commands = {{.id = "feature.toggle.text-fx", .title = "Toggle Text FX"}}}},
+              builtin_features::kTextFx)
+    {
+    }
+};
+
+// ── V8 Extension Extraction: VSCode Theme Adapter Plugin ──
+
+class VscodeThemesPlugin final : public BuiltInPlugin
+{
+public:
+    VscodeThemesPlugin()
+        : BuiltInPlugin(
+              PluginManifest{
+                  .id = "markamp.vscode-themes",
+                  .name = "VSCode Theme Adapter",
+                  .version = "1.0.0",
+                  .description =
+                      "Import and apply VSCode-compatible themes including TextMate scope mapping "
+                      "and semantic token support",
+                  .author = "MarkAmp",
+                  .contributes = {.settings = {{.id = "vscode-themes.enabled",
+                                                .label = "Enable VSCode Theme Import",
+                                                .description =
+                                                    "Allow importing and applying VSCode themes",
+                                                .category = "Appearance",
+                                                .type = SettingType::Boolean,
+                                                .default_value = "true"}},
+                                  .commands = {{.id = "feature.toggle.vscode-themes",
+                                                .title = "Toggle VSCode Theme Import"}}}},
+              builtin_features::kVscodeThemes)
+    {
+    }
+};
+
+// ── V8 Extension Extraction: Canvas Collaboration Plugin ──
+
+class CanvasCollabPlugin final : public BuiltInPlugin
+{
+public:
+    CanvasCollabPlugin()
+        : BuiltInPlugin(
+              PluginManifest{
+                  .id = "markamp.canvas-collab",
+                  .name = "Canvas Collaboration",
+                  .version = "1.0.0",
+                  .description =
+                      "Real-time collaboration for canvas: live cursors, presence, comments, "
+                      "voting, timer, and facilitation tools",
+                  .author = "MarkAmp",
+                  .contributes = {.settings = {{.id = "canvas-collab.enabled",
+                                                .label = "Enable Canvas Collaboration",
+                                                .description =
+                                                    "Enable real-time collaboration features on "
+                                                    "canvas boards",
+                                                .category = "Canvas",
+                                                .type = SettingType::Boolean,
+                                                .default_value = "true"}},
+                                  .commands = {{.id = "feature.toggle.canvas-collab",
+                                                .title = "Toggle Canvas Collaboration"}}}},
+              builtin_features::kCanvasCollab)
+    {
+    }
+};
+
+// ── V8 Extension Extraction: Canvas Apps & Integration Plugin ──
+
+class CanvasAppsPlugin final : public BuiltInPlugin
+{
+public:
+    CanvasAppsPlugin()
+        : BuiltInPlugin(
+              PluginManifest{
+                  .id = "markamp.canvas-apps",
+                  .name = "Canvas Apps & Widgets",
+                  .version = "1.0.0",
+                  .description =
+                      "Canvas app marketplace: embeddable data widgets, integration service, and "
+                      "third-party app hosting",
+                  .author = "MarkAmp",
+                  .contributes = {.settings = {{.id = "canvas-apps.enabled",
+                                                .label = "Enable Canvas Apps",
+                                                .description =
+                                                    "Enable canvas app widgets and integrations",
+                                                .category = "Canvas",
+                                                .type = SettingType::Boolean,
+                                                .default_value = "true"}},
+                                  .commands = {{.id = "feature.toggle.canvas-apps",
+                                                .title = "Toggle Canvas Apps"}}}},
+              builtin_features::kCanvasApps)
+    {
+    }
+};
+
+// ── V8 Extension Extraction: Kanban Board Plugin ──
+
+class KanbanPlugin final : public BuiltInPlugin
+{
+public:
+    KanbanPlugin()
+        : BuiltInPlugin(
+              PluginManifest{
+                  .id = "markamp.kanban",
+                  .name = "Kanban Board",
+                  .version = "1.0.0",
+                  .description =
+                      "Kanban board workflow for canvas: columns, swimlanes, WIP limits, and "
+                      "card management",
+                  .author = "MarkAmp",
+                  .contributes = {.settings = {{.id = "kanban.enabled",
+                                                .label = "Enable Kanban Board",
+                                                .description =
+                                                    "Enable kanban board creation on canvas",
+                                                .category = "Canvas",
+                                                .type = SettingType::Boolean,
+                                                .default_value = "true"}},
+                                  .commands = {{.id = "feature.toggle.kanban",
+                                                .title = "Toggle Kanban Board"}}}},
+              builtin_features::kKanban)
+    {
+    }
+};
+
+// ── V8 Extension Extraction: Mind Map Plugin ──
+
+class MindMapPlugin final : public BuiltInPlugin
+{
+public:
+    MindMapPlugin()
+        : BuiltInPlugin(
+              PluginManifest{
+                  .id = "markamp.mind-map",
+                  .name = "Mind Map",
+                  .version = "1.0.0",
+                  .description = "Mind map tool for canvas: radial/tree layouts, auto-balance, "
+                                 "expand/collapse, "
+                                 "and node styling",
+                  .author = "MarkAmp",
+                  .contributes = {.settings = {{.id = "mind-map.enabled",
+                                                .label = "Enable Mind Map",
+                                                .description = "Enable mind map creation on canvas",
+                                                .category = "Canvas",
+                                                .type = SettingType::Boolean,
+                                                .default_value = "true"}},
+                                  .commands = {{.id = "feature.toggle.mind-map",
+                                                .title = "Toggle Mind Map"}}}},
+              builtin_features::kMindMap)
+    {
+    }
+};
+
+// ── V8 Extension Extraction: Diagram Library Plugin ──
+
+class DiagramLibraryPlugin final : public BuiltInPlugin
+{
+public:
+    DiagramLibraryPlugin()
+        : BuiltInPlugin(
+              PluginManifest{
+                  .id = "markamp.diagram-library",
+                  .name = "Diagram Library",
+                  .version = "1.0.0",
+                  .description =
+                      "UML/BPMN diagram stencils: class diagrams, sequence diagrams, flowcharts, "
+                      "and process model shapes",
+                  .author = "MarkAmp",
+                  .contributes = {.settings = {{.id = "diagram-library.enabled",
+                                                .label = "Enable Diagram Library",
+                                                .description =
+                                                    "Enable UML/BPMN diagram stencils on canvas",
+                                                .category = "Canvas",
+                                                .type = SettingType::Boolean,
+                                                .default_value = "true"}},
+                                  .commands = {{.id = "feature.toggle.diagram-library",
+                                                .title = "Toggle Diagram Library"}}}},
+              builtin_features::kDiagramLibrary)
+    {
+    }
+};
+
 } // anonymous namespace
 
 // ── Registration ──
@@ -300,6 +533,29 @@ void register_builtin_plugins(PluginManager& plugin_manager, FeatureRegistry& fe
         {builtin_features::kBreadcrumb,
          "Breadcrumb Bar",
          "File path breadcrumb navigation above the editor"},
+        // V8 extension extraction
+        {builtin_features::kFxEngine,
+         "FX Engine",
+         "Compiz/Beryl-style compositor effects pipeline"},
+        {builtin_features::kTextFx,
+         "Text FX Renderer",
+         "Text visual effects: glow, shadow, neon, gradient, bloom, CRT mode"},
+        {builtin_features::kVscodeThemes,
+         "VSCode Theme Adapter",
+         "Import and apply VSCode-compatible themes with TextMate scope mapping"},
+        {builtin_features::kCanvasCollab,
+         "Canvas Collaboration",
+         "Real-time collaboration: live cursors, comments, voting, and facilitation"},
+        {builtin_features::kCanvasApps,
+         "Canvas Apps & Widgets",
+         "Canvas app marketplace and embeddable data widgets"},
+        {builtin_features::kKanban, "Kanban Board", "Kanban board workflow for canvas"},
+        {builtin_features::kMindMap,
+         "Mind Map",
+         "Mind map tool for canvas with radial/tree layouts"},
+        {builtin_features::kDiagramLibrary,
+         "Diagram Library",
+         "UML/BPMN diagram stencils for canvas"},
     };
 
     // Register features in FeatureRegistry
@@ -319,8 +575,17 @@ void register_builtin_plugins(PluginManager& plugin_manager, FeatureRegistry& fe
     plugin_manager.register_plugin(std::make_unique<LinkPreviewPlugin>());
     plugin_manager.register_plugin(std::make_unique<ImagePreviewPlugin>());
     plugin_manager.register_plugin(std::make_unique<BreadcrumbPlugin>());
+    // V8 extension extraction
+    plugin_manager.register_plugin(std::make_unique<FxEnginePlugin>());
+    plugin_manager.register_plugin(std::make_unique<TextFxPlugin>());
+    plugin_manager.register_plugin(std::make_unique<VscodeThemesPlugin>());
+    plugin_manager.register_plugin(std::make_unique<CanvasCollabPlugin>());
+    plugin_manager.register_plugin(std::make_unique<CanvasAppsPlugin>());
+    plugin_manager.register_plugin(std::make_unique<KanbanPlugin>());
+    plugin_manager.register_plugin(std::make_unique<MindMapPlugin>());
+    plugin_manager.register_plugin(std::make_unique<DiagramLibraryPlugin>());
 
-    MARKAMP_LOG_INFO("Registered {} built-in plugins and {} features", 7, features.size());
+    MARKAMP_LOG_INFO("Registered {} built-in plugins and {} features", 15, features.size());
 }
 
 } // namespace markamp::core

@@ -33,6 +33,14 @@ public:
                         bool selected) -> void = 0;
 };
 
+/// Grid visual style.
+enum class GridStyle : uint8_t
+{
+    kDots,
+    kLines,
+    kCross
+};
+
 /// Grid rendering settings.
 struct GridSettings
 {
@@ -42,6 +50,9 @@ struct GridSettings
     CanvasColor major_color{180, 180, 180, 100};
     int major_every{5}; // Every Nth line is a major line
     CanvasColor background{245, 245, 245, 255};
+    GridStyle style{GridStyle::kLines}; // (#23)
+    bool snap_to_grid{false};           // (#24)
+    bool show_rulers{false};            // (#25)
 };
 
 /// Render statistics for performance monitoring.
@@ -82,9 +93,28 @@ public:
     [[nodiscard]] auto grid_settings() const -> const GridSettings&;
     auto set_grid_settings(const GridSettings& settings) -> void;
 
+    /// Render a minimap overview showing all object bounds and visible region (#26).
+    auto render_minimap(wxGraphicsContext& gc,
+                        const std::vector<CanvasObject*>& objects,
+                        const ViewportTransform& viewport,
+                        double minimap_width = 200.0,
+                        double minimap_height = 150.0) -> void;
+
+    // ── Batch 3 (#17-18) ──────────────────────────────────────────
+
+    /// Override the grid_settings background with a user-specified canvas background.
+    [[nodiscard]] auto background_color() const -> const CanvasColor&;
+    auto set_background_color(const CanvasColor& color) -> void;
+
+    /// Toggle debug wireframe overlay on all objects for development.
+    [[nodiscard]] auto debug_wireframes() const -> bool;
+    auto set_debug_wireframes(bool enabled) -> void;
+
 private:
     std::unordered_map<uint8_t, std::unique_ptr<IObjectRenderer>> renderers_;
     GridSettings grid_settings_;
+    CanvasColor background_color_{245, 245, 245, 255};
+    bool debug_wireframes_{false};
 
     /// Fallback wireframe rendering for unregistered types.
     auto render_wireframe(wxGraphicsContext& gc,

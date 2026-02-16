@@ -31,8 +31,17 @@ public:
     /// Deserialize a board from JSON string.
     [[nodiscard]] auto deserialize(const std::string& json_data) const -> Board;
 
+    // ── Improvements (#27-28) ─────────────────────────────────
+
+    /// Validate that a JSON string is a well-formed board file.
+    [[nodiscard]] auto validate_json(const std::string& json_data) const -> bool;
+
+    /// Migrate board data from an older format version to the current version.
+    [[nodiscard]] auto migrate_format(const std::string& json_data, int from_version) const
+        -> std::string;
+
     /// File format version.
-    static constexpr int kFormatVersion = 1;
+    static constexpr int kFormatVersion = 2;
 
 private:
     std::unordered_map<uint8_t, ObjectFactory> factories_;

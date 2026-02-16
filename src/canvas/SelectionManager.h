@@ -94,6 +94,44 @@ public:
     [[nodiscard]] auto is_rotating() const -> bool;
     [[nodiscard]] auto active_handle() const -> HandleType;
 
+    // ── Alignment (#9–14) ──────────────────────────────────────────
+    auto align_left(std::vector<std::unique_ptr<CanvasObject>>& objects) -> void;
+    auto align_center_h(std::vector<std::unique_ptr<CanvasObject>>& objects) -> void;
+    auto align_right(std::vector<std::unique_ptr<CanvasObject>>& objects) -> void;
+    auto align_top(std::vector<std::unique_ptr<CanvasObject>>& objects) -> void;
+    auto align_center_v(std::vector<std::unique_ptr<CanvasObject>>& objects) -> void;
+    auto align_bottom(std::vector<std::unique_ptr<CanvasObject>>& objects) -> void;
+
+    // ── Distribution (#15–16) ──────────────────────────────────────
+    auto distribute_horizontal(std::vector<std::unique_ptr<CanvasObject>>& objects) -> void;
+    auto distribute_vertical(std::vector<std::unique_ptr<CanvasObject>>& objects) -> void;
+
+    // ── Batch 10 (#59-60) ─────────────────────────────────────────
+
+    /// Select all objects matching a specific CanvasObjectType.
+    auto select_by_type(CanvasObjectType type,
+                        const std::vector<std::unique_ptr<CanvasObject>>& objects) -> void;
+
+    /// Deselect current selection and select all others.
+    auto invert_selection(const std::vector<std::unique_ptr<CanvasObject>>& objects) -> void;
+
+    // ── Batch 4 (#19-22) ──────────────────────────────────────────
+
+    /// Select all objects whose parent_id matches any currently selected object.
+    auto select_connected(const std::vector<std::unique_ptr<CanvasObject>>& objects) -> void;
+
+    /// Select all objects that overlap a given AABB region.
+    auto select_in_region(const AABB& region,
+                          const std::vector<std::unique_ptr<CanvasObject>>& objects) -> void;
+
+    /// Expand selection to include objects adjacent (overlapping) to currently selected.
+    auto grow_selection(const std::vector<std::unique_ptr<CanvasObject>>& objects) -> void;
+
+    /// Return the set of unique CanvasObjectTypes present in the current selection.
+    [[nodiscard]] auto
+    selected_types(const std::vector<std::unique_ptr<CanvasObject>>& objects) const
+        -> std::vector<CanvasObjectType>;
+
 private:
     std::shared_ptr<core::EventBus> event_bus_;
     std::unordered_set<ObjectId> selection_;

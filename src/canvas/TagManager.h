@@ -46,6 +46,20 @@ public:
     /// Number of distinct tags in the index.
     [[nodiscard]] auto tag_count() const -> size_t;
 
+    // ── Batch 8 (#43-46) ──────────────────────────────────────────
+
+    /// Rename a tag across all objects in the index.
+    auto rename_tag(const std::string& old_name, const std::string& new_name) -> void;
+
+    /// Remove a tag from the index and all objects.
+    auto delete_tag(const std::string& tag_name) -> void;
+
+    /// Merge source tag into destination tag (source is removed).
+    auto merge_tags(const std::string& source, const std::string& destination) -> void;
+
+    /// Return the top-N tags by usage_count (descending).
+    [[nodiscard]] auto most_used_tags(size_t top_n) const -> std::vector<TagInfo>;
+
 private:
     std::unordered_map<std::string, TagInfo> tags_;
     std::unordered_map<std::string, std::unordered_set<ObjectId>> tag_to_objects_;

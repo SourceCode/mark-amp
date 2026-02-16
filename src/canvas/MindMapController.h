@@ -2,6 +2,7 @@
 
 #include "canvas/CanvasTypes.h"
 
+#include <cstddef>
 #include <string>
 
 namespace markamp::canvas
@@ -34,6 +35,26 @@ public:
 
     /// Get the root node of a mind map that contains the given node.
     [[nodiscard]] auto find_root(ObjectId node_id) const -> ObjectId;
+
+    // ── Expansion (#24-26) ───────────────────────────────────
+
+    /// Toggle collapsed state of a node (hides children).
+    auto toggle_collapse(ObjectId node_id) -> void;
+
+    /// Count total nodes reachable from a given root.
+    [[nodiscard]] auto node_count(ObjectId root_id) const -> size_t;
+
+    /// Re-parent a node (move it under a new parent).
+    auto reparent_node(ObjectId node_id, ObjectId new_parent_id) -> void;
+
+    // ── Depth & Search (#36-37) ──────────────────────────────
+
+    /// Returns the maximum depth of the tree from a root.
+    [[nodiscard]] auto max_depth(ObjectId root_id) const -> size_t;
+
+    /// Search mind map nodes by text content, returns matching ObjectIds.
+    [[nodiscard]] auto find_by_text(ObjectId root_id, const std::string& query) const
+        -> std::vector<ObjectId>;
 
 private:
     Board& board_;

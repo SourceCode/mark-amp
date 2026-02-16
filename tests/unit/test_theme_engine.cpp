@@ -142,3 +142,83 @@ TEST_CASE("ThemeEngine: switching multiple themes", "[engine]")
         REQUIRE(engine.current_theme().id == t.id);
     }
 }
+
+// ===== V8 Phase 1: Theme guardrail tests =====
+
+TEST_CASE("ThemeEngine: all color tokens return valid colors", "[engine][guardrail]")
+{
+    EventBus bus;
+    ThemeRegistry registry;
+    registry.initialize();
+
+    ThemeEngine engine(bus, registry);
+
+    // Enumerate every ThemeColorToken
+    const std::vector<ThemeColorToken> all_tokens = {
+        ThemeColorToken::BgApp,
+        ThemeColorToken::BgPanel,
+        ThemeColorToken::BgHeader,
+        ThemeColorToken::BgInput,
+        ThemeColorToken::TextMain,
+        ThemeColorToken::TextMuted,
+        ThemeColorToken::AccentPrimary,
+        ThemeColorToken::AccentSecondary,
+        ThemeColorToken::BorderLight,
+        ThemeColorToken::BorderDark,
+        ThemeColorToken::SelectionBg,
+        ThemeColorToken::HoverBg,
+        ThemeColorToken::ErrorColor,
+        ThemeColorToken::SuccessColor,
+        ThemeColorToken::ScrollbarTrack,
+        ThemeColorToken::ScrollbarThumb,
+        ThemeColorToken::ScrollbarHover,
+        ThemeColorToken::SyntaxKeyword,
+        ThemeColorToken::SyntaxString,
+        ThemeColorToken::SyntaxComment,
+        ThemeColorToken::SyntaxNumber,
+        ThemeColorToken::SyntaxType,
+        ThemeColorToken::SyntaxFunction,
+        ThemeColorToken::SyntaxOperator,
+        ThemeColorToken::SyntaxPreprocessor,
+        ThemeColorToken::RenderHeading,
+        ThemeColorToken::RenderLink,
+        ThemeColorToken::RenderCodeBg,
+        ThemeColorToken::RenderCodeFg,
+        ThemeColorToken::RenderBlockquoteBorder,
+        ThemeColorToken::RenderBlockquoteBg,
+        ThemeColorToken::RenderTableBorder,
+        ThemeColorToken::RenderTableHeaderBg,
+    };
+
+    // Verify every built-in theme produces valid colors for all tokens
+    const auto& builtins = get_builtin_themes();
+    for (const auto& theme : builtins)
+    {
+        engine.apply_theme(theme.id);
+        for (const auto& token : all_tokens)
+        {
+            const wxColour& color = engine.color(token);
+            REQUIRE(color.IsOk());
+        }
+    }
+}
+
+TEST_CASE("ThemeEngine: hot-swap updates at least one token", "[engine][guardrail]")
+{
+    EventBus bus;
+    ThemeRegistry registry;
+    registry.initialize();
+
+    ThemeEngine engine(bus, registry);
+
+    // Apply first theme
+    engine.apply_theme("midnight-neon");
+    const wxColour color_before = engine.color(ThemeColorToken::AccentPrimary);
+
+    // Apply a different theme
+    engine.apply_theme("solarized-dark");
+    const wxColour color_after = engine.color(ThemeColorToken::AccentPrimary);
+
+    // At least AccentPrimary should differ between distinct themes
+    REQUIRE(color_before != color_after);
+}

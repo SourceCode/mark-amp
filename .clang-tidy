@@ -3,6 +3,7 @@ Checks: >
   -*,
   bugprone-*,
   cert-*,
+  clang-analyzer-*,
   cppcoreguidelines-*,
   hicpp-*,
   misc-*,
@@ -14,7 +15,12 @@ Checks: >
   -cppcoreguidelines-avoid-magic-numbers,
   -readability-magic-numbers,
   -hicpp-signed-bitwise,
-  -misc-non-private-member-variables-in-classes
+  -misc-non-private-member-variables-in-classes,
+  -cppcoreguidelines-pro-type-reinterpret-cast,
+  -cppcoreguidelines-owning-memory,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -modernize-avoid-c-arrays,
+  -hicpp-avoid-c-arrays
 
 WarningsAsErrors: ''
 

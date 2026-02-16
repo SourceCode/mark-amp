@@ -43,6 +43,14 @@ enum class ConnectorLineStyle : uint8_t
     kDotted
 };
 
+/// Connector line routing mode.
+enum class ConnectorRouting : uint8_t
+{
+    kStraight,
+    kOrthogonal,
+    kCurved
+};
+
 /// One endpoint of a connector — either attached to an object or a free point.
 struct ConnectorEndpoint
 {
@@ -105,6 +113,42 @@ public:
     [[nodiscard]] auto label() const -> const std::string&;
     auto set_label(const std::string& label) -> void;
 
+    // ── Routing & Appearance (#7-10) ──────────────────────────
+
+    [[nodiscard]] auto routing() const -> ConnectorRouting;
+    auto set_routing(ConnectorRouting routing) -> void;
+
+    [[nodiscard]] auto dash_pattern() const -> double;
+    auto set_dash_pattern(double length) -> void;
+
+    [[nodiscard]] auto opacity() const -> double;
+    auto set_opacity(double opacity) -> void;
+
+    // ── Computed (#11-12) ─────────────────────────────────────
+
+    [[nodiscard]] auto is_bidirectional() const -> bool;
+    [[nodiscard]] auto total_length(const Board& board) const -> double;
+
+    // ── Batch 6 (#31-36) ──────────────────────────────────────────
+
+    /// Returns true if both endpoints attach to the same object.
+    [[nodiscard]] auto is_self_loop() const -> bool;
+
+    /// Returns true if either endpoint is attached to the given object.
+    [[nodiscard]] auto is_attached_to(ObjectId obj_id) const -> bool;
+
+    /// Disconnect start endpoint (convert to free point at offset).
+    auto detach_start() -> void;
+
+    /// Disconnect end endpoint (convert to free point at offset).
+    auto detach_end() -> void;
+
+    /// Swap start and end endpoints and their arrowheads.
+    auto reverse_direction() -> void;
+
+    /// Apply a theme-derived color to line_color.
+    auto set_color_from_theme(const CanvasColor& themed_color) -> void;
+
     // ── CanvasObject overrides ─────────────────────────────────
 
     [[nodiscard]] auto local_bounds() const -> AABB override;
@@ -125,6 +169,10 @@ private:
     ArrowheadStyle end_arrow_{ArrowheadStyle::kNone};
 
     std::string label_;
+
+    ConnectorRouting routing_{ConnectorRouting::kStraight};
+    double dash_pattern_{5.0};
+    double opacity_{1.0};
 
     /// Resolve an endpoint position from an AABB and anchor.
     [[nodiscard]] static auto resolve_anchor(const AABB& bounds, AnchorPosition anchor) -> Point2D;

@@ -10,7 +10,7 @@ elseif(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/external/vcpkg/scripts/buildsystems/v
         CACHE STRING "vcpkg toolchain file")
 endif()
 
-project(MarkAmp VERSION 2.1.14 LANGUAGES CXX)
+project(MarkAmp VERSION 2.2.15 LANGUAGES CXX)
 
 # C++23 with C++26-forward patterns
 # Note: C++26 mode breaks spdlog/fmt's FMT_STRING consteval macro on Clang 21 and GCC 14.
@@ -32,8 +32,12 @@ endif()
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 include(CompilerWarnings)
 include(Sanitizers)
+include(ClangTidy)
 include(CppCheck)
 include(IWYU)
+include(LTO)
+include(Tracy)
+include(Allocator)
 include(Dependencies)
 
 # Platform detection
@@ -56,9 +60,13 @@ add_compile_definitions(
 option(MARKAMP_ENABLE_ASAN "Enable AddressSanitizer" OFF)
 option(MARKAMP_ENABLE_UBSAN "Enable UndefinedBehaviorSanitizer" OFF)
 option(MARKAMP_ENABLE_TSAN "Enable ThreadSanitizer" OFF)
+option(MARKAMP_ENABLE_LSAN "Enable LeakSanitizer (standalone)" OFF)
 
 # Testing option
 option(MARKAMP_BUILD_TESTS "Build tests" ON)
+
+# Benchmark option (requires benchmark from vcpkg)
+option(MARKAMP_BUILD_BENCHMARKS "Build Google Benchmark micro-benchmarks" OFF)
 
 # Subdirectories
 add_subdirectory(src)
@@ -66,4 +74,8 @@ add_subdirectory(src)
 if(MARKAMP_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
+endif()
+
+if(MARKAMP_BUILD_BENCHMARKS)
+    add_subdirectory(benchmarks)
 endif()

@@ -109,3 +109,115 @@ TEST_CASE("EditorPanel QoL Features", "[editor][qol]")
 
     frame->Destroy();
 }
+
+// ═══════════════════════════════════════════════════════
+// V8 Phase 9: Quality-bar tests (no GUI required)
+// ═══════════════════════════════════════════════════════
+
+#include "core/Events.h"
+#include "core/Theme.h"
+#include "ui/SplitView.h"
+
+namespace events = markamp::core::events;
+using markamp::core::ThemeColors;
+using markamp::core::ThemeColorToken;
+using markamp::ui::EditorStateLayer;
+using markamp::ui::SnapPreset;
+
+TEST_CASE("ThemeColorToken includes semantic editor tokens", "[theme][editor][phase9]")
+{
+    REQUIRE(ThemeColorToken::EditorActiveLine != ThemeColorToken::EditorGutterError);
+    REQUIRE(ThemeColorToken::EditorGutterError != ThemeColorToken::EditorGutterWarn);
+    REQUIRE(ThemeColorToken::EditorGutterWarn != ThemeColorToken::EditorGutterInfo);
+    REQUIRE(ThemeColorToken::EditorGutterInfo != ThemeColorToken::EditorMatchHighlight);
+    REQUIRE(ThemeColorToken::EditorMatchHighlight != ThemeColorToken::EditorFindHit);
+    REQUIRE(ThemeColorToken::EditorFindHit != ThemeColorToken::EditorQuickFix);
+
+    auto last_idx = static_cast<std::size_t>(ThemeColorToken::EditorQuickFix);
+    REQUIRE(markamp::core::kColorTokenCount > last_idx);
+    REQUIRE(markamp::core::kColorTokenCount == last_idx + 1);
+}
+
+TEST_CASE("ThemeColors editor state color defaults", "[theme][editor][phase9]")
+{
+    ThemeColors colors{};
+
+    SECTION("Gutter error is reddish")
+    {
+        CHECK(colors.editor_gutter_error.r > 200);
+        CHECK(colors.editor_gutter_error.g < 100);
+    }
+
+    SECTION("Gutter warn is yellowish")
+    {
+        CHECK(colors.editor_gutter_warn.r > 200);
+        CHECK(colors.editor_gutter_warn.g > 150);
+    }
+
+    SECTION("Gutter info is bluish")
+    {
+        CHECK(colors.editor_gutter_info.b > 200);
+    }
+
+    SECTION("Quick fix is greenish")
+    {
+        CHECK(colors.editor_quick_fix.g > colors.editor_quick_fix.r);
+    }
+}
+
+TEST_CASE("EditorStateLayer enum covers 7 layers", "[editor][phase9]")
+{
+    REQUIRE(EditorStateLayer::kCursor != EditorStateLayer::kSelection);
+    REQUIRE(EditorStateLayer::kSelection != EditorStateLayer::kDiagnostics);
+    REQUIRE(EditorStateLayer::kDiagnostics != EditorStateLayer::kActiveLine);
+    REQUIRE(EditorStateLayer::kActiveLine != EditorStateLayer::kSearch);
+    REQUIRE(EditorStateLayer::kSearch != EditorStateLayer::kCodeActions);
+    REQUIRE(EditorStateLayer::kCodeActions != EditorStateLayer::kWriteMode);
+
+    CHECK(static_cast<int>(EditorStateLayer::kCursor) <
+          static_cast<int>(EditorStateLayer::kWriteMode));
+}
+
+TEST_CASE("SnapPreset includes workspace presets", "[splitview][phase9]")
+{
+    SECTION("Original presets")
+    {
+        CHECK(static_cast<int>(SnapPreset::Even) >= 0);
+        CHECK(static_cast<int>(SnapPreset::EditorWide) >= 0);
+        CHECK(static_cast<int>(SnapPreset::PreviewWide) >= 0);
+    }
+
+    SECTION("V8 Phase 9 presets")
+    {
+        CHECK(static_cast<int>(SnapPreset::EditorFocus) >= 0);
+        CHECK(static_cast<int>(SnapPreset::Balanced) >= 0);
+        CHECK(static_cast<int>(SnapPreset::Review) >= 0);
+        CHECK(static_cast<int>(SnapPreset::PreviewFocus) >= 0);
+    }
+
+    SECTION("All distinct")
+    {
+        CHECK(SnapPreset::Even != SnapPreset::EditorWide);
+        CHECK(SnapPreset::EditorWide != SnapPreset::PreviewWide);
+        CHECK(SnapPreset::PreviewWide != SnapPreset::EditorFocus);
+        CHECK(SnapPreset::EditorFocus != SnapPreset::Balanced);
+        CHECK(SnapPreset::Balanced != SnapPreset::Review);
+        CHECK(SnapPreset::Review != SnapPreset::PreviewFocus);
+    }
+}
+
+TEST_CASE("ScrollSyncMode includes CursorAnchored", "[events][phase9]")
+{
+    REQUIRE(events::ScrollSyncMode::Proportional != events::ScrollSyncMode::CursorAnchored);
+    REQUIRE(events::ScrollSyncMode::HeadingAnchor != events::ScrollSyncMode::CursorAnchored);
+
+    events::ScrollSyncModeChangedEvent evt(events::ScrollSyncMode::CursorAnchored);
+    CHECK(evt.mode == events::ScrollSyncMode::CursorAnchored);
+}
+
+TEST_CASE("kColorTokenCount integrity after Phase 9", "[theme][phase9]")
+{
+    auto expected = static_cast<std::size_t>(ThemeColorToken::EditorQuickFix) + 1;
+    REQUIRE(markamp::core::kColorTokenCount == expected);
+    CHECK(markamp::core::kColorTokenCount >= 30);
+}

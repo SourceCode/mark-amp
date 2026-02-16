@@ -69,6 +69,93 @@ private:
     std::pmr::monotonic_buffer_resource resource_;
 };
 
+/// Thread-local arena pool — each thread gets its own arena.
+///
+/// Phase 14: Provides per-thread arena instances to avoid contention.
+/// `get_arena()` returns the calling thread's arena. `reset_current()`
+/// resets the current thread's arena (call at frame boundary).
+///
+/// Unlike `FrameArena` (which uses null_memory_resource and fails on
+/// overflow), the pool arenas use `new_delete_resource()` as upstream
+/// so arena exhaustion gracefully falls back to heap allocation.
+///
+/// Pattern implemented: #9 Arena allocators + object pools
+class FrameArenaPool
+{
+public:
+    static constexpr std::size_t kDefaultPoolArenaSize = 256UL * 1024; // 256 KB
+
+    /// A FrameArena variant with heap fallback on exhaustion.
+    class PoolArena
+    {
+    public:
+        explicit PoolArena(std::size_t buffer_size)
+            : heap_buffer_(buffer_size)
+            , resource_(heap_buffer_.data(), heap_buffer_.size(), std::pmr::new_delete_resource())
+        {
+        }
+
+        [[nodiscard]] auto allocator() noexcept -> std::pmr::polymorphic_allocator<std::byte>
+        {
+            return &resource_;
+        }
+
+        template <typename T>
+        [[nodiscard]] auto make_vector() -> std::pmr::vector<T>
+        {
+            return std::pmr::vector<T>{allocator()};
+        }
+
+        void reset() noexcept
+        {
+            resource_.release();
+            resource_.~monotonic_buffer_resource();
+            ::new (&resource_) std::pmr::monotonic_buffer_resource(
+                heap_buffer_.data(), heap_buffer_.size(), std::pmr::new_delete_resource());
+        }
+
+    private:
+        std::vector<std::byte> heap_buffer_;
+        std::pmr::monotonic_buffer_resource resource_;
+    };
+
+    /// Construct with a configurable per-thread arena buffer size.
+    explicit FrameArenaPool(std::size_t arena_size = kDefaultPoolArenaSize)
+        : arena_size_(arena_size)
+    {
+    }
+
+    // Non-copyable, non-movable
+    FrameArenaPool(const FrameArenaPool&) = delete;
+    auto operator=(const FrameArenaPool&) -> FrameArenaPool& = delete;
+    FrameArenaPool(FrameArenaPool&&) = delete;
+    auto operator=(FrameArenaPool&&) -> FrameArenaPool& = delete;
+
+    ~FrameArenaPool() = default;
+
+    /// Get the current thread's arena. Creates on first call per thread.
+    [[nodiscard]] auto get_arena() -> PoolArena&
+    {
+        thread_local PoolArena arena{arena_size_};
+        return arena;
+    }
+
+    /// Reset the current thread's arena. Call at frame boundary.
+    void reset_current()
+    {
+        get_arena().reset();
+    }
+
+    /// Get the configured arena size.
+    [[nodiscard]] auto arena_size() const noexcept -> std::size_t
+    {
+        return arena_size_;
+    }
+
+private:
+    std::size_t arena_size_;
+};
+
 /// Fixed-size object pool with free-list recycling.
 ///
 /// Ideal for small, frequently allocated/deallocated objects like

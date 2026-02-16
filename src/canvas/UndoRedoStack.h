@@ -34,8 +34,21 @@ public:
     /// Merge another command into this one (returns true if merged).
     virtual auto merge_with(const ICanvasCommand& other) -> bool;
 
+    /// Whether this command originated from a remote participant.
+    [[nodiscard]] auto is_remote() const -> bool
+    {
+        return is_remote_;
+    }
+    auto set_remote(bool remote) -> void
+    {
+        is_remote_ = remote;
+    }
+
 protected:
     ICanvasCommand() = default;
+
+private:
+    bool is_remote_{false};
 };
 
 /// Undo/redo stack with compound command support and max history limit.
@@ -68,6 +81,28 @@ public:
 
     /// Clear all history.
     auto clear() -> void;
+
+    // ── V8 Phase 7: Collaborative undo support ─────────────────────
+
+    /// Apply a remote command without pushing to local undo stack.
+    auto apply_remote(std::unique_ptr<ICanvasCommand> cmd) -> void;
+
+    /// Undo only the most recent local (non-remote) command.
+    auto undo_local_only() -> bool;
+
+    /// Number of local (non-remote) undo entries.
+    [[nodiscard]] auto local_undo_count() const -> size_t;
+
+    // ── Batch 9 (#52-54) ──────────────────────────────────────────
+
+    /// Return all undo descriptions in order (oldest first).
+    [[nodiscard]] auto all_descriptions() const -> std::vector<std::string>;
+
+    /// Current index in the undo stack (== undo_count()).
+    [[nodiscard]] auto current_index() const -> size_t;
+
+    /// Trim undo history to keep at most N entries.
+    auto trim_to(size_t max_entries) -> void;
 
 private:
     std::vector<std::unique_ptr<ICanvasCommand>> undo_stack_;

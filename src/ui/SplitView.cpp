@@ -321,14 +321,27 @@ void SplitView::CycleSnapPreset()
     switch (current_snap_)
     {
         case SnapPreset::Even:
+        case SnapPreset::Balanced:
             current_snap_ = SnapPreset::EditorWide;
             split_ratio_ = 0.7;
             break;
         case SnapPreset::EditorWide:
+            current_snap_ = SnapPreset::EditorFocus;
+            split_ratio_ = 0.85;
+            break;
+        case SnapPreset::EditorFocus:
             current_snap_ = SnapPreset::PreviewWide;
             split_ratio_ = 0.3;
             break;
         case SnapPreset::PreviewWide:
+            current_snap_ = SnapPreset::Review;
+            split_ratio_ = 0.4;
+            break;
+        case SnapPreset::Review:
+            current_snap_ = SnapPreset::PreviewFocus;
+            split_ratio_ = 0.15;
+            break;
+        case SnapPreset::PreviewFocus:
             current_snap_ = SnapPreset::Even;
             split_ratio_ = 0.5;
             break;

@@ -120,4 +120,67 @@ auto UndoRedoStack::clear() -> void
     redo_stack_.clear();
 }
 
+// ── V8 Phase 7: Collaborative undo support ─────────────────────
+
+auto UndoRedoStack::apply_remote(std::unique_ptr<ICanvasCommand> cmd) -> void
+{
+    cmd->set_remote(true);
+    cmd->execute();
+    undo_stack_.push_back(std::move(cmd));
+}
+
+auto UndoRedoStack::undo_local_only() -> bool
+{
+    for (auto iter = undo_stack_.rbegin(); iter != undo_stack_.rend(); ++iter)
+    {
+        if (!(*iter)->is_remote())
+        {
+            (*iter)->undo();
+            redo_stack_.push_back(std::move(*iter));
+            undo_stack_.erase(std::next(iter).base());
+            return true;
+        }
+    }
+    return false;
+}
+
+auto UndoRedoStack::local_undo_count() const -> size_t
+{
+    size_t count = 0;
+    for (const auto& cmd : undo_stack_)
+    {
+        if (!cmd->is_remote())
+        {
+            ++count;
+        }
+    }
+    return count;
+}
+
+// --- Batch 9 (#52-54) ---
+
+auto UndoRedoStack::all_descriptions() const -> std::vector<std::string>
+{
+    std::vector<std::string> result;
+    result.reserve(undo_stack_.size());
+    for (const auto& cmd : undo_stack_)
+    {
+        result.push_back(cmd->description());
+    }
+    return result;
+}
+
+auto UndoRedoStack::current_index() const -> size_t
+{
+    return undo_stack_.size();
+}
+
+auto UndoRedoStack::trim_to(size_t max_entries) -> void
+{
+    while (undo_stack_.size() > max_entries)
+    {
+        undo_stack_.erase(undo_stack_.begin());
+    }
+}
+
 } // namespace markamp::canvas

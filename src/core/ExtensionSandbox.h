@@ -17,7 +17,14 @@ enum class ExtensionPermission
     kTerminal,
     kDebug,
     kWorkspaceSettings,
-    kProcessExecution
+    kProcessExecution,
+    // V8 Phase 8: Canvas marketplace permission scopes
+    kCanvasRead,
+    kCanvasWrite,
+    kCanvasSelection,
+    kCanvasComments,
+    kCanvasTemplates,
+    kCanvasNetwork
 };
 
 /// Extension sandbox permissions model (#42).

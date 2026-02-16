@@ -3,6 +3,8 @@
 #include "canvas/CanvasObject.h"
 #include "canvas/CanvasTypes.h"
 
+#include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <string>
 
@@ -20,6 +22,14 @@ enum class StickyNoteColor : uint8_t
     kPurple,
     kRed,
     kCyan
+};
+
+/// Text alignment for sticky notes.
+enum class TextAlign : uint8_t
+{
+    kLeft,
+    kCenter,
+    kRight
 };
 
 /// Convert a StickyNoteColor enum to an RGBA CanvasColor.
@@ -52,6 +62,39 @@ public:
     [[nodiscard]] auto height() const -> double;
     auto resize(double w, double h) -> void;
 
+    // ── Text Formatting (#1-3) ─────────────────────────────────
+
+    [[nodiscard]] auto is_bold() const -> bool;
+    auto set_bold(bool bold) -> void;
+
+    [[nodiscard]] auto is_italic() const -> bool;
+    auto set_italic(bool italic) -> void;
+
+    [[nodiscard]] auto text_alignment() const -> TextAlign;
+    auto set_text_alignment(TextAlign alignment) -> void;
+
+    // ── Behavior (#4-6) ────────────────────────────────────────
+
+    [[nodiscard]] auto is_pinned() const -> bool;
+    auto set_pinned(bool pinned) -> void;
+
+    [[nodiscard]] auto auto_resize() const -> bool;
+    auto set_auto_resize(bool enabled) -> void;
+
+    [[nodiscard]] auto character_count() const -> size_t;
+
+    // ── Batch 5 (#25-27) ──────────────────────────────────────────
+
+    /// Count the number of words in the sticky note text.
+    [[nodiscard]] auto word_count() const -> size_t;
+
+    /// Return the note text truncated to max_chars with "…".
+    [[nodiscard]] auto truncated_text(size_t max_chars) const -> std::string;
+
+    /// Custom font family for this note.
+    [[nodiscard]] auto font_family() const -> const std::string&;
+    auto set_font_family(const std::string& family) -> void;
+
     // ── CanvasObject overrides ─────────────────────────────────
 
     [[nodiscard]] auto local_bounds() const -> AABB override;
@@ -65,6 +108,12 @@ private:
     double font_size_{14.0};
     double width_{200.0};
     double height_{200.0};
+    bool bold_{false};
+    bool italic_{false};
+    TextAlign text_alignment_{TextAlign::kLeft};
+    bool pinned_{false};
+    bool auto_resize_{false};
+    std::string font_family_{"sans-serif"};
 
     static constexpr double kMinWidth = 80.0;
     static constexpr double kMinHeight = 80.0;

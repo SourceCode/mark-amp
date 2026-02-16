@@ -106,4 +106,114 @@ private:
     int previous_z_{0};
 };
 
+// ── V8 Phase 7: Collaborative remote patch command ─────────────────
+
+/// Applies a serialized remote patch received from another participant.
+/// Marked as remote so the UndoRedoStack separates it from local history.
+class RemotePatchCommand : public ICanvasCommand
+{
+public:
+    RemotePatchCommand(Board& board,
+                       ObjectId obj_id,
+                       std::string patch_type,
+                       std::string patch_json,
+                       std::string participant_id);
+
+    auto execute() -> void override;
+    auto undo() -> void override;
+    [[nodiscard]] auto description() const -> std::string override;
+
+    [[nodiscard]] auto patch_type() const -> const std::string&;
+    [[nodiscard]] auto patch_json() const -> const std::string&;
+    [[nodiscard]] auto source_participant() const -> const std::string&;
+
+private:
+    Board& board_;
+    ObjectId target_id_;
+    std::string patch_type_;
+    std::string patch_json_;
+    std::string participant_id_;
+    std::string previous_state_; ///< Snapshot for undo
+};
+
+// ── Group Command (#30) ────────────────────────────────────────────
+
+/// Groups selected objects under a parent, or ungroups them on undo.
+class GroupObjectsCommand : public ICanvasCommand
+{
+public:
+    GroupObjectsCommand(Board& board, std::vector<ObjectId> child_ids);
+
+    auto execute() -> void override;
+    auto undo() -> void override;
+    [[nodiscard]] auto description() const -> std::string override;
+
+    [[nodiscard]] auto group_id() const -> ObjectId;
+
+private:
+    Board& board_;
+    std::vector<ObjectId> child_ids_;
+    ObjectId group_id_{kInvalidObjectId};
+    std::vector<ObjectId> previous_parents_;
+};
+
+// ── Batch 10 (#58-60) ──────────────────────────────────────────
+
+/// Resize an object to a new width/height and undo back to original.
+class ResizeObjectCommand : public ICanvasCommand
+{
+public:
+    ResizeObjectCommand(Board& board, ObjectId obj_id, double new_width, double new_height);
+
+    auto execute() -> void override;
+    auto undo() -> void override;
+    [[nodiscard]] auto description() const -> std::string override;
+
+private:
+    Board& board_;
+    ObjectId target_id_;
+    double new_width_;
+    double new_height_;
+    double old_width_{0.0};
+    double old_height_{0.0};
+};
+
+/// Change an object's style (fill/stroke color) and undo to previous.
+class SetStyleCommand : public ICanvasCommand
+{
+public:
+    SetStyleCommand(Board& board, ObjectId obj_id, CanvasColor new_stroke, CanvasColor new_fill);
+
+    auto execute() -> void override;
+    auto undo() -> void override;
+    [[nodiscard]] auto description() const -> std::string override;
+
+private:
+    Board& board_;
+    ObjectId target_id_;
+    CanvasColor new_stroke_;
+    CanvasColor new_fill_;
+    CanvasColor old_stroke_{0, 0, 0, 255};
+    CanvasColor old_fill_{255, 255, 255, 255};
+};
+
+/// Duplicate a set of objects and undo by removing the duplicates.
+class DuplicateObjectsCommand : public ICanvasCommand
+{
+public:
+    DuplicateObjectsCommand(Board& board, std::vector<ObjectId> source_ids, Point2D offset);
+
+    auto execute() -> void override;
+    auto undo() -> void override;
+    [[nodiscard]] auto description() const -> std::string override;
+
+    [[nodiscard]] auto duplicated_ids() const -> const std::vector<ObjectId>&;
+
+private:
+    Board& board_;
+    std::vector<ObjectId> source_ids_;
+    Point2D offset_;
+    std::vector<ObjectId> created_ids_;
+};
+
 } // namespace markamp::canvas

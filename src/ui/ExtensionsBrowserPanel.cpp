@@ -372,7 +372,7 @@ void ExtensionsBrowserPanel::UpdateTabStyles()
 {
     auto active_bg = theme_engine_.color(core::ThemeColorToken::AccentPrimary);
     auto inactive_bg = theme_engine_.color(core::ThemeColorToken::BgPanel).ChangeLightness(110);
-    auto active_fg = wxColour(255, 255, 255);
+    auto active_fg = theme_engine_.color(core::ThemeColorToken::TextMain);
     auto inactive_fg = theme_engine_.color(core::ThemeColorToken::TextMuted);
 
     if (installed_tab_ != nullptr)

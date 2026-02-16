@@ -324,4 +324,84 @@ auto KanbanEngine::toggle_card(const std::string& markdown, int col_idx, int car
     return result;
 }
 
+// ============================================================================
+// Add card (#37)
+// ============================================================================
+
+auto KanbanEngine::add_card(const std::string& markdown,
+                            int col_idx,
+                            int at_row,
+                            const std::string& card_title) -> std::string
+{
+    // Parse the board to find the insertion point.
+    auto board = parse_kanban_markdown(markdown);
+    if (col_idx < 0 || col_idx >= static_cast<int>(board.columns.size()))
+    {
+        return markdown; // Invalid column index.
+    }
+
+    // Build a new task line for the card.
+    const std::string new_line = "- [ ] " + card_title + "\n";
+
+    // Simple approach: find the column heading and insert after appropriate card lines.
+    std::istringstream input(markdown);
+    std::ostringstream output;
+    std::string line;
+    int current_col = -1;
+    int current_card = 0;
+    bool inserted = false;
+
+    while (std::getline(input, line))
+    {
+        // Detect column headings.
+        if (line.starts_with("## ") || line.starts_with("### "))
+        {
+            if (current_col >= 0 && current_col == col_idx && !inserted)
+            {
+                output << new_line; // Insert at end of column if we haven't yet.
+                inserted = true;
+            }
+            ++current_col;
+            current_card = 0;
+        }
+        else if (current_col == col_idx && (line.starts_with("- [") || line.starts_with("* [")))
+        {
+            if (current_card == at_row && !inserted)
+            {
+                output << new_line;
+                inserted = true;
+            }
+            ++current_card;
+        }
+
+        output << line << "\n";
+    }
+
+    if (!inserted)
+    {
+        output << new_line;
+    }
+
+    return output.str();
+}
+
+// ============================================================================
+// Column statistics (#38)
+// ============================================================================
+
+auto KanbanEngine::column_statistics(const KanbanBoard& board) -> std::vector<ColumnStatistics>
+{
+    std::vector<ColumnStatistics> stats;
+    stats.reserve(board.columns.size());
+    for (const auto& col : board.columns)
+    {
+        ColumnStatistics col_stats;
+        col_stats.total_cards = static_cast<int>(col.cards.size());
+        col_stats.completed_cards = col.completed_count;
+        col_stats.wip_exceeded = col.max_cards > 0 && col_stats.total_cards > col.max_cards;
+        stats.push_back(col_stats);
+    }
+    return stats;
+}
+
 } // namespace markamp::ui

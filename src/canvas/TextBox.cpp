@@ -114,6 +114,47 @@ auto TextBox::set_fill_color(const CanvasColor& color) -> void
     mark_dirty();
 }
 
+// --- Batch 5 (#28-30) ---
+
+auto TextBox::line_count() const -> size_t
+{
+    if (text_.empty())
+    {
+        return 0;
+    }
+    size_t count = 1;
+    for (const char ch : text_)
+    {
+        if (ch == '\n')
+        {
+            ++count;
+        }
+    }
+    return count;
+}
+
+auto TextBox::line_spacing() const -> double
+{
+    return line_spacing_;
+}
+
+auto TextBox::set_line_spacing(double spacing) -> void
+{
+    line_spacing_ = std::max(0.5, spacing);
+    mark_dirty();
+}
+
+auto TextBox::padding() const -> double
+{
+    return padding_;
+}
+
+auto TextBox::set_padding(double pad) -> void
+{
+    padding_ = std::max(0.0, pad);
+    mark_dirty();
+}
+
 // ── CanvasObject overrides ─────────────────────────────────────
 
 auto TextBox::local_bounds() const -> AABB
@@ -132,6 +173,8 @@ auto TextBox::clone() const -> std::unique_ptr<CanvasObject>
     copy->border_color_ = border_color_;
     copy->has_fill_ = has_fill_;
     copy->fill_color_ = fill_color_;
+    copy->line_spacing_ = line_spacing_;
+    copy->padding_ = padding_;
     copy->set_transform(transform());
     copy->set_z_index(z_index());
     copy->set_name(name());

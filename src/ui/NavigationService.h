@@ -11,6 +11,8 @@ namespace markamp::core
 {
 class EventBus;
 class VaultService;
+struct SurfaceLink;
+struct LinkResolveResult;
 } // namespace markamp::core
 
 namespace markamp::ui
@@ -24,6 +26,14 @@ struct NavigationEntry
     std::string document_id;
     int scroll_position{0};
     int cursor_line{0};
+
+    // V8 Phase 11 (Phase 29): cross-surface fields
+    std::string from_surface; ///< Source surface kind (serialized)
+    std::string to_surface;   ///< Target surface kind (serialized)
+    std::string entity_id;    ///< Target entity unique ID
+    std::string board_id;     ///< Canvas board ID (if applicable)
+    std::string object_id;    ///< Canvas object ID (if applicable)
+    std::string cell_id;      ///< Notebook cell ID (if applicable)
 };
 
 /// Per-pane back/forward navigation history.
@@ -97,10 +107,22 @@ public:
     /// Check if a link target can be resolved.
     [[nodiscard]] auto can_resolve(const std::string& link_target) const -> bool;
 
+    // V8 Phase 12 (Phase 35): Surface link routing
+
+    /// Navigate via a surface link, resolving and recording cross-surface history.
+    auto navigate_via_link(int pane_id, const core::SurfaceLink& link) -> core::LinkResolveResult;
+
+    /// Resolve a surface link without navigating.
+    [[nodiscard]] auto resolve_link(const core::SurfaceLink& link) -> core::LinkResolveResult;
+
+    /// Global navigation timeline (cross-surface entries).
+    [[nodiscard]] auto global_timeline() const -> const std::vector<NavigationEntry>&;
+
 private:
     core::EventBus& event_bus_;
     core::VaultService& vault_service_;
     std::unordered_map<int, NavigationHistory> histories_;
+    std::vector<NavigationEntry> global_timeline_; ///< Cross-surface traversal log
 };
 
 } // namespace markamp::ui

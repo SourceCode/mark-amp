@@ -230,6 +230,16 @@ void ThemeEngine::rebuild_cache()
     cache_color(ThemeColorToken::RenderTableBorder, current_theme_.render.table_border);
     cache_color(ThemeColorToken::RenderTableHeaderBg, current_theme_.render.table_header_bg);
 
+    // V8 Phase 9: Semantic editor tokens
+    cache_color(ThemeColorToken::EditorActiveLine, current_theme_.colors.editor_active_line);
+    cache_color(ThemeColorToken::EditorGutterError, current_theme_.colors.editor_gutter_error);
+    cache_color(ThemeColorToken::EditorGutterWarn, current_theme_.colors.editor_gutter_warn);
+    cache_color(ThemeColorToken::EditorGutterInfo, current_theme_.colors.editor_gutter_info);
+    cache_color(ThemeColorToken::EditorMatchHighlight,
+                current_theme_.colors.editor_match_highlight);
+    cache_color(ThemeColorToken::EditorFindHit, current_theme_.colors.editor_find_hit);
+    cache_color(ThemeColorToken::EditorQuickFix, current_theme_.colors.editor_quick_fix);
+
     // Rebuild fonts
     build_fonts();
 }
@@ -305,6 +315,16 @@ void ThemeEngine::apply_syntax_theme()
     cache_color(ThemeColorToken::SyntaxFunction, current_theme_.syntax.function_name);
     cache_color(ThemeColorToken::SyntaxOperator, current_theme_.syntax.operator_tok);
     cache_color(ThemeColorToken::SyntaxPreprocessor, current_theme_.syntax.preprocessor);
+
+    // V8 Phase 9: Semantic editor tokens (cached from flat colors struct)
+    cache_color(ThemeColorToken::EditorActiveLine, current_theme_.colors.editor_active_line);
+    cache_color(ThemeColorToken::EditorGutterError, current_theme_.colors.editor_gutter_error);
+    cache_color(ThemeColorToken::EditorGutterWarn, current_theme_.colors.editor_gutter_warn);
+    cache_color(ThemeColorToken::EditorGutterInfo, current_theme_.colors.editor_gutter_info);
+    cache_color(ThemeColorToken::EditorMatchHighlight,
+                current_theme_.colors.editor_match_highlight);
+    cache_color(ThemeColorToken::EditorFindHit, current_theme_.colors.editor_find_hit);
+    cache_color(ThemeColorToken::EditorQuickFix, current_theme_.colors.editor_quick_fix);
 }
 
 void ThemeEngine::apply_render_theme()

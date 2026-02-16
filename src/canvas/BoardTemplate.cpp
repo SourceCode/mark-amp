@@ -172,4 +172,71 @@ auto BoardTemplateLibrary::template_count() const -> size_t
     return templates_.size();
 }
 
+// ── Improvements (#29-30) ───────────────────────────────────────
+
+auto BoardTemplateLibrary::delete_template(const std::string& template_id) -> bool
+{
+    auto iter = std::find_if(templates_.begin(),
+                             templates_.end(),
+                             [&template_id](const TemplateInfo& tmpl)
+                             { return tmpl.id == template_id && !tmpl.is_builtin; });
+    if (iter == templates_.end())
+    {
+        return false;
+    }
+    templates_.erase(iter);
+    return true;
+}
+
+auto BoardTemplateLibrary::sort_by_rating() -> void
+{
+    std::sort(templates_.begin(),
+              templates_.end(),
+              [](const TemplateInfo& lhs, const TemplateInfo& rhs)
+              { return lhs.rating > rhs.rating; });
+}
+
+auto BoardTemplateLibrary::sort_by_popularity() -> void
+{
+    std::sort(templates_.begin(),
+              templates_.end(),
+              [](const TemplateInfo& lhs, const TemplateInfo& rhs)
+              { return lhs.usage_count > rhs.usage_count; });
+}
+
+// ── Batch 10 (#57-58) ─────────────────────────────────────────────
+
+auto BoardTemplateLibrary::duplicate_template(const std::string& source_id,
+                                              const std::string& new_id,
+                                              const std::string& new_name) -> bool
+{
+    const auto* source = template_by_id(source_id);
+    if (source == nullptr)
+    {
+        return false;
+    }
+
+    TemplateInfo copy = *source;
+    copy.id = new_id;
+    copy.name = new_name;
+    copy.is_builtin = false;
+    copy.usage_count = 0;
+    copy.rating = 0.0;
+    templates_.push_back(std::move(copy));
+    return true;
+}
+
+auto BoardTemplateLibrary::template_by_id(const std::string& template_id) const
+    -> const TemplateInfo*
+{
+    for (const auto& tmpl : templates_)
+    {
+        if (tmpl.id == template_id)
+        {
+            return &tmpl;
+        }
+    }
+    return nullptr;
+}
+
 } // namespace markamp::canvas

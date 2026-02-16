@@ -87,10 +87,41 @@ public:
         bool mouse_wheel_zoom = false;
         bool bracket_pair_colorization = false;
         bool dim_whitespace = false;
+        bool format_on_save = false;
+        bool format_on_paste = false;
+        bool linked_editing = false;
     };
 
     /// Access the cached values struct for O(1) lookups.
     [[nodiscard]] auto cached() const -> const CachedValues&;
+
+    // ── Batch 9: Additional Config methods ──
+
+    /// Check whether a key exists in the config data.
+    [[nodiscard]] auto has_key(std::string_view key) const -> bool;
+
+    /// Remove a key from the config data (resets to default on next load).
+    void remove(std::string_view key);
+
+    /// Return all stored config keys.
+    [[nodiscard]] auto all_keys() const -> std::vector<std::string>;
+
+    /// Return the total number of stored config keys.
+    [[nodiscard]] auto key_count() const -> std::size_t;
+
+    // ── New Batch 9: Config profile support (#55-58) ──
+
+    /// Export current config to a JSON file.
+    void export_to_json(const std::filesystem::path& path) const;
+
+    /// Import config from a JSON file, merging with current values.
+    void import_from_json(const std::filesystem::path& path);
+
+    /// Return keys with differing values between this config and another.
+    [[nodiscard]] auto diff(const Config& other) const -> std::vector<std::string>;
+
+    /// Create an in-memory copy for undo/revert support.
+    [[nodiscard]] auto snapshot() const -> Config;
 
 private:
     YAML::Node data_;
