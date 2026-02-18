@@ -509,4 +509,38 @@ void StartupPanel::onPaint(wxPaintEvent& /*event*/)
     }
 }
 
+// ── Phase 35: Welcome experience ──
+
+void StartupPanel::show_release_notes(const std::string& version)
+{
+    displayed_version_ = version;
+    MARKAMP_LOG_INFO("StartupPanel: showing release notes for {}", version);
+    // Future: scroll to or open a release-notes section in the welcome UI
+}
+
+void StartupPanel::set_show_getting_started(bool show)
+{
+    show_getting_started_ = show;
+}
+
+auto StartupPanel::is_getting_started_visible() const -> bool
+{
+    return show_getting_started_;
+}
+
+void StartupPanel::set_dont_show_again(bool value)
+{
+    dont_show_again_ = value;
+}
+
+auto StartupPanel::dont_show_again() const -> bool
+{
+    return dont_show_again_;
+}
+
+auto StartupPanel::displayed_version() const -> const std::string&
+{
+    return displayed_version_;
+}
+
 } // namespace markamp::ui

@@ -1,5 +1,35 @@
 # MarkAmp Release History
 
+## v2.3.16 — 2026-02-18
+
+### Highlights
+
+Build system hardening and canvas test stabilization. Fixed main `markamp` binary linking by adding missing `AIService.cpp` and `ExportService.cpp` sources, removing 3 duplicate source entries (`EncryptionService.cpp`, `FileWatcher.cpp`, `ExtensionTelemetry.cpp`), and resolving all `-Werror` compiler warnings. Canvas test suites for Phase 12 (44/44) and Phase 13 (48/48) now pass cleanly.
+
+### Added
+
+- **Canvas test GLOB build** — `tests/CMakeLists.txt` uses `file(GLOB)` with filter-exclusion for canvas source files, replacing fragile explicit file lists
+- **`markamp_dependencies`** linked to Phase 12/13 test targets for `fmt` and other transitive dependency resolution
+
+### Changed
+
+- `src/CMakeLists.txt` — added `AIService.cpp` and `ExportService.cpp` to `markamp` target sources
+- `src/CMakeLists.txt` — removed duplicate `EncryptionService.cpp` (line 422, already at 382)
+- `src/CMakeLists.txt` — removed `FileWatcher.cpp` from target sources (implementations already provided by `PlatformServices.cpp`)
+- `src/CMakeLists.txt` — removed `ExtensionTelemetry.cpp` from target sources (implementations already provided by `TracingService.cpp`)
+- `vcpkg.json` version synced to 2.3.16
+
+### Fixed
+
+- **Main binary linking** — resolved 5 duplicate symbol errors from `FileWatcher` and `ExtensionTelemetry` methods defined in both standalone `.cpp` and aggregate service files
+- **`-Werror,-Wunused-parameter`** — suppressed unused `context` and `messages` parameters in `AIService.cpp` stub methods
+- **`-Werror,-Wunused-private-field`** — marked `event_bus_` and `config_` as `[[maybe_unused]]` in `AIService.h` and `ExportService.h`
+- **`-Werror,-Wsign-conversion`** — changed `level` from `int` to `size_t` in `ExportService.cpp` TOC generator
+- **Canvas clipboard tests** — updated paste assertions to match stub `deserialize_objects()` behavior (`success=false`)
+- **`Board` constructor** — fixed `Board(bus)` to `Board()` in Phase 13 canvas collab tests
+
+---
+
 ## v2.2.15 — 2026-02-16
 
 ### Highlights

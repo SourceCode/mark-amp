@@ -1644,6 +1644,49 @@ LayoutManager::LayoutManager(wxWindow* parent,
     MARKAMP_LOG_INFO(
         "LayoutManager created (sidebar={}px, visible={})", sidebar_width_, sidebar_visible_);
 
+    // Phase 06: Register sidebar panels in the registry
+    RegisterSidebarPanels();
+
+    // Phase 06: Subscribe to ActivityBar selection events to switch sidebar mode
+    activity_bar_selection_sub_ = event_bus_.subscribe<core::events::ActivityBarSelectionEvent>(
+        [this](const core::events::ActivityBarSelectionEvent& evt)
+        {
+            // Map ActivityBarItem → SidebarMode
+            SidebarMode target_mode = SidebarMode::kExplorer;
+            switch (evt.item)
+            {
+                case core::events::ActivityBarItem::FileExplorer:
+                    target_mode = SidebarMode::kExplorer;
+                    break;
+                case core::events::ActivityBarItem::Search:
+                    target_mode = SidebarMode::kSearch;
+                    break;
+                case core::events::ActivityBarItem::Settings:
+                    target_mode = SidebarMode::kSettings;
+                    break;
+                case core::events::ActivityBarItem::Themes:
+                    target_mode = SidebarMode::kThemes;
+                    break;
+                case core::events::ActivityBarItem::Extensions:
+                    target_mode = SidebarMode::kExtensions;
+                    break;
+                case core::events::ActivityBarItem::kNotebooks:
+                    target_mode = SidebarMode::kNotebooks;
+                    break;
+                case core::events::ActivityBarItem::kCanvas:
+                    target_mode = SidebarMode::kCanvas;
+                    break;
+                case core::events::ActivityBarItem::kGraph:
+                    target_mode = SidebarMode::kGraph;
+                    break;
+            }
+            SetSidebarMode(target_mode);
+            if (!sidebar_visible_)
+            {
+                set_sidebar_visible(true);
+            }
+        });
+
     // Phase 8: Subscribe to sidebar mode switching events
     show_extensions_sub_ = event_bus_.subscribe<core::events::ShowExtensionsBrowserRequestEvent>(
         [this]([[maybe_unused]] const core::events::ShowExtensionsBrowserRequestEvent& evt)
@@ -2209,6 +2252,8 @@ void LayoutManager::SaveLayoutState()
     }
     config_->set("layout.sidebar_visible", sidebar_visible_);
     config_->set("layout.sidebar_width", sidebar_width_);
+    // Phase 06 Task 9: Persist active sidebar mode
+    config_->set("layout.sidebar_mode", static_cast<int>(sidebar_mode_));
     // Fix 15: Persist active file path for restore on next launch
     config_->set("workspace.last_active_file", active_file_path_);
 }
@@ -2223,6 +2268,13 @@ void LayoutManager::RestoreLayoutState()
     sidebar_width_ = config_->get_int("layout.sidebar_width", kDefaultSidebarWidth);
     sidebar_width_ = std::clamp(sidebar_width_, kMinSidebarWidth, kMaxSidebarWidth);
     sidebar_current_width_ = sidebar_visible_ ? sidebar_width_ : 0;
+
+    // Phase 06 Task 9: Restore active sidebar mode
+    int saved_mode = config_->get_int("layout.sidebar_mode", 0);
+    if (saved_mode >= 0 && saved_mode <= static_cast<int>(SidebarMode::kGraph))
+    {
+        sidebar_mode_ = static_cast<SidebarMode>(saved_mode);
+    }
 }
 
 void LayoutManager::ToggleEditorMinimap()
@@ -2237,7 +2289,182 @@ void LayoutManager::ToggleEditorMinimap()
     }
 }
 
-// --- Phase 8: Sidebar panel switching ---
+// --- Phase 8 / Phase 06: Sidebar panel switching ---
+
+// Phase 06 Task 2/4: Register built-in sidebar panels with factories
+void LayoutManager::RegisterSidebarPanels()
+{
+    // Explorer panel is created eagerly (already exists in CreateLayout)
+    panel_registry_.Register(SidebarMode::kExplorer,
+                             "EXPLORER",
+                             "\xF0\x9F\x93\x81", // 📁
+                             [this](wxWindow* /*parent*/) -> wxPanel* { return explorer_panel_; });
+
+    // Extensions panel is created lazily
+    panel_registry_.Register(
+        SidebarMode::kExtensions,
+        "EXTENSIONS",
+        "\xF0\x9F\xA7\xA9", // 🧩
+        [this](wxWindow* parent) -> wxPanel*
+        {
+            if (ext_mgmt_service_ == nullptr || ext_gallery_service_ == nullptr)
+            {
+                return nullptr;
+            }
+            extensions_panel_ = new ExtensionsBrowserPanel(
+                parent, theme_engine(), event_bus_, *ext_mgmt_service_, *ext_gallery_service_);
+            auto* sidebar_sizer = sidebar_panel_->GetSizer();
+            if (sidebar_sizer != nullptr)
+            {
+                sidebar_sizer->Add(extensions_panel_, 1, wxEXPAND);
+            }
+            return extensions_panel_;
+        });
+
+    // Search panel — placeholder until Task 14 (Batch 6D)
+    panel_registry_.Register(
+        SidebarMode::kSearch,
+        "SEARCH",
+        "\xF0\x9F\x94\x8D", // 🔍
+        [this](wxWindow* parent) -> wxPanel*
+        {
+            auto* panel = new wxPanel(parent, wxID_ANY);
+            panel->SetBackgroundColour(theme_engine().color(core::ThemeColorToken::BgPanel));
+            auto* sizer = new wxBoxSizer(wxVERTICAL);
+            auto* label = new wxStaticText(panel, wxID_ANY, "Search — Coming Soon");
+            label->SetForegroundColour(theme_engine().color(core::ThemeColorToken::TextMuted));
+            sizer->AddStretchSpacer();
+            sizer->Add(label, 0, wxALIGN_CENTER);
+            sizer->AddStretchSpacer();
+            panel->SetSizer(sizer);
+            auto* sidebar_sizer = sidebar_panel_->GetSizer();
+            if (sidebar_sizer != nullptr)
+            {
+                sidebar_sizer->Add(panel, 1, wxEXPAND);
+            }
+            return panel;
+        });
+
+    // Settings — opens dialog, panel is a minimal placeholder
+    panel_registry_.Register(
+        SidebarMode::kSettings,
+        "SETTINGS",
+        "\xE2\x9A\x99", // ⚙
+        [this](wxWindow* parent) -> wxPanel*
+        {
+            auto* panel = new wxPanel(parent, wxID_ANY);
+            panel->SetBackgroundColour(theme_engine().color(core::ThemeColorToken::BgPanel));
+            auto* sizer = new wxBoxSizer(wxVERTICAL);
+            auto* label = new wxStaticText(panel, wxID_ANY, "Settings");
+            label->SetForegroundColour(theme_engine().color(core::ThemeColorToken::TextMuted));
+            sizer->AddStretchSpacer();
+            sizer->Add(label, 0, wxALIGN_CENTER);
+            sizer->AddStretchSpacer();
+            panel->SetSizer(sizer);
+            auto* sidebar_sizer = sidebar_panel_->GetSizer();
+            if (sidebar_sizer != nullptr)
+            {
+                sidebar_sizer->Add(panel, 1, wxEXPAND);
+            }
+            return panel;
+        });
+
+    // Themes — placeholder
+    panel_registry_.Register(
+        SidebarMode::kThemes,
+        "THEMES",
+        "\xF0\x9F\x8E\xA8", // 🎨
+        [this](wxWindow* parent) -> wxPanel*
+        {
+            auto* panel = new wxPanel(parent, wxID_ANY);
+            panel->SetBackgroundColour(theme_engine().color(core::ThemeColorToken::BgPanel));
+            auto* sizer = new wxBoxSizer(wxVERTICAL);
+            auto* label = new wxStaticText(panel, wxID_ANY, "Themes");
+            label->SetForegroundColour(theme_engine().color(core::ThemeColorToken::TextMuted));
+            sizer->AddStretchSpacer();
+            sizer->Add(label, 0, wxALIGN_CENTER);
+            sizer->AddStretchSpacer();
+            panel->SetSizer(sizer);
+            auto* sidebar_sizer = sidebar_panel_->GetSizer();
+            if (sidebar_sizer != nullptr)
+            {
+                sidebar_sizer->Add(panel, 1, wxEXPAND);
+            }
+            return panel;
+        });
+
+    // Notebooks — placeholder
+    panel_registry_.Register(
+        SidebarMode::kNotebooks,
+        "NOTEBOOKS",
+        "\xF0\x9F\x93\x93", // 📓
+        [this](wxWindow* parent) -> wxPanel*
+        {
+            auto* panel = new wxPanel(parent, wxID_ANY);
+            panel->SetBackgroundColour(theme_engine().color(core::ThemeColorToken::BgPanel));
+            auto* sizer = new wxBoxSizer(wxVERTICAL);
+            auto* label = new wxStaticText(panel, wxID_ANY, "Notebooks — Coming Soon");
+            label->SetForegroundColour(theme_engine().color(core::ThemeColorToken::TextMuted));
+            sizer->AddStretchSpacer();
+            sizer->Add(label, 0, wxALIGN_CENTER);
+            sizer->AddStretchSpacer();
+            panel->SetSizer(sizer);
+            auto* sidebar_sizer = sidebar_panel_->GetSizer();
+            if (sidebar_sizer != nullptr)
+            {
+                sidebar_sizer->Add(panel, 1, wxEXPAND);
+            }
+            return panel;
+        });
+
+    // Canvas — placeholder
+    panel_registry_.Register(
+        SidebarMode::kCanvas,
+        "CANVAS",
+        "\xF0\x9F\x96\xBC", // 🖼
+        [this](wxWindow* parent) -> wxPanel*
+        {
+            auto* panel = new wxPanel(parent, wxID_ANY);
+            panel->SetBackgroundColour(theme_engine().color(core::ThemeColorToken::BgPanel));
+            auto* sizer = new wxBoxSizer(wxVERTICAL);
+            auto* label = new wxStaticText(panel, wxID_ANY, "Canvas — Coming Soon");
+            label->SetForegroundColour(theme_engine().color(core::ThemeColorToken::TextMuted));
+            sizer->AddStretchSpacer();
+            sizer->Add(label, 0, wxALIGN_CENTER);
+            sizer->AddStretchSpacer();
+            panel->SetSizer(sizer);
+            auto* sidebar_sizer = sidebar_panel_->GetSizer();
+            if (sidebar_sizer != nullptr)
+            {
+                sidebar_sizer->Add(panel, 1, wxEXPAND);
+            }
+            return panel;
+        });
+
+    // Graph — placeholder until Task 18 (Batch 6E)
+    panel_registry_.Register(
+        SidebarMode::kGraph,
+        "GRAPH",
+        "\xF0\x9F\x94\x97", // 🔗
+        [this](wxWindow* parent) -> wxPanel*
+        {
+            auto* panel = new wxPanel(parent, wxID_ANY);
+            panel->SetBackgroundColour(theme_engine().color(core::ThemeColorToken::BgPanel));
+            auto* sizer = new wxBoxSizer(wxVERTICAL);
+            auto* label = new wxStaticText(panel, wxID_ANY, "Graph View — Coming Soon");
+            label->SetForegroundColour(theme_engine().color(core::ThemeColorToken::TextMuted));
+            sizer->AddStretchSpacer();
+            sizer->Add(label, 0, wxALIGN_CENTER);
+            sizer->AddStretchSpacer();
+            panel->SetSizer(sizer);
+            auto* sidebar_sizer = sidebar_panel_->GetSizer();
+            if (sidebar_sizer != nullptr)
+            {
+                sidebar_sizer->Add(panel, 1, wxEXPAND);
+            }
+            return panel;
+        });
+}
 
 void LayoutManager::SetSidebarMode(SidebarMode mode)
 {
@@ -2246,72 +2473,147 @@ void LayoutManager::SetSidebarMode(SidebarMode mode)
         return;
     }
 
+    auto previous_mode = sidebar_mode_;
     sidebar_mode_ = mode;
 
-    switch (mode)
+    // Hide all registered panels
+    for (const auto& registered_mode : panel_registry_.AllModes())
     {
-        case SidebarMode::kExplorer:
+        auto* panel = panel_registry_.GetOrCreate(registered_mode, sidebar_panel_);
+        if (panel != nullptr)
         {
-            if (extensions_panel_ != nullptr)
-            {
-                extensions_panel_->Hide();
-            }
-            if (explorer_panel_ != nullptr)
-            {
-                explorer_panel_->Show();
-            }
-            if (header_label_ != nullptr)
-            {
-                // V8 Phase 1 Task 4: Show project name instead of generic "EXPLORER"
-                header_label_->SetLabel(workspace_name_.empty() ? "EXPLORER" : workspace_name_);
-            }
-            break;
+            panel->Hide();
         }
-        case SidebarMode::kExtensions:
+    }
+
+    // Show the target panel (lazily creating it if needed)
+    auto* target_panel = panel_registry_.GetOrCreate(mode, sidebar_panel_);
+    if (target_panel != nullptr)
+    {
+        target_panel->Show();
+
+        // Special handling for Extensions: trigger installed list refresh
+        if (mode == SidebarMode::kExtensions && extensions_panel_ != nullptr)
         {
-            if (explorer_panel_ != nullptr)
-            {
-                explorer_panel_->Hide();
-            }
+            extensions_panel_->ShowInstalledExtensions();
+        }
+    }
 
-            // Lazily create the extensions panel when first shown
-            if (extensions_panel_ == nullptr && ext_mgmt_service_ != nullptr &&
-                ext_gallery_service_ != nullptr)
-            {
-                extensions_panel_ = new ExtensionsBrowserPanel(sidebar_panel_,
-                                                               theme_engine(),
-                                                               event_bus_,
-                                                               *ext_mgmt_service_,
-                                                               *ext_gallery_service_);
-
-                auto* sidebar_sizer = sidebar_panel_->GetSizer();
-                if (sidebar_sizer != nullptr)
-                {
-                    sidebar_sizer->Add(extensions_panel_, 1, wxEXPAND);
-                }
-            }
-
-            if (extensions_panel_ != nullptr)
-            {
-                extensions_panel_->Show();
-                extensions_panel_->ShowInstalledExtensions();
-            }
-
-            if (header_label_ != nullptr)
-            {
-                header_label_->SetLabel("EXTENSIONS");
-            }
-            break;
+    // Update header label
+    if (header_label_ != nullptr)
+    {
+        if (mode == SidebarMode::kExplorer)
+        {
+            // V8 Phase 1 Task 4: Show project name instead of generic "EXPLORER"
+            header_label_->SetLabel(workspace_name_.empty() ? "EXPLORER" : workspace_name_);
+        }
+        else
+        {
+            header_label_->SetLabel(panel_registry_.GetLabel(mode));
         }
     }
 
     sidebar_panel_->Layout();
     sidebar_panel_->Refresh();
+
+    // Phase 06 Task 17: Start transition animation
+    sidebar_transition_alpha_ = 0.0F;
+    sidebar_transition_active_ = true;
+    if (!sidebar_transition_timer_.IsRunning())
+    {
+        sidebar_transition_timer_.SetOwner(sidebar_panel_);
+        sidebar_transition_timer_.Bind(wxEVT_TIMER,
+                                       [this](wxTimerEvent& /*evt*/)
+                                       {
+                                           sidebar_transition_alpha_ += 0.2F; // ~5 steps = 150ms
+                                           if (sidebar_transition_alpha_ >= 1.0F)
+                                           {
+                                               sidebar_transition_alpha_ = 1.0F;
+                                               sidebar_transition_active_ = false;
+                                               sidebar_transition_timer_.Stop();
+                                           }
+                                           if (sidebar_panel_ != nullptr)
+                                           {
+                                               sidebar_panel_->Refresh();
+                                           }
+                                       });
+        sidebar_transition_timer_.Start(30);
+    }
+
+    // Phase 06 Task 8: Broadcast SidebarModeChangedEvent
+    core::events::SidebarModeChangedEvent changed_evt;
+    changed_evt.previous_mode = static_cast<int>(previous_mode);
+    changed_evt.new_mode = static_cast<int>(mode);
+    event_bus_.publish(changed_evt);
 }
 
 auto LayoutManager::GetSidebarMode() const -> SidebarMode
 {
     return sidebar_mode_;
+}
+
+auto LayoutManager::sidebar_toolbar() -> SidebarToolbar*
+{
+    return sidebar_toolbar_;
+}
+
+// Phase 06 Task 11: Toggle secondary sidebar visibility
+void LayoutManager::ToggleSecondarySidebar()
+{
+    secondary_sidebar_visible_ = !secondary_sidebar_visible_;
+
+    if (secondary_sidebar_panel_ == nullptr && secondary_sidebar_visible_)
+    {
+        // Lazily create secondary sidebar panel
+        secondary_sidebar_panel_ = new wxPanel(content_container(), wxID_ANY);
+        secondary_sidebar_panel_->SetMinSize(wxSize(kDefaultSidebarWidth, -1));
+        secondary_sidebar_panel_->SetBackgroundColour(
+            theme_engine().color(core::ThemeColorToken::BgPanel));
+
+        auto* sizer = new wxBoxSizer(wxVERTICAL);
+        auto* label = new wxStaticText(secondary_sidebar_panel_, wxID_ANY, "Secondary Sidebar");
+        label->SetForegroundColour(theme_engine().color(core::ThemeColorToken::TextMuted));
+        sizer->AddStretchSpacer();
+        sizer->Add(label, 0, wxALIGN_CENTER);
+        sizer->AddStretchSpacer();
+        secondary_sidebar_panel_->SetSizer(sizer);
+
+        // Add to body sizer (right side)
+        if (body_sizer_ != nullptr)
+        {
+            body_sizer_->Add(secondary_sidebar_panel_, 0, wxEXPAND);
+        }
+    }
+
+    if (secondary_sidebar_panel_ != nullptr)
+    {
+        secondary_sidebar_panel_->Show(secondary_sidebar_visible_);
+        if (body_sizer_ != nullptr)
+        {
+            body_sizer_->Layout();
+        }
+    }
+
+    if (config_ != nullptr)
+    {
+        config_->set("layout.secondary_sidebar_visible", secondary_sidebar_visible_);
+    }
+}
+
+void LayoutManager::SetSecondarySidebarMode(SidebarMode mode)
+{
+    secondary_sidebar_mode_ = mode;
+    // Future: swap secondary panel content based on mode
+}
+
+auto LayoutManager::is_secondary_sidebar_visible() const -> bool
+{
+    return secondary_sidebar_visible_;
+}
+
+auto LayoutManager::sidebar_panel_registry() -> SidebarPanelRegistry&
+{
+    return panel_registry_;
 }
 
 void LayoutManager::SetExtensionServices(core::IExtensionManagementService* mgmt_service,

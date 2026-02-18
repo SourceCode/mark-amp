@@ -2,6 +2,7 @@
 
 #include "SettingsPanel.h"
 #include "core/Config.h"
+#include "core/ConfigProfile.h"
 #include "core/Events.h"
 
 #include <wx/button.h>
@@ -78,10 +79,32 @@ void SettingsDialog::CreateLayout()
 
     // Batch 7 #47: Search match count label
     search_count_label_ = new wxStaticText(this, wxID_ANY, "");
-    search_count_label_->SetForegroundColour(wxColour(140, 140, 160));
+    search_count_label_->SetForegroundColour(theme_engine_.color(core::ThemeColorToken::TextMuted));
     header_sizer->Add(search_count_label_, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
 
     main_sizer->Add(header_sizer, 0, wxEXPAND | wxALL, 12);
+
+    // Batch 5D Task 14: Profile switcher
+    auto* profile_sizer = new wxBoxSizer(wxHORIZONTAL);
+    auto* profile_label = new wxStaticText(this, wxID_ANY, "Profile:");
+    profile_sizer->Add(profile_label, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
+    wxArrayString profile_items;
+    profile_items.Add("(Default)");
+    // Fill from ConfigProfileManager if available
+    if (profile_manager_ != nullptr)
+    {
+        for (const auto& pname : profile_manager_->profile_names())
+        {
+            profile_items.Add(pname);
+        }
+    }
+    profile_selector_ =
+        new wxChoice(this, wxID_ANY, wxDefaultPosition, wxSize(160, -1), profile_items);
+    profile_selector_->SetSelection(0);
+    profile_selector_->SetToolTip("Switch between settings profiles");
+    profile_selector_->Bind(wxEVT_CHOICE, &SettingsDialog::OnProfileChanged, this);
+    profile_sizer->Add(profile_selector_, 0, wxALIGN_CENTER_VERTICAL);
+    main_sizer->Add(profile_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT, 12);
 
     // Use catalog-driven constructor → staged-edit mode
     settings_panel_ = new SettingsPanel(this, theme_engine_, event_bus_, config_, catalog_);
@@ -92,7 +115,8 @@ void SettingsDialog::CreateLayout()
 
     // Batch 7 #37: Unsaved changes indicator
     unsaved_indicator_ = new wxStaticText(this, wxID_ANY, "");
-    unsaved_indicator_->SetForegroundColour(wxColour(200, 150, 0));
+    unsaved_indicator_->SetForegroundColour(
+        theme_engine_.color(core::ThemeColorToken::EditorGutterWarn));
     button_sizer->Add(unsaved_indicator_, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 12);
     UpdateUnsavedIndicator();
 
@@ -115,6 +139,28 @@ void SettingsDialog::CreateLayout()
                           }
                       });
     button_sizer->Add(restore_btn, 0, wxRIGHT, 16);
+
+    // Batch 5D Task 13: Import/Export buttons
+    auto* import_btn = new wxButton(this, wxID_ANY, "Import…", wxDefaultPosition, wxSize(90, -1));
+    import_btn->SetToolTip("Import settings from a JSON file");
+    import_btn->Bind(wxEVT_BUTTON, &SettingsDialog::OnImportSettings, this);
+    button_sizer->Add(import_btn, 0, wxRIGHT, 4);
+
+    auto* export_btn = new wxButton(this, wxID_ANY, "Export…", wxDefaultPosition, wxSize(90, -1));
+    export_btn->SetToolTip("Export current settings to a JSON file");
+    export_btn->Bind(wxEVT_BUTTON, &SettingsDialog::OnExportSettings, this);
+    button_sizer->Add(export_btn, 0, wxRIGHT, 8);
+
+    // Batch 5D Task 15: Undo/Redo buttons
+    auto* undo_btn = new wxButton(this, wxID_ANY, "↩ Undo", wxDefaultPosition, wxSize(80, -1));
+    undo_btn->SetToolTip("Undo the last setting change (Ctrl+Z)");
+    undo_btn->Bind(wxEVT_BUTTON, &SettingsDialog::OnUndo, this);
+    button_sizer->Add(undo_btn, 0, wxRIGHT, 4);
+
+    auto* redo_btn = new wxButton(this, wxID_ANY, "↪ Redo", wxDefaultPosition, wxSize(80, -1));
+    redo_btn->SetToolTip("Redo the last undone change (Ctrl+Shift+Z)");
+    redo_btn->Bind(wxEVT_BUTTON, &SettingsDialog::OnRedo, this);
+    button_sizer->Add(redo_btn, 0, wxRIGHT, 16);
 
     // Batch 7 #45: Keyboard shortcut labels on buttons
     auto* apply_btn = new wxButton(this, wxID_APPLY, "Apply");
@@ -156,8 +202,20 @@ void SettingsDialog::OpenWithQuery(const std::string& query)
 
 void SettingsDialog::OnOK(wxCommandEvent& /*event*/)
 {
-    if (settings_panel_ != nullptr)
+    if (settings_panel_ != nullptr && settings_panel_->HasPendingChanges())
     {
+        // Batch 5A Task 3: Show commit summary before accepting
+        const auto count = settings_panel_->PendingChangeCount();
+        wxString summary =
+            wxString::Format("Apply %zu setting change%s?\n\n", count, count == 1 ? "" : "s");
+        summary += "The following settings will be updated.";
+
+        const int result = wxMessageBox(
+            summary, "Confirm Settings Changes", wxOK | wxCANCEL | wxICON_INFORMATION, this);
+        if (result != wxOK)
+        {
+            return; // User cancelled — stay in dialog
+        }
         settings_panel_->ApplyPendingChanges();
     }
     // Batch 7 #42: Save dialog size
@@ -236,6 +294,66 @@ void SettingsDialog::ApplyTheme()
     {
         scope_selector_->SetBackgroundColour(bg_color);
         scope_selector_->SetForegroundColour(fg_color);
+    }
+}
+
+// Batch 5D Task 13: Import handler
+void SettingsDialog::OnImportSettings(wxCommandEvent& /*event*/)
+{
+    if (settings_panel_ != nullptr)
+    {
+        settings_panel_->ImportSettings();
+        UpdateUnsavedIndicator();
+    }
+}
+
+// Batch 5D Task 13: Export handler
+void SettingsDialog::OnExportSettings(wxCommandEvent& /*event*/)
+{
+    if (settings_panel_ != nullptr)
+    {
+        settings_panel_->ExportSettings();
+    }
+}
+
+// Batch 5D Task 14: Profile changed handler
+void SettingsDialog::OnProfileChanged(wxCommandEvent& /*event*/)
+{
+    if (profile_selector_ == nullptr || profile_manager_ == nullptr)
+    {
+        return;
+    }
+    const auto sel = profile_selector_->GetStringSelection().ToStdString();
+    if (sel == "(Default)")
+    {
+        return; // Default means no profile overlay
+    }
+    profile_manager_->apply_profile(sel, config_);
+    if (settings_panel_ != nullptr)
+    {
+        settings_panel_->RefreshValues();
+    }
+    UpdateUnsavedIndicator();
+    event_bus_.publish(core::events::SettingsCategoryChangedEvent("profile:" + sel));
+}
+
+// Batch 5D Task 15: Undo handler
+void SettingsDialog::OnUndo(wxCommandEvent& /*event*/)
+{
+    if (settings_panel_ != nullptr && settings_panel_->CanUndo())
+    {
+        settings_panel_->UndoLastChange();
+        UpdateUnsavedIndicator();
+    }
+}
+
+// Batch 5D Task 15: Redo handler
+void SettingsDialog::OnRedo(wxCommandEvent& /*event*/)
+{
+    if (settings_panel_ != nullptr && settings_panel_->CanRedo())
+    {
+        settings_panel_->RedoLastChange();
+        UpdateUnsavedIndicator();
     }
 }
 

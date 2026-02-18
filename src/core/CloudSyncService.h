@@ -67,8 +67,8 @@ public:
     [[nodiscard]] auto last_result() const -> const CloudSyncResult&;
 
 private:
-    EventBus& event_bus_;
-    Config& config_;
+    [[maybe_unused]] EventBus& event_bus_;
+    [[maybe_unused]] Config& config_;
     SyncEngine& sync_engine_;
     CloudSyncResult last_result_;
     mutable std::mutex mutex_;

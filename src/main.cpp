@@ -35,9 +35,30 @@
 
 #include <wx/wx.h>
 
+#include <cstdlib>
+#include <exception>
+#include <iostream>
+
 wxIMPLEMENT_APP_NO_MAIN(markamp::app::MarkAmpApp);
 
 auto main(int argc, char* argv[]) -> int
 {
-    return wxEntry(argc, argv);
+    // Phase 01 Task 3: Top-level exception barrier.
+    // Catches unhandled exceptions so we get a clean diagnostic instead
+    // of an OS crash dialog. The logger may not be initialized yet, so
+    // we also write to std::cerr.
+    try
+    {
+        return wxEntry(argc, argv);
+    }
+    catch (const std::exception& ex)
+    {
+        std::cerr << "[FATAL] Unhandled exception: " << ex.what() << "\n";
+        return EXIT_FAILURE;
+    }
+    catch (...)
+    {
+        std::cerr << "[FATAL] Unknown unhandled exception\n";
+        return EXIT_FAILURE;
+    }
 }

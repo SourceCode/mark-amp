@@ -198,7 +198,7 @@ void ThemeGallery::CreateToolbar()
     error_label_ = new wxStaticText(toolbar_panel_, wxID_ANY, "");
     wxFont error_font(wxFontInfo(10).Family(wxFONTFAMILY_SWISS));
     error_label_->SetFont(error_font);
-    error_label_->SetForegroundColour(wxColour(220, 50, 50));
+    error_label_->SetForegroundColour(theme_engine_.color(core::ThemeColorToken::ErrorColor));
     error_label_->Hide();
 
     toolbar_sizer->Add(error_label_, 1, wxALIGN_CENTER_VERTICAL | wxLEFT, 16);

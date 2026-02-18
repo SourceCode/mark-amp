@@ -7,7 +7,11 @@
 
 #include <wx/timer.h>
 
+#include <array>
+#include <chrono>
+#include <functional>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace markamp::core
@@ -88,6 +92,18 @@ public:
     void SetScrollSyncMode(core::events::ScrollSyncMode mode);
     [[nodiscard]] auto GetScrollSyncMode() const -> core::events::ScrollSyncMode;
 
+    // Phase 09 Task 3: Sync accuracy indicator
+    enum class SyncHealth : std::uint8_t
+    {
+        kSynced,    // green — preview up to date
+        kRendering, // yellow — re-rendering in progress
+        kOutOfSync  // red — pending content not yet rendered
+    };
+    [[nodiscard]] auto GetSyncHealth() const -> SyncHealth;
+
+    // Phase 09 Task 4: Breadcrumbs query
+    [[nodiscard]] auto GetCurrentBreadcrumb() const -> std::string;
+
     // File operations
     void SaveFile(const std::string& path);
 
@@ -101,6 +117,35 @@ public:
     void SetPairMode(PairMode mode);
     [[nodiscard]] auto GetPairMode() const -> PairMode;
     [[nodiscard]] auto IsPaired() const -> bool;
+
+    // Phase 09 Task 6: Split direction
+    void SetSplitDirection(core::events::SplitDirection direction);
+    [[nodiscard]] auto GetSplitDirection() const -> core::events::SplitDirection;
+    void ToggleSplitDirection();
+
+    // Phase 09 Task 8: Pin preview
+    void SetPinPreview(bool pinned);
+    [[nodiscard]] auto IsPinPreview() const -> bool;
+    void TogglePinPreview();
+
+    // Phase 09 Task 9: Open in side
+    void OpenInSide(const std::string& file_path);
+
+    // Phase 09 Task 10: Per-file state
+    void SavePerFileState(const std::string& file_path);
+    void RestorePerFileState(const std::string& file_path);
+
+    // Phase 09 Task 11: Typewriter scroll mode
+    void SetTypewriterMode(bool enabled);
+    [[nodiscard]] auto IsTypewriterMode() const -> bool;
+    void ToggleTypewriterMode();
+
+    // Phase 09 Task 13: Export rendered HTML
+    void ExportHtml();
+
+    // Phase 09 Task 14: Reveal commands
+    void RevealInEditor(int heading_index);
+    void RevealInPreview(int editor_line);
 
     // Divider constants
     static constexpr int kDividerWidth = 6;     // visual width
@@ -116,6 +161,19 @@ public:
     // Animation constants
     static constexpr int kAnimFrameMs = 16; // ~60fps
     static constexpr double kTransitionDurationMs = 200.0;
+
+    // Phase 09 Task 5: Adaptive throttle thresholds (bytes)
+    static constexpr std::size_t kSmallDocThreshold = std::size_t{5} * 1024;  // 5KB
+    static constexpr std::size_t kLargeDocThreshold = std::size_t{50} * 1024; // 50KB
+    static constexpr int kSmallDocDebounceMs = 100;
+    static constexpr int kMediumDocDebounceMs = 300;
+    static constexpr int kLargeDocDebounceMs = 600;
+
+    // Phase 09 Task 7: Snap point thresholds
+    static constexpr double kSnapThreshold = 0.03; // ±3% to snap
+    static constexpr int kSnapPointCount = 5;
+    static constexpr std::array<double, kSnapPointCount> kSnapPoints = {
+        0.25, 0.33, 0.50, 0.67, 0.75};
 
 protected:
     void OnThemeChanged(const core::Theme& new_theme) override;
@@ -142,7 +200,30 @@ private:
 
     // Scroll sync
     core::events::ScrollSyncMode scroll_sync_mode_{core::events::ScrollSyncMode::Proportional};
-    std::vector<int> heading_positions_; // editor line numbers of headings
+    std::vector<int> heading_positions_;     // editor line numbers of headings
+    std::vector<std::string> heading_texts_; // heading text for breadcrumbs
+    std::vector<int> heading_levels_;        // heading levels (1-6)
+
+    // Phase 09 Task 1: Cursor-anchored sync
+    int last_cursor_line_{0};
+    int total_line_count_{1};
+    void OnCursorPositionChanged(int line, int total_lines);
+
+    // Phase 09 Task 2: Selection mirroring
+    std::string last_selection_text_;
+    void OnSelectionChanged(const std::string& selected_text);
+
+    // Phase 09 Task 3: Sync accuracy indicator
+    std::chrono::steady_clock::time_point last_edit_time_;
+    std::chrono::steady_clock::time_point last_render_time_;
+    bool render_pending_{false};
+
+    // Phase 09 Task 4: Breadcrumbs
+    std::string current_breadcrumb_;
+    void UpdateBreadcrumb(int cursor_line);
+
+    // Phase 09 Task 5: Adaptive throttling
+    void UpdateRenderThrottle(std::size_t content_size);
 
     // Divider dragging
     bool is_dragging_{false};
@@ -197,10 +278,39 @@ private:
     core::Subscription content_sub_;
     core::Subscription scroll_sync_sub_;
     core::Subscription focus_mode_sub_;
+    core::Subscription cursor_sync_sub_;      // Phase 09 Task 1
+    core::Subscription selection_mirror_sub_; // Phase 09 Task 2
 
     // V8 Phase 12 (Phase 37): Paired traverse mode
     PairMode pair_mode_{PairMode::kNone};
     core::Subscription pair_request_sub_;
+
+    // Phase 09 Task 6: Split direction
+    core::events::SplitDirection split_direction_{core::events::SplitDirection::Horizontal};
+    core::Subscription split_direction_sub_;
+
+    // Phase 09 Task 7: Snap points helper
+    static auto FindNearestSnapPoint(double ratio) -> double;
+
+    // Phase 09 Task 8: Pin preview
+    bool pin_preview_{false};
+    std::string pinned_content_; // frozen preview content when pinned
+
+    // Phase 09 Task 10: Per-file state persistence
+    struct PerFileState
+    {
+        double split_ratio{kDefaultSplitRatio};
+        core::events::ViewMode view_mode{core::events::ViewMode::Split};
+        core::events::SplitDirection direction{core::events::SplitDirection::Horizontal};
+    };
+    std::unordered_map<std::string, PerFileState> per_file_states_;
+    std::string current_file_path_;
+
+    // Phase 09 Task 11: Typewriter mode
+    bool typewriter_mode_{false};
+
+    // Phase 09 Task 13: Export HTML subscription
+    core::Subscription export_html_sub_;
 
     // Persistence
     void SaveSplitRatio();

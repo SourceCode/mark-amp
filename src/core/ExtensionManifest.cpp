@@ -927,4 +927,186 @@ auto ExtensionManifest::identifier() const -> ExtensionIdentifier
     return {publisher, name};
 }
 
+// ── V9 Phase 04 Task 7: Version constraint validation ──
+
+namespace
+{
+
+/// Parse a SemVer string "major.minor.patch" into three ints.
+/// Returns false on invalid format.
+auto parse_semver(const std::string& ver, int& out_major, int& out_minor, int& out_patch) -> bool
+{
+    // Strip leading 'v' if present
+    std::string cleaned = ver;
+    if (!cleaned.empty() && cleaned[0] == 'v')
+    {
+        cleaned = cleaned.substr(1);
+    }
+
+    std::istringstream stream(cleaned);
+    char dot1 = '\0';
+    char dot2 = '\0';
+    stream >> out_major >> dot1 >> out_minor >> dot2 >> out_patch;
+    return dot1 == '.' && dot2 == '.' && !stream.fail();
+}
+
+} // namespace
+
+auto ExtensionManifest::VersionedDependency::is_satisfied_by(
+    const std::string& candidate_version) const -> bool
+{
+    if (version_range.empty())
+    {
+        return true; // No constraint means any version is fine
+    }
+
+    int ver_major = 0;
+    int ver_minor = 0;
+    int ver_patch = 0;
+    if (!parse_semver(candidate_version, ver_major, ver_minor, ver_patch))
+    {
+        return false; // Can't parse version
+    }
+
+    // Handle "^major.minor.patch" (caret = same major, >= minor.patch)
+    if (version_range[0] == '^')
+    {
+        int req_major = 0;
+        int req_minor = 0;
+        int req_patch = 0;
+        if (!parse_semver(version_range.substr(1), req_major, req_minor, req_patch))
+        {
+            return false;
+        }
+        if (ver_major != req_major)
+        {
+            return false;
+        }
+        if (ver_minor > req_minor)
+        {
+            return true;
+        }
+        if (ver_minor == req_minor)
+        {
+            return ver_patch >= req_patch;
+        }
+        return false;
+    }
+
+    // Handle ">=major.minor.patch"
+    if (version_range.size() >= 2 && version_range[0] == '>' && version_range[1] == '=')
+    {
+        int req_major = 0;
+        int req_minor = 0;
+        int req_patch = 0;
+        if (!parse_semver(version_range.substr(2), req_major, req_minor, req_patch))
+        {
+            return false;
+        }
+        if (ver_major > req_major)
+        {
+            return true;
+        }
+        if (ver_major < req_major)
+        {
+            return false;
+        }
+        if (ver_minor > req_minor)
+        {
+            return true;
+        }
+        if (ver_minor < req_minor)
+        {
+            return false;
+        }
+        return ver_patch >= req_patch;
+    }
+
+    // Exact match: "major.minor.patch"
+    int req_major = 0;
+    int req_minor = 0;
+    int req_patch = 0;
+    if (!parse_semver(version_range, req_major, req_minor, req_patch))
+    {
+        return false;
+    }
+    return ver_major == req_major && ver_minor == req_minor && ver_patch == req_patch;
+}
+
+// ── V9 Phase 04 Task 17: VSIX manifest verification ──
+
+auto ExtensionManifest::verify() const -> ManifestVerificationResult
+{
+    ManifestVerificationResult result;
+
+    // Required fields
+    if (name.empty())
+    {
+        result.errors.push_back("Missing required field: 'name'");
+    }
+    if (version.empty())
+    {
+        result.errors.push_back("Missing required field: 'version'");
+    }
+    if (publisher.empty())
+    {
+        result.errors.push_back("Missing required field: 'publisher'");
+    }
+
+    // SemVer format check (name.minor.patch)
+    if (!version.empty())
+    {
+        int major = 0;
+        int minor = 0;
+        int patch = 0;
+        if (!parse_semver(version, major, minor, patch))
+        {
+            result.errors.push_back("'version' is not valid semver: " + version);
+        }
+    }
+
+    // Engine constraint: should be present
+    if (engines_vscode.empty())
+    {
+        result.warnings.push_back("Missing 'engines.vscode' — no engine constraint specified");
+    }
+
+    // Activation events: check for unknown kinds
+    for (const auto& evt : activation_events)
+    {
+        if (evt.kind == ActivationEventKind::kUnknown)
+        {
+            result.warnings.push_back("Unknown activation event: " + evt.raw);
+        }
+    }
+
+    // Display name: recommended
+    if (display_name.empty())
+    {
+        result.warnings.push_back(
+            "Missing 'displayName' — user-facing name will default to 'name'");
+    }
+
+    // Commands: check for empty IDs
+    for (const auto& cmd : contributes.commands)
+    {
+        if (cmd.command.empty())
+        {
+            result.errors.push_back("Command contribution has empty 'command' field");
+        }
+    }
+
+    // Views: check for empty IDs
+    for (const auto& view : contributes.views)
+    {
+        if (view.view_id.empty())
+        {
+            result.errors.push_back("View contribution has empty 'id' field");
+        }
+    }
+
+    result.valid = result.errors.empty();
+    return result;
+}
+
 } // namespace markamp::core

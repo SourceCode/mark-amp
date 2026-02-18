@@ -101,24 +101,53 @@ auto CalloutBlockRenderer::parse_callout_type(std::string_view first_line) const
     return CalloutType::kNote;
 }
 
-auto CalloutBlockRenderer::render(std::string_view content, CalloutType type) const
-    -> CalloutRenderResult
+auto CalloutBlockRenderer::render(std::string_view content,
+                                  CalloutType type,
+                                  bool is_collapsible,
+                                  bool is_collapsed) const -> CalloutRenderResult
 {
     CalloutRenderResult result;
     result.type = type;
     result.icon = std::string(type_icon(type));
     result.css_class = std::string(type_css_class(type));
+    result.is_collapsible = is_collapsible;
 
     std::ostringstream oss;
-    oss << "<div class=\"callout " << result.css_class << "\">\n"
-        << "  <div class=\"callout-header\">\n"
-        << "    <span class=\"callout-icon\">" << result.icon << "</span>\n"
-        << "    <span class=\"callout-title\">" << type_name(type) << "</span>\n"
-        << "  </div>\n"
-        << "  <div class=\"callout-body\">\n"
-        << "    " << content << "\n"
-        << "  </div>\n"
-        << "</div>\n";
+
+    if (is_collapsible)
+    {
+        // Collapsible callout: use <details>/<summary> for toggle behavior.
+        // > [!NOTE]- produces collapsed (no open attr), > [!NOTE]+ produces open.
+        if (is_collapsed)
+        {
+            oss << "<details class=\"callout " << result.css_class << "\">\n";
+        }
+        else
+        {
+            oss << "<details open class=\"callout " << result.css_class << "\">\n";
+        }
+        oss << "  <summary class=\"callout-header\">\n"
+            << "    <span class=\"callout-icon\">" << result.icon << "</span>\n"
+            << "    <span class=\"callout-title\">" << type_name(type) << "</span>\n"
+            << "  </summary>\n"
+            << "  <div class=\"callout-body\">\n"
+            << "    " << content << "\n"
+            << "  </div>\n"
+            << "</details>\n";
+    }
+    else
+    {
+        // Non-collapsible callout: standard <div> structure.
+        oss << "<div class=\"callout " << result.css_class << "\">\n"
+            << "  <div class=\"callout-header\">\n"
+            << "    <span class=\"callout-icon\">" << result.icon << "</span>\n"
+            << "    <span class=\"callout-title\">" << type_name(type) << "</span>\n"
+            << "  </div>\n"
+            << "  <div class=\"callout-body\">\n"
+            << "    " << content << "\n"
+            << "  </div>\n"
+            << "</div>\n";
+    }
 
     result.html = oss.str();
     return result;

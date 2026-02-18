@@ -60,9 +60,39 @@ public:
     /// Get total count of tracked extensions.
     [[nodiscard]] auto count() const -> size_t;
 
+    // ── V9 Phase 04 Task 9: Secret storage with encryption ──
+
+    /// Set the encryption key for secret storage.
+    void set_encryption_key(const std::string& key);
+
+    /// Store an encrypted secret for an extension.
+    void store_secret(const std::string& extension_id,
+                      const std::string& secret_key,
+                      const std::string& secret_value);
+
+    /// Retrieve a decrypted secret for an extension.
+    [[nodiscard]] auto retrieve_secret(const std::string& extension_id,
+                                       const std::string& secret_key) const -> std::string;
+
+    /// Delete a stored secret.
+    void delete_secret(const std::string& extension_id, const std::string& secret_key);
+
+    /// Check if encryption is configured.
+    [[nodiscard]] auto has_encryption_key() const -> bool
+    {
+        return !encryption_key_.empty();
+    }
+
 private:
     std::filesystem::path storage_path_;
     std::unordered_map<std::string, ExtensionMetadata> entries_;
+
+    // Task 9: Encryption support
+    std::string encryption_key_;
+    // Secrets stored as: extension_id -> { secret_key -> encrypted_value }
+    std::unordered_map<std::string, std::unordered_map<std::string, std::string>> secrets_;
+    [[nodiscard]] static auto xor_cipher(const std::string& data, const std::string& key)
+        -> std::string;
 };
 
 } // namespace markamp::core

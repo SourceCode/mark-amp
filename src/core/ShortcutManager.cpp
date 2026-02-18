@@ -465,4 +465,157 @@ void ShortcutManager::load_keybindings(const std::filesystem::path& config_dir)
     MARKAMP_LOG_INFO("Loaded {} keybinding remaps from {}", remap_count, file_path.string());
 }
 
+// ═══════════════════════════════════════════════════════
+//  Phase 35: Shortcut Customization
+// ═══════════════════════════════════════════════════════
+
+auto ShortcutManager::export_as_markdown() const -> std::string
+{
+    std::ostringstream out;
+    out << "# Keyboard Shortcuts\n\n";
+
+    // Group by category
+    auto categories = get_all_categories();
+    for (const auto& category : categories)
+    {
+        out << "## " << category << "\n\n";
+        out << "| Shortcut | Action | Context |\n";
+        out << "|----------|--------|----------|\n";
+
+        for (const auto& shortcut : shortcuts_)
+        {
+            if (shortcut.category == category)
+            {
+                const std::string key_text = format_shortcut(shortcut.key_code, shortcut.modifiers);
+                out << "| " << key_text << " | " << shortcut.description << " | "
+                    << shortcut.context << " |\n";
+            }
+        }
+        out << "\n";
+    }
+    return out.str();
+}
+
+auto ShortcutManager::export_as_json() const -> std::string
+{
+    std::ostringstream out;
+    out << "[\n";
+    for (std::size_t idx = 0; idx < shortcuts_.size(); ++idx)
+    {
+        const auto& shortcut = shortcuts_[idx];
+        out << "  {\"id\":\"" << shortcut.id << "\","
+            << "\"description\":\"" << shortcut.description << "\","
+            << "\"key_code\":" << shortcut.key_code << ","
+            << "\"modifiers\":" << shortcut.modifiers << ","
+            << "\"context\":\"" << shortcut.context << "\","
+            << "\"category\":\"" << shortcut.category << "\"}";
+        if (idx + 1 < shortcuts_.size())
+        {
+            out << ",";
+        }
+        out << "\n";
+    }
+    out << "]";
+    return out.str();
+}
+
+void ShortcutManager::import_from_json(const std::string& json_str)
+{
+    // Simple line-by-line parser for the export format
+    std::istringstream input(json_str);
+    std::string line;
+    int remap_count = 0;
+
+    while (std::getline(input, line))
+    {
+        // Find id and key_code/modifiers fields
+        auto id_pos = line.find("\"id\":\"");
+        auto key_pos = line.find("\"key_code\":");
+        auto mod_pos = line.find("\"modifiers\":");
+        if (id_pos == std::string::npos || key_pos == std::string::npos ||
+            mod_pos == std::string::npos)
+        {
+            continue;
+        }
+
+        // Extract id
+        id_pos += 6; // skip `"id":"`
+        const auto id_end = line.find('"', id_pos);
+        if (id_end == std::string::npos)
+        {
+            continue;
+        }
+        const std::string binding_id = line.substr(id_pos, id_end - id_pos);
+
+        // Extract key_code
+        key_pos += 11; // skip `"key_code":`
+        auto key_end = line.find(',', key_pos);
+        if (key_end == std::string::npos)
+        {
+            key_end = line.find('}', key_pos);
+        }
+
+        // Extract modifiers
+        mod_pos += 12; // skip `"modifiers":`
+        auto mod_end = line.find(',', mod_pos);
+        if (mod_end == std::string::npos)
+        {
+            mod_end = line.find('}', mod_pos);
+        }
+
+        try
+        {
+            const int key_code = std::stoi(line.substr(key_pos, key_end - key_pos));
+            const int modifiers = std::stoi(line.substr(mod_pos, mod_end - mod_pos));
+            remap_shortcut(binding_id, key_code, modifiers);
+            ++remap_count;
+        }
+        catch (const std::exception& parse_error)
+        {
+            MARKAMP_LOG_WARN("Invalid JSON keybinding '{}': {}", binding_id, parse_error.what());
+        }
+    }
+
+    MARKAMP_LOG_INFO("Imported {} keybinding remaps from JSON", remap_count);
+}
+
+auto ShortcutManager::get_all_categories() const -> std::vector<std::string>
+{
+    std::vector<std::string> categories;
+    for (const auto& shortcut : shortcuts_)
+    {
+        if (!shortcut.category.empty() &&
+            std::find(categories.begin(), categories.end(), shortcut.category) == categories.end())
+        {
+            categories.push_back(shortcut.category);
+        }
+    }
+    return categories;
+}
+
+auto ShortcutManager::get_conflicts() const -> std::vector<std::pair<std::string, std::string>>
+{
+    std::vector<std::pair<std::string, std::string>> conflicts;
+    for (std::size_t outer = 0; outer < shortcuts_.size(); ++outer)
+    {
+        for (std::size_t inner = outer + 1; inner < shortcuts_.size(); ++inner)
+        {
+            const auto& shortcut_a = shortcuts_[outer];
+            const auto& shortcut_b = shortcuts_[inner];
+            if (shortcut_a.key_code == shortcut_b.key_code &&
+                shortcut_a.modifiers == shortcut_b.modifiers &&
+                shortcut_a.context == shortcut_b.context)
+            {
+                conflicts.emplace_back(shortcut_a.id, shortcut_b.id);
+            }
+        }
+    }
+    return conflicts;
+}
+
+auto ShortcutManager::shortcut_count() const -> std::size_t
+{
+    return shortcuts_.size();
+}
+
 } // namespace markamp::core

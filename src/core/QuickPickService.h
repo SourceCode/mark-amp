@@ -1,5 +1,7 @@
 #pragma once
 
+#include <algorithm>
+#include <cctype>
 #include <functional>
 #include <optional>
 #include <string>
@@ -84,5 +86,82 @@ private:
     MultiResultCallback multi_callback_;
     EventBus* event_bus_{nullptr};
 };
+
+// ============================================================================
+// V9 Phase 36 Tasks 5, 13 — Command argument type system
+// ============================================================================
+
+/// Type of a command argument for palette-driven prompts.
+enum class ArgumentType
+{
+    kString, // Free-text string input
+    kNumber, // Numeric input with validation
+    kChoice, // Pick from a list of options
+    kFile    // File picker
+};
+
+/// Defines an argument that a command can accept.
+struct CommandArgument
+{
+    std::string name; // Argument display name
+    ArgumentType type{ArgumentType::kString};
+    std::string default_value;        // Default value
+    std::vector<std::string> choices; // For kChoice type: available options
+    std::string placeholder;          // Input placeholder text
+    std::optional<int> min_value;     // For kNumber: minimum
+    std::optional<int> max_value;     // For kNumber: maximum
+};
+
+/// Fuzzy filter items by query, matching label and optionally description.
+[[nodiscard]] inline auto filter_quick_pick_items(const std::string& query,
+                                                  const std::vector<QuickPickItem>& items,
+                                                  bool match_description = false)
+    -> std::vector<QuickPickItem>
+{
+    if (query.empty())
+    {
+        return items;
+    }
+
+    std::vector<QuickPickItem> result;
+    for (const auto& item : items)
+    {
+        // Simple case-insensitive substring match
+        auto lower_query = query;
+        std::transform(lower_query.begin(),
+                       lower_query.end(),
+                       lower_query.begin(),
+                       [](unsigned char character)
+                       { return static_cast<char>(std::tolower(character)); });
+
+        auto lower_label = item.label;
+        std::transform(lower_label.begin(),
+                       lower_label.end(),
+                       lower_label.begin(),
+                       [](unsigned char character)
+                       { return static_cast<char>(std::tolower(character)); });
+
+        if (lower_label.find(lower_query) != std::string::npos)
+        {
+            result.push_back(item);
+            continue;
+        }
+
+        if (match_description)
+        {
+            auto lower_desc = item.description;
+            std::transform(lower_desc.begin(),
+                           lower_desc.end(),
+                           lower_desc.begin(),
+                           [](unsigned char character)
+                           { return static_cast<char>(std::tolower(character)); });
+            if (lower_desc.find(lower_query) != std::string::npos)
+            {
+                result.push_back(item);
+            }
+        }
+    }
+    return result;
+}
 
 } // namespace markamp::core

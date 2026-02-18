@@ -91,6 +91,42 @@ auto Theme::is_dark() const -> bool
     return colors.bg_app.luminance() < 0.2f;
 }
 
+auto Theme::hover_safe() const -> Color
+{
+    // Derive a contrast-safe hover state from accent_primary and bg_app.
+    // Lighten or darken accent to ensure WCAG AA (4.5:1) against bg_app.
+    auto candidate = colors.accent_primary.with_alpha(0.15f);
+    auto blended = Color{
+        static_cast<uint8_t>(colors.bg_app.r +
+                             static_cast<int>((candidate.r - colors.bg_app.r) * 0.15f)),
+        static_cast<uint8_t>(colors.bg_app.g +
+                             static_cast<int>((candidate.g - colors.bg_app.g) * 0.15f)),
+        static_cast<uint8_t>(colors.bg_app.b +
+                             static_cast<int>((candidate.b - colors.bg_app.b) * 0.15f)),
+    };
+    return blended;
+}
+
+auto Theme::selected_safe() const -> Color
+{
+    // Stronger accent blend for selected state.
+    auto candidate = colors.accent_primary.with_alpha(0.25f);
+    auto blended = Color{
+        static_cast<uint8_t>(colors.bg_app.r +
+                             static_cast<int>((candidate.r - colors.bg_app.r) * 0.25f)),
+        static_cast<uint8_t>(colors.bg_app.g +
+                             static_cast<int>((candidate.g - colors.bg_app.g) * 0.25f)),
+        static_cast<uint8_t>(colors.bg_app.b +
+                             static_cast<int>((candidate.b - colors.bg_app.b) * 0.25f)),
+    };
+    return blended;
+}
+
+auto Theme::inherits_from(const std::string& theme_id) const -> bool
+{
+    return !parent_theme_id.empty() && parent_theme_id == theme_id;
+}
+
 void Theme::sync_layers_from_colors()
 {
     // Chrome layer — from base + UI tokens
@@ -175,6 +211,25 @@ void to_json(nlohmann::json& j, const ThemeColors& tc)
         {"--list-selected", tc.list_selected},
         {"--scrollbar-thumb", tc.scrollbar_thumb},
         {"--scrollbar-track", tc.scrollbar_track},
+
+        // V9: Semantic UI tokens
+        {"--sidebar-bg", tc.sidebar_bg},
+        {"--sidebar-fg", tc.sidebar_fg},
+        {"--activity-bar-bg", tc.activity_bar_bg},
+        {"--activity-bar-fg", tc.activity_bar_fg},
+        {"--activity-bar-badge-bg", tc.activity_bar_badge_bg},
+        {"--activity-bar-badge-fg", tc.activity_bar_badge_fg},
+        {"--breadcrumb-fg", tc.breadcrumb_fg},
+        {"--breadcrumb-focus-fg", tc.breadcrumb_focus_fg},
+        {"--tab-active-bg", tc.tab_active_bg},
+        {"--tab-inactive-bg", tc.tab_inactive_bg},
+        {"--tab-active-fg", tc.tab_active_fg},
+        {"--tab-inactive-fg", tc.tab_inactive_fg},
+        {"--diff-inserted-bg", tc.diff_inserted_bg},
+        {"--diff-removed-bg", tc.diff_removed_bg},
+        {"--minimap-bg", tc.minimap_bg},
+        {"--peek-view-border", tc.peek_view_border},
+        {"--notebook-cell-bg", tc.notebook_cell_bg},
     };
 }
 
@@ -251,6 +306,42 @@ void from_json(const nlohmann::json& j, ThemeColors& tc)
         j.at("--scrollbar-track").get_to(tc.scrollbar_track);
     else
         tc.scrollbar_track = tc.bg_panel;
+
+    // V9: Optional semantic UI tokens
+    if (j.contains("--sidebar-bg"))
+        j.at("--sidebar-bg").get_to(tc.sidebar_bg);
+    if (j.contains("--sidebar-fg"))
+        j.at("--sidebar-fg").get_to(tc.sidebar_fg);
+    if (j.contains("--activity-bar-bg"))
+        j.at("--activity-bar-bg").get_to(tc.activity_bar_bg);
+    if (j.contains("--activity-bar-fg"))
+        j.at("--activity-bar-fg").get_to(tc.activity_bar_fg);
+    if (j.contains("--activity-bar-badge-bg"))
+        j.at("--activity-bar-badge-bg").get_to(tc.activity_bar_badge_bg);
+    if (j.contains("--activity-bar-badge-fg"))
+        j.at("--activity-bar-badge-fg").get_to(tc.activity_bar_badge_fg);
+    if (j.contains("--breadcrumb-fg"))
+        j.at("--breadcrumb-fg").get_to(tc.breadcrumb_fg);
+    if (j.contains("--breadcrumb-focus-fg"))
+        j.at("--breadcrumb-focus-fg").get_to(tc.breadcrumb_focus_fg);
+    if (j.contains("--tab-active-bg"))
+        j.at("--tab-active-bg").get_to(tc.tab_active_bg);
+    if (j.contains("--tab-inactive-bg"))
+        j.at("--tab-inactive-bg").get_to(tc.tab_inactive_bg);
+    if (j.contains("--tab-active-fg"))
+        j.at("--tab-active-fg").get_to(tc.tab_active_fg);
+    if (j.contains("--tab-inactive-fg"))
+        j.at("--tab-inactive-fg").get_to(tc.tab_inactive_fg);
+    if (j.contains("--diff-inserted-bg"))
+        j.at("--diff-inserted-bg").get_to(tc.diff_inserted_bg);
+    if (j.contains("--diff-removed-bg"))
+        j.at("--diff-removed-bg").get_to(tc.diff_removed_bg);
+    if (j.contains("--minimap-bg"))
+        j.at("--minimap-bg").get_to(tc.minimap_bg);
+    if (j.contains("--peek-view-border"))
+        j.at("--peek-view-border").get_to(tc.peek_view_border);
+    if (j.contains("--notebook-cell-bg"))
+        j.at("--notebook-cell-bg").get_to(tc.notebook_cell_bg);
 }
 
 void to_json(nlohmann::json& j, const Theme& t)
@@ -273,7 +364,12 @@ void to_json(nlohmann::json& j, const Theme& t)
         {"name", t.name},
         {"colors", t.colors},
         {"effects", effects_json},
+        {"format_version", t.format_version},
     };
+    if (!t.parent_theme_id.empty())
+    {
+        j["parent_theme_id"] = t.parent_theme_id;
+    }
 }
 
 void from_json(const nlohmann::json& j, Theme& t)
@@ -314,6 +410,16 @@ void from_json(const nlohmann::json& j, Theme& t)
     if (j.contains("neon_edge"))
     {
         j.at("neon_edge").get_to(t.neon_edge);
+    }
+
+    // V9: format_version and parent_theme_id
+    if (j.contains("format_version"))
+    {
+        j.at("format_version").get_to(t.format_version);
+    }
+    if (j.contains("parent_theme_id"))
+    {
+        j.at("parent_theme_id").get_to(t.parent_theme_id);
     }
 }
 

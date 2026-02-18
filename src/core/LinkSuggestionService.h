@@ -78,6 +78,25 @@ public:
     [[nodiscard]] auto detect_link_targets(const std::string& text) const
         -> std::vector<std::pair<std::string, std::string>>;
 
+    // ── Phase 17 Task 10 — Link validation ────────────────────
+
+    /// Result of validating a single link.
+    struct LinkValidationResult
+    {
+        std::string link_text;   ///< Original link text
+        std::string link_target; ///< Resolved target
+        bool is_valid{false};    ///< Whether the link resolves
+        std::string message;     ///< Diagnostic message if invalid
+        int line{0};             ///< Source line number
+    };
+
+    /// Validate a single link target against the vault.
+    [[nodiscard]] auto validate_link(const std::string& link_target) const -> LinkValidationResult;
+
+    /// Validate all links in a document's content.
+    [[nodiscard]] auto batch_validate(const std::string& document_content) const
+        -> std::vector<LinkValidationResult>;
+
 private:
     EventBus& event_bus_;
     VaultService& vault_service_;

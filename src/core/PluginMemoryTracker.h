@@ -83,8 +83,90 @@ public:
         budget_.reset_usage();
     }
 
+    // ── V9 Phase 04 Task 8: Per-plugin resource limits ──
+
+    /// Configurable resource limits per plugin.
+    struct ResourceLimits
+    {
+        std::size_t memory_bytes{0}; ///< Max memory in bytes (0 = unlimited)
+        int64_t cpu_time_ms{0};      ///< Max CPU time in milliseconds (0 = unlimited)
+        int event_subscriptions{0};  ///< Max event subscriptions (0 = unlimited)
+    };
+
+    /// A single resource violation.
+    struct ResourceViolation
+    {
+        std::string plugin_id;
+        std::string resource_type; ///< "memory", "cpu_time", or "event_subscriptions"
+        std::string message;
+    };
+
+    /// Set resource limits for a specific plugin.
+    void set_limits(const std::string& plugin_id, const ResourceLimits& limits)
+    {
+        resource_limits_[plugin_id] = limits;
+    }
+
+    /// Report CPU time usage for a plugin.
+    void report_cpu_time(const std::string& plugin_id, int64_t cpu_ms)
+    {
+        cpu_time_usage_[plugin_id] = cpu_ms;
+    }
+
+    /// Report event subscription count for a plugin.
+    void report_event_subscriptions(const std::string& plugin_id, int count)
+    {
+        event_sub_counts_[plugin_id] = count;
+    }
+
+    /// Check all resource limits for a specific plugin.
+    [[nodiscard]] auto check_limits(const std::string& plugin_id) const
+        -> std::vector<ResourceViolation>
+    {
+        std::vector<ResourceViolation> violations;
+        auto limits_it = resource_limits_.find(plugin_id);
+        if (limits_it == resource_limits_.end())
+        {
+            return violations; // No limits configured
+        }
+        const auto& limits = limits_it->second;
+
+        // Check memory
+        if (limits.memory_bytes > 0 && budget_.current_usage(plugin_id) > limits.memory_bytes)
+        {
+            violations.push_back({plugin_id, "memory", "Memory usage exceeds limit"});
+        }
+
+        // Check CPU time
+        if (limits.cpu_time_ms > 0)
+        {
+            auto cpu_it = cpu_time_usage_.find(plugin_id);
+            if (cpu_it != cpu_time_usage_.end() && cpu_it->second > limits.cpu_time_ms)
+            {
+                violations.push_back({plugin_id, "cpu_time", "CPU time exceeds limit"});
+            }
+        }
+
+        // Check event subscriptions
+        if (limits.event_subscriptions > 0)
+        {
+            auto sub_it = event_sub_counts_.find(plugin_id);
+            if (sub_it != event_sub_counts_.end() && sub_it->second > limits.event_subscriptions)
+            {
+                violations.push_back(
+                    {plugin_id, "event_subscriptions", "Event subscription count exceeds limit"});
+            }
+        }
+        return violations;
+    }
+
 private:
     MemoryBudget budget_;
+
+    // Task 8: Extended resource tracking
+    std::unordered_map<std::string, ResourceLimits> resource_limits_;
+    std::unordered_map<std::string, int64_t> cpu_time_usage_;
+    std::unordered_map<std::string, int> event_sub_counts_;
 };
 
 } // namespace markamp::core

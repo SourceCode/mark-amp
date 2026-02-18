@@ -1,9 +1,11 @@
 #include "Config.h"
 
 #include "Logger.h"
+#include "SettingsCatalog.h"
 
 #include <nlohmann/json.hpp> // For migration
 
+#include <algorithm>
 #include <array>
 #include <cstdlib>
 #include <fstream>
@@ -487,25 +489,37 @@ auto Config::get_double(std::string_view key, double default_val) const -> doubl
 void Config::set(std::string_view key, std::string_view value)
 {
     data_[std::string(key)] = std::string(value);
-    rebuild_cache();
+    if (!batching_)
+    {
+        rebuild_cache();
+    }
 }
 
 void Config::set(std::string_view key, int value)
 {
     data_[std::string(key)] = value;
-    rebuild_cache();
+    if (!batching_)
+    {
+        rebuild_cache();
+    }
 }
 
 void Config::set(std::string_view key, bool value)
 {
     data_[std::string(key)] = value;
-    rebuild_cache();
+    if (!batching_)
+    {
+        rebuild_cache();
+    }
 }
 
 void Config::set(std::string_view key, double value)
 {
     data_[std::string(key)] = value;
-    rebuild_cache();
+    if (!batching_)
+    {
+        rebuild_cache();
+    }
 }
 
 auto Config::cached() const -> const Config::CachedValues&
@@ -530,6 +544,29 @@ void Config::rebuild_cache()
     cached_.line_height = get_int("editor.line_height", 0);
     cached_.padding_top = get_int("editor.padding_top", 0);
     cached_.padding_bottom = get_int("editor.padding_bottom", 0);
+
+    // Phase 01 Task 8: Range validation — clamp out-of-range integers and warn
+    auto clamp_int = [](int& value, int min_val, int max_val, const char* key_name) -> bool
+    {
+        if (value < min_val || value > max_val)
+        {
+            MARKAMP_LOG_WARN("Config '{}': value {} out of range [{}, {}], clamping",
+                             key_name,
+                             value,
+                             min_val,
+                             max_val);
+            value = std::clamp(value, min_val, max_val);
+            return true;
+        }
+        return false;
+    };
+
+    clamp_int(cached_.font_size, 8, 72, "font_size");
+    clamp_int(cached_.tab_size, 1, 16, "tab_size");
+    clamp_int(cached_.edge_column, 0, 300, "edge_column");
+    clamp_int(cached_.cursor_width, 1, 10, "editor.cursor_width");
+    clamp_int(cached_.word_wrap_column, 0, 500, "editor.word_wrap_column");
+    clamp_int(cached_.auto_save_interval_seconds, 5, 3600, "auto_save_interval_seconds");
 
     cached_.letter_spacing = get_double("editor.letter_spacing", 0.0);
 
@@ -688,6 +725,213 @@ auto Config::snapshot() const -> Config
     copy.data_ = YAML::Clone(data_);
     copy.rebuild_cache();
     return copy;
+}
+
+// ── Phase 02 Task 1: SettingsCatalog wiring ──
+
+void Config::set_catalog(SettingsCatalog* catalog)
+{
+    catalog_ = catalog;
+}
+
+void Config::apply_catalog_defaults()
+{
+    if (catalog_ == nullptr)
+    {
+        MARKAMP_LOG_WARN("Config::apply_catalog_defaults called with no catalog attached");
+        return;
+    }
+
+    const auto& entries = catalog_->all_settings();
+    for (const auto& entry : entries)
+    {
+        if (entry.default_value.empty())
+        {
+            continue;
+        }
+        // Only set keys that are not already present
+        if (data_[entry.setting_id])
+        {
+            continue;
+        }
+
+        // Set based on the catalog's declared type
+        switch (entry.type)
+        {
+            case SettingType::Integer:
+                try
+                {
+                    data_[entry.setting_id] = std::stoi(entry.default_value);
+                }
+                catch (...)
+                {
+                    data_[entry.setting_id] = entry.default_value;
+                }
+                break;
+            case SettingType::Boolean:
+                data_[entry.setting_id] = (entry.default_value == "true");
+                break;
+            case SettingType::Double:
+                try
+                {
+                    data_[entry.setting_id] = std::stod(entry.default_value);
+                }
+                catch (...)
+                {
+                    data_[entry.setting_id] = entry.default_value;
+                }
+                break;
+            default: // String, Choice, Color, KeyBinding
+                data_[entry.setting_id] = entry.default_value;
+                break;
+        }
+    }
+
+    MARKAMP_LOG_INFO("Applied {} catalog defaults", entries.size());
+    rebuild_cache();
+}
+
+// ── Phase 02 Task 3: Schema validation ──
+
+auto Config::validate_value(std::string_view key, int value) const
+    -> std::expected<void, std::string>
+{
+    if (catalog_ == nullptr)
+    {
+        return {}; // No catalog = no validation
+    }
+
+    const auto* entry = catalog_->find_setting(key);
+    if (entry == nullptr)
+    {
+        return {}; // Unknown key = allow (forward-compatible)
+    }
+
+    if (entry->type != SettingType::Integer)
+    {
+        return std::unexpected("Key '" + std::string(key) + "' expects type " +
+                               std::to_string(static_cast<int>(entry->type)) + ", got integer");
+    }
+
+    if (value < entry->min_int || value > entry->max_int)
+    {
+        return std::unexpected("Key '" + std::string(key) + "': value " + std::to_string(value) +
+                               " out of range [" + std::to_string(entry->min_int) + ", " +
+                               std::to_string(entry->max_int) + "]");
+    }
+
+    return {};
+}
+
+auto Config::validate_value(std::string_view key, const std::string& value) const
+    -> std::expected<void, std::string>
+{
+    if (catalog_ == nullptr)
+    {
+        return {};
+    }
+
+    const auto* entry = catalog_->find_setting(key);
+    if (entry == nullptr)
+    {
+        return {};
+    }
+
+    if (entry->type == SettingType::Choice && !entry->choices.empty())
+    {
+        bool found = false;
+        for (const auto& choice : entry->choices)
+        {
+            if (choice == value)
+            {
+                found = true;
+                break;
+            }
+        }
+        if (!found)
+        {
+            return std::unexpected("Key '" + std::string(key) + "': value '" + value +
+                                   "' not in allowed choices");
+        }
+    }
+
+    return {};
+}
+
+// ── Phase 02 Task 4: Change batching ──
+
+void Config::begin_batch()
+{
+    if (batching_)
+    {
+        MARKAMP_LOG_WARN("Config::begin_batch called while already batching");
+        return;
+    }
+    batch_snapshot_ = YAML::Clone(data_);
+    batching_ = true;
+}
+
+void Config::commit_batch()
+{
+    if (!batching_)
+    {
+        MARKAMP_LOG_WARN("Config::commit_batch called without begin_batch");
+        return;
+    }
+    batching_ = false;
+    rebuild_cache();
+}
+
+void Config::discard_batch()
+{
+    if (!batching_)
+    {
+        MARKAMP_LOG_WARN("Config::discard_batch called without begin_batch");
+        return;
+    }
+    data_ = YAML::Clone(batch_snapshot_);
+    batching_ = false;
+    rebuild_cache();
+}
+
+auto Config::is_batching() const -> bool
+{
+    return batching_;
+}
+
+// ── Phase 02: modified_settings and restore_from_snapshot ──
+
+auto Config::modified_settings() const -> std::vector<std::string>
+{
+    std::vector<std::string> modified;
+    if (catalog_ == nullptr || !data_.IsMap())
+    {
+        return modified;
+    }
+
+    for (const auto& pair : data_)
+    {
+        auto key_str = pair.first.as<std::string>();
+        const auto* entry = catalog_->find_setting(key_str);
+        if (entry == nullptr)
+        {
+            // Key not in catalog — consider it modified (custom key)
+            modified.push_back(key_str);
+            continue;
+        }
+        auto current_val = pair.second.as<std::string>("");
+        if (current_val != entry->default_value)
+        {
+            modified.push_back(key_str);
+        }
+    }
+    return modified;
+}
+
+void Config::restore_from_snapshot(const Config& snap)
+{
+    data_ = YAML::Clone(snap.data_);
+    rebuild_cache();
 }
 
 } // namespace markamp::core

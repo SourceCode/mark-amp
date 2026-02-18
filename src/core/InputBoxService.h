@@ -3,6 +3,7 @@
 #include <functional>
 #include <optional>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace markamp::core
@@ -59,5 +60,51 @@ private:
     ResultCallback current_callback_;
     EventBus* event_bus_{nullptr};
 };
+
+// ============================================================================
+// V9 Phase 36 Task 14 — Input history and validation extensions
+// ============================================================================
+
+/// Maintains per-prompt-type input history for up-arrow recall.
+class InputHistory
+{
+public:
+    InputHistory() = default;
+
+    /// Add an input to history for a given prompt type.
+    void add(const std::string& prompt_type, const std::string& value);
+
+    /// Get the Nth previous input (0 = most recent).
+    [[nodiscard]] auto get_previous(const std::string& prompt_type, int offset = 0) const
+        -> std::string;
+
+    /// Get all history for a prompt type.
+    [[nodiscard]] auto get_all(const std::string& prompt_type) const -> std::vector<std::string>;
+
+    /// Clear history for a specific prompt type.
+    void clear(const std::string& prompt_type);
+
+    /// Clear all history.
+    void clear_all();
+
+    /// Maximum entries per prompt type.
+    static constexpr int kMaxPerType = 50;
+
+private:
+    std::unordered_map<std::string, std::vector<std::string>> history_;
+};
+
+/// Validate an input value against InputBoxOptions constraints.
+/// Returns error message string, or nullopt if valid.
+[[nodiscard]] inline auto validate_input_box(const std::string& value,
+                                             const InputBoxOptions& /*options*/)
+    -> std::optional<std::string>
+{
+    if (value.empty())
+    {
+        return "Value cannot be empty";
+    }
+    return std::nullopt;
+}
 
 } // namespace markamp::core

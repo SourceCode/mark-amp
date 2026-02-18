@@ -116,6 +116,15 @@ StatusBarPanel::StatusBarPanel(wxWindow* parent,
                                      RebuildItems();
                                      Refresh();
                                  });
+
+    // Phase 06 Task 15: Subscribe to sidebar mode changes
+    sidebar_mode_sub_ = event_bus_.subscribe<core::events::SidebarModeChangedEvent>(
+        [this](const core::events::SidebarModeChangedEvent& evt)
+        {
+            sidebar_mode_name_ = sidebar_mode_label(evt.new_mode);
+            RebuildItems();
+            Refresh();
+        });
 }
 
 // --- State setters ---
@@ -396,6 +405,18 @@ void StatusBarPanel::RebuildItems()
         auto branch_text = "\xE2\x8E\x87 " + git_branch_;
         left_items_.push_back({branch_text, {}, false, false, nullptr, "Current git branch"});
     }
+
+    // Phase 06 Task 15: Sidebar mode indicator
+    left_items_.push_back({sidebar_mode_name_,
+                           {},
+                           false,
+                           true,
+                           [this]()
+                           {
+                               core::events::SidebarToggleEvent toggle_evt;
+                               event_bus_.publish(toggle_evt);
+                           },
+                           "Active sidebar panel — click to toggle"});
 
     // Right zone: {N} WORDS • {M} CHARS • SEL: {LEN} • MERMAID: {STATUS} • Theme Name
     if (word_count_ > 0)
@@ -767,6 +788,31 @@ auto StatusBarPanel::view_mode_label(core::events::ViewMode mode) -> std::string
             return "LIVE";
     }
     return "SPLIT"; // fallback
+}
+
+auto StatusBarPanel::sidebar_mode_label(int mode) -> std::string
+{
+    switch (mode)
+    {
+        case 0:
+            return "EXPLORER";
+        case 1:
+            return "SEARCH";
+        case 2:
+            return "SETTINGS";
+        case 3:
+            return "THEMES";
+        case 4:
+            return "EXTENSIONS";
+        case 5:
+            return "NOTEBOOKS";
+        case 6:
+            return "CANVAS";
+        case 7:
+            return "GRAPH";
+        default:
+            return "EXPLORER";
+    }
 }
 
 } // namespace markamp::ui

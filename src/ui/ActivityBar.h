@@ -33,6 +33,9 @@ public:
     /// R18 Fix 25: Set badge count on an activity bar item
     void SetBadge(core::events::ActivityBarItem item, int count);
 
+    /// Phase 06 Task 6: Focus management
+    void FocusItem(int index);
+
 private:
     struct BarItem
     {
@@ -50,8 +53,18 @@ private:
     core::events::ActivityBarItem active_item_{core::events::ActivityBarItem::FileExplorer};
     int hover_index_{-1};
     int pressed_index_{-1}; // R20 Fix 18: index of item being pressed
+    int focus_index_{-1};   // Phase 06 Task 6: keyboard focus index
+
+    // Phase 06 Task 12: Drag reorder
+    int drag_index_{-1};
+    int drag_target_index_{-1};
+    bool is_dragging_{false};
+    wxPoint drag_start_pos_;
 
     core::Subscription theme_sub_;
+    core::Subscription search_count_sub_;      // Phase 06 Task 7
+    core::Subscription diagnostics_sub_;       // Phase 06 Task 7
+    core::Subscription extension_updates_sub_; // Phase 06 Task 7
 
     void CreateItems();
     void ApplyTheme();
@@ -62,6 +75,15 @@ private:
     void OnDoubleClick(wxMouseEvent& event); // R20 Fix 16: collapse sidebar
     void OnMouseMove(wxMouseEvent& event);
     void OnMouseLeave(wxMouseEvent& event);
+    void OnKeyDown(wxKeyEvent& event);     // Phase 06 Task 6: keyboard nav
+    void OnSetFocus(wxFocusEvent& event);  // Phase 06 Task 6: focus ring
+    void OnKillFocus(wxFocusEvent& event); // Phase 06 Task 6: focus ring
+
+    /// Phase 06 Task 13: Right-click context menu
+    void OnRightClick(wxMouseEvent& event);
+
+    /// Phase 06 Task 12: Reorder items via drag
+    void FinishDrag();
 
     auto HitTest(const wxPoint& pos) const -> int;
 };

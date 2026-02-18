@@ -61,8 +61,8 @@ public:
     auto register_builtins() -> void;
 
 private:
-    EventBus& event_bus_;
-    Config& config_;
+    [[maybe_unused]] EventBus& event_bus_;
+    [[maybe_unused]] Config& config_;
     mutable std::mutex mutex_;
 
     // Map of format -> exporter.

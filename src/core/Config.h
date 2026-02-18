@@ -10,6 +10,8 @@
 namespace markamp::core
 {
 
+class SettingsCatalog;
+
 /// Persistent configuration manager backed by a Markdown file (YAML frontmatter).
 /// Uses platform-appropriate config directory (wxStandardPaths-compatible).
 class Config
@@ -48,6 +50,37 @@ public:
     /// already present in the config. Returns an error string on failure.
     [[nodiscard]] auto load_defaults_from_json(const std::filesystem::path& path)
         -> std::expected<void, std::string>;
+
+    // ── Phase 02 Task 1: SettingsCatalog wiring ──
+
+    /// Attach a SettingsCatalog for default resolution and schema validation.
+    void set_catalog(SettingsCatalog* catalog);
+
+    /// Apply defaults from the attached SettingsCatalog (replaces hardcoded kDefaults).
+    void apply_catalog_defaults();
+
+    // ── Phase 02 Task 3: Schema validation ──
+
+    /// Validate a value against the SettingsCatalog schema.
+    /// Returns true if the value is valid, false with a reason if not.
+    [[nodiscard]] auto validate_value(std::string_view key, int value) const
+        -> std::expected<void, std::string>;
+    [[nodiscard]] auto validate_value(std::string_view key, const std::string& value) const
+        -> std::expected<void, std::string>;
+
+    // ── Phase 02 Task 4: Change batching ──
+
+    /// Begin a batch — defers `rebuild_cache()` and `save()` until `commit_batch()`.
+    void begin_batch();
+
+    /// Commit the current batch — rebuilds cache and saves once.
+    void commit_batch();
+
+    /// Discard all changes made since `begin_batch()`.
+    void discard_batch();
+
+    /// Whether the config is currently in a batch.
+    [[nodiscard]] auto is_batching() const -> bool;
 
     /// Cached frequently-accessed config values for O(1) access.
     /// Rebuilt automatically on load() and set() calls.
@@ -123,9 +156,18 @@ public:
     /// Create an in-memory copy for undo/revert support.
     [[nodiscard]] auto snapshot() const -> Config;
 
+    /// Return keys whose current values differ from the catalog defaults.
+    [[nodiscard]] auto modified_settings() const -> std::vector<std::string>;
+
+    /// Restore all settings from a snapshot (for undo).
+    void restore_from_snapshot(const Config& snap);
+
 private:
     YAML::Node data_;
     CachedValues cached_;
+    SettingsCatalog* catalog_{nullptr};
+    bool batching_{false};
+    YAML::Node batch_snapshot_; // snapshot of data_ before batch
 
     void apply_defaults();
     void rebuild_cache();

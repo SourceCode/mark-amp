@@ -18,6 +18,7 @@
 #include "core/LanguageProviderRegistry.h"
 #include "core/Logger.h"
 #include "core/MathRenderer.h"
+#include "core/MemoryBudget.h"
 #include "core/MermaidRenderer.h"
 #include "core/NotificationService.h"
 #include "core/OutputChannelService.h"
@@ -26,6 +27,7 @@
 #include "core/QuickPickService.h"
 #include "core/RecentWorkspaces.h"
 #include "core/SnippetEngine.h"
+#include "core/StartupTimer.h"
 #include "core/StatusBarItemService.h"
 #include "core/TaskRunnerService.h"
 #include "core/TerminalService.h"
@@ -33,6 +35,7 @@
 #include "core/ThemeEngine.h"
 #include "core/ThemeRegistry.h"
 #include "core/TreeDataProviderRegistry.h"
+#include "core/Watchdog.h"
 #include "core/WebviewService.h"
 #include "core/WorkspaceService.h"
 #include "platform/PlatformAbstraction.h"
@@ -67,9 +70,14 @@ bool MarkAmpApp::OnInit()
     MARKAMP_LOG_INFO("Platform: {}",
                      wxPlatformInfo::Get().GetOperatingSystemDescription().ToStdString());
 
+    // Phase 01 Task 9: Structured startup timing
+    core::StartupTimer startup_timer;
+    MARKAMP_LOG_DEBUG("StartupTimer created (t₀)");
+
     // 2. Create core services
     event_bus_ = std::make_unique<core::EventBus>();
     MARKAMP_LOG_DEBUG("EventBus initialized");
+    startup_timer.checkpoint("event_bus_created");
 
     // 3. Load configuration
     config_ = std::make_unique<core::Config>();
@@ -82,10 +90,12 @@ bool MarkAmpApp::OnInit()
     {
         MARKAMP_LOG_INFO("Configuration loaded");
     }
+    startup_timer.checkpoint("config_loaded");
 
     // 3b. Initialize recent workspaces
     recent_workspaces_ = std::make_unique<core::RecentWorkspaces>(*config_);
     MARKAMP_LOG_DEBUG("RecentWorkspaces initialized");
+    startup_timer.checkpoint("recent_workspaces_loaded");
 
     // 4. Initialize app state manager
     state_manager_ = std::make_unique<core::AppStateManager>(*event_bus_);
@@ -112,6 +122,7 @@ bool MarkAmpApp::OnInit()
     theme_engine_ = std::make_unique<core::ThemeEngine>(*event_bus_, *theme_registry_);
     MARKAMP_LOG_DEBUG("ThemeEngine initialized with theme: {}",
                       theme_engine_->current_theme().name);
+    startup_timer.checkpoint("theme_system_initialized");
 
     // 8. Initialize extension API services
     context_key_service_ = std::make_unique<core::ContextKeyService>();
@@ -136,6 +147,7 @@ bool MarkAmpApp::OnInit()
     terminal_service_ = std::make_unique<core::TerminalService>();
     task_runner_service_ = std::make_unique<core::TaskRunnerService>();
     MARKAMP_LOG_INFO("Extension API services initialized (21 services)");
+    startup_timer.checkpoint("extension_services_initialized");
 
     // 9. Initialize plugin system
     feature_registry_ = std::make_unique<core::FeatureRegistry>(*event_bus_, *config_);
@@ -170,9 +182,31 @@ bool MarkAmpApp::OnInit()
 
     core::register_builtin_plugins(*plugin_manager_, *feature_registry_);
     plugin_manager_->activate_all();
-    MARKAMP_LOG_INFO("Plugin system initialized: {} plugins, {} features",
-                     plugin_manager_->plugin_count(),
-                     feature_registry_->feature_count());
+
+    // Phase 01 Task 11: Aggregated activation error summary
+    auto active_count = 0;
+    auto total_count = plugin_manager_->plugin_count();
+    for (const auto* plugin : plugin_manager_->get_all_plugins())
+    {
+        if (plugin->is_active())
+        {
+            ++active_count;
+        }
+    }
+    if (static_cast<std::size_t>(active_count) < total_count)
+    {
+        MARKAMP_LOG_WARN("Plugin activation: {}/{} succeeded ({} failed)",
+                         active_count,
+                         total_count,
+                         total_count - static_cast<std::size_t>(active_count));
+    }
+    else
+    {
+        MARKAMP_LOG_INFO("Plugin system initialized: {} plugins, {} features",
+                         total_count,
+                         feature_registry_->feature_count());
+    }
+    startup_timer.checkpoint("plugins_activated");
 
     // 10. Initialize Mermaid renderer (before MainFrame so it can be injected)
     mermaid_renderer_ = std::make_shared<core::MermaidRenderer>();
@@ -201,23 +235,66 @@ bool MarkAmpApp::OnInit()
     SetTopWindow(frame);
 
     // 12. Publish app ready event
-    core::events::AppReadyEvent readyEvent;
+    const core::events::AppReadyEvent readyEvent;
     event_bus_->publish(readyEvent);
 
     // 13. Bind idle handler to drain queued and fast-path EventBus events
     Bind(wxEVT_IDLE, &MarkAmpApp::OnIdle, this);
-    MARKAMP_LOG_INFO("MarkAmp initialization complete");
+
+    // Phase 01 Task 19: Start watchdog in debug builds
+#ifndef NDEBUG
+    watchdog_ = std::make_unique<core::Watchdog>();
+    watchdog_->set_threshold(std::chrono::milliseconds(500));
+    watchdog_->on_stall(
+        [](const core::StallEvent& stall)
+        {
+            MARKAMP_LOG_WARN("UI stall detected: {}ms (threshold: {}ms, severity: {})",
+                             stall.stall_duration.count(),
+                             stall.threshold.count(),
+                             stall.severity == core::StallSeverity::Critical ? "CRITICAL"
+                                                                             : "warning");
+        });
+    watchdog_->start();
+    MARKAMP_LOG_DEBUG("Debug watchdog started (threshold: 500ms)");
+#endif
+
+    // Phase 01 Task 20: Register memory budgets
+    memory_budget_ = std::make_unique<core::MemoryBudget>();
+    memory_budget_->register_subsystem("EventBus",
+                                       static_cast<std::size_t>(4) * 1024 * 1024); // 4 MB
+    memory_budget_->register_subsystem("PluginManager",
+                                       static_cast<std::size_t>(16) * 1024 * 1024); // 16 MB
+    memory_budget_->register_subsystem("ThemeEngine",
+                                       static_cast<std::size_t>(2) * 1024 * 1024);           // 2 MB
+    memory_budget_->register_subsystem("Config", static_cast<std::size_t>(1) * 1024 * 1024); // 1 MB
+    MARKAMP_LOG_DEBUG("Memory budgets registered ({} subsystems)",
+                      memory_budget_->subsystem_count());
+
+    // Phase 01 Task 9: Dump startup timing report
+    startup_timer.checkpoint("initialization_complete");
+    startup_timer.dump_to_log();
+    MARKAMP_LOG_INFO("MarkAmp initialization complete ({}ms)", startup_timer.total_ms());
 
     return true;
 }
 
 void MarkAmpApp::OnIdle(wxIdleEvent& event)
 {
-    if (event_bus_)
+    // Phase 01 Task 10: Use has_pending() to skip unnecessary work
+    if (event_bus_ && event_bus_->has_pending())
     {
         event_bus_->process_queued();
         event_bus_->drain_fast_queue();
     }
+
+#ifndef NDEBUG
+    // Phase 01 Task 19: Feed watchdog heartbeat
+    if (watchdog_)
+    {
+        watchdog_->heartbeat();
+    }
+#endif
+
     event.Skip();
 }
 
@@ -228,7 +305,7 @@ int MarkAmpApp::OnExit()
     // Publish shutdown event
     if (event_bus_)
     {
-        core::events::AppShutdownEvent shutdownEvent;
+        const core::events::AppShutdownEvent shutdownEvent;
         event_bus_->publish(shutdownEvent);
     }
 
@@ -241,6 +318,18 @@ int MarkAmpApp::OnExit()
             MARKAMP_LOG_WARN("Config save failed: {}", saveResult.error());
         }
     }
+
+    // Phase 01 Task 19: Stop watchdog before teardown
+#ifndef NDEBUG
+    if (watchdog_)
+    {
+        watchdog_->stop();
+    }
+    watchdog_.reset();
+#endif
+
+    // Phase 01 Task 20: Clear memory budgets
+    memory_budget_.reset();
 
     // IMPORTANT: Destroy the top-level window BEFORE resetting core services.
     // wxWidgets UI components (CustomChrome, LayoutManager, etc.) hold RAII

@@ -27,8 +27,9 @@ struct CalloutRenderResult
 {
     std::string html;
     CalloutType type{CalloutType::kNote};
-    std::string icon;      // SVG icon or Unicode glyph
-    std::string css_class; // CSS class for theming
+    std::string icon;           // SVG icon or Unicode glyph
+    std::string css_class;      // CSS class for theming
+    bool is_collapsible{false}; // Whether rendered as <details>/<summary>
 };
 
 /// Detects and renders GitHub-style callout/alert blocks.
@@ -45,8 +46,11 @@ public:
     [[nodiscard]] auto parse_callout_type(std::string_view first_line) const -> CalloutType;
 
     /// Render a callout block to HTML with appropriate styling.
-    [[nodiscard]] auto render(std::string_view content, CalloutType type) const
-        -> CalloutRenderResult;
+    /// When is_collapsible is true, wraps in <details>/<summary> instead of <div>.
+    [[nodiscard]] auto render(std::string_view content,
+                              CalloutType type,
+                              bool is_collapsible = false,
+                              bool is_collapsed = true) const -> CalloutRenderResult;
 
     /// Get the display name for a callout type.
     [[nodiscard]] static auto type_name(CalloutType type) -> std::string_view;

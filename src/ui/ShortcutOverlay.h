@@ -31,6 +31,20 @@ public:
         return is_visible_;
     }
 
+    // --- Phase 35: Export & Highlight ---
+
+    /// Export currently displayed shortcuts as a formatted Markdown string.
+    [[nodiscard]] auto export_as_markdown() const -> std::string;
+
+    /// Export shortcuts as JSON.
+    [[nodiscard]] auto export_as_json() const -> std::string;
+
+    /// Highlight a specific shortcut by its ID (for guided help).
+    void set_highlight_shortcut(const std::string& shortcut_id);
+
+    /// Get the total count of shortcuts displayed.
+    [[nodiscard]] auto total_shortcut_count() const -> std::size_t;
+
 protected:
     void OnThemeChanged(const core::Theme& new_theme) override;
 
@@ -41,6 +55,9 @@ private:
     // Search filter (Phase 7B)
     wxTextCtrl* filter_input_{nullptr};
     std::string filter_text_;
+
+    // Phase 35 state
+    std::string highlighted_shortcut_id_;
 
     /// Category groupings for display.
     struct ShortcutCategory

@@ -100,6 +100,26 @@ public:
     /// Format a key code as a human-readable string (e.g. WXK_F1 → "F1").
     [[nodiscard]] static auto format_key_name(int key_code) -> std::string;
 
+    // --- Phase 35: Shortcut Customization ---
+
+    /// Export all shortcuts as a formatted Markdown cheat-sheet.
+    [[nodiscard]] auto export_as_markdown() const -> std::string;
+
+    /// Export all shortcuts as a JSON string for external tooling.
+    [[nodiscard]] auto export_as_json() const -> std::string;
+
+    /// Import shortcut remaps from a JSON string.
+    void import_from_json(const std::string& json_str);
+
+    /// Get a deduplicated list of all categories.
+    [[nodiscard]] auto get_all_categories() const -> std::vector<std::string>;
+
+    /// Detect conflicting bindings and return pairs of shortcut IDs.
+    [[nodiscard]] auto get_conflicts() const -> std::vector<std::pair<std::string, std::string>>;
+
+    /// Total number of registered shortcuts.
+    [[nodiscard]] auto shortcut_count() const -> std::size_t;
+
 private:
     std::vector<Shortcut> shortcuts_;
     std::vector<Shortcut> default_shortcuts_; // Saved for reset_to_defaults()

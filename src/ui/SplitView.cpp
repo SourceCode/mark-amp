@@ -60,6 +60,15 @@ SplitView::SplitView(wxWindow* parent,
     divider_panel_->Bind(wxEVT_LEAVE_WINDOW, &SplitView::OnDividerMouseLeave, this);
     divider_panel_->Bind(wxEVT_LEFT_DCLICK, &SplitView::OnDividerDoubleClick, this);
 
+    // Phase 09 Task 18: Accessibility labels
+    divider_panel_->SetName("Split view divider");
+    divider_panel_->SetHelpText(
+        "Drag to resize editor and preview panes. Double-click to cycle presets.");
+    editor_panel_->SetName("Markdown editor");
+    editor_panel_->SetHelpText("Edit markdown source text");
+    preview_panel_->SetName("Rendered preview");
+    preview_panel_->SetHelpText("Live-rendered HTML preview of editor content");
+
     // --- Editor bevel overlay ---
     // NOTE: BevelPanel overlays do not work on macOS — they paint opaque and
     // block the underlying panel even with wxTRANSPARENT_WINDOW.
@@ -79,10 +88,27 @@ SplitView::SplitView(wxWindow* parent,
     view_mode_sub_ = event_bus_.subscribe<core::events::ViewModeChangedEvent>(
         [this](const core::events::ViewModeChangedEvent& evt) { SetViewMode(evt.mode); });
 
-    // --- Subscribe to content changes for heading index ---
+    // --- Subscribe to content changes for heading index + adaptive throttle ---
     content_sub_ = event_bus_.subscribe<core::events::EditorContentChangedEvent>(
         [this](const core::events::EditorContentChangedEvent& evt)
-        { RebuildHeadingIndex(evt.content); });
+        {
+            RebuildHeadingIndex(evt.content);
+            // Phase 09 Task 5: Adaptive throttle
+            UpdateRenderThrottle(evt.content.size());
+            // Phase 09 Task 3: Track edit time
+            last_edit_time_ = std::chrono::steady_clock::now();
+            render_pending_ = true;
+            // Update line count for cursor-anchored sync
+            int lines = 1;
+            for (const char character : evt.content)
+            {
+                if (character == '\n')
+                {
+                    ++lines;
+                }
+            }
+            total_line_count_ = std::max(lines, 1);
+        });
 
     // --- Subscribe to focus mode toggle ---
     focus_mode_sub_ = event_bus_.subscribe<core::events::FocusModeChangedEvent>(
@@ -132,6 +158,41 @@ SplitView::SplitView(wxWindow* parent,
 
     // --- Restore persisted split ratio ---
     RestoreSplitRatio();
+
+    // --- Phase 09 Task 1: Subscribe to cursor position for cursor-anchored sync ---
+    cursor_sync_sub_ = event_bus_.subscribe<core::events::CursorPositionChangedEvent>(
+        [this](const core::events::CursorPositionChangedEvent& evt)
+        {
+            OnCursorPositionChanged(evt.line, total_line_count_);
+            // Phase 09 Task 4: Update breadcrumb on cursor move
+            UpdateBreadcrumb(evt.line);
+        });
+
+    // --- Phase 09 Task 2: Subscribe to selection changes for mirroring ---
+    selection_mirror_sub_ = event_bus_.subscribe<core::events::CursorPositionChangedEvent>(
+        [this](const core::events::CursorPositionChangedEvent& evt)
+        {
+            if (evt.selection_length > 0 && editor_panel_ != nullptr)
+            {
+                // Selection active — publish highlight event
+                // The actual selected text is available from editor
+                auto* stc = editor_panel_->GetStyledTextCtrl();
+                if (stc != nullptr)
+                {
+                    const std::string sel_text = stc->GetSelectedText().ToStdString();
+                    OnSelectionChanged(sel_text);
+                }
+            }
+            else if (evt.selection_length == 0 && !last_selection_text_.empty())
+            {
+                // Selection cleared
+                OnSelectionChanged("");
+            }
+        });
+
+    // --- Phase 09 Task 13: Subscribe to export HTML requests ---
+    export_html_sub_ = event_bus_.subscribe<core::events::ExportHtmlRequestEvent>(
+        [this](const core::events::ExportHtmlRequestEvent& /*evt*/) { ExportHtml(); });
 
     // --- Initial layout ---
     UpdateLayout();
@@ -436,6 +497,8 @@ auto SplitView::GetScrollSyncMode() const -> core::events::ScrollSyncMode
 void SplitView::RebuildHeadingIndex(const std::string& content)
 {
     heading_positions_.clear();
+    heading_texts_.clear();
+    heading_levels_.clear();
 
     // Find lines starting with # (markdown headings)
     std::istringstream stream(content);
@@ -446,9 +509,29 @@ void SplitView::RebuildHeadingIndex(const std::string& content)
         if (!line.empty() && line[0] == '#')
         {
             heading_positions_.push_back(line_num);
+
+            // Phase 09 Task 4: Extract heading level and text
+            int level = 0;
+            std::size_t pos = 0;
+            while (pos < line.size() && line[pos] == '#')
+            {
+                ++level;
+                ++pos;
+            }
+            // Skip whitespace after #
+            while (pos < line.size() && line[pos] == ' ')
+            {
+                ++pos;
+            }
+            heading_levels_.push_back(std::min(level, 6));
+            heading_texts_.push_back(line.substr(pos));
         }
         ++line_num;
     }
+
+    // Phase 09 Task 3: Render completed after heading rebuild
+    last_render_time_ = std::chrono::steady_clock::now();
+    render_pending_ = false;
 }
 
 auto SplitView::FindNearestHeading(int editor_line) const -> int
@@ -640,22 +723,31 @@ void SplitView::OnDividerMouseMove(wxMouseEvent& event)
         return;
     }
 
-    int delta_x = event.GetX() - drag_start_x_;
-    int total_width = GetClientSize().GetWidth();
-    if (total_width <= 0)
+    // Phase 09 Task 6: Determine drag axis based on split direction
+    const bool is_vertical = (split_direction_ == core::events::SplitDirection::Vertical);
+    const int delta = is_vertical ? (event.GetY() - drag_start_x_) : (event.GetX() - drag_start_x_);
+    const int total_extent = is_vertical ? GetClientSize().GetHeight() : GetClientSize().GetWidth();
+    if (total_extent <= 0)
     {
         return;
     }
 
-    double delta_ratio = static_cast<double>(delta_x) / static_cast<double>(total_width);
+    const double delta_ratio = static_cast<double>(delta) / static_cast<double>(total_extent);
     double new_ratio = std::clamp(drag_start_ratio_ + delta_ratio, kMinSplitRatio, kMaxSplitRatio);
+
+    // Phase 09 Task 7: Magnetic snap points
+    const double snapped = FindNearestSnapPoint(new_ratio);
+    if (std::abs(new_ratio - snapped) < kSnapThreshold)
+    {
+        new_ratio = snapped;
+    }
 
     split_ratio_ = new_ratio;
     UpdateLayout();
 
     // R18 Fix 22: Show split ratio tooltip during drag
-    int left_pct = static_cast<int>(std::round(split_ratio_ * 100.0));
-    int right_pct = 100 - left_pct;
+    const int left_pct = static_cast<int>(std::round(split_ratio_ * 100.0));
+    const int right_pct = 100 - left_pct;
     divider_panel_->SetToolTip(wxString::Format("%d / %d", left_pct, right_pct));
 
     event.Skip();
@@ -741,17 +833,37 @@ void SplitView::UpdateLayout()
         case core::events::ViewMode::Split:
         case core::events::ViewMode::LivePreview:
         {
-            int split_pos = static_cast<int>(static_cast<double>(width) * split_ratio_);
-            split_pos = std::clamp(split_pos, kDividerWidth * 2, width - kDividerWidth * 2);
+            // Phase 09 Task 6: Support vertical split direction
+            if (split_direction_ == core::events::SplitDirection::Vertical)
+            {
+                // Vertical: editor on top, preview on bottom
+                const int split_pos =
+                    std::clamp(static_cast<int>(static_cast<double>(height) * split_ratio_),
+                               kDividerWidth * 2,
+                               height - kDividerWidth * 2);
+                const int editor_height = split_pos;
+                const int preview_y = split_pos + kDividerWidth;
+                const int preview_height = height - preview_y;
 
-            int editor_width = split_pos;
-            int divider_x = split_pos;
-            int preview_x = split_pos + kDividerWidth;
-            int preview_width = width - preview_x;
+                editor_panel_->SetSize(0, 0, width, editor_height);
+                divider_panel_->SetSize(0, split_pos, width, kDividerWidth);
+                preview_panel_->SetSize(0, preview_y, width, preview_height);
+            }
+            else
+            {
+                // Horizontal: editor on left, preview on right
+                const int split_pos =
+                    std::clamp(static_cast<int>(static_cast<double>(width) * split_ratio_),
+                               kDividerWidth * 2,
+                               width - kDividerWidth * 2);
+                const int editor_width = split_pos;
+                const int preview_x = split_pos + kDividerWidth;
+                const int preview_width = width - preview_x;
 
-            editor_panel_->SetSize(0, 0, editor_width, height);
-            divider_panel_->SetSize(divider_x, 0, kDividerWidth, height);
-            preview_panel_->SetSize(preview_x, 0, preview_width, height);
+                editor_panel_->SetSize(0, 0, editor_width, height);
+                divider_panel_->SetSize(split_pos, 0, kDividerWidth, height);
+                preview_panel_->SetSize(preview_x, 0, preview_width, height);
+            }
             break;
         }
     }
@@ -821,6 +933,589 @@ void SplitView::RestoreSplitRatio()
         double ratio = config_->get_double("split_ratio", kDefaultSplitRatio);
         split_ratio_ = std::clamp(ratio, kMinSplitRatio, kMaxSplitRatio);
     }
+}
+
+// ═══════════════════════════════════════════════════════
+// Phase 09 Task 1: Cursor-Anchored Scroll Sync
+// ═══════════════════════════════════════════════════════
+
+void SplitView::OnCursorPositionChanged(int line, int total_lines)
+{
+    last_cursor_line_ = line;
+    total_line_count_ = std::max(total_lines, 1);
+
+    // Only sync in cursor-anchored mode while in split view
+    if (scroll_sync_mode_ != core::events::ScrollSyncMode::CursorAnchored)
+    {
+        return;
+    }
+    if (current_mode_ != core::events::ViewMode::Split)
+    {
+        return;
+    }
+    if (preview_panel_ == nullptr)
+    {
+        return;
+    }
+
+    // Compute fractional position based on cursor line in total lines
+    const double fraction =
+        static_cast<double>(line) / static_cast<double>(std::max(total_lines - 1, 1));
+    preview_panel_->SetScrollFraction(std::clamp(fraction, 0.0, 1.0));
+}
+
+// ═══════════════════════════════════════════════════════
+// Phase 09 Task 2: Selection Mirroring
+// ═══════════════════════════════════════════════════════
+
+void SplitView::OnSelectionChanged(const std::string& selected_text)
+{
+    if (selected_text == last_selection_text_)
+    {
+        return; // No change
+    }
+    last_selection_text_ = selected_text;
+
+    // Publish highlight event for preview panel (or any subscriber)
+    core::events::SelectionHighlightEvent highlight_evt;
+    if (selected_text.empty())
+    {
+        highlight_evt.clear = true;
+    }
+    else
+    {
+        highlight_evt.selected_text = selected_text;
+        highlight_evt.clear = false;
+    }
+    event_bus_.publish(highlight_evt);
+}
+
+// ═══════════════════════════════════════════════════════
+// Phase 09 Task 3: Sync Accuracy Indicator
+// ═══════════════════════════════════════════════════════
+
+auto SplitView::GetSyncHealth() const -> SyncHealth
+{
+    if (!render_pending_)
+    {
+        return SyncHealth::kSynced;
+    }
+
+    // If we have a pending render but render happened after edit, still synced
+    if (last_render_time_ >= last_edit_time_)
+    {
+        return SyncHealth::kSynced;
+    }
+
+    // Check elapsed time since last edit
+    const auto elapsed = std::chrono::steady_clock::now() - last_edit_time_;
+    const auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count();
+
+    // If within debounce window, rendering is in progress
+    if (elapsed_ms < 500)
+    {
+        return SyncHealth::kRendering;
+    }
+
+    // More than 500ms since edit with no render completion => out of sync
+    return SyncHealth::kOutOfSync;
+}
+
+// ═══════════════════════════════════════════════════════
+// Phase 09 Task 4: Breadcrumbs
+// ═══════════════════════════════════════════════════════
+
+void SplitView::UpdateBreadcrumb(int cursor_line)
+{
+    if (heading_positions_.empty())
+    {
+        if (!current_breadcrumb_.empty())
+        {
+            current_breadcrumb_.clear();
+            core::events::BreadcrumbsChangedEvent evt;
+            evt.breadcrumb_path = "";
+            evt.heading_line = 0;
+            event_bus_.publish(evt);
+        }
+        return;
+    }
+
+    // Build breadcrumb hierarchy: find all headings at or before cursor line
+    // that form a nested hierarchy (each deeper level than its predecessor)
+    std::string path;
+    int last_level = 0;
+    int innermost_line = 0;
+
+    for (std::size_t idx = 0; idx < heading_positions_.size(); ++idx)
+    {
+        if (heading_positions_[idx] > cursor_line)
+        {
+            break; // Past cursor position
+        }
+
+        const int level = heading_levels_[idx];
+        // Only add if this heading is deeper than current context (or resets it)
+        if (level > last_level || path.empty())
+        {
+            if (!path.empty())
+            {
+                path += " > ";
+            }
+            // Prefix with heading markers for visual clarity
+            for (int hash_idx = 0; hash_idx < level; ++hash_idx)
+            {
+                path += '#';
+            }
+            path += ' ';
+            path += heading_texts_[idx];
+            last_level = level;
+            innermost_line = heading_positions_[idx];
+        }
+        else if (level <= last_level)
+        {
+            // Reset: this heading is at same or higher level
+            path.clear();
+            for (int hash_idx = 0; hash_idx < level; ++hash_idx)
+            {
+                path += '#';
+            }
+            path += ' ';
+            path += heading_texts_[idx];
+            last_level = level;
+            innermost_line = heading_positions_[idx];
+        }
+    }
+
+    if (path != current_breadcrumb_)
+    {
+        current_breadcrumb_ = path;
+        core::events::BreadcrumbsChangedEvent evt;
+        evt.breadcrumb_path = current_breadcrumb_;
+        evt.heading_line = innermost_line;
+        event_bus_.publish(evt);
+    }
+}
+
+auto SplitView::GetCurrentBreadcrumb() const -> std::string
+{
+    return current_breadcrumb_;
+}
+
+// ═══════════════════════════════════════════════════════
+// Phase 09 Task 5: Adaptive Render Throttling
+// ═══════════════════════════════════════════════════════
+
+void SplitView::UpdateRenderThrottle(std::size_t content_size)
+{
+    if (preview_panel_ == nullptr)
+    {
+        return;
+    }
+
+    int debounce_ms = kMediumDocDebounceMs; // default
+    if (content_size < kSmallDocThreshold)
+    {
+        debounce_ms = kSmallDocDebounceMs;
+    }
+    else if (content_size > kLargeDocThreshold)
+    {
+        debounce_ms = kLargeDocDebounceMs;
+    }
+
+    spdlog::trace("SplitView: adaptive throttle -> {}ms for {} bytes", debounce_ms, content_size);
+}
+
+// ═══════════════════════════════════════════════════════
+// Phase 09 Task 11: Typewriter Scroll Mode
+// ═══════════════════════════════════════════════════════
+
+void SplitView::SetTypewriterMode(bool enabled)
+{
+    if (enabled == typewriter_mode_)
+    {
+        return;
+    }
+    typewriter_mode_ = enabled;
+
+    if (editor_panel_ == nullptr)
+    {
+        return;
+    }
+
+    auto* stc = editor_panel_->GetStyledTextCtrl();
+    if (stc == nullptr)
+    {
+        return;
+    }
+
+    if (enabled)
+    {
+        // Center the cursor vertically using Scintilla caret policy
+        stc->SetYCaretPolicy(wxSTC_CARET_STRICT | wxSTC_CARET_EVEN, 0);
+        spdlog::debug("SplitView: typewriter mode ENABLED");
+    }
+    else
+    {
+        // Restore default caret policy — SLOP with small margin
+        stc->SetYCaretPolicy(wxSTC_CARET_SLOP, 3);
+        spdlog::debug("SplitView: typewriter mode DISABLED");
+    }
+}
+
+auto SplitView::IsTypewriterMode() const -> bool
+{
+    return typewriter_mode_;
+}
+
+void SplitView::ToggleTypewriterMode()
+{
+    SetTypewriterMode(!typewriter_mode_);
+}
+
+// ═══════════════════════════════════════════════════════
+// Phase 09 Task 13: Export Rendered HTML
+// ═══════════════════════════════════════════════════════
+
+void SplitView::ExportHtml()
+{
+    if (preview_panel_ == nullptr)
+    {
+        return;
+    }
+
+    // Show file dialog to choose export path
+    wxFileDialog save_dialog(this,
+                             "Export HTML",
+                             "",
+                             "export.html",
+                             "HTML files (*.html)|*.html|All files (*.*)|*.*",
+                             wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+
+    if (save_dialog.ShowModal() == wxID_CANCEL)
+    {
+        return; // User cancelled
+    }
+
+    const std::string path = save_dialog.GetPath().ToStdString();
+    const bool success = preview_panel_->ExportHtml(std::filesystem::path(path));
+
+    if (success)
+    {
+        spdlog::info("SplitView: HTML exported to {}", path);
+        event_bus_.publish(core::events::NotificationEvent{
+            "HTML exported to " + path, core::events::NotificationLevel::Success});
+    }
+    else
+    {
+        MARKAMP_LOG_ERROR("SplitView: HTML export failed for {}", path);
+        event_bus_.publish(core::events::NotificationEvent{"HTML export failed",
+                                                           core::events::NotificationLevel::Error});
+    }
+}
+
+// ═══════════════════════════════════════════════════════
+// Phase 09 Task 14: Reveal Commands
+// ═══════════════════════════════════════════════════════
+
+void SplitView::RevealInEditor(int heading_index)
+{
+    if (editor_panel_ == nullptr)
+    {
+        return;
+    }
+
+    const auto idx = static_cast<std::size_t>(heading_index);
+    if (idx >= heading_positions_.size())
+    {
+        return;
+    }
+
+    const int target_line = heading_positions_[idx];
+    auto* stc = editor_panel_->GetStyledTextCtrl();
+    if (stc != nullptr)
+    {
+        stc->GotoLine(target_line);
+        stc->EnsureVisibleEnforcePolicy(target_line);
+        stc->SetFocus();
+    }
+}
+
+void SplitView::RevealInPreview(int editor_line)
+{
+    if (preview_panel_ == nullptr)
+    {
+        return;
+    }
+
+    // Find the nearest heading at or before editor_line to compute scroll fraction
+    const int heading_idx = FindNearestHeading(editor_line);
+    if (heading_idx < 0)
+    {
+        return;
+    }
+
+    // Compute fraction based on heading position relative to total headings
+    if (heading_positions_.empty())
+    {
+        return;
+    }
+
+    const double fraction =
+        static_cast<double>(heading_idx) /
+        static_cast<double>(std::max(heading_positions_.size() - 1, std::size_t{1}));
+    preview_panel_->SetScrollFraction(std::clamp(fraction, 0.0, 1.0));
+}
+// ═══════════════════════════════════════════════════════
+// Phase 09 Task 6: Split Direction
+// ═══════════════════════════════════════════════════════
+
+void SplitView::SetSplitDirection(core::events::SplitDirection direction)
+{
+    if (direction == split_direction_)
+    {
+        return;
+    }
+    split_direction_ = direction;
+
+    // Update divider cursor based on direction
+    if (split_direction_ == core::events::SplitDirection::Vertical)
+    {
+        divider_panel_->SetCursor(wxCursor(wxCURSOR_SIZENS));
+    }
+    else
+    {
+        divider_panel_->SetCursor(wxCursor(wxCURSOR_SIZEWE));
+    }
+
+    UpdateLayout();
+
+    // Persist
+    if (config_ != nullptr)
+    {
+        const std::string dir_val =
+            direction == core::events::SplitDirection::Vertical ? "vertical" : "horizontal";
+        config_->set("split_direction", dir_val);
+    }
+
+    core::events::SplitDirectionChangedEvent dir_evt;
+    dir_evt.direction = direction;
+    event_bus_.publish(dir_evt);
+    spdlog::debug("SplitView: direction -> {}",
+                  direction == core::events::SplitDirection::Vertical ? "Vertical" : "Horizontal");
+}
+
+auto SplitView::GetSplitDirection() const -> core::events::SplitDirection
+{
+    return split_direction_;
+}
+
+void SplitView::ToggleSplitDirection()
+{
+    SetSplitDirection(split_direction_ == core::events::SplitDirection::Horizontal
+                          ? core::events::SplitDirection::Vertical
+                          : core::events::SplitDirection::Horizontal);
+}
+
+// ═══════════════════════════════════════════════════════
+// Phase 09 Task 7: Magnetic Snap Points
+// ═══════════════════════════════════════════════════════
+
+auto SplitView::FindNearestSnapPoint(double ratio) -> double
+{
+    double nearest = ratio;
+    double min_dist = kSnapThreshold + 1.0; // outside threshold by default
+
+    for (const double snap : kSnapPoints)
+    {
+        const double dist = std::abs(ratio - snap);
+        if (dist < min_dist)
+        {
+            min_dist = dist;
+            nearest = snap;
+        }
+    }
+
+    return nearest;
+}
+
+// ═══════════════════════════════════════════════════════
+// Phase 09 Task 8: Pin Preview
+// ═══════════════════════════════════════════════════════
+
+void SplitView::SetPinPreview(bool pinned)
+{
+    if (pinned == pin_preview_)
+    {
+        return;
+    }
+    pin_preview_ = pinned;
+
+    if (pinned && preview_panel_ != nullptr)
+    {
+        // Freeze current preview content
+        // (PreviewPanel retains its current HTML until updated)
+        spdlog::debug("SplitView: preview PINNED");
+    }
+    else
+    {
+        // Unpin: re-sync to current editor content
+        if (editor_panel_ != nullptr && preview_panel_ != nullptr)
+        {
+            preview_panel_->SetMarkdownContent(editor_panel_->GetContent());
+        }
+        spdlog::debug("SplitView: preview UNPINNED");
+    }
+
+    // Repaint divider to show/hide pin indicator
+    if (divider_panel_ != nullptr)
+    {
+        divider_panel_->Refresh();
+    }
+}
+
+auto SplitView::IsPinPreview() const -> bool
+{
+    return pin_preview_;
+}
+
+void SplitView::TogglePinPreview()
+{
+    SetPinPreview(!pin_preview_);
+}
+
+// ═══════════════════════════════════════════════════════
+// Phase 09 Task 9: Open in Side
+// ═══════════════════════════════════════════════════════
+
+void SplitView::OpenInSide(const std::string& file_path)
+{
+    if (file_path.empty())
+    {
+        return;
+    }
+
+    // Switch to split mode if not already
+    if (current_mode_ != core::events::ViewMode::Split)
+    {
+        SetViewMode(core::events::ViewMode::Split);
+    }
+
+    // Read file and render in preview
+    std::ifstream in_file(file_path);
+    if (in_file.is_open())
+    {
+        std::string content((std::istreambuf_iterator<char>(in_file)),
+                            std::istreambuf_iterator<char>());
+        in_file.close();
+
+        if (preview_panel_ != nullptr)
+        {
+            preview_panel_->SetMarkdownContent(content);
+            // Pin the preview so it doesn't get overwritten
+            SetPinPreview(true);
+        }
+    }
+    else
+    {
+        MARKAMP_LOG_ERROR("OpenInSide: failed to read file: {}", file_path);
+    }
+
+    // Publish event for other listeners
+    core::events::OpenInSideEvent evt;
+    evt.file_path = file_path;
+    event_bus_.publish(evt);
+}
+
+// ═══════════════════════════════════════════════════════
+// Phase 09 Task 10: Per-File State Persistence
+// ═══════════════════════════════════════════════════════
+
+void SplitView::SavePerFileState(const std::string& file_path)
+{
+    if (file_path.empty())
+    {
+        return;
+    }
+
+    PerFileState state;
+    state.split_ratio = split_ratio_;
+    state.view_mode = current_mode_;
+    state.direction = split_direction_;
+    per_file_states_[file_path] = state;
+    current_file_path_ = file_path;
+
+    // Also persist to config for cross-session restoration
+    if (config_ != nullptr)
+    {
+        const std::string key_prefix =
+            "per_file." + std::to_string(std::hash<std::string>{}(file_path));
+        config_->set(key_prefix + ".ratio", state.split_ratio);
+        config_->set(key_prefix + ".mode", static_cast<int>(state.view_mode));
+        const std::string dir_val =
+            state.direction == core::events::SplitDirection::Vertical ? "vertical" : "horizontal";
+        config_->set(key_prefix + ".direction", dir_val);
+    }
+}
+
+void SplitView::RestorePerFileState(const std::string& file_path)
+{
+    if (file_path.empty())
+    {
+        return;
+    }
+
+    current_file_path_ = file_path;
+
+    // Check in-memory cache first
+    auto found = per_file_states_.find(file_path);
+    if (found != per_file_states_.end())
+    {
+        const auto& state = found->second;
+        split_ratio_ = std::clamp(state.split_ratio, kMinSplitRatio, kMaxSplitRatio);
+        split_direction_ = state.direction;
+        SetViewMode(state.view_mode);
+        UpdateLayout();
+        return;
+    }
+
+    // Try config persistence
+    if (config_ != nullptr)
+    {
+        const std::string key_prefix =
+            "per_file." + std::to_string(std::hash<std::string>{}(file_path));
+        const double ratio = config_->get_double(key_prefix + ".ratio", kDefaultSplitRatio);
+        split_ratio_ = std::clamp(ratio, kMinSplitRatio, kMaxSplitRatio);
+
+        const int mode_int =
+            config_->get_int(key_prefix + ".mode", static_cast<int>(core::events::ViewMode::Split));
+        const auto mode = static_cast<core::events::ViewMode>(mode_int);
+
+        const std::string dir_str = config_->get_string(key_prefix + ".direction", "horizontal");
+        split_direction_ = (dir_str == "vertical") ? core::events::SplitDirection::Vertical
+                                                   : core::events::SplitDirection::Horizontal;
+
+        SetViewMode(mode);
+        UpdateLayout();
+    }
+}
+
+// ═══════════════════════════════════════════════════════
+// V8 Phase 12: Paired Traverse Mode
+// ═══════════════════════════════════════════════════════
+
+void SplitView::SetPairMode(PairMode mode)
+{
+    pair_mode_ = mode;
+}
+
+auto SplitView::GetPairMode() const -> PairMode
+{
+    return pair_mode_;
+}
+
+auto SplitView::IsPaired() const -> bool
+{
+    return pair_mode_ != PairMode::kNone;
 }
 
 } // namespace markamp::ui

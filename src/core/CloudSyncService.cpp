@@ -375,6 +375,7 @@ auto CloudSyncService::download_snapshot(const CloudSyncConfig& cloud_config,
     -> std::expected<int32_t, std::string>
 {
     // Stub: list remote objects, download each to target_dir.
+    (void)cloud_config;
     (void)target_dir;
     if (progress)
         progress("", 100, CloudSyncStatus::Downloading);

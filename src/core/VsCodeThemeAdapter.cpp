@@ -27,47 +27,102 @@ static const std::unordered_map<std::string, std::string>& vscode_color_map()
         {"editorCursor.foreground", "editor_cursor"},
         {"editorLineNumber.foreground", "line_number_fg"},
         {"editorLineNumber.activeForeground", "line_number_active_fg"},
+        {"editorError.foreground", "editor_gutter_error"},
+        {"editorWarning.foreground", "editor_gutter_warn"},
+        {"editorInfo.foreground", "editor_gutter_info"},
+        {"editor.findMatchBackground", "editor_find_hit"},
+        {"editor.wordHighlightBackground", "editor_match_highlight"},
 
         // Sidebar
         {"sideBar.background", "sidebar_bg"},
         {"sideBar.foreground", "sidebar_fg"},
         {"sideBarTitle.foreground", "sidebar_title_fg"},
+        {"sideBarSectionHeader.background", "sidebar_section_bg"},
 
         // Activity bar
         {"activityBar.background", "activity_bar_bg"},
         {"activityBar.foreground", "activity_bar_fg"},
+        {"activityBar.inactiveForeground", "activity_bar_inactive_fg"},
+        {"activityBarBadge.background", "activity_bar_badge_bg"},
+        {"activityBarBadge.foreground", "activity_bar_badge_fg"},
+
+        // Breadcrumb
+        {"breadcrumb.foreground", "breadcrumb_fg"},
+        {"breadcrumb.focusForeground", "breadcrumb_focus_fg"},
+        {"breadcrumb.activeSelectionForeground", "breadcrumb_active_fg"},
 
         // Status bar
         {"statusBar.background", "status_bar_bg"},
         {"statusBar.foreground", "status_bar_fg"},
+        {"statusBar.debuggingBackground", "status_bar_debug_bg"},
+        {"statusBar.noFolderBackground", "status_bar_nofolder_bg"},
 
         // Tab bar
         {"tab.activeBackground", "tab_active_bg"},
         {"tab.activeForeground", "tab_active_fg"},
         {"tab.inactiveBackground", "tab_inactive_bg"},
         {"tab.inactiveForeground", "tab_inactive_fg"},
+        {"tab.border", "tab_border"},
+        {"tab.activeBorderTop", "tab_active_border_top"},
 
         // Title bar
         {"titleBar.activeBackground", "titlebar_bg"},
         {"titleBar.activeForeground", "titlebar_fg"},
+        {"titleBar.inactiveBackground", "titlebar_inactive_bg"},
 
         // Panel
         {"panel.background", "panel_bg"},
         {"panel.border", "panel_border"},
+        {"panelTitle.activeForeground", "panel_title_active_fg"},
 
         // Input
         {"input.background", "input_bg"},
         {"input.foreground", "input_fg"},
         {"input.border", "input_border"},
+        {"input.placeholderForeground", "input_placeholder_fg"},
 
         // Button
         {"button.background", "button_bg"},
         {"button.foreground", "button_fg"},
+        {"button.hoverBackground", "button_hover_bg"},
 
         // List
         {"list.activeSelectionBackground", "list_active_bg"},
         {"list.activeSelectionForeground", "list_active_fg"},
         {"list.hoverBackground", "list_hover_bg"},
+        {"list.focusBackground", "list_focus_bg"},
+
+        // Diff
+        {"diffEditor.insertedTextBackground", "diff_inserted_bg"},
+        {"diffEditor.removedTextBackground", "diff_removed_bg"},
+
+        // Minimap
+        {"minimap.background", "minimap_bg"},
+
+        // Peek view
+        {"peekView.border", "peek_view_border"},
+        {"peekViewEditor.background", "peek_view_editor_bg"},
+        {"peekViewResult.background", "peek_view_result_bg"},
+
+        // Notebook
+        {"notebook.cellEditorBackground", "notebook_cell_bg"},
+
+        // Terminal
+        {"terminal.background", "terminal_bg"},
+        {"terminal.foreground", "terminal_fg"},
+
+        // Badge
+        {"badge.background", "badge_bg"},
+        {"badge.foreground", "badge_fg"},
+
+        // Dropdown
+        {"dropdown.background", "dropdown_bg"},
+        {"dropdown.foreground", "dropdown_fg"},
+        {"dropdown.border", "dropdown_border"},
+
+        // Focus border (global)
+        {"focusBorder", "focus_border"},
+        {"foreground", "foreground"},
     };
     return mapping;
 }

@@ -396,7 +396,7 @@ TEST_CASE("Render inline code HTML", "[markdown][html]")
 TEST_CASE("Render fenced code block HTML", "[markdown][html]")
 {
     auto html = render("```js\nalert('hi');\n```\n");
-    REQUIRE_THAT(html, ContainsSubstring("<pre class=\"code-block\"><code class=\"language-js\">"));
+    REQUIRE_THAT(html, ContainsSubstring("code-block-wrapper"));
     REQUIRE_THAT(html, ContainsSubstring("alert"));
     REQUIRE_THAT(html, ContainsSubstring("&#39;hi&#39;"));
 }

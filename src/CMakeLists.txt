@@ -35,8 +35,15 @@ add_executable(markamp
     ui/TabBar.cpp
     ui/SettingsPanel.cpp
     ui/SettingsDialog.cpp
+    ui/SettingsJsonEditor.cpp
+    ui/ShortcutEditor.cpp
+    ui/FirstRunWizard.cpp
     ui/NotificationManager.cpp
     ui/ActivityBar.cpp
+    ui/SidebarPanelRegistry.cpp
+    ui/SidebarToolbar.cpp
+    ui/SearchSidebarPanel.cpp
+    ui/GraphSidebarPanel.cpp
     ui/ExtensionsBrowserPanel.cpp
     ui/ExtensionCard.cpp
     ui/ExtensionDetailPanel.cpp
@@ -47,6 +54,8 @@ add_executable(markamp
     ui/WalkthroughPanel.cpp
     core/Logger.cpp
     core/PluginManager.cpp
+    core/PluginHotReload.cpp
+    core/ContributionValidator.cpp
     core/FeatureRegistry.cpp
     core/BuiltInPlugins.cpp
     core/ExtensionManifest.cpp
@@ -81,12 +90,16 @@ add_executable(markamp
     core/TaskRunnerService.cpp
     core/ExtensionHostRecovery.cpp
     core/ExtensionRecommendations.cpp
-    core/ExtensionTelemetry.cpp
     core/ExtensionSandbox.cpp
     core/EventBus.cpp
     core/AppState.cpp
     core/Command.cpp
     core/Config.cpp
+    core/ConfigAuditTrail.cpp
+    core/ConfigFileWatcher.cpp
+    core/ConfigMigration.cpp
+    core/ConfigProfile.cpp
+    core/ScopedConfig.cpp
     core/SettingsCatalog.cpp
     core/Color.cpp
     core/Theme.cpp
@@ -94,6 +107,10 @@ add_executable(markamp
     core/ThemeRegistry.cpp
     core/ThemeValidator.cpp
     core/ThemeEngine.cpp
+    core/ThemeCompatibility.cpp
+    core/ThemeAutoRepair.cpp
+    core/ThemeExporter.cpp
+    core/ThemePerformanceMonitor.cpp
     core/FileNode.cpp
     core/SampleFiles.cpp
     core/FileSystem.cpp
@@ -105,6 +122,47 @@ add_executable(markamp
     core/RecentWorkspaces.cpp
     core/SyntaxHighlighter.cpp
     core/ShortcutManager.cpp
+    core/CommandRegistry.cpp
+    core/ChordShortcutManager.cpp
+    core/CommandExecutionLog.cpp
+    core/KeybindingEditor.cpp
+    core/QuickOpenProvider.cpp
+    core/BookmarkNavigator.cpp
+    core/BookmarkExporter.cpp
+    core/AssetOptimizer.cpp
+    core/AssetLinkIntegrity.cpp
+    core/BookmarkCommandProvider.cpp
+    core/AssetCommandProvider.cpp
+    core/CssSnippetLibrary.cpp
+    core/WorkspaceProfile.cpp
+    core/CustomFontRegistry.cpp
+    core/ThemeOverrideService.cpp
+    core/VaultStyleCommandProvider.cpp
+    core/WorkspaceCustomizationCommandProvider.cpp
+    core/NotificationCenter.cpp
+    core/NotificationFilter.cpp
+    core/ActivityFeed.cpp
+    core/ActivityTimeline.cpp
+    core/NotificationCommandProvider.cpp
+    core/ActivityCommandProvider.cpp
+    core/WorkspaceHookManager.cpp
+    core/AutomationRule.cpp
+    core/TaskScheduler.cpp
+    core/FileWatcherService.cpp
+    core/AutomationCommandProvider.cpp
+    core/HooksCommandProvider.cpp
+    core/SidebarWidgetManager.cpp
+    core/WidgetContainer.cpp
+    core/WidgetDataProvider.cpp
+    core/CustomPanelRegistry.cpp
+    core/WidgetCommandProvider.cpp
+    core/SidebarCommandProvider.cpp
+    core/PdfViewerService.cpp
+    core/DocumentImporter.cpp
+    core/PdfAnnotationManager.cpp
+    core/ImportPresetRegistry.cpp
+    core/PdfCommandProvider.cpp
+    core/ImportCommandProvider.cpp
     core/AccessibilityManager.cpp
     core/Profiler.cpp
     core/StartupTimer.cpp
@@ -126,6 +184,39 @@ add_executable(markamp
     rendering/TextFxRenderer.cpp
     rendering/FxPresetRegistry.cpp
     rendering/FxSafetyController.cpp
+    # Phase 28: FX Visual Effects System
+    rendering/FxTransitionEngine.cpp
+    rendering/FxCssGenerator.cpp
+    rendering/FxProfilePersistence.cpp
+    rendering/FxDiagnostics.cpp
+    rendering/FxCommandProvider.cpp
+    rendering/FxAccessibility.cpp
+    # Phase 29: Security & Input Validation
+    core/UrlSanitizer.cpp
+    core/ContentSecurityPolicy.cpp
+    core/InputRateLimiter.cpp
+    core/ClipboardSanitizer.cpp
+    core/SecurityAuditLog.cpp
+    core/SecurityCommandProvider.cpp
+    # V9 Phase 30: Performance Optimization
+    core/PerformanceProfiler.cpp
+    core/MemoryBudgetEnforcer.cpp
+    core/IncrementalParsePolicy.cpp
+    core/PerformanceCommandProvider.cpp
+    # V9 Phase 31: Accessibility System
+    core/FocusRingStyler.cpp
+    core/ColorBlindnessSupport.cpp
+    core/AccessibilityAudit.cpp
+    core/AccessibilityCommandProvider.cpp
+    # V9 Phase 32: Platform-Specific Optimization
+    core/PlatformServices.cpp
+    core/PlatformKeyboard.cpp
+    core/PlatformFonts.cpp
+    core/CrossPlatformPath.cpp
+    # V9 Phase 33: Structured Logging & Observability
+    core/ObservabilityService.cpp
+    core/TracingService.cpp
+    core/ObservabilityCommands.cpp
     # V3 Phases 1–3: Block Data Model, ID Generation, Notebook
     core/Block.cpp
     core/BlockID.cpp
@@ -168,6 +259,12 @@ add_executable(markamp
     core/av/AVQueryEngine.cpp
     core/av/AVRelationService.cpp
     core/av/AVRollupEngine.cpp
+    core/av/AVFormulaEngine.cpp
+    core/av/AVImportExport.cpp
+    core/av/AVUndoManager.cpp
+    core/av/AVAggregateRow.cpp
+    core/av/AVTimelineView.cpp
+    core/av/AVLinkedDatabase.cpp
     ui/av/AVTablePanel.cpp
     ui/av/AVCellRenderer.cpp
     ui/av/AVCellEditor.cpp
@@ -186,6 +283,28 @@ add_executable(markamp
     core/fsrs/FSRSEngine.cpp
     core/fsrs/FlashcardStore.cpp
     core/fsrs/FSRSReviewSession.cpp
+    # V9 Phase 22: Flashcard & Spaced Repetition
+    core/fsrs/FlashcardExtractor.cpp
+    core/fsrs/ClozeParser.cpp
+    core/fsrs/FlashcardImportExport.cpp
+    core/fsrs/StudyStreakTracker.cpp
+    core/fsrs/LeechDetector.cpp
+    core/fsrs/FlashcardCommandProvider.cpp
+    # Phase 23: Task Management & Calendar
+    core/TaskRecurrence.cpp
+    core/TaskReminder.cpp
+    core/TaskAggregator.cpp
+    core/TaskBoardEngine.cpp
+    core/TaskGanttEngine.cpp
+    core/TaskCommandProvider.cpp
+    # Phase 24: Export & Publishing
+    core/ExportService.cpp
+    core/ExportTemplateEngine.cpp
+    core/BatchExportEngine.cpp
+    core/PrintPreparationService.cpp
+    core/PublishingProfileManager.cpp
+    core/ExportValidator.cpp
+    core/ExportCommandProvider.cpp
     # Phase 25: Flashcard Deck Management
     core/DeckStore.cpp
     core/DeckManager.cpp
@@ -274,6 +393,37 @@ add_executable(markamp
     core/NotebookCellManager.cpp
     # V4 Phase 35: Git Service
     core/GitService.cpp
+    # Phase 25: Version Control Integration
+    core/GitStashService.cpp
+    core/GitBlameEngine.cpp
+    core/GitRemoteService.cpp
+    core/MergeConflictResolver.cpp
+    core/CommitGraphEngine.cpp
+    core/VCCommandProvider.cpp
+    # Phase 26: AI Integration
+    core/AIService.cpp
+    core/AIProviderConfig.cpp
+    core/AIRateLimiter.cpp
+    core/AIConversationHistory.cpp
+    core/AIWritingAssistant.cpp
+    core/AIDocumentGenerator.cpp
+    core/AIInlineCompleter.cpp
+    core/AITagSuggester.cpp
+    core/AILinkSuggester.cpp
+    core/AIFlashcardGenerator.cpp
+    core/AISearchEnhancer.cpp
+    core/AICommandProvider.cpp
+    # Phase 27: Cloud Sync & Collaboration
+    core/SyncEngine.cpp
+    core/CloudSyncService.cpp
+    core/S3Client.cpp
+    core/WebDavClient.cpp
+    core/SyncScheduler.cpp
+    core/SyncConflictManager.cpp
+    core/SelectiveSyncFilter.cpp
+    core/SyncHistoryLogger.cpp
+    core/WorkspaceSharing.cpp
+    core/SyncCommandProvider.cpp
     # V4 Phase 36: Local Graph Engine
     core/LocalGraphEngine.cpp
     # V4 Phase 37: Notebook Export Engine
@@ -397,6 +547,50 @@ add_executable(markamp
     canvas/DiagramLibraryPanel.cpp
     # V5 Phase 35: Board Templates System
     canvas/BoardTemplate.cpp
+    # Phase 11: Canvas Workbench Shell
+    canvas/CanvasWorkbench.cpp
+    canvas/CanvasInspector.cpp
+    canvas/CanvasObjectFactory.cpp
+    canvas/CanvasContextMenu.cpp
+    canvas/CanvasPerformanceMonitor.cpp
+    canvas/CanvasAccessibility.cpp
+    canvas/CanvasClipboardService.cpp
+    canvas/CanvasStylePresetService.cpp
+    canvas/ConnectorRoutingService.cpp
+    canvas/DiagramCoordinator.cpp
+    canvas/CanvasObjectLifecycleEvents.cpp
+    canvas/CanvasExportService.cpp
+    canvas/CanvasObjectAligner.cpp
+    # Phase 13: Canvas Collaboration & Facilitation
+    canvas/RemoteCursorOverlay.cpp
+    canvas/RemoteSelectionOverlay.cpp
+    canvas/FollowModeController.cpp
+    canvas/BoardLockController.cpp
+    canvas/PrivateRevealController.cpp
+    canvas/CollabUndoRedoManager.cpp
+    canvas/CollabEventLogger.cpp
+    canvas/OfflineSyncQueue.cpp
+    # Phase 14: Canvas Extensibility & App Widgets
+    canvas/CustomObjectTypeRegistry.cpp
+    canvas/CanvasToolHost.cpp
+    canvas/WidgetRenderer.cpp
+    canvas/WidgetLifecycleManager.cpp
+    canvas/WidgetPermissionGuard.cpp
+    canvas/CanvasTemplateEngine.cpp
+    canvas/WidgetMessageBus.cpp
+    # Phase 15: Notebook System Completion
+    core/NotebookSerializer.cpp
+    core/NotebookExecutionPipeline.cpp
+    core/NotebookSearchIndex.cpp
+    core/NotebookSessionManager.cpp
+    core/CellDependencyTracker.cpp
+    core/NotebookToolbar.cpp
+    # Phase 20: File Management & Workspace
+    core/FileTreeModel.cpp
+    core/WorkspaceSettings.cpp
+    core/FileTemplateEngine.cpp
+    core/TrashManager.cpp
+    core/MultiRootWorkspace.cpp
 )
 
 # Platform-specific sources
@@ -488,10 +682,25 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "Src" FILES
     ui/SettingsPanel.cpp
     ui/SettingsDialog.h
     ui/SettingsDialog.cpp
+    ui/SettingsJsonEditor.h
+    ui/SettingsJsonEditor.cpp
+    ui/ShortcutEditor.h
+    ui/ShortcutEditor.cpp
+    ui/FirstRunWizard.h
+    ui/FirstRunWizard.cpp
     ui/NotificationManager.h
     ui/NotificationManager.cpp
     ui/ActivityBar.h
     ui/ActivityBar.cpp
+    ui/SidebarMode.h
+    ui/SidebarPanelRegistry.h
+    ui/SidebarPanelRegistry.cpp
+    ui/SidebarToolbar.h
+    ui/SidebarToolbar.cpp
+    ui/SearchSidebarPanel.h
+    ui/SearchSidebarPanel.cpp
+    ui/GraphSidebarPanel.h
+    ui/GraphSidebarPanel.cpp
     ui/ExtensionsBrowserPanel.h
     ui/ExtensionsBrowserPanel.cpp
     ui/ExtensionCard.h
@@ -516,6 +725,7 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "Src" FILES
     core/Events.h
     core/Types.h
     core/SPSCQueue.h
+    core/IHealthCheckable.h
     core/IThemeEngine.h
     core/IFileSystem.h
     core/IMarkdownParser.h
@@ -528,6 +738,16 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "Src" FILES
     core/Command.cpp
     core/Config.h
     core/Config.cpp
+    core/ConfigAuditTrail.h
+    core/ConfigAuditTrail.cpp
+    core/ConfigFileWatcher.h
+    core/ConfigFileWatcher.cpp
+    core/ConfigMigration.h
+    core/ConfigMigration.cpp
+    core/ConfigProfile.h
+    core/ConfigProfile.cpp
+    core/ScopedConfig.h
+    core/ScopedConfig.cpp
     core/SettingsCatalog.h
     core/SettingsCatalog.cpp
     core/Color.h
@@ -542,12 +762,30 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "Src" FILES
     core/ThemeValidator.cpp
     core/ThemeEngine.h
     core/ThemeEngine.cpp
+    core/ThemeCompatibility.h
+    core/ThemeCompatibility.cpp
+    core/ThemeAutoRepair.h
+    core/ThemeAutoRepair.cpp
+    core/ThemeExporter.h
+    core/ThemeExporter.cpp
+    core/ThemePerformanceMonitor.h
+    core/ThemePerformanceMonitor.cpp
     core/PluginManager.h
     core/PluginManager.cpp
+    core/PluginHotReload.h
+    core/PluginHotReload.cpp
     core/BuiltInPlugins.h
     core/BuiltInPlugins.cpp
+    core/ContributionValidator.h
+    core/ContributionValidator.cpp
     core/FeatureRegistry.h
     core/FeatureRegistry.cpp
+    # Phase 35: Documentation & Help System
+    core/HelpArticle.h
+    core/HelpService.h
+    core/FeatureDiscoveryService.h
+    core/OnboardingService.h
+    core/HelpCommandProvider.h
     core/ExtensionManifest.h
     core/ExtensionManifest.cpp
     core/ExtensionScanner.h
@@ -637,6 +875,173 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "Src" FILES
     core/SyntaxHighlighter.cpp
     core/ShortcutManager.h
     core/ShortcutManager.cpp
+    core/CommandRegistry.h
+    core/CommandRegistry.cpp
+    core/ChordShortcutManager.h
+    core/ChordShortcutManager.cpp
+    core/QuickOpenProvider.h
+    core/QuickOpenProvider.cpp
+    core/SymbolProvider.h
+    core/KeybindingEditor.h
+    core/KeybindingEditor.cpp
+    core/CommandExecutionLog.h
+    core/CommandExecutionLog.cpp
+    core/BookmarkNavigator.h
+    core/BookmarkNavigator.cpp
+    core/BookmarkExporter.h
+    core/BookmarkExporter.cpp
+    core/AssetOptimizer.h
+    core/AssetOptimizer.cpp
+    core/AssetLinkIntegrity.h
+    core/AssetLinkIntegrity.cpp
+    core/BookmarkCommandProvider.h
+    core/BookmarkCommandProvider.cpp
+    core/AssetCommandProvider.h
+    core/AssetCommandProvider.cpp
+    core/CssSnippetLibrary.h
+    core/CssSnippetLibrary.cpp
+    core/WorkspaceProfile.h
+    core/WorkspaceProfile.cpp
+    core/CustomFontRegistry.h
+    core/CustomFontRegistry.cpp
+    core/ThemeOverrideService.h
+    core/ThemeOverrideService.cpp
+    core/VaultStyleCommandProvider.h
+    core/VaultStyleCommandProvider.cpp
+    core/WorkspaceCustomizationCommandProvider.h
+    core/WorkspaceCustomizationCommandProvider.cpp
+    core/NotificationCenter.h
+    core/NotificationCenter.cpp
+    core/NotificationFilter.h
+    core/NotificationFilter.cpp
+    core/ActivityFeed.h
+    core/ActivityFeed.cpp
+    core/ActivityTimeline.h
+    core/ActivityTimeline.cpp
+    core/NotificationCommandProvider.h
+    core/NotificationCommandProvider.cpp
+    core/ActivityCommandProvider.h
+    core/ActivityCommandProvider.cpp
+    core/WorkspaceHookManager.h
+    core/WorkspaceHookManager.cpp
+    core/AutomationRule.h
+    core/AutomationRule.cpp
+    core/TaskScheduler.h
+    core/TaskScheduler.cpp
+    core/FileWatcherService.h
+    core/FileWatcherService.cpp
+    core/AutomationCommandProvider.h
+    core/AutomationCommandProvider.cpp
+    core/HooksCommandProvider.h
+    core/HooksCommandProvider.cpp
+    core/SidebarWidgetManager.h
+    core/SidebarWidgetManager.cpp
+    core/WidgetContainer.h
+    core/WidgetContainer.cpp
+    core/WidgetDataProvider.h
+    core/WidgetDataProvider.cpp
+    core/CustomPanelRegistry.h
+    core/CustomPanelRegistry.cpp
+    core/WidgetCommandProvider.h
+    core/WidgetCommandProvider.cpp
+    core/SidebarCommandProvider.h
+    core/SidebarCommandProvider.cpp
+    core/PdfViewerService.h
+    core/PdfViewerService.cpp
+    core/DocumentImporter.h
+    core/DocumentImporter.cpp
+    core/PdfAnnotationManager.h
+    core/PdfAnnotationManager.cpp
+    core/ImportPresetRegistry.h
+    core/ImportPresetRegistry.cpp
+    core/PdfCommandProvider.h
+    core/PdfCommandProvider.cpp
+    core/ImportCommandProvider.h
+    core/ImportCommandProvider.cpp
+    core/SlideEngine.h
+    core/SlideEngine.cpp
+    core/PresentationManager.h
+    core/PresentationManager.cpp
+    core/SlideThemeProvider.h
+    core/SlideThemeProvider.cpp
+    core/SlideExporter.h
+    core/SlideExporter.cpp
+    core/PresentationCommandProvider.h
+    core/PresentationCommandProvider.cpp
+    core/SlideCommandProvider.h
+    core/SlideCommandProvider.cpp
+    core/VaultEncryptionManager.h
+    core/VaultEncryptionManager.cpp
+    core/KeyManager.h
+    core/KeyManager.cpp
+    core/PrivacyManager.h
+    core/PrivacyManager.cpp
+    core/DataRedactionEngine.h
+    core/DataRedactionEngine.cpp
+    core/EncryptionCommandProvider.h
+    core/EncryptionCommandProvider.cpp
+    core/PrivacyCommandProvider.h
+    core/PrivacyCommandProvider.cpp
+    core/WindowManager.h
+    core/WindowManager.cpp
+    core/EditorGroupManager.h
+    core/EditorGroupManager.cpp
+    core/WorkspaceLayoutEngine.h
+    core/WorkspaceLayoutEngine.cpp
+    core/WorkspaceSessionRestore.h
+    core/WorkspaceSessionRestore.cpp
+    core/WindowCommandProvider.h
+    core/WindowCommandProvider.cpp
+    core/LayoutCommandProvider.h
+    core/LayoutCommandProvider.cpp
+    core/LocaleManager.h
+    core/LocaleManager.cpp
+    core/TranslationCatalog.h
+    core/TranslationCatalog.cpp
+    core/StringFormatter.h
+    core/StringFormatter.cpp
+    core/TextDirectionEngine.h
+    core/TextDirectionEngine.cpp
+    core/LocalizationCommandProvider.h
+    core/LocalizationCommandProvider.cpp
+    core/InternationalizationCommandProvider.h
+    core/InternationalizationCommandProvider.cpp
+    core/DataTableEngine.h
+    core/DataTableEngine.cpp
+    core/FormulaEvaluator.h
+    core/FormulaEvaluator.cpp
+    core/DataTransformPipeline.h
+    core/DataTransformPipeline.cpp
+    core/ChartDataProvider.h
+    core/ChartDataProvider.cpp
+    core/DataCommandProvider.h
+    core/DataCommandProvider.cpp
+    core/ComputationCommandProvider.h
+    core/ComputationCommandProvider.cpp
+    core/IntegrationTestRunner.h
+    core/IntegrationTestRunner.cpp
+    core/CrossModuleTestSuite.h
+    core/CrossModuleTestSuite.cpp
+    core/SystemHealthValidator.h
+    core/SystemHealthValidator.cpp
+    core/RegressionTestEngine.h
+    core/RegressionTestEngine.cpp
+    core/IntegrationTestCommandProvider.h
+    core/IntegrationTestCommandProvider.cpp
+    core/ValidationCommandProvider.h
+    core/ValidationCommandProvider.cpp
+    core/ReleaseNotesGenerator.h
+    core/ReleaseNotesGenerator.cpp
+    core/VersionManager.h
+    core/VersionManager.cpp
+    core/ChangelogEngine.h
+    core/ChangelogEngine.cpp
+    core/DeprecationTracker.h
+    core/DeprecationTracker.cpp
+    core/ReleaseCommandProvider.h
+    core/ReleaseCommandProvider.cpp
+    core/PolishCommandProvider.h
+    core/PolishCommandProvider.cpp
     core/AccessibilityManager.h
     core/AccessibilityManager.cpp
     core/Profiler.h

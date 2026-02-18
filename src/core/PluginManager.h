@@ -46,6 +46,21 @@ class GrammarEngine;
 class TerminalService;
 class TaskRunnerService;
 
+// V4 forward declarations for application-layer services
+class TagService;
+class SearchEngine;
+class DailyNoteService;
+class NoteTemplateEngine;
+class EmbedResolver;
+class LinkSuggestionService;
+class OutlinePanelController;
+class VaultService;
+class BacklinkIndex;
+class FeatureRegistry;
+
+// Sandbox enforcement
+class ExtensionSandbox;
+
 namespace ui
 {
 class CommandPalette;
@@ -189,6 +204,18 @@ public:
         GrammarEngine* grammar_engine{nullptr};
         TerminalService* terminal_service{nullptr};
         TaskRunnerService* task_runner_service{nullptr};
+
+        // V9 Phase 04 Task 1: V4 application-layer services
+        TagService* tag_service{nullptr};
+        SearchEngine* search_engine{nullptr};
+        DailyNoteService* daily_note_service{nullptr};
+        NoteTemplateEngine* note_template_engine{nullptr};
+        EmbedResolver* embed_resolver{nullptr};
+        LinkSuggestionService* link_suggestion_service{nullptr};
+        OutlinePanelController* outline_panel_controller{nullptr};
+        VaultService* vault_service{nullptr};
+        BacklinkIndex* backlink_index{nullptr};
+        FeatureRegistry* feature_registry{nullptr};
     };
 
     /// Inject all extension services. Must be called before activate_all().
@@ -196,6 +223,58 @@ public:
     {
         ext_services_ = services;
     }
+
+    // ── Sandbox enforcement (Task 2) ──
+
+    /// Set the extension sandbox for permission checks during activation.
+    void set_sandbox(ExtensionSandbox* sandbox)
+    {
+        sandbox_ = sandbox;
+    }
+
+    // ── Activation Report (Task 3) ──
+
+    /// Error detail for a single plugin activation failure.
+    struct ActivationError
+    {
+        std::string plugin_id;
+        std::string error_message;
+        int64_t duration_us{0};
+    };
+
+    /// Aggregated report from the last activate_all() call.
+    struct ActivationReport
+    {
+        int total_plugins{0};
+        int activated_count{0};
+        int deferred_count{0};
+        int failed_count{0};
+        int64_t total_duration_us{0};
+        std::vector<ActivationError> errors;
+    };
+
+    /// Get the report from the most recent activate_all() invocation.
+    [[nodiscard]] auto last_activation_report() const -> const ActivationReport&
+    {
+        return activation_report_;
+    }
+
+    // ── Plugin diagnostics (Task 12) ──
+
+    /// Per-plugin diagnostic snapshot.
+    struct PluginDiagnostic
+    {
+        std::string plugin_id;
+        std::string name;
+        std::string version;
+        bool active{false};
+        int64_t activation_time_us{0};
+        int contribution_count{0};
+        int command_count{0};
+    };
+
+    /// Get diagnostic info for all registered plugins.
+    [[nodiscard]] auto plugin_diagnostics() const -> std::vector<PluginDiagnostic>;
 
     // ── Queries ──
 
@@ -238,6 +317,22 @@ public:
     /// Get all contributed grammars from loaded extensions.
     [[nodiscard]] auto get_contributed_grammars() const -> const std::vector<ExtensionGrammar>&;
 
+    // ── V9 Phase 04 Task 18: Marketplace search integration ──
+
+    /// Search result entry.
+    struct SearchResult
+    {
+        std::string plugin_id;
+        std::string display_name;
+        std::string description;
+        std::string version;
+        double relevance_score{0.0};
+    };
+
+    /// Search registered plugins by query string (name, description, categories).
+    [[nodiscard]] auto search_extensions(const std::string& query) const
+        -> std::vector<SearchResult>;
+
 private:
     EventBus& event_bus_;
     Config& config_;
@@ -252,6 +347,15 @@ private:
 
     /// Extension services injected by the app for PluginContext population.
     ExtensionServices ext_services_;
+
+    /// Sandbox for permission enforcement (Task 2).
+    ExtensionSandbox* sandbox_{nullptr};
+
+    /// Activation report from last activate_all() (Task 3).
+    ActivationReport activation_report_{};
+
+    /// Per-plugin activation times for diagnostics.
+    std::unordered_map<std::string, int64_t> activation_times_;
 
     /// Accumulated contribution data from all loaded extensions.
     struct ContributionRegistry

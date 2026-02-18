@@ -53,8 +53,8 @@ public:
         -> std::expected<void, std::string>;
 
 private:
-    EventBus& event_bus_;
-    Config& config_;
+    [[maybe_unused]] EventBus& event_bus_;
+    [[maybe_unused]] Config& config_;
     mutable std::mutex mutex_;
     std::unordered_map<std::string, AISession> sessions_;
 

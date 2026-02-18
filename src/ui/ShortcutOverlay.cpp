@@ -458,4 +458,30 @@ void ShortcutOverlay::OnKeyDown(wxKeyEvent& event)
     event.Skip();
 }
 
+// ── Phase 35: Export & Highlight ──
+
+auto ShortcutOverlay::export_as_markdown() const -> std::string
+{
+    return shortcut_manager_.export_as_markdown();
+}
+
+auto ShortcutOverlay::export_as_json() const -> std::string
+{
+    return shortcut_manager_.export_as_json();
+}
+
+void ShortcutOverlay::set_highlight_shortcut(const std::string& shortcut_id)
+{
+    highlighted_shortcut_id_ = shortcut_id;
+    if (is_visible_)
+    {
+        Refresh();
+    }
+}
+
+auto ShortcutOverlay::total_shortcut_count() const -> std::size_t
+{
+    return shortcut_manager_.shortcut_count();
+}
+
 } // namespace markamp::ui

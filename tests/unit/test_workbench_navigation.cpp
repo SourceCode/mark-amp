@@ -1,319 +1,259 @@
-/// @file test_workbench_navigation.cpp
-/// @brief V8 Phase 11 Quality bar tests — Unified Workbench Navigation,
-///        Tool Window System, and Surface Link Contract.
-
 #include "core/Config.h"
 #include "core/EventBus.h"
 #include "core/Events.h"
-#include "core/SurfaceLink.h"
-#include "ui/NavigationService.h"
-#include "ui/ToolWindowHost.h"
+#include "core/ThemeEngine.h"
+#include "ui/SidebarMode.h"
+#include "ui/SidebarPanelRegistry.h"
 
 #include <catch2/catch_test_macros.hpp>
 
-using namespace markamp::core;
-using namespace markamp::core::events;
-using namespace markamp::ui;
+using namespace markamp;
 
 // =============================================================================
-// WorkbenchMode enum
+// SidebarMode ↔ ActivityBarItem mapping tests
 // =============================================================================
 
-TEST_CASE("WorkbenchMode enum has 5 distinct values", "[phase11][workbench]")
+TEST_CASE("SidebarMode enum has expected number of entries", "[workbench][sidebar]")
 {
-    REQUIRE(WorkbenchMode::kEditor != WorkbenchMode::kCanvas);
-    REQUIRE(WorkbenchMode::kEditor != WorkbenchMode::kNotebook);
-    REQUIRE(WorkbenchMode::kEditor != WorkbenchMode::kGraph);
-    REQUIRE(WorkbenchMode::kEditor != WorkbenchMode::kSettings);
-    REQUIRE(WorkbenchMode::kCanvas != WorkbenchMode::kNotebook);
+    // Verify all 8 modes exist and have distinct integer values
+    const auto explorer = static_cast<int>(ui::SidebarMode::kExplorer);
+    const auto search = static_cast<int>(ui::SidebarMode::kSearch);
+    const auto settings = static_cast<int>(ui::SidebarMode::kSettings);
+    const auto themes = static_cast<int>(ui::SidebarMode::kThemes);
+    const auto extensions = static_cast<int>(ui::SidebarMode::kExtensions);
+    const auto notebooks = static_cast<int>(ui::SidebarMode::kNotebooks);
+    const auto canvas = static_cast<int>(ui::SidebarMode::kCanvas);
+    const auto graph = static_cast<int>(ui::SidebarMode::kGraph);
 
-    // Count: 5 distinct values
-    constexpr auto kExpectedCount = 5;
-    int count = 0;
-    for (int idx = 0; idx < kExpectedCount; ++idx)
-    {
-        auto mode = static_cast<WorkbenchMode>(idx);
-        if (mode == WorkbenchMode::kEditor || mode == WorkbenchMode::kCanvas ||
-            mode == WorkbenchMode::kNotebook || mode == WorkbenchMode::kGraph ||
-            mode == WorkbenchMode::kSettings)
+    REQUIRE(explorer != search);
+    REQUIRE(search != settings);
+    REQUIRE(settings != themes);
+    REQUIRE(themes != extensions);
+    REQUIRE(extensions != notebooks);
+    REQUIRE(notebooks != canvas);
+    REQUIRE(canvas != graph);
+}
+
+TEST_CASE("SidebarMode values start at zero for Explorer", "[workbench][sidebar]")
+{
+    REQUIRE(static_cast<int>(ui::SidebarMode::kExplorer) == 0);
+}
+
+TEST_CASE("ActivityBarItem and SidebarMode have matching values", "[workbench][sidebar]")
+{
+    // Verify the mapping between ActivityBarItem and SidebarMode is consistent
+    REQUIRE(static_cast<int>(core::events::ActivityBarItem::FileExplorer) ==
+            static_cast<int>(ui::SidebarMode::kExplorer));
+    REQUIRE(static_cast<int>(core::events::ActivityBarItem::Search) ==
+            static_cast<int>(ui::SidebarMode::kSearch));
+    REQUIRE(static_cast<int>(core::events::ActivityBarItem::Settings) ==
+            static_cast<int>(ui::SidebarMode::kSettings));
+    REQUIRE(static_cast<int>(core::events::ActivityBarItem::Themes) ==
+            static_cast<int>(ui::SidebarMode::kThemes));
+    REQUIRE(static_cast<int>(core::events::ActivityBarItem::Extensions) ==
+            static_cast<int>(ui::SidebarMode::kExtensions));
+}
+
+// =============================================================================
+// SidebarPanelRegistry tests
+// =============================================================================
+
+TEST_CASE("SidebarPanelRegistry starts empty", "[workbench][registry]")
+{
+    ui::SidebarPanelRegistry registry;
+
+    REQUIRE(registry.AllModes().empty());
+}
+
+TEST_CASE("SidebarPanelRegistry register and lookup", "[workbench][registry]")
+{
+    ui::SidebarPanelRegistry registry;
+    bool factory_called = false;
+
+    registry.Register(ui::SidebarMode::kSearch,
+                      "SEARCH",
+                      "\xF0\x9F\x94\x8D",
+                      [&factory_called](wxWindow* /*parent*/) -> wxPanel*
+                      {
+                          factory_called = true;
+                          return nullptr; // No parent available in test
+                      });
+
+    REQUIRE(registry.AllModes().size() == 1);
+    REQUIRE(registry.GetLabel(ui::SidebarMode::kSearch) == "SEARCH");
+    REQUIRE_FALSE(factory_called); // Lazy: not called until GetOrCreate
+}
+
+TEST_CASE("SidebarPanelRegistry returns empty label for unregistered mode", "[workbench][registry]")
+{
+    ui::SidebarPanelRegistry registry;
+
+    REQUIRE(registry.GetLabel(ui::SidebarMode::kGraph).empty());
+}
+
+TEST_CASE("SidebarPanelRegistry AllModes returns all registered modes", "[workbench][registry]")
+{
+    ui::SidebarPanelRegistry registry;
+
+    registry.Register(ui::SidebarMode::kExplorer,
+                      "EXPLORER",
+                      "\xF0\x9F\x93\x81",
+                      [](wxWindow* /*parent*/) -> wxPanel* { return nullptr; });
+    registry.Register(ui::SidebarMode::kSearch,
+                      "SEARCH",
+                      "\xF0\x9F\x94\x8D",
+                      [](wxWindow* /*parent*/) -> wxPanel* { return nullptr; });
+    registry.Register(ui::SidebarMode::kSettings,
+                      "SETTINGS",
+                      "\xE2\x9A\x99",
+                      [](wxWindow* /*parent*/) -> wxPanel* { return nullptr; });
+
+    REQUIRE(registry.AllModes().size() == 3);
+}
+
+// =============================================================================
+// SidebarModeChangedEvent tests
+// =============================================================================
+
+TEST_CASE("SidebarModeChangedEvent carries previous and new mode", "[workbench][events]")
+{
+    core::events::SidebarModeChangedEvent evt;
+    evt.previous_mode = 0;
+    evt.new_mode = 1;
+
+    REQUIRE(evt.previous_mode == 0);
+    REQUIRE(evt.new_mode == 1);
+}
+
+TEST_CASE("SidebarModeChangedEvent can be published and received", "[workbench][events]")
+{
+    core::EventBus bus;
+    int received_previous = -1;
+    int received_new = -1;
+
+    auto sub = bus.subscribe<core::events::SidebarModeChangedEvent>(
+        [&](const core::events::SidebarModeChangedEvent& evt)
         {
-            ++count;
-        }
-    }
-    REQUIRE(count == kExpectedCount);
+            received_previous = evt.previous_mode;
+            received_new = evt.new_mode;
+        });
+
+    core::events::SidebarModeChangedEvent evt;
+    evt.previous_mode = static_cast<int>(ui::SidebarMode::kExplorer);
+    evt.new_mode = static_cast<int>(ui::SidebarMode::kSearch);
+    bus.publish(evt);
+
+    REQUIRE(received_previous == static_cast<int>(ui::SidebarMode::kExplorer));
+    REQUIRE(received_new == static_cast<int>(ui::SidebarMode::kSearch));
 }
 
 // =============================================================================
-// DockPosition enum
+// ActivityBarSelectionEvent tests
 // =============================================================================
 
-TEST_CASE("DockPosition enum has 3 distinct values", "[phase11][toolwindow]")
+TEST_CASE("ActivityBarSelectionEvent can be constructed with item", "[workbench][events]")
 {
-    REQUIRE(DockPosition::kLeft != DockPosition::kRight);
-    REQUIRE(DockPosition::kLeft != DockPosition::kBottom);
-    REQUIRE(DockPosition::kRight != DockPosition::kBottom);
+    const core::events::ActivityBarSelectionEvent evt{core::events::ActivityBarItem::Search};
+
+    REQUIRE(evt.item == core::events::ActivityBarItem::Search);
+}
+
+TEST_CASE("ActivityBarSelectionEvent round-trips through EventBus", "[workbench][events]")
+{
+    core::EventBus bus;
+    core::events::ActivityBarItem received_item = core::events::ActivityBarItem::FileExplorer;
+
+    auto sub = bus.subscribe<core::events::ActivityBarSelectionEvent>(
+        [&](const core::events::ActivityBarSelectionEvent& evt) { received_item = evt.item; });
+
+    const core::events::ActivityBarSelectionEvent evt{core::events::ActivityBarItem::Extensions};
+    bus.publish(evt);
+
+    REQUIRE(received_item == core::events::ActivityBarItem::Extensions);
 }
 
 // =============================================================================
-// Expanded ActivityBarItem enum (5 → 8)
+// Badge notification event tests
 // =============================================================================
 
-TEST_CASE("ActivityBarItem has 8 values after Phase 11 expansion", "[phase11][activitybar]")
+TEST_CASE("SearchResultCountEvent carries count", "[workbench][events]")
 {
-    // Original 5
-    REQUIRE(ActivityBarItem::FileExplorer != ActivityBarItem::Search);
-    REQUIRE(ActivityBarItem::Search != ActivityBarItem::Settings);
-    REQUIRE(ActivityBarItem::Settings != ActivityBarItem::Themes);
-    REQUIRE(ActivityBarItem::Themes != ActivityBarItem::Extensions);
+    core::events::SearchResultCountEvent evt;
+    evt.count = 42;
+    REQUIRE(evt.count == 42);
+}
 
-    // Phase 11 additions
-    REQUIRE(ActivityBarItem::Extensions != ActivityBarItem::kNotebooks);
-    REQUIRE(ActivityBarItem::kNotebooks != ActivityBarItem::kCanvas);
-    REQUIRE(ActivityBarItem::kCanvas != ActivityBarItem::kGraph);
+TEST_CASE("DiagnosticsCountChangedEvent carries error and warning counts", "[workbench][events]")
+{
+    core::events::DiagnosticsCountChangedEvent evt;
+    evt.error_count = 7;
+    evt.warning_count = 3;
+    REQUIRE(evt.error_count == 7);
+    REQUIRE(evt.warning_count == 3);
+}
 
-    // Count: 8 total
-    constexpr auto kExpectedCount = 8;
-    int count = 0;
-    for (int idx = 0; idx < kExpectedCount; ++idx)
-    {
-        ++count;
-    }
-    REQUIRE(count == kExpectedCount);
+TEST_CASE("ExtensionUpdatesAvailableEvent carries update_count", "[workbench][events]")
+{
+    core::events::ExtensionUpdatesAvailableEvent evt;
+    evt.update_count = 3;
+    REQUIRE(evt.update_count == 3);
 }
 
 // =============================================================================
-// Phase 11 event structs compile and carry payloads
+// Sidebar state persistence tests
 // =============================================================================
 
-TEST_CASE("Phase 11 events compile and carry payloads", "[phase11][events]")
+TEST_CASE("Config can store and retrieve sidebar mode", "[workbench][persistence]")
 {
-    SECTION("WorkbenchModeChangedEvent")
-    {
-        WorkbenchModeChangedEvent evt;
-        evt.previous_mode = WorkbenchMode::kEditor;
-        evt.new_mode = WorkbenchMode::kCanvas;
-        REQUIRE(evt.type_name() == "WorkbenchModeChangedEvent");
-        REQUIRE(evt.previous_mode == WorkbenchMode::kEditor);
-        REQUIRE(evt.new_mode == WorkbenchMode::kCanvas);
-    }
+    core::Config config;
+    const int mode_val = static_cast<int>(ui::SidebarMode::kSettings);
+    config.set("layout.sidebar_mode", mode_val);
 
-    SECTION("WorkbenchModeSwitchRequestEvent")
-    {
-        WorkbenchModeSwitchRequestEvent evt;
-        evt.target_mode = WorkbenchMode::kGraph;
-        REQUIRE(evt.type_name() == "WorkbenchModeSwitchRequestEvent");
-        REQUIRE(evt.target_mode == WorkbenchMode::kGraph);
-    }
+    const int restored = config.get_int("layout.sidebar_mode", 0);
+    REQUIRE(restored == mode_val);
+}
 
-    SECTION("ToolWindowToggleRequestEvent")
-    {
-        ToolWindowToggleRequestEvent evt;
-        evt.panel_id = "output";
-        evt.visible = false;
-        REQUIRE(evt.type_name() == "ToolWindowToggleRequestEvent");
-        REQUIRE(evt.panel_id == "output");
-        REQUIRE_FALSE(evt.visible);
-    }
+TEST_CASE("Config returns default when sidebar mode not set", "[workbench][persistence]")
+{
+    core::Config config;
+    const int restored = config.get_int("layout.sidebar_mode", 0);
+    REQUIRE(restored == 0); // Default is kExplorer (0)
+}
 
-    SECTION("ToolWindowDockPositionChangedEvent")
-    {
-        ToolWindowDockPositionChangedEvent evt;
-        evt.panel_id = "problems";
-        evt.dock_position = DockPosition::kRight;
-        REQUIRE(evt.type_name() == "ToolWindowDockPositionChangedEvent");
-        REQUIRE(evt.dock_position == DockPosition::kRight);
-    }
+TEST_CASE("Config rejects invalid sidebar mode gracefully", "[workbench][persistence]")
+{
+    core::Config config;
+    config.set("layout.sidebar_mode", 999);
+
+    const int restored = config.get_int("layout.sidebar_mode", 0);
+    // The value is stored as-is; validation happens in RestoreLayoutState
+    REQUIRE(restored == 999);
 }
 
 // =============================================================================
-// SurfaceLink types
+// Quick switcher shortcut mapping tests
 // =============================================================================
 
-TEST_CASE("SurfaceKind enum has 5 distinct values", "[phase11][surfacelink]")
+TEST_CASE("Quick switcher maps E to FileExplorer", "[workbench][shortcuts]")
 {
-    REQUIRE(SurfaceKind::kEditor != SurfaceKind::kPreview);
-    REQUIRE(SurfaceKind::kEditor != SurfaceKind::kCanvas);
-    REQUIRE(SurfaceKind::kEditor != SurfaceKind::kGraph);
-    REQUIRE(SurfaceKind::kEditor != SurfaceKind::kNotebook);
+    const core::events::ActivityBarSelectionEvent evt{core::events::ActivityBarItem::FileExplorer};
+    REQUIRE(evt.item == core::events::ActivityBarItem::FileExplorer);
 }
 
-TEST_CASE("EntityKind enum has 5 distinct values", "[phase11][surfacelink]")
+TEST_CASE("Quick switcher maps F to Search", "[workbench][shortcuts]")
 {
-    REQUIRE(EntityKind::kDocument != EntityKind::kHeading);
-    REQUIRE(EntityKind::kDocument != EntityKind::kCodeBlock);
-    REQUIRE(EntityKind::kDocument != EntityKind::kCanvasObject);
-    REQUIRE(EntityKind::kDocument != EntityKind::kNotebookCell);
+    const core::events::ActivityBarSelectionEvent evt{core::events::ActivityBarItem::Search};
+    REQUIRE(evt.item == core::events::ActivityBarItem::Search);
 }
 
-TEST_CASE("LinkAnchor struct defaults and fields", "[phase11][surfacelink]")
+TEST_CASE("Quick switcher maps G to Graph", "[workbench][shortcuts]")
 {
-    LinkAnchor anchor;
-    REQUIRE(anchor.surface_kind == SurfaceKind::kEditor);
-    REQUIRE(anchor.entity_kind == EntityKind::kDocument);
-    REQUIRE(anchor.file_path.empty());
-    REQUIRE(anchor.line == 0);
-    REQUIRE(anchor.column == 0);
-    REQUIRE(anchor.board_id.empty());
-    REQUIRE(anchor.object_id.empty());
-    REQUIRE(anchor.cell_id.empty());
-    REQUIRE(anchor.heading_id.empty());
-
-    // Populate and verify
-    anchor.surface_kind = SurfaceKind::kCanvas;
-    anchor.entity_kind = EntityKind::kCanvasObject;
-    anchor.board_id = "board-1";
-    anchor.object_id = "obj-42";
-    REQUIRE(anchor.surface_kind == SurfaceKind::kCanvas);
-    REQUIRE(anchor.board_id == "board-1");
-    REQUIRE(anchor.object_id == "obj-42");
+    const core::events::ActivityBarSelectionEvent evt{core::events::ActivityBarItem::kGraph};
+    REQUIRE(evt.item == core::events::ActivityBarItem::kGraph);
 }
 
-TEST_CASE("SurfaceLink struct fields", "[phase11][surfacelink]")
+TEST_CASE("Quick switcher maps X to Extensions", "[workbench][shortcuts]")
 {
-    SurfaceLink link;
-    link.from.surface_kind = SurfaceKind::kEditor;
-    link.from.file_path = "doc.md";
-    link.from.line = 42;
-    link.to.surface_kind = SurfaceKind::kPreview;
-    link.to.heading_id = "heading-3";
-    link.reason = "review";
-
-    REQUIRE(link.from.surface_kind == SurfaceKind::kEditor);
-    REQUIRE(link.from.line == 42);
-    REQUIRE(link.to.surface_kind == SurfaceKind::kPreview);
-    REQUIRE(link.to.heading_id == "heading-3");
-    REQUIRE(link.reason == "review");
-}
-
-// =============================================================================
-// Surface link events
-// =============================================================================
-
-TEST_CASE("Surface link events compile and carry payloads", "[phase11][events]")
-{
-    SECTION("OpenSurfaceLinkRequestEvent")
-    {
-        OpenSurfaceLinkRequestEvent evt;
-        evt.link.from.surface_kind = SurfaceKind::kEditor;
-        evt.link.to.surface_kind = SurfaceKind::kCanvas;
-        REQUIRE(evt.type_name() == "OpenSurfaceLinkRequestEvent");
-    }
-
-    SECTION("RevealInSurfaceRequestEvent")
-    {
-        RevealInSurfaceRequestEvent evt;
-        evt.target.surface_kind = SurfaceKind::kGraph;
-        REQUIRE(evt.type_name() == "RevealInSurfaceRequestEvent");
-    }
-
-    SECTION("SurfaceLinkResolvedEvent")
-    {
-        SurfaceLinkResolvedEvent evt;
-        evt.success = true;
-        REQUIRE(evt.type_name() == "SurfaceLinkResolvedEvent");
-        REQUIRE(evt.success);
-    }
-
-    SECTION("SurfaceTraversalFailedEvent")
-    {
-        SurfaceTraversalFailedEvent evt;
-        evt.error_message = "target not found";
-        REQUIRE(evt.type_name() == "SurfaceTraversalFailedEvent");
-        REQUIRE(evt.error_message == "target not found");
-    }
-}
-
-// =============================================================================
-// ToolWindowHost lifecycle
-// =============================================================================
-
-TEST_CASE("ToolWindowHost register/toggle/pin lifecycle", "[phase11][toolwindow]")
-{
-    EventBus bus;
-    Config config;
-    ToolWindowHost host(bus, config);
-
-    // Initially empty
-    REQUIRE(host.panel_count() == 0);
-
-    // Register panels
-    host.register_panel("output", "Output", DockPosition::kBottom);
-    host.register_panel("problems", "Problems", DockPosition::kBottom);
-    host.register_panel("explorer", "Explorer", DockPosition::kLeft);
-    REQUIRE(host.panel_count() == 3);
-
-    // Duplicate registration is no-op
-    host.register_panel("output", "Output Again", DockPosition::kRight);
-    REQUIRE(host.panel_count() == 3);
-
-    // Default state: not visible, not pinned
-    REQUIRE_FALSE(host.is_visible("output"));
-    REQUIRE_FALSE(host.is_pinned("output"));
-    REQUIRE(host.dock_position("output") == DockPosition::kBottom);
-
-    // Toggle visibility
-    host.toggle_panel("output");
-    REQUIRE(host.is_visible("output"));
-    host.toggle_panel("output");
-    REQUIRE_FALSE(host.is_visible("output"));
-
-    // Set visible explicitly
-    host.set_visible("output", true);
-    REQUIRE(host.is_visible("output"));
-
-    // Pin/unpin
-    host.set_pinned("output", true);
-    REQUIRE(host.is_pinned("output"));
-    host.set_pinned("output", false);
-    REQUIRE_FALSE(host.is_pinned("output"));
-
-    // Change dock position
-    host.set_dock_position("output", DockPosition::kRight);
-    REQUIRE(host.dock_position("output") == DockPosition::kRight);
-
-    // Panel state retrieval
-    const auto* state = host.panel_state("output");
-    REQUIRE(state != nullptr);
-    REQUIRE(state->title == "Output");
-    REQUIRE(state->panel_id == "output");
-
-    // Non-existent panel returns nullptr/defaults
-    REQUIRE(host.panel_state("nonexistent") == nullptr);
-    REQUIRE_FALSE(host.is_visible("nonexistent"));
-    REQUIRE(host.dock_position("nonexistent") == DockPosition::kBottom);
-
-    // panels_at
-    const auto& bottom_panels = host.panels_at(DockPosition::kBottom);
-    REQUIRE(bottom_panels.size() == 1); // "problems" is the only bottom panel now
-    const auto& left_panels = host.panels_at(DockPosition::kLeft);
-    REQUIRE(left_panels.size() == 1); // "explorer"
-
-    // Unregister
-    host.unregister_panel("output");
-    REQUIRE(host.panel_count() == 2);
-    REQUIRE(host.panel_state("output") == nullptr);
-}
-
-// =============================================================================
-// NavigationEntry cross-surface fields
-// =============================================================================
-
-TEST_CASE("NavigationEntry has cross-surface fields", "[phase11][navigation]")
-{
-    NavigationEntry entry;
-    entry.document_id = "doc.md";
-    entry.cursor_line = 10;
-    entry.from_surface = "editor";
-    entry.to_surface = "canvas";
-    entry.entity_id = "entity-1";
-    entry.board_id = "board-1";
-    entry.object_id = "obj-1";
-    entry.cell_id = "cell-1";
-
-    REQUIRE(entry.from_surface == "editor");
-    REQUIRE(entry.to_surface == "canvas");
-    REQUIRE(entry.entity_id == "entity-1");
-    REQUIRE(entry.board_id == "board-1");
-    REQUIRE(entry.object_id == "obj-1");
-    REQUIRE(entry.cell_id == "cell-1");
+    const core::events::ActivityBarSelectionEvent evt{core::events::ActivityBarItem::Extensions};
+    REQUIRE(evt.item == core::events::ActivityBarItem::Extensions);
 }

@@ -240,6 +240,25 @@ void ThemeEngine::rebuild_cache()
     cache_color(ThemeColorToken::EditorFindHit, current_theme_.colors.editor_find_hit);
     cache_color(ThemeColorToken::EditorQuickFix, current_theme_.colors.editor_quick_fix);
 
+    // V9 Phase 3: Extended semantic tokens
+    cache_color(ThemeColorToken::SidebarBg, current_theme_.colors.sidebar_bg);
+    cache_color(ThemeColorToken::SidebarFg, current_theme_.colors.sidebar_fg);
+    cache_color(ThemeColorToken::ActivityBarBg, current_theme_.colors.activity_bar_bg);
+    cache_color(ThemeColorToken::ActivityBarFg, current_theme_.colors.activity_bar_fg);
+    cache_color(ThemeColorToken::ActivityBarBadgeBg, current_theme_.colors.activity_bar_badge_bg);
+    cache_color(ThemeColorToken::ActivityBarBadgeFg, current_theme_.colors.activity_bar_badge_fg);
+    cache_color(ThemeColorToken::BreadcrumbFg, current_theme_.colors.breadcrumb_fg);
+    cache_color(ThemeColorToken::BreadcrumbFocusFg, current_theme_.colors.breadcrumb_focus_fg);
+    cache_color(ThemeColorToken::TabActiveBg, current_theme_.colors.tab_active_bg);
+    cache_color(ThemeColorToken::TabInactiveBg, current_theme_.colors.tab_inactive_bg);
+    cache_color(ThemeColorToken::TabActiveFg, current_theme_.colors.tab_active_fg);
+    cache_color(ThemeColorToken::TabInactiveFg, current_theme_.colors.tab_inactive_fg);
+    cache_color(ThemeColorToken::DiffInsertedBg, current_theme_.colors.diff_inserted_bg);
+    cache_color(ThemeColorToken::DiffRemovedBg, current_theme_.colors.diff_removed_bg);
+    cache_color(ThemeColorToken::MinimapBg, current_theme_.colors.minimap_bg);
+    cache_color(ThemeColorToken::PeekViewBorderColor, current_theme_.colors.peek_view_border);
+    cache_color(ThemeColorToken::NotebookCellBg, current_theme_.colors.notebook_cell_bg);
+
     // Rebuild fonts
     build_fonts();
 }
@@ -344,6 +363,169 @@ void ThemeEngine::apply_render_theme()
     cache_color(ThemeColorToken::RenderBlockquoteBg, current_theme_.render.blockquote_bg);
     cache_color(ThemeColorToken::RenderTableBorder, current_theme_.render.table_border);
     cache_color(ThemeColorToken::RenderTableHeaderBg, current_theme_.render.table_header_bg);
+}
+
+// --- V9 Phase 3: New APIs ---
+
+void ThemeEngine::apply_fx_tokens()
+{
+    MARKAMP_LOG_INFO("Applied FX tokens (master_enabled={})",
+                     current_theme_.fx_settings.master_enabled);
+}
+
+auto ThemeEngine::missing_tokens() const -> std::vector<ThemeColorToken>
+{
+    std::vector<ThemeColorToken> missing;
+    for (std::size_t idx = 0; idx < kColorTokenCount; ++idx)
+    {
+        auto token = static_cast<ThemeColorToken>(idx);
+        if (!cache_.colours.contains(token))
+        {
+            missing.push_back(token);
+        }
+    }
+    return missing;
+}
+
+auto ThemeEngine::scope_mapper() const -> const ThemeScopeMapper&
+{
+    return scope_mapper_;
+}
+
+void ThemeEngine::set_reduced_motion(bool enabled)
+{
+    reduced_motion_ = enabled;
+    if (enabled)
+    {
+        current_theme_.fx_settings.reduced_motion = true;
+    }
+    MARKAMP_LOG_INFO("Reduced motion: {}", enabled ? "enabled" : "disabled");
+}
+
+auto ThemeEngine::is_reduced_motion() const -> bool
+{
+    return reduced_motion_;
+}
+
+void ThemeEngine::push_undo()
+{
+    if (undo_stack_.size() >= kMaxUndoStack)
+    {
+        undo_stack_.erase(undo_stack_.begin());
+    }
+    undo_stack_.push_back(current_theme_);
+}
+
+auto ThemeEngine::can_undo() const -> bool
+{
+    return !undo_stack_.empty();
+}
+
+void ThemeEngine::undo_theme_change()
+{
+    if (undo_stack_.empty())
+    {
+        return;
+    }
+    // Push current to redo stack before undoing
+    redo_stack_.push_back(current_theme_);
+    current_theme_ = undo_stack_.back();
+    undo_stack_.pop_back();
+    rebuild_cache();
+
+    events::ThemeChangedEvent event;
+    event.theme_id = current_theme_.id;
+    event_bus_.publish(event);
+    MARKAMP_LOG_INFO("Theme undo: reverted to {}", current_theme_.id);
+}
+
+void ThemeEngine::redo_theme_change()
+{
+    if (redo_stack_.empty())
+    {
+        return;
+    }
+    undo_stack_.push_back(current_theme_);
+    current_theme_ = redo_stack_.back();
+    redo_stack_.pop_back();
+    rebuild_cache();
+
+    events::ThemeChangedEvent event;
+    event.theme_id = current_theme_.id;
+    event_bus_.publish(event);
+    MARKAMP_LOG_INFO("Theme redo: restored to {}", current_theme_.id);
+}
+
+auto ThemeEngine::can_redo() const -> bool
+{
+    return !redo_stack_.empty();
+}
+
+void ThemeEngine::populate_scope_mapper(const Theme& theme)
+{
+    // Clear existing rules and populate from theme syntax colors.
+    scope_mapper_ = ThemeScopeMapper{};
+
+    // Map standard TextMate scopes to theme syntax colors.
+    auto make_rule = [](const std::string& sel, const std::string& color_hex) {
+        return ThemeScopeMapper::ScopeRule{sel, color_hex, FontStyleFlag::kNone, false};
+    };
+
+    scope_mapper_.add_rule(make_rule("keyword", theme.syntax.keyword.to_hex()));
+    scope_mapper_.add_rule(make_rule("keyword.control", theme.syntax.keyword.to_hex()));
+    scope_mapper_.add_rule(make_rule("string", theme.syntax.string_literal.to_hex()));
+    scope_mapper_.add_rule(make_rule("string.quoted", theme.syntax.string_literal.to_hex()));
+    scope_mapper_.add_rule(make_rule("comment", theme.syntax.comment.to_hex()));
+    scope_mapper_.add_rule(make_rule("comment.line", theme.syntax.comment.to_hex()));
+    scope_mapper_.add_rule(make_rule("constant.numeric", theme.syntax.number.to_hex()));
+    scope_mapper_.add_rule(make_rule("entity.name.type", theme.syntax.type_name.to_hex()));
+    scope_mapper_.add_rule(make_rule("entity.name.function", theme.syntax.function_name.to_hex()));
+    scope_mapper_.add_rule(make_rule("keyword.operator", theme.syntax.operator_tok.to_hex()));
+    scope_mapper_.add_rule(make_rule("meta.preprocessor", theme.syntax.preprocessor.to_hex()));
+
+    MARKAMP_LOG_INFO("Scope mapper populated with {} rules", scope_mapper_.rule_count());
+}
+
+void ThemeEngine::discover_extension_themes()
+{
+    const auto themes = available_themes();
+    for (const auto& info : themes)
+    {
+        // Extension-contributed themes are non-builtin with a file path
+        if (!info.is_builtin && info.file_path.has_value())
+        {
+            events::ExtensionThemeDiscoveredEvent event;
+            event.theme_id = info.id;
+            event.extension_id = info.file_path.value();
+            event_bus_.publish(event);
+        }
+    }
+}
+
+void ThemeEngine::preview_theme(const std::string& theme_id)
+{
+    // Push current state so we can revert
+    push_undo();
+    previewing_ = true;
+
+    // Apply the preview theme
+    apply_theme(theme_id);
+
+    events::ThemePreviewRequestEvent event;
+    event.theme_id = theme_id;
+    event_bus_.publish(event);
+    MARKAMP_LOG_INFO("Theme preview: previewing {}", theme_id);
+}
+
+void ThemeEngine::cancel_preview()
+{
+    if (!previewing_)
+    {
+        return;
+    }
+    previewing_ = false;
+    undo_theme_change();
+    MARKAMP_LOG_INFO("Theme preview: cancelled, reverted");
 }
 
 // --- Recursive propagation ---

@@ -240,12 +240,12 @@ auto ExportService::generate_toc(const std::string& markdown_source) -> std::str
     {
         if (line.starts_with("#"))
         {
-            int level = 0;
-            while (level < static_cast<int>(line.size()) && line[level] == '#')
+            size_t level = 0;
+            while (level < line.size() && line[level] == '#')
                 ++level;
             if (level > 0 && level <= 6)
             {
-                auto heading = line.substr(static_cast<size_t>(level));
+                auto heading = line.substr(level);
                 // Trim leading space.
                 if (!heading.empty() && heading[0] == ' ')
                     heading = heading.substr(1);

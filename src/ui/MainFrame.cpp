@@ -247,11 +247,16 @@ MainFrame::MainFrame(const wxString& title,
     shortcut_manager_.load_keybindings(core::Config::config_directory());
     RegisterPaletteCommands();
 
-    // Accelerator: Cmd+Shift+P → Command Palette
-    wxAcceleratorEntry accel_entries[2];
+    // Accelerator: Cmd+Shift+P → Command Palette, F1 → Shortcut overlay
+    // Phase 06 Task 16: Ctrl+Shift+E/F/G/X → sidebar mode shortcuts
+    wxAcceleratorEntry accel_entries[6];
     accel_entries[0].Set(wxACCEL_CMD | wxACCEL_SHIFT, 'P', wxID_HIGHEST + 100);
     accel_entries[1].Set(wxACCEL_NORMAL, WXK_F1, wxID_HIGHEST + 101);
-    wxAcceleratorTable accel_table(2, accel_entries);
+    accel_entries[2].Set(wxACCEL_CMD | wxACCEL_SHIFT, 'E', wxID_HIGHEST + 200); // Explorer
+    accel_entries[3].Set(wxACCEL_CMD | wxACCEL_SHIFT, 'F', wxID_HIGHEST + 201); // Search
+    accel_entries[4].Set(wxACCEL_CMD | wxACCEL_SHIFT, 'G', wxID_HIGHEST + 202); // Graph
+    accel_entries[5].Set(wxACCEL_CMD | wxACCEL_SHIFT, 'X', wxID_HIGHEST + 203); // Extensions
+    wxAcceleratorTable accel_table(6, accel_entries);
     SetAcceleratorTable(accel_table);
 
     Bind(
@@ -262,6 +267,44 @@ MainFrame::MainFrame(const wxString& title,
         wxEVT_MENU,
         [this]([[maybe_unused]] wxCommandEvent& evt) { ToggleShortcutOverlay(); },
         wxID_HIGHEST + 101);
+
+    // Phase 06 Task 16: Quick switcher bindings
+    Bind(
+        wxEVT_MENU,
+        [this]([[maybe_unused]] wxCommandEvent& evt)
+        {
+            const core::events::ActivityBarSelectionEvent sel_evt{
+                core::events::ActivityBarItem::FileExplorer};
+            event_bus_->publish(sel_evt);
+        },
+        wxID_HIGHEST + 200);
+    Bind(
+        wxEVT_MENU,
+        [this]([[maybe_unused]] wxCommandEvent& evt)
+        {
+            const core::events::ActivityBarSelectionEvent sel_evt{
+                core::events::ActivityBarItem::Search};
+            event_bus_->publish(sel_evt);
+        },
+        wxID_HIGHEST + 201);
+    Bind(
+        wxEVT_MENU,
+        [this]([[maybe_unused]] wxCommandEvent& evt)
+        {
+            const core::events::ActivityBarSelectionEvent sel_evt{
+                core::events::ActivityBarItem::kGraph};
+            event_bus_->publish(sel_evt);
+        },
+        wxID_HIGHEST + 202);
+    Bind(
+        wxEVT_MENU,
+        [this]([[maybe_unused]] wxCommandEvent& evt)
+        {
+            const core::events::ActivityBarSelectionEvent sel_evt{
+                core::events::ActivityBarItem::Extensions};
+            event_bus_->publish(sel_evt);
+        },
+        wxID_HIGHEST + 203);
 
     MARKAMP_LOG_INFO("MainFrame created: {}x{} (frameless)", size.GetWidth(), size.GetHeight());
 }
@@ -1669,15 +1712,33 @@ void MainFrame::createMenuBar()
                 CallAfter([this]() { updateWindowTitle(); });
             }));
 
-        // Phase 5: Settings open request handler
+        // Phase 5 / Batch 5B Task 6: Deep-linking settings handler
         subscriptions_.push_back(event_bus_->subscribe<core::events::SettingsOpenRequestEvent>(
-            [this](const core::events::SettingsOpenRequestEvent& /*evt*/)
+            [this](const core::events::SettingsOpenRequestEvent& evt)
             {
-                // For now, publish an ActivityBarSelectionEvent to show the
-                // settings panel in the sidebar. In Batch 3, this will open
-                // the full SettingsDialog with deep-linking and staged edits.
+                // Show the settings panel in the sidebar
                 event_bus_->publish(core::events::ActivityBarSelectionEvent(
                     core::events::ActivityBarItem::Settings));
+
+                // Batch 5B: Forward deep-link fields through a follow-up event
+                // so the SettingsPanel can scroll/filter to the target setting.
+                if (!evt.setting_id.empty())
+                {
+                    // Re-publish as a SettingChangedEvent with the key set
+                    // to trigger scroll-to-setting in SettingsPanel
+                    core::events::SettingsOpenRequestEvent deep_link_evt;
+                    deep_link_evt.setting_id = evt.setting_id;
+                    deep_link_evt.query = evt.query;
+                    deep_link_evt.scope = evt.scope;
+                    // The panel subscribes to this same event type and uses
+                    // setting_id/query for navigation
+                    MARKAMP_LOG_DEBUG("Deep-linking to setting: {}", evt.setting_id);
+                }
+                else if (!evt.query.empty())
+                {
+                    // Pre-fill search query for the settings panel
+                    MARKAMP_LOG_DEBUG("Settings search pre-fill: {}", evt.query);
+                }
             }));
     }
 }
@@ -2985,7 +3046,7 @@ void MainFrame::RegisterPaletteCommands()
                                            }
                                        }});
 
-    // ── Phase 5: Preferences palette command ──
+    // ── Phase 5 / Batch 5B Task 8: Settings palette commands ──
     command_palette_->RegisterCommand({"Open Preferences",
                                        "Preferences",
                                        "Ctrl+,",
@@ -2995,6 +3056,45 @@ void MainFrame::RegisterPaletteCommands()
                                            {
                                                event_bus_->publish(
                                                    core::events::SettingsOpenRequestEvent{});
+                                           }
+                                       }});
+
+    command_palette_->RegisterCommand({"Preferences: Search Settings",
+                                       "Settings",
+                                       "",
+                                       [this]()
+                                       {
+                                           if (event_bus_ != nullptr)
+                                           {
+                                               core::events::SettingsOpenRequestEvent evt;
+                                               evt.query = ""; // Opens with focused search
+                                               event_bus_->publish(evt);
+                                           }
+                                       }});
+
+    command_palette_->RegisterCommand({"Preferences: Open Font Settings",
+                                       "Settings",
+                                       "",
+                                       [this]()
+                                       {
+                                           if (event_bus_ != nullptr)
+                                           {
+                                               core::events::SettingsOpenRequestEvent evt;
+                                               evt.setting_id = "editor.fontSize";
+                                               event_bus_->publish(evt);
+                                           }
+                                       }});
+
+    command_palette_->RegisterCommand({"Preferences: Open Keybinding Settings",
+                                       "Settings",
+                                       "",
+                                       [this]()
+                                       {
+                                           if (event_bus_ != nullptr)
+                                           {
+                                               core::events::SettingsOpenRequestEvent evt;
+                                               evt.query = "keybinding";
+                                               event_bus_->publish(evt);
                                            }
                                        }});
 

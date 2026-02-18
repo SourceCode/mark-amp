@@ -70,4 +70,77 @@ private:
     std::string active_channel_;
 };
 
+// ── V9 Phase 04 Task 11: Per-plugin output channel routing ──
+
+/// Routes plugin output to dedicated, auto-created channels.
+/// Each plugin gets its own output channel named "Plugin: <plugin_id>".
+class PluginOutputRouter
+{
+public:
+    explicit PluginOutputRouter(OutputChannelService& channel_service)
+        : channel_service_(channel_service)
+    {
+    }
+
+    /// Append text to a plugin's dedicated output channel.
+    void append(const std::string& plugin_id, const std::string& text)
+    {
+        auto* channel = ensure_channel(plugin_id);
+        if (channel != nullptr)
+        {
+            channel->append(text);
+        }
+    }
+
+    /// Append a line to a plugin's dedicated output channel.
+    void append_line(const std::string& plugin_id, const std::string& text)
+    {
+        auto* channel = ensure_channel(plugin_id);
+        if (channel != nullptr)
+        {
+            channel->append_line(text);
+        }
+    }
+
+    /// Clear a plugin's output channel.
+    void clear(const std::string& plugin_id)
+    {
+        auto* channel = channel_service_.get_channel(channel_name(plugin_id));
+        if (channel != nullptr)
+        {
+            channel->clear();
+        }
+    }
+
+    /// Show a plugin's output channel.
+    void show(const std::string& plugin_id)
+    {
+        auto* channel = ensure_channel(plugin_id);
+        if (channel != nullptr)
+        {
+            channel->show();
+        }
+    }
+
+    /// Get the channel name for a plugin.
+    [[nodiscard]] static auto channel_name(const std::string& plugin_id) -> std::string
+    {
+        return "Plugin: " + plugin_id;
+    }
+
+private:
+    OutputChannelService& channel_service_;
+
+    auto ensure_channel(const std::string& plugin_id) -> OutputChannel*
+    {
+        const std::string name = channel_name(plugin_id);
+        auto* existing = channel_service_.get_channel(name);
+        if (existing != nullptr)
+        {
+            return existing;
+        }
+        return channel_service_.create_channel(name);
+    }
+};
+
 } // namespace markamp::core

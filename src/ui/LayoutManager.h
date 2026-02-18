@@ -1,5 +1,7 @@
 #pragma once
 
+#include "SidebarPanelRegistry.h"
+#include "SidebarToolbar.h"
 #include "ThemeAwareWindow.h"
 #include "core/EventBus.h"
 #include "core/Events.h"
@@ -51,12 +53,7 @@ class TreeViewHost;
 class WalkthroughPanel;
 class WebviewHostPanel;
 
-/// Sidebar display mode.
-enum class SidebarMode
-{
-    kExplorer,
-    kExtensions
-};
+// SidebarMode enum defined in SidebarMode.h, included via SidebarPanelRegistry.h.
 
 class CanvasWorkspacePanel;
 
@@ -126,6 +123,17 @@ public:
     void SetExtensionServices(core::IExtensionManagementService* mgmt_service,
                               core::IExtensionGalleryService* gallery_service);
 
+    /// Phase 06 Task 2/4: Lazy panel registry for sidebar modes
+    [[nodiscard]] auto sidebar_panel_registry() -> SidebarPanelRegistry&;
+
+    /// Phase 06 Task 10: Sidebar toolbar (contextual header)
+    [[nodiscard]] auto sidebar_toolbar() -> SidebarToolbar*;
+
+    /// Phase 06 Task 11: Secondary sidebar on the right side of the content area
+    void ToggleSecondarySidebar();
+    void SetSecondarySidebarMode(SidebarMode mode);
+    [[nodiscard]] auto is_secondary_sidebar_visible() const -> bool;
+
     static constexpr int kDefaultSidebarWidth = 256;
     static constexpr int kMinSidebarWidth = 180;
     static constexpr int kMaxSidebarWidth = 400;
@@ -182,8 +190,9 @@ private:
     WebviewHostPanel* webview_host_panel_{nullptr};
     bool bottom_panel_visible_{false};
 
-    // Phase 8: Sidebar mode switching
+    // Phase 8 / Phase 06: Sidebar mode switching
     SidebarMode sidebar_mode_{SidebarMode::kExplorer};
+    SidebarPanelRegistry panel_registry_;
     wxPanel* explorer_panel_{nullptr}; // Container for file tree + search + footer
     ExtensionsBrowserPanel* extensions_panel_{nullptr};
     core::IExtensionManagementService* ext_mgmt_service_{nullptr};
@@ -191,11 +200,26 @@ private:
     core::Subscription show_extensions_sub_;
     core::Subscription show_explorer_sub_;
     core::Subscription feature_toggled_sub_;
+    core::Subscription activity_bar_selection_sub_;
 
     // V8 Phase 6: Canvas workspace
     CanvasWorkspacePanel* canvas_workspace_{nullptr};
     bool canvas_mode_{false};
     core::Subscription board_open_sub_;
+
+    // Phase 06 Task 10: Sidebar toolbar
+    SidebarToolbar* sidebar_toolbar_{nullptr};
+
+    // Phase 06 Task 17: Sidebar transition animation
+    wxTimer sidebar_transition_timer_;
+    float sidebar_transition_alpha_{1.0F};
+    bool sidebar_transition_active_{false};
+
+    // Phase 06 Task 11: Secondary sidebar
+    wxPanel* secondary_sidebar_panel_{nullptr};
+    bool secondary_sidebar_visible_{false};
+    SidebarMode secondary_sidebar_mode_{SidebarMode::kSearch};
+    SidebarPanelRegistry secondary_panel_registry_;
 
     // V8 Phase 11: Unified workbench mode
     core::events::WorkbenchMode workbench_mode_{core::events::WorkbenchMode::kEditor};
@@ -226,6 +250,7 @@ private:
 
     void CreateLayout();
     void CreateBottomPanelHost();
+    void RegisterSidebarPanels();
     void UpdateSidebarSize(int width);
     void SaveLayoutState();
     void RestoreLayoutState();

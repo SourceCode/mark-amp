@@ -1,6 +1,8 @@
 #pragma once
 
+#include "core/MemoryBudget.h"
 #include "core/RecentWorkspaces.h"
+#include "core/Watchdog.h"
 #include "platform/PlatformAbstraction.h"
 
 #include <wx/app.h>
@@ -43,6 +45,8 @@ class QuickPickService;
 class GrammarEngine;
 class TerminalService;
 class TaskRunnerService;
+class Watchdog;
+class MemoryBudget;
 } // namespace markamp::core
 
 namespace markamp::platform
@@ -62,8 +66,17 @@ public:
     /// Idle handler — drains queued and fast-path EventBus events.
     void OnIdle(wxIdleEvent& event);
 
+    // Default constructor required by wxIMPLEMENT_APP_NO_MAIN
+    MarkAmpApp() = default;
+
     // Destructor must be declared here, defined in .cpp where types are complete
     ~MarkAmpApp() override;
+
+    // Rule-of-five: non-copyable, non-movable (wxApp subclass with unique_ptr members)
+    MarkAmpApp(const MarkAmpApp&) = delete;
+    auto operator=(const MarkAmpApp&) -> MarkAmpApp& = delete;
+    MarkAmpApp(MarkAmpApp&&) = delete;
+    auto operator=(MarkAmpApp&&) -> MarkAmpApp& = delete;
 
     // Application-wide settings
     static constexpr int kDefaultWidth = 1280;
@@ -108,6 +121,10 @@ private:
     std::unique_ptr<core::GrammarEngine> grammar_engine_;
     std::unique_ptr<core::TerminalService> terminal_service_;
     std::unique_ptr<core::TaskRunnerService> task_runner_service_;
+
+    // Phase 01: Infrastructure
+    std::unique_ptr<core::Watchdog> watchdog_;
+    std::unique_ptr<core::MemoryBudget> memory_budget_;
 };
 
 } // namespace markamp::app

@@ -158,6 +158,10 @@ private:
     // R18 Fix 13: Git branch
     std::string git_branch_;
 
+    // Phase 06 Task 15: Sidebar mode indicator
+    std::string sidebar_mode_name_{"EXPLORER"};
+    core::Subscription sidebar_mode_sub_;
+
     // R17 Fix 8: Save flash
     bool save_flash_active_{false};
     wxTimer save_flash_timer_;
@@ -174,6 +178,9 @@ private:
 
     /// Convert ViewMode to display string.
     static auto view_mode_label(core::events::ViewMode mode) -> std::string;
+
+    /// Convert sidebar mode int to display name.
+    static auto sidebar_mode_label(int mode) -> std::string;
 
     /// Helper to count words in content.
     static auto count_words(const std::string& content) -> int;

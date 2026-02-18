@@ -395,6 +395,20 @@ struct ExtensionManifest
     std::vector<std::string> extension_dependencies; // Other extension IDs
     std::vector<std::string> extension_pack;         // Extension pack members
 
+    // V9 Phase 04 Task 7: Version-constrained dependencies
+    struct VersionedDependency
+    {
+        std::string extension_id;  // e.g. "publisher.extension-name"
+        std::string version_range; // SemVer range, e.g. "^1.2.0", ">=2.0.0"
+
+        /// Check if a given version satisfies this constraint.
+        /// Simple implementation: supports "^major.minor.patch" (compatible)
+        /// and ">=major.minor.patch" (minimum).
+        [[nodiscard]] auto is_satisfied_by(const std::string& candidate_version) const -> bool;
+    };
+
+    std::vector<VersionedDependency> versioned_dependencies;
+
     // -- Contribution points --
     ExtensionContributions contributes;
 
@@ -407,6 +421,19 @@ struct ExtensionManifest
 
     /// Derive an ExtensionIdentifier from publisher + name.
     [[nodiscard]] auto identifier() const -> ExtensionIdentifier;
+
+    // ── V9 Phase 04 Task 17: VSIX manifest verification ──
+
+    /// Result of manifest verification.
+    struct ManifestVerificationResult
+    {
+        bool valid{true};
+        std::vector<std::string> errors;
+        std::vector<std::string> warnings;
+    };
+
+    /// Verify this manifest for required fields, semver format, and structure.
+    [[nodiscard]] auto verify() const -> ManifestVerificationResult;
 };
 
 // ── Manifest Parser ──

@@ -14,6 +14,7 @@
 namespace markamp::core
 {
 class Config;
+class ConfigProfileManager;
 } // namespace markamp::core
 
 namespace markamp::ui
@@ -57,6 +58,17 @@ private:
     wxStaticText* unsaved_indicator_{nullptr};
     wxChoice* scope_selector_{nullptr};
     wxStaticText* search_count_label_{nullptr};
+    wxChoice* profile_selector_{nullptr};
+
+    // Batch 5D Task 14: Profile manager (nullable; not owned)
+    core::ConfigProfileManager* profile_manager_{nullptr};
+
+    // Batch 5D Task 13-15: Toolbar action handlers
+    void OnImportSettings(wxCommandEvent& event);
+    void OnExportSettings(wxCommandEvent& event);
+    void OnProfileChanged(wxCommandEvent& event);
+    void OnUndo(wxCommandEvent& event);
+    void OnRedo(wxCommandEvent& event);
 };
 
 } // namespace markamp::ui

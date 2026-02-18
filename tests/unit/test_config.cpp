@@ -57,5 +57,5 @@ TEST_CASE("Config: config_directory is non-empty", "[core][config]")
 TEST_CASE("Config: config_file_path ends with config.json", "[core][config]")
 {
     auto path = Config::config_file_path();
-    REQUIRE(path.filename() == "config.json");
+    REQUIRE(path.filename() == "config.md");
 }

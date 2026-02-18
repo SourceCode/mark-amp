@@ -2,13 +2,17 @@
 
 #include "core/EventBus.h"
 #include "core/IPlugin.h"
+#include "core/SettingsCatalog.h"
 #include "core/ThemeEngine.h"
 
 #include <wx/checkbox.h>
 #include <wx/choice.h>
+#include <wx/clrpicker.h>
 #include <wx/collpane.h>
+#include <wx/colordlg.h>
 #include <wx/filedlg.h>
 #include <wx/listbox.h>
+#include <wx/notebook.h>
 #include <wx/panel.h>
 #include <wx/scrolwin.h>
 #include <wx/sizer.h>
@@ -17,6 +21,8 @@
 #include <wx/srchctrl.h>
 #include <wx/stattext.h>
 #include <wx/textctrl.h>
+#include <wx/timer.h>
+#include <wx/treectrl.h>
 
 #include <functional>
 #include <set>
@@ -108,12 +114,31 @@ public:
     /// Focus the search control (for auto-focus on dialog open).
     void FocusSearch();
 
+    // ── Batch 5A: Undo/Redo API ──
+
+    /// Undo the last setting change.
+    void UndoLastChange();
+
+    /// Redo the last undone change.
+    void RedoLastChange();
+
+    /// Whether there are changes that can be undone.
+    [[nodiscard]] auto CanUndo() const -> bool;
+
+    /// Whether there are changes that can be redone.
+    [[nodiscard]] auto CanRedo() const -> bool;
+
     /// Reset all settings to their default values.
     void RestoreAllDefaults();
+
+    /// Export/Import settings via file dialog (Batch 5D Task 13).
+    void ExportSettings();
+    void ImportSettings();
 
     static constexpr int kCategoryPadding = 12;
     static constexpr int kSettingRowHeight = 44;
     static constexpr int kMaxVisibleSettings = 50;
+    static constexpr int kSearchDebounceMs = 300;
 
     // ── Batch 6: Preferences query API ──
 
@@ -141,10 +166,13 @@ private:
     core::Config& config_;
 
     wxSearchCtrl* search_ctrl_{nullptr};
-    wxListBox* category_list_{nullptr};
+    wxTreeCtrl* category_tree_{nullptr};
+    wxNotebook* scope_tabs_{nullptr};
     wxScrolledWindow* scroll_area_{nullptr};
     wxBoxSizer* settings_sizer_{nullptr};
     std::string active_category_; // empty = show all
+    std::string active_subgroup_; // empty = show all in group
+    core::ConfigScope active_scope_{core::ConfigScope::kApplication};
 
     std::vector<SettingDefinition> definitions_;
     std::vector<wxWindow*> setting_widgets_;
@@ -165,16 +193,19 @@ private:
     void PopulateFromCatalog();
 
     void CreateLayout();
+    void BuildCategoryTree();
     void RebuildSettingsList();
     void OnSearchChanged(wxCommandEvent& event);
-    void OnCategorySelected(wxCommandEvent& event);
+    void OnTreeSelectionChanged(wxTreeEvent& event);
+    void OnScopeChanged(wxBookCtrlEvent& event);
     void OnSettingChanged(const std::string& setting_id, const std::string& new_value);
     void ResetSettingToDefault(const std::string& setting_id, const std::string& default_val);
     auto CreateResetButton(wxWindow* parent, const SettingDefinition& def) -> wxButton*;
 
+    /// Compute fuzzy search score for a definition against query (higher = better match).
+    static auto FuzzyScore(const SettingDefinition& def, const std::string& query) -> double;
+
     // Phase 9 settings panel improvements
-    void ExportSettings();
-    void ImportSettings();
     [[nodiscard]] auto IsSettingModified(const SettingDefinition& def) const -> bool;
     void OnCollapsibleToggle(const std::string& category);
 
@@ -200,8 +231,21 @@ private:
     wxStaticText* breadcrumb_label_{nullptr};
     wxCheckBox* show_modified_only_{nullptr};
 
+    // Batch 5A: Undo/Redo stack
+    struct SettingChange
+    {
+        std::string setting_id;
+        std::string old_value;
+        std::string new_value;
+    };
+    std::vector<SettingChange> undo_stack_;
+    std::vector<SettingChange> redo_stack_;
+
     // Theme subscription
     core::Subscription theme_sub_;
+
+    // Batch 5E Task 19: Debounce timer for search input
+    wxTimer search_debounce_timer_;
 };
 
 } // namespace markamp::ui

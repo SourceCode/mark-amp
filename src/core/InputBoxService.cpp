@@ -52,4 +52,52 @@ void InputBoxService::set_event_bus(EventBus* bus)
     event_bus_ = bus;
 }
 
+// ── Phase 36: InputHistory ──
+
+void InputHistory::add(const std::string& prompt_type, const std::string& value)
+{
+    auto& hist = history_[prompt_type];
+    hist.push_back(value);
+    while (static_cast<int>(hist.size()) > kMaxPerType)
+    {
+        hist.erase(hist.begin());
+    }
+}
+
+auto InputHistory::get_previous(const std::string& prompt_type, int offset) const -> std::string
+{
+    const auto iter = history_.find(prompt_type);
+    if (iter == history_.end() || iter->second.empty())
+    {
+        return "";
+    }
+    const auto& hist = iter->second;
+    const int idx = static_cast<int>(hist.size()) - 1 - offset;
+    if (idx < 0 || idx >= static_cast<int>(hist.size()))
+    {
+        return "";
+    }
+    return hist[static_cast<std::size_t>(idx)];
+}
+
+auto InputHistory::get_all(const std::string& prompt_type) const -> std::vector<std::string>
+{
+    const auto iter = history_.find(prompt_type);
+    if (iter == history_.end())
+    {
+        return {};
+    }
+    return iter->second;
+}
+
+void InputHistory::clear(const std::string& prompt_type)
+{
+    history_.erase(prompt_type);
+}
+
+void InputHistory::clear_all()
+{
+    history_.clear();
+}
+
 } // namespace markamp::core

@@ -530,7 +530,7 @@ void EditorPanel::SavePreferences(core::Config& config) const
 void EditorPanel::SetProductivityMode(ProductivityMode mode)
 {
     current_productivity_mode_ = mode;
-    // TODO(Phase 10 Batch 5): apply per-mode configs
+    ApplyProductivityModeConfig();
 }
 
 auto EditorPanel::GetProductivityMode() const -> ProductivityMode
@@ -546,7 +546,366 @@ auto EditorPanel::diagnostic_indicators() const -> const std::vector<DiagnosticI
 void EditorPanel::set_diagnostic_indicators(std::vector<DiagnosticIndicator> indicators)
 {
     diagnostic_indicators_ = std::move(indicators);
-    // TODO(Phase 10 Batch 2): wire to Scintilla margin markers
+    ApplyDiagnosticMarkers();
+}
+
+// ═══════════════════════════════════════════════════════
+// Phase 7: Editor Core Improvements
+// ═══════════════════════════════════════════════════════
+
+void EditorPanel::SetRelativeLineNumbers(bool enabled)
+{
+    relative_line_numbers_ = enabled;
+    UpdateLineNumberMargin();
+}
+
+auto EditorPanel::GetRelativeLineNumbers() const -> bool
+{
+    return relative_line_numbers_;
+}
+
+void EditorPanel::ShowInlineDiagnostics(bool enabled)
+{
+    inline_diagnostics_ = enabled;
+    if (editor_ == nullptr)
+    {
+        return;
+    }
+    if (enabled)
+    {
+        editor_->AnnotationSetVisible(wxSTC_ANNOTATION_STANDARD);
+        RefreshInlineDiagnostics();
+    }
+    else
+    {
+        editor_->AnnotationClearAll();
+        editor_->AnnotationSetVisible(wxSTC_ANNOTATION_HIDDEN);
+    }
+}
+
+auto EditorPanel::GetInlineDiagnostics() const -> bool
+{
+    return inline_diagnostics_;
+}
+
+void EditorPanel::RefreshInlineDiagnostics()
+{
+    if (editor_ == nullptr || !inline_diagnostics_)
+    {
+        return;
+    }
+
+    editor_->AnnotationClearAll();
+    for (const auto& diag : diagnostic_indicators_)
+    {
+        std::string prefix;
+        switch (diag.severity)
+        {
+            case core::DiagnosticSeverity::kError:
+                prefix = "\u274C ";
+                break;
+            case core::DiagnosticSeverity::kWarning:
+                prefix = "\u26A0\uFE0F ";
+                break;
+            case core::DiagnosticSeverity::kInformation:
+                prefix = "\u2139\uFE0F ";
+                break;
+            case core::DiagnosticSeverity::kHint:
+                prefix = "\U0001F4A1 ";
+                break;
+        }
+        const std::string annotation_text = prefix + diag.message;
+        editor_->AnnotationSetText(diag.line, wxString::FromUTF8(annotation_text));
+        editor_->AnnotationSetStyle(diag.line, wxSTC_STYLE_DEFAULT);
+    }
+}
+
+void EditorPanel::ShowQuickFixLightbulb(int line)
+{
+    lightbulb_line_ = line;
+    if (editor_ == nullptr)
+    {
+        return;
+    }
+    // Use glyph margin (margin 1) to show lightbulb marker
+    constexpr int kLightbulbMarker = 25; // Marker number for lightbulb
+    editor_->MarkerDefine(kLightbulbMarker, wxSTC_MARK_CHARACTER + 0x1F4A1);
+    editor_->MarkerAdd(line, kLightbulbMarker);
+}
+
+void EditorPanel::HideQuickFixLightbulb()
+{
+    if (editor_ != nullptr && lightbulb_line_ >= 0)
+    {
+        constexpr int kLightbulbMarker = 25;
+        editor_->MarkerDelete(lightbulb_line_, kLightbulbMarker);
+    }
+    lightbulb_line_ = -1;
+}
+
+auto EditorPanel::GetLightbulbLine() const -> int
+{
+    return lightbulb_line_;
+}
+
+void EditorPanel::PeekProblem(int line)
+{
+    if (editor_ == nullptr || line < 0)
+    {
+        return;
+    }
+
+    // Close any existing peek
+    ClosePeekProblem();
+
+    peek_problem_visible_ = true;
+    peek_problem_line_ = line;
+
+    // Find matching diagnostic for this line
+    for (const auto& diag : diagnostic_indicators_)
+    {
+        if (diag.line == line)
+        {
+            std::string peek_text =
+                "\u2501\u2501\u2501 Diagnostic \u2501\u2501\u2501\n" + diag.message;
+            if (diag.quick_fix_available)
+            {
+                peek_text += "\n\U0001F4A1 Quick fix available";
+            }
+            editor_->AnnotationSetText(line, wxString::FromUTF8(peek_text));
+            editor_->AnnotationSetStyle(line, wxSTC_STYLE_DEFAULT);
+            editor_->AnnotationSetVisible(wxSTC_ANNOTATION_BOXED);
+
+            // Publish peek event
+            core::events::EditorDiagnosticPeekEvent evt;
+            evt.line = line;
+            evt.message = diag.message;
+            switch (diag.severity)
+            {
+                case core::DiagnosticSeverity::kError:
+                    evt.severity = "error";
+                    break;
+                case core::DiagnosticSeverity::kWarning:
+                    evt.severity = "warning";
+                    break;
+                case core::DiagnosticSeverity::kInformation:
+                    evt.severity = "info";
+                    break;
+                case core::DiagnosticSeverity::kHint:
+                    evt.severity = "hint";
+                    break;
+            }
+            event_bus_.publish(evt);
+            return;
+        }
+    }
+}
+
+void EditorPanel::ClosePeekProblem()
+{
+    if (editor_ != nullptr && peek_problem_visible_ && peek_problem_line_ >= 0)
+    {
+        editor_->AnnotationSetText(peek_problem_line_, wxString());
+    }
+    peek_problem_visible_ = false;
+    peek_problem_line_ = -1;
+}
+
+auto EditorPanel::IsPeekProblemVisible() const -> bool
+{
+    return peek_problem_visible_;
+}
+
+auto EditorPanel::GetPeekProblemLine() const -> int
+{
+    return peek_problem_line_;
+}
+
+void EditorPanel::SetBracketPairColorization(bool enabled)
+{
+    bracket_pair_colorization_ = enabled;
+    if (enabled)
+    {
+        RefreshBracketColors();
+    }
+}
+
+auto EditorPanel::GetBracketPairColorization() const -> bool
+{
+    return bracket_pair_colorization_;
+}
+
+void EditorPanel::RefreshBracketColors()
+{
+    if (editor_ == nullptr || !bracket_pair_colorization_)
+    {
+        return;
+    }
+
+    // Define bracket colorization indicators (use indicators 20-24 for 5 depth levels)
+    static constexpr int kBracketIndicatorBase = 20;
+    static constexpr int kBracketDepthLevels = 5;
+
+    // Colors for bracket depth levels (rainbow progression)
+    static constexpr std::array<unsigned long, kBracketDepthLevels> kBracketColors = {
+        0xD4A017, // Gold
+        0xDA70D6, // Orchid
+        0x00BFFF, // Deep sky blue
+        0x32CD32, // Lime green
+        0xFF6347  // Tomato
+    };
+
+    for (int dep = 0; dep < kBracketDepthLevels; ++dep)
+    {
+        const int indicator_id = kBracketIndicatorBase + dep;
+        editor_->IndicatorSetStyle(indicator_id, wxSTC_INDIC_ROUNDBOX);
+        editor_->IndicatorSetForeground(indicator_id,
+                                        wxColour(kBracketColors[static_cast<size_t>(dep)]));
+        editor_->IndicatorSetAlpha(indicator_id, 80);
+    }
+
+    // Scan visible text for bracket pairs and apply depth indicators
+    const int first_line = editor_->GetFirstVisibleLine();
+    const int last_line = first_line + editor_->LinesOnScreen();
+    const int start_pos = editor_->PositionFromLine(first_line);
+    const int end_pos =
+        editor_->GetLineEndPosition(std::min(last_line, editor_->GetLineCount() - 1));
+
+    // Clear existing bracket indicators
+    for (int dep = 0; dep < kBracketDepthLevels; ++dep)
+    {
+        editor_->SetIndicatorCurrent(kBracketIndicatorBase + dep);
+        editor_->IndicatorClearRange(start_pos, end_pos - start_pos);
+    }
+
+    // Track bracket depth and apply colorization
+    int depth = 0;
+    for (int pos = start_pos; pos < end_pos; ++pos)
+    {
+        char character = static_cast<char>(editor_->GetCharAt(pos));
+        if (character == '(' || character == '[' || character == '{')
+        {
+            const int indicator_id = kBracketIndicatorBase + (depth % kBracketDepthLevels);
+            editor_->SetIndicatorCurrent(indicator_id);
+            editor_->IndicatorFillRange(pos, 1);
+            ++depth;
+        }
+        else if (character == ')' || character == ']' || character == '}')
+        {
+            if (depth > 0)
+            {
+                --depth;
+            }
+            const int indicator_id = kBracketIndicatorBase + (depth % kBracketDepthLevels);
+            editor_->SetIndicatorCurrent(indicator_id);
+            editor_->IndicatorFillRange(pos, 1);
+        }
+    }
+}
+
+void EditorPanel::ApplyProductivityModeConfig()
+{
+    if (editor_ == nullptr)
+    {
+        return;
+    }
+
+    switch (current_productivity_mode_)
+    {
+        case ProductivityMode::kWriting:
+            // Generous line spacing, minimal diagnostics, live preview emphasis
+            editor_->SetExtraAscent(2);
+            editor_->SetExtraDescent(2);
+            ShowInlineDiagnostics(false);
+            if (minimap_visible_)
+            {
+                ToggleMinimap();
+            }
+            break;
+
+        case ProductivityMode::kReview:
+            // Compact lines, full diagnostics, everything visible
+            editor_->SetExtraAscent(0);
+            editor_->SetExtraDescent(0);
+            ShowInlineDiagnostics(true);
+            break;
+
+        case ProductivityMode::kRefactor:
+            // Minimap on, aggressive diagnostics, full tooling
+            editor_->SetExtraAscent(0);
+            editor_->SetExtraDescent(0);
+            ShowInlineDiagnostics(true);
+            if (!minimap_visible_)
+            {
+                ToggleMinimap();
+            }
+            break;
+    }
+}
+
+void EditorPanel::ApplyDiagnosticMarkers()
+{
+    if (editor_ == nullptr)
+    {
+        return;
+    }
+
+    // Define marker types for severity levels
+    constexpr int kErrorMarker = 20;
+    constexpr int kWarningMarker = 21;
+    constexpr int kInfoMarker = 22;
+    constexpr int kHintMarker = 23;
+
+    // Clear previous markers
+    editor_->MarkerDeleteAll(kErrorMarker);
+    editor_->MarkerDeleteAll(kWarningMarker);
+    editor_->MarkerDeleteAll(kInfoMarker);
+    editor_->MarkerDeleteAll(kHintMarker);
+
+    // Configure marker appearances
+    editor_->MarkerDefine(kErrorMarker, wxSTC_MARK_CIRCLE);
+    editor_->MarkerSetForeground(kErrorMarker, wxColour(255, 0, 0));
+    editor_->MarkerSetBackground(kErrorMarker, wxColour(255, 0, 0));
+
+    editor_->MarkerDefine(kWarningMarker, wxSTC_MARK_CIRCLE);
+    editor_->MarkerSetForeground(kWarningMarker, wxColour(255, 165, 0));
+    editor_->MarkerSetBackground(kWarningMarker, wxColour(255, 165, 0));
+
+    editor_->MarkerDefine(kInfoMarker, wxSTC_MARK_CIRCLE);
+    editor_->MarkerSetForeground(kInfoMarker, wxColour(0, 120, 215));
+    editor_->MarkerSetBackground(kInfoMarker, wxColour(0, 120, 215));
+
+    editor_->MarkerDefine(kHintMarker, wxSTC_MARK_CIRCLE);
+    editor_->MarkerSetForeground(kHintMarker, wxColour(128, 128, 128));
+    editor_->MarkerSetBackground(kHintMarker, wxColour(128, 128, 128));
+
+    // Apply markers for each diagnostic
+    for (const auto& diag : diagnostic_indicators_)
+    {
+        int marker_id = kInfoMarker; // default
+        switch (diag.severity)
+        {
+            case core::DiagnosticSeverity::kError:
+                marker_id = kErrorMarker;
+                break;
+            case core::DiagnosticSeverity::kWarning:
+                marker_id = kWarningMarker;
+                break;
+            case core::DiagnosticSeverity::kInformation:
+                marker_id = kInfoMarker;
+                break;
+            case core::DiagnosticSeverity::kHint:
+                marker_id = kHintMarker;
+                break;
+        }
+        editor_->MarkerAdd(diag.line, marker_id);
+    }
+
+    // Also refresh inline annotations if enabled
+    if (inline_diagnostics_)
+    {
+        RefreshInlineDiagnostics();
+    }
 }
 
 // ═══════════════════════════════════════════════════════

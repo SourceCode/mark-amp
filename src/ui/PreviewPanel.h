@@ -6,6 +6,7 @@
 #include "core/MarkdownParser.h"
 #include "core/Types.h"
 #include "rendering/HtmlRenderer.h"
+#include "rendering/ReadingProfileManager.h"
 
 #include <wx/html/htmlwin.h>
 #include <wx/timer.h>
@@ -72,6 +73,47 @@ public:
         renderer_.set_mermaid_enabled(enabled);
     }
 
+    // ── Phase 8: Source-Line Sync ────────────────────────
+
+    /// Scroll preview to the rendered element matching source line N (click-to-source).
+    void ScrollToSourceLine(int line);
+
+    /// Sync preview scroll to the nearest heading preceding the cursor line.
+    void SyncToEditorCursor(int cursor_line);
+
+    // ── Phase 8: Heading Navigation Overlay ──────────────
+
+    /// Show the floating heading navigation overlay (TOC).
+    void ShowHeadingNavOverlay();
+
+    /// Hide the heading navigation overlay.
+    void HideHeadingNavOverlay();
+
+    /// Get current heading nav state.
+    [[nodiscard]] auto heading_nav_state() const -> const rendering::HeadingNavState&
+    {
+        return heading_nav_state_;
+    }
+
+    // ── Phase 8: Incremental Rendering ───────────────────
+
+    /// Re-render only the specified line range (partial update).
+    void IncrementalRender(int start_line, int end_line);
+
+    /// Progressive load for large documents: render above-fold first, then remainder.
+    void ProgressiveLoad(const std::string& markdown);
+
+    // ── Phase 8: Print CSS & Reading Profiles ────────────
+
+    /// Generate print-optimized CSS media query.
+    [[nodiscard]] auto GeneratePrintCSS() const -> std::string;
+
+    /// Set the active reading profile.
+    void set_reading_profile(rendering::ReadingProfilePreset profile)
+    {
+        reading_profile_ = profile;
+    }
+
 protected:
     void OnThemeChanged(const core::Theme& new_theme) override;
 
@@ -136,6 +178,22 @@ private:
     wxButton* scroll_to_top_btn_{nullptr};
     void UpdateScrollToTopButton();
     void PositionScrollToTopButton();
+
+    // ── Phase 8 state ────────────────────────────────────
+
+    /// Heading navigation overlay state
+    rendering::HeadingNavState heading_nav_state_;
+
+    /// Progressive load timer (renders remainder after above-fold)
+    static constexpr int kProgressiveLoadDelayMs = 50;
+    wxTimer progressive_load_timer_;
+    std::string progressive_pending_content_;
+    static constexpr int kProgressiveLoadThreshold =
+        5000; ///< Lines before progressive load kicks in
+    void OnProgressiveLoadTimer(wxTimerEvent& event);
+
+    /// Active reading profile
+    rendering::ReadingProfilePreset reading_profile_{rendering::ReadingProfilePreset::kDefault};
 };
 
 } // namespace markamp::ui

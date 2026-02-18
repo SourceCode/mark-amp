@@ -451,6 +451,32 @@ public:
     [[nodiscard]] auto diagnostic_indicators() const -> const std::vector<DiagnosticIndicator>&;
     void set_diagnostic_indicators(std::vector<DiagnosticIndicator> indicators);
 
+    // ── Phase 7: Editor Core Improvements ──
+
+    // Task 1: Relative line numbers
+    void SetRelativeLineNumbers(bool enabled);
+    [[nodiscard]] auto GetRelativeLineNumbers() const -> bool;
+
+    // Task 6: Inline diagnostic annotations
+    void ShowInlineDiagnostics(bool enabled);
+    [[nodiscard]] auto GetInlineDiagnostics() const -> bool;
+    void RefreshInlineDiagnostics();
+
+    // Task 7: Quick-fix lightbulb
+    void ShowQuickFixLightbulb(int line);
+    void HideQuickFixLightbulb();
+    [[nodiscard]] auto GetLightbulbLine() const -> int;
+
+    // Task 8: Peek problem
+    void PeekProblem(int line);
+    void ClosePeekProblem();
+    [[nodiscard]] auto IsPeekProblemVisible() const -> bool;
+    [[nodiscard]] auto GetPeekProblemLine() const -> int;
+
+    // Task 9–10: Bracket pair colorization
+    void SetBracketPairColorization(bool enabled);
+    [[nodiscard]] auto GetBracketPairColorization() const -> bool;
+
     // ── Constants ──
     static constexpr int kDefaultFontSize = 13;
     static constexpr int kDefaultTabSize = 4;
@@ -720,6 +746,18 @@ private:
     // ── V8 Phase 10: Code Intelligence state ──
     ProductivityMode current_productivity_mode_{ProductivityMode::kWriting};
     std::vector<DiagnosticIndicator> diagnostic_indicators_;
+
+    // ── Phase 7: Editor Core Improvements state ──
+    bool relative_line_numbers_{false};
+    bool inline_diagnostics_{true};
+    int lightbulb_line_{-1};
+    bool peek_problem_visible_{false};
+    int peek_problem_line_{-1};
+
+    // Phase 7 private helpers
+    void RefreshBracketColors();
+    void ApplyProductivityModeConfig();
+    void ApplyDiagnosticMarkers();
 };
 
 } // namespace markamp::ui

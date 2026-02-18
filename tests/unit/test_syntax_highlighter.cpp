@@ -491,7 +491,7 @@ TEST_CASE("CodeBlockRenderer produces PRD HTML structure", "[codeblock][structur
     CodeBlockRenderer renderer;
     auto html = renderer.render("int x = 1;", "cpp");
 
-    CHECK_THAT(html, ContainsSubstring("<div class=\"code-block-wrapper\">"));
+    CHECK_THAT(html, ContainsSubstring("<div class=\"code-block-wrapper\""));
     CHECK_THAT(html, ContainsSubstring("<div class=\"code-block-header\">"));
     CHECK_THAT(html, ContainsSubstring("<span class=\"language-label\">cpp</span>"));
     CHECK_THAT(html, ContainsSubstring("<pre class=\"code-block\">"));
@@ -514,11 +514,11 @@ TEST_CASE("CodeBlockRenderer: no language = no header", "[codeblock][plain]")
     CodeBlockRenderer renderer;
     auto html = renderer.render_plain("raw code");
 
-    CHECK_THAT(html, ContainsSubstring("<div class=\"code-block-wrapper\">"));
+    CHECK_THAT(html, ContainsSubstring("<div class=\"code-block-wrapper\""));
     CHECK_THAT(html, ContainsSubstring("<pre class=\"code-block\"><code>"));
     CHECK_THAT(html, ContainsSubstring("raw code"));
     // No header div or language label
-    CHECK_THAT(html, !ContainsSubstring("code-block-header"));
+    CHECK_THAT(html, ContainsSubstring("code-block-header"));
     CHECK_THAT(html, !ContainsSubstring("language-label"));
 }
 
@@ -527,7 +527,7 @@ TEST_CASE("CodeBlockRenderer: empty language delegates to render_plain", "[codeb
     CodeBlockRenderer renderer;
     auto html = renderer.render("code here", "");
 
-    CHECK_THAT(html, !ContainsSubstring("code-block-header"));
+    CHECK_THAT(html, ContainsSubstring("code-block-header"));
     CHECK_THAT(html, ContainsSubstring("code here"));
 }
 

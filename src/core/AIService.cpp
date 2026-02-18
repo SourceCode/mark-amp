@@ -244,6 +244,7 @@ auto AIService::build_user_prompt(AIAction action,
                                   const std::string& content,
                                   const std::string& context) -> std::string
 {
+    (void)context;
     switch (action)
     {
         case AIAction::Summarize:
@@ -276,6 +277,7 @@ auto AIService::call_api(const AIModelConfig& model, const std::vector<AIMessage
 {
     // Stub: In production, use libcurl to make HTTP requests.
     // Build JSON request body and POST to the appropriate endpoint.
+    (void)messages;
     AIResponse response;
 
     // Determine endpoint.

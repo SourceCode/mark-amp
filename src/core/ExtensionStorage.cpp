@@ -195,4 +195,71 @@ auto ExtensionStorageService::count() const -> size_t
     return entries_.size();
 }
 
+// ── V9 Phase 04 Task 9: Secret storage with encryption ──
+
+void ExtensionStorageService::set_encryption_key(const std::string& key)
+{
+    encryption_key_ = key;
+}
+
+void ExtensionStorageService::store_secret(const std::string& extension_id,
+                                           const std::string& secret_key,
+                                           const std::string& secret_value)
+{
+    if (encryption_key_.empty())
+    {
+        MARKAMP_LOG_WARN("No encryption key set — storing secret in plaintext for '{}'",
+                         extension_id);
+        secrets_[extension_id][secret_key] = secret_value;
+        return;
+    }
+    secrets_[extension_id][secret_key] = xor_cipher(secret_value, encryption_key_);
+}
+
+auto ExtensionStorageService::retrieve_secret(const std::string& extension_id,
+                                              const std::string& secret_key) const -> std::string
+{
+    const auto ext_it = secrets_.find(extension_id);
+    if (ext_it == secrets_.end())
+    {
+        return {};
+    }
+    const auto key_it = ext_it->second.find(secret_key);
+    if (key_it == ext_it->second.end())
+    {
+        return {};
+    }
+
+    if (encryption_key_.empty())
+    {
+        return key_it->second; // Plaintext fallback
+    }
+    return xor_cipher(key_it->second, encryption_key_);
+}
+
+void ExtensionStorageService::delete_secret(const std::string& extension_id,
+                                            const std::string& secret_key)
+{
+    const auto ext_it = secrets_.find(extension_id);
+    if (ext_it != secrets_.end())
+    {
+        ext_it->second.erase(secret_key);
+        if (ext_it->second.empty())
+        {
+            secrets_.erase(ext_it);
+        }
+    }
+}
+
+auto ExtensionStorageService::xor_cipher(const std::string& data, const std::string& key)
+    -> std::string
+{
+    std::string result = data;
+    for (std::size_t idx = 0; idx < data.size(); ++idx)
+    {
+        result[idx] = static_cast<char>(data[idx] ^ key[idx % key.size()]);
+    }
+    return result;
+}
+
 } // namespace markamp::core

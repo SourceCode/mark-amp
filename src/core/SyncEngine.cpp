@@ -143,9 +143,10 @@ auto SyncEngine::generate_snapshot(const std::filesystem::path& root)
             file_entry.size_bytes = static_cast<int64_t>(entry.file_size(ec));
             file_entry.hash = hash_file(entry.path());
             auto ftime = entry.last_write_time(ec);
-            auto sctp = std::chrono::time_point_cast<std::chrono::seconds>(
-                std::chrono::clock_cast<std::chrono::system_clock>(ftime));
-            file_entry.modified_at = sctp.time_since_epoch().count();
+            // Portable conversion: use file_time_type duration since epoch.
+            auto duration = ftime.time_since_epoch();
+            file_entry.modified_at =
+                std::chrono::duration_cast<std::chrono::seconds>(duration).count();
         }
 
         snapshot.files[rel.string()] = std::move(file_entry);

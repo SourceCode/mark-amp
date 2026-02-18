@@ -10,6 +10,50 @@ namespace markamp::core::events
 {
 
 // ============================================================================
+// EVENT TYPE TABLE OF CONTENTS — Deduplication Index
+// ============================================================================
+//
+// Before adding a new event type, search this TOC to ensure no duplicate
+// exists. Categories are listed in file order with approximate line numbers.
+//
+//   Section                            | Events        | ~Line
+//   -----------------------------------|---------------|------
+//   Theme                              | 1 event       |   50
+//   File                               | 4 events      |   59
+//   View / Layout                      | 3 events      |   81
+//   Editor                             | 3 events      |  114
+//   Application lifecycle              | 3 events      |  135
+//   Scroll sync                        | 3 events      |  142
+//   Status bar                         | 2 events      |  167
+//   Accessibility                      | 2 events      |  180
+//   Startup / Workspace                | 2 events      |  192
+//   Focus mode                         | 2 events      |  205
+//   Theme gallery                      | 1 event       |  219
+//   Tab                                | 10 events     |  225
+//   Settings                           | 14 events     |  281
+//   Plugin lifecycle                   | 2 events      |  375
+//   Feature toggle                     | 2 events      |  387
+//   Extension management               | 5 events      |  403
+//   Notification                       | 6 events      |  424
+//   Activity bar                       | 5 events      |  452
+//   Workspace management               | 1 event       |  478
+//   R6-R19 Editor actions              | ~60 events    |  485
+//   InputBox & QuickPick (Phase 07)    | 5 events      |  667
+//   V3 Block/Notebook lifecycle        | ~80 events    |  685
+//   V3 Attribute View                  | ~30 events    | 1046
+//   V3 FSRS/Deck/Review/Knowledge     | ~30 events    | 1216
+//   V4 Document/Vault/Graph            | ~80 events    | 1352
+//   V5 Canvas                          | ~20 events    | 2003
+//   V6 Deferred loading                | 3 events      | 2206
+//   V8 Collaboration/Marketplace       | ~40 events    | 2076
+//   V8 Navigation/Tool Windows         | ~25 events    | 2265
+//   V8 FX Engine                       | ~10 events    | 2397
+//
+// Total: ~450+ unique event types across ~100 sections.
+// Rule: always grep before adding. No event name may appear twice.
+// ============================================================================
+
+// ============================================================================
 // Event Declaration Macros
 // ============================================================================
 //
@@ -53,6 +97,24 @@ namespace markamp::core::events
 
 MARKAMP_DECLARE_EVENT_WITH_FIELDS(ThemeChangedEvent)
 std::string theme_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ThemePreviewRequestEvent)
+std::string theme_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ExtensionThemeDiscoveredEvent)
+std::string theme_id;
+std::string extension_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ThemeTokenEditedEvent)
+std::string token;
+std::string old_color;
+std::string new_color;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ThemeUndoRequestEvent)
 MARKAMP_DECLARE_EVENT_END;
 
 // ============================================================================
@@ -164,6 +226,41 @@ explicit ScrollSyncModeChangedEvent(ScrollSyncMode sync_mode)
 MARKAMP_DECLARE_EVENT_END;
 
 // ============================================================================
+// Phase 09: Split view & editor-preview sync events
+// ============================================================================
+
+// Task 4: Breadcrumbs sync — heading hierarchy path
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BreadcrumbsChangedEvent)
+std::string breadcrumb_path; // e.g. "doc > ## Section > ### Subsection"
+int heading_line{0};         // editor line of innermost heading
+MARKAMP_DECLARE_EVENT_END;
+
+// Task 2: Selection mirroring — editor selection text for preview highlight
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SelectionHighlightEvent)
+std::string selected_text;
+bool clear{false}; // true = clear highlight
+MARKAMP_DECLARE_EVENT_END;
+
+// Task 9: Open in side command
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(OpenInSideEvent)
+std::string file_path;
+MARKAMP_DECLARE_EVENT_END;
+
+// Task 13: Export HTML request
+MARKAMP_DECLARE_EVENT(ExportHtmlRequestEvent);
+
+// Task 6: Split direction changed
+enum class SplitDirection
+{
+    Horizontal, // editor left, preview right
+    Vertical    // editor top, preview bottom
+};
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SplitDirectionChangedEvent)
+SplitDirection direction{SplitDirection::Horizontal};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
 // Status bar events
 // ============================================================================
 
@@ -186,6 +283,84 @@ MARKAMP_DECLARE_EVENT_END;
 
 MARKAMP_DECLARE_EVENT_WITH_FIELDS(InputModeChangedEvent)
 bool using_keyboard{false};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(A11yHighContrastToggledEvent)
+bool enabled{false};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(A11yReducedMotionToggledEvent)
+bool enabled{false};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(A11yAuditCompletedEvent)
+int critical_count{0};
+int warning_count{0};
+int info_count{0};
+bool passed{true};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(A11yFocusChangedEvent)
+std::string element_id;
+std::string element_label;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(A11yAnnouncementEvent)
+std::string message;
+std::string priority; // "polite" or "assertive"
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V9 Phase 32: Platform-Specific Optimization ──
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PlatformDarkModeChangedEvent)
+bool is_dark{false};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PlatformDpiChangedEvent)
+double scale_factor{1.0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FileWatchChangeEvent)
+std::string path;
+std::string change_type;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CrashReportAvailableEvent)
+std::string report_path;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AutoUpdateAvailableEvent)
+std::string version;
+std::string changelog_url;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V9 Phase 33: Structured Logging & Observability events ──
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(LogLevelChangedEvent)
+std::string module_name;
+std::string new_level;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(HealthStatusChangedEvent)
+std::string subsystem;
+std::string status;
+std::string message;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(MetricAlertEvent)
+std::string metric_name;
+double value{0.0};
+double threshold{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DiagnosticReportGeneratedEvent)
+std::string report_path;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SlowSpanDetectedEvent)
+std::string span_name;
+int64_t duration_us{0};
+int64_t threshold_us{0};
 MARKAMP_DECLARE_EVENT_END;
 
 // ============================================================================
@@ -383,6 +558,12 @@ MARKAMP_DECLARE_EVENT_WITH_FIELDS(PluginDeactivatedEvent)
 std::string plugin_id;
 MARKAMP_DECLARE_EVENT_END;
 
+// V9 Phase 04 Task 15: Plugin error telemetry
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PluginErrorEvent)
+std::string plugin_id;
+std::string error_message;
+MARKAMP_DECLARE_EVENT_END;
+
 // ============================================================================
 // Feature toggle events
 // ============================================================================
@@ -472,6 +653,26 @@ explicit ActivityBarSelectionEvent(ActivityBarItem item_id)
     : item(item_id)
 {
 }
+MARKAMP_DECLARE_EVENT_END;
+
+// Phase 06 Task 8: SidebarModeChangedEvent — broadcast when sidebar mode switches
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SidebarModeChangedEvent)
+int previous_mode{0}; // SidebarMode as int (avoids circular include)
+int new_mode{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// Phase 06 Task 7: Badge notification events for ActivityBar
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SearchResultCountEvent)
+int count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DiagnosticsCountChangedEvent)
+int error_count{0};
+int warning_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ExtensionUpdatesAvailableEvent)
+int update_count{0};
 MARKAMP_DECLARE_EVENT_END;
 
 // ============================================================================
@@ -1040,6 +1241,39 @@ std::string search_query;
 std::string replace_text;
 int replaced_count{0};
 int blocks_modified{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V9 Phase 10: Search System Completion events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SearchHistoryUpdatedEvent)
+int entry_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SavedSearchCreatedEvent)
+std::string name;
+std::string query_string;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SavedSearchDeletedEvent)
+std::string name;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SearchExportCompletedEvent)
+std::string format; ///< "markdown", "csv", or "json"
+std::string path;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SearchIndexHealthEvent)
+int total_docs{0};
+int stale_docs{0};
+bool is_rebuilding{false};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SelectionSearchEvent)
+std::string selected_text;
+int match_count{0};
 MARKAMP_DECLARE_EVENT_END;
 
 // ============================================================================
@@ -1925,6 +2159,111 @@ std::string message;
 MARKAMP_DECLARE_EVENT_END;
 
 // ============================================================================
+// Phase 25: Version Control Integration events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(GitStashSavedEvent)
+std::string stash_id;
+std::string message;
+int file_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(GitStashAppliedEvent)
+std::string stash_id;
+std::string message;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(GitRemoteFetchedEvent)
+std::string remote_name;
+int new_commits{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(GitRemotePushedEvent)
+std::string remote_name;
+int pushed_refs{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(MergeConflictsDetectedEvent)
+std::string file_path;
+int conflict_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(MergeConflictsResolvedEvent)
+std::string file_path;
+std::string strategy;
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// Phase 26: AI Integration events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AIProviderConfiguredEvent)
+int provider{0};
+std::string model;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AIRequestCompletedEvent)
+int action{0};
+int tokens_used{0};
+int64_t elapsed_ms{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AIRateLimitWarningEvent)
+double usage_percentage{0.0};
+double limit{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AIConversationSavedEvent)
+std::string session_id;
+int message_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AITagsSuggestedEvent)
+std::string document_id;
+int suggestion_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AIDocumentGeneratedEvent)
+std::string topic;
+int word_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// Phase 27: Cloud Sync & Collaboration events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SyncCompletedEvent)
+int files_uploaded{0};
+int files_downloaded{0};
+int64_t elapsed_ms{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SyncConflictDetectedEvent)
+std::string file_path;
+int conflict_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SyncConflictResolvedEvent)
+std::string file_path;
+int resolution_strategy{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SyncScheduleChangedEvent)
+int interval_minutes{0};
+bool is_paused{false};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(WorkspaceShareCreatedEvent)
+std::string share_id;
+int permission{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SyncOfflineQueuedEvent)
+int queued_count{0};
+int64_t total_bytes{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
 // V4 Phase 36: Local Graph events
 // ============================================================================
 
@@ -1937,6 +2276,41 @@ MARKAMP_DECLARE_EVENT_END;
 MARKAMP_DECLARE_EVENT_WITH_FIELDS(LocalGraphFilteredEvent)
 std::string tag;
 int remaining_nodes{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V9 Phase 16: Knowledge Graph Analytics events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(GraphAnalyticsComputedEvent)
+int node_count{0};
+int edge_count{0};
+double density{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(OrphanDetectedEvent)
+int orphan_count{0};
+int suggested_links_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(GraphAnnotationAddedEvent)
+std::string node_id;
+std::string annotation_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(GraphExportedEvent)
+std::string format;
+int node_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(GraphSnapshotTakenEvent)
+int snapshot_index{0};
+int node_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(GraphSearchCompletedEvent)
+std::string query;
+int result_count{0};
 MARKAMP_DECLARE_EVENT_END;
 
 // ============================================================================
@@ -2158,6 +2532,42 @@ bool is_expired{false};
 MARKAMP_DECLARE_EVENT_END;
 
 // ============================================================================
+// Phase 13: Canvas Collaboration & Facilitation events
+// ============================================================================
+
+/// Board or region lock state changed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasLockChangedEvent)
+std::string event_name; ///< e.g. "board_locked", "board_unlocked", "region_locked"
+std::string participant_id;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Follow mode / presenter mode status changed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasFollowModeChangedEvent)
+std::string status; ///< "following", "presenting", "none"
+std::string participant_id;
+MARKAMP_DECLARE_EVENT_END;
+
+/// A private-reveal round started.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasPrivateRoundStartedEvent)
+std::string round_id;
+std::string host_id;
+std::string topic;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Private objects were revealed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasObjectsRevealedEvent)
+std::string round_id;
+size_t revealed_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Collaborative undo or redo was performed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasCollabUndoRedoEvent)
+std::string operation_id;
+std::string participant_id;
+bool is_undo{true}; ///< true for undo, false for redo
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
 // V8 Phase 8: Canvas Apps Marketplace events
 // ============================================================================
 
@@ -2203,8 +2613,205 @@ std::string denied_reason;
 MARKAMP_DECLARE_EVENT_END;
 
 // ============================================================================
-// V6 Phase 13: Deferred loading events
+// V8 Phase 14: Canvas Extensibility & App Widgets events
 // ============================================================================
+
+/// A custom canvas object type has been registered by an extension.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasCustomObjectRegisteredEvent)
+std::string type_id;
+std::string display_name;
+std::string extension_id;
+MARKAMP_DECLARE_EVENT_END;
+
+/// A canvas tool has been activated (built-in or extension).
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasToolActivatedEvent)
+std::string tool_id;
+std::string tool_label;
+std::string previous_tool_id;
+MARKAMP_DECLARE_EVENT_END;
+
+/// A widget lifecycle state has changed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasWidgetLifecycleEvent)
+std::string widget_id;
+std::string old_state;
+std::string new_state;
+MARKAMP_DECLARE_EVENT_END;
+
+/// A board template has been applied to the canvas.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasTemplateAppliedEvent)
+std::string template_id;
+std::string template_name;
+int objects_created{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// A widget message has been delivered.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasWidgetMessageEvent)
+std::string source_widget_id;
+std::string target_widget_id;
+std::string message_type;
+MARKAMP_DECLARE_EVENT_END;
+// ============================================================================
+
+// V8 Phase 15: Notebook System Completion events
+
+/// A notebook has been parsed from .ipynb format.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NotebookParsedEvent)
+std::string notebook_id;
+int cell_count{0};
+int nbformat_version{4};
+MARKAMP_DECLARE_EVENT_END;
+
+/// A notebook cell has been executed through the pipeline.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NotebookCellExecutedEvent)
+std::string notebook_id;
+std::string cell_id;
+int execution_count{0};
+double elapsed_ms{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// A notebook checkpoint has been created.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NotebookCheckpointCreatedEvent)
+std::string notebook_id;
+std::string checkpoint_id;
+MARKAMP_DECLARE_EVENT_END;
+
+/// A notebook search has completed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NotebookSearchCompletedEvent)
+std::string query;
+int result_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Cell dependency analysis has changed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CellDependencyChangedEvent)
+std::string cell_id;
+int stale_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── Phase 20: File Management & Workspace ──
+
+/// A file system change was detected by the FileWatcher.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FileChangedEvent)
+std::string path;
+int change_type{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// The file tree model has been refreshed from disk.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FileTreeRefreshedEvent)
+std::string root_path;
+int node_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// A workspace setting has changed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(WorkspaceSettingsChangedEvent)
+std::string key;
+int scope{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// A file was created from a template.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FileCreatedFromTemplateEvent)
+std::string template_id;
+std::string path;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Files were moved to trash.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FilesTrashedEvent)
+std::vector<std::string> paths;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Files were restored from trash.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FilesRestoredEvent)
+std::vector<std::string> paths;
+MARKAMP_DECLARE_EVENT_END;
+
+/// A workspace root folder was added.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(WorkspaceRootAddedEvent)
+std::string root_path;
+std::string display_name;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── Phase 21: Attribute View Database ──
+
+/// A formula was evaluated in an AV column.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AVFormulaEvaluatedEvent)
+std::string av_id;
+std::string key_id;
+int rows_evaluated{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Data was imported into an AV from CSV/JSON.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AVDataImportedEvent)
+std::string av_id;
+int rows_imported{0};
+int columns_created{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// An undo or redo operation was performed on an AV.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AVUndoRedoEvent)
+std::string av_id;
+bool is_undo{true};
+std::string description;
+MARKAMP_DECLARE_EVENT_END;
+
+/// An aggregate row was computed for an AV.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AVAggregateComputedEvent)
+std::string av_id;
+int columns_aggregated{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// A linked database view was refreshed from its source.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AVLinkedDatabaseRefreshedEvent)
+std::string link_id;
+std::string source_av_id;
+int row_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// V9 Phase 22: Flashcard & Spaced Repetition events
+
+/// A flashcard deck was loaded from persistent storage.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FlashcardDeckLoadedEvent)
+std::string deck_id;
+std::string deck_name;
+int card_count{0};
+int due_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Flashcards were extracted from a Markdown document.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FlashcardExtractedEvent)
+std::string source_file;
+int cards_added{0};
+int cards_removed{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// A card was detected as a leech (too many lapses).
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FlashcardLeechDetectedEvent)
+std::string card_id;
+std::string deck_id;
+int lapse_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// A flashcard review session summary with retention metrics.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FlashcardReviewSummaryEvent)
+std::string deck_id;
+int cards_reviewed{0};
+int again_count{0};
+int good_count{0};
+double retention_rate{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// The study streak counter was updated.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(StudyStreakUpdatedEvent)
+int current_streak{0};
+int longest_streak{0};
+bool milestone_achieved{false};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Flashcards were imported from an external file.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FlashcardImportedEvent)
+std::string deck_id;
+std::string format;
+int cards_imported{0};
+int cards_failed{0};
+MARKAMP_DECLARE_EVENT_END;
 
 /// Published after first frame rendered — triggers deferred theme/extension loading.
 MARKAMP_DECLARE_EVENT(StartupDeferralEvent);
@@ -2304,6 +2911,57 @@ MARKAMP_DECLARE_EVENT_END;
 MARKAMP_DECLARE_EVENT_WITH_FIELDS(ToolWindowDockPositionChangedEvent)
 std::string panel_id;
 DockPosition dock_position{DockPosition::kBottom};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V8 Phase 18: Panel System events
+// ============================================================================
+
+/// Task 6: Panel command dispatch event.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PanelCommandEvent)
+std::string panel_id;
+std::string command_id;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Task 7: Panel focus change event.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PanelFocusChangedEvent)
+std::string panel_id;
+bool focused{false};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Task 8: Badge data for a panel.
+struct PanelBadge
+{
+    int count{0};
+    std::string text;
+    std::uint32_t color{0xFF4444FFu}; // RGBA red default
+};
+
+/// Task 8: Panel badge changed event.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PanelBadgeChangedEvent)
+std::string panel_id;
+PanelBadge badge;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Task 9: Menu item for panel context menus.
+struct PanelMenuItem
+{
+    std::string label;
+    std::string command_id;
+    bool enabled{true};
+    bool separator{false};
+};
+
+/// Task 9: Panel context menu request event.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PanelContextMenuRequestEvent)
+std::string panel_id;
+std::vector<PanelMenuItem> items;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Task 13: Panel search text changed event.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PanelSearchChangedEvent)
+std::string panel_id;
+std::string search_text;
 MARKAMP_DECLARE_EVENT_END;
 
 // ============================================================================
@@ -2425,6 +3083,1021 @@ MARKAMP_DECLARE_EVENT_WITH_FIELDS(FxAutoDegrade)
 std::string from_tier;
 std::string to_tier;
 uint32_t violation_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// Phase 28: FX Visual Effects System events
+// ============================================================================
+
+/// Fired when an FX transition animation starts.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FxTransitionStartedEvent)
+std::string preset_name;
+int32_t duration_ms{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when an FX transition animation completes or is cancelled.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FxTransitionCompletedEvent)
+std::string preset_name;
+bool was_cancelled{false};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when CSS is generated from FX settings.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FxCssGeneratedEvent)
+int32_t css_length{0};
+std::string preset_name;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when an FX profile is saved.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FxProfileSavedEvent)
+std::string profile_name;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a diagnostics snapshot is taken.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FxDiagnosticsSnapshotEvent)
+float avg_frame_ms{0.0F};
+int32_t pass_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when an FX accessibility announcement is made.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FxAccessibilityAnnouncedEvent)
+std::string message;
+MARKAMP_DECLARE_EVENT_END;
+
+// ========================= Phase 29 Security & Input Validation Events =========================
+
+/// Fired when a URL is blocked by the sanitizer.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SecurityUrlBlockedEvent)
+std::string url;
+std::string reason;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a CSP violation is detected.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SecurityCspViolationEvent)
+std::string directive;
+std::string blocked_uri;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a user action is rate-limited.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SecurityRateLimitedEvent)
+std::string action_name;
+int32_t remaining_tokens{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when clipboard content is sanitized (modified during paste).
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SecurityClipboardSanitizedEvent)
+std::string content_type;
+int32_t bytes_removed{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired for generic security audit log entries.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SecurityAuditEvent)
+std::string severity;
+std::string category;
+std::string message;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a config value changes. Carries the key and old/new values.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ConfigChangedEvent)
+std::string key;
+std::string old_value;
+std::string new_value;
+std::string scope; // "application", "workspace", "project"
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a setting requiring restart is changed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(RestartRequiredEvent)
+std::string setting_id;
+std::string reason;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when the config file is modified externally (by another process).
+MARKAMP_DECLARE_EVENT(ConfigFileModifiedEvent);
+
+/// Fired when a config value is read (for telemetry/observability).
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ConfigReadEvent)
+std::string key;
+bool was_cached{false};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a config value is written.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ConfigWriteEvent)
+std::string key;
+std::string value;
+MARKAMP_DECLARE_EVENT_END;
+
+// ================================ Phase 07 Editor Core Improvement Events
+// ================================
+
+/// Fired when an editor performance budget threshold is violated.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(EditorBudgetViolationEvent)
+std::string metric_name; ///< e.g. "keystroke_latency_ms"
+double measured_value{0.0};
+double budget_value{0.0};
+bool is_critical{false};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a peek-problem inline dialog is shown for a diagnostic.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(EditorDiagnosticPeekEvent)
+std::string panel_id;
+int line{0};
+std::string message;
+std::string severity; ///< "error", "warning", "info", "hint"
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when the user clicks a quick-fix lightbulb affordance.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(EditorQuickFixRequestEvent)
+int line{0};
+std::string diagnostic_id;
+MARKAMP_DECLARE_EVENT_END;
+
+// ================================ Phase 08 Markdown Rendering Completeness Events
+// ================================
+
+/// Fired when the user clicks on a rendered element to navigate to its source line.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PreviewSourceLineClickEvent)
+int source_line{0};      ///< 0-indexed source markdown line
+std::string element_tag; ///< HTML tag that was clicked (e.g. "p", "h2")
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a heading is selected in the heading navigation overlay.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PreviewHeadingNavEvent)
+std::string heading_slug; ///< Slug/anchor ID to scroll to
+int heading_level{0};
+std::string heading_text;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when an incremental render completes for a dirty region.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PreviewIncrementalRenderEvent)
+int start_line{0};
+int end_line{0};
+bool was_full_rerender{false};
+MARKAMP_DECLARE_EVENT_END;
+
+// ================================ Phase 19 Code Intelligence Events
+// ================================
+
+/// Fired when the editor requests completion at the cursor position.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CompletionRequestEvent)
+std::string panel_id;
+int line{0};         ///< 0-based line
+int character{0};    ///< 0-based column
+std::string trigger; ///< Trigger character (e.g. "[", "/", ":")
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when the user selects a completion item.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CompletionSelectedEvent)
+std::string panel_id;
+std::string label;
+std::string insert_text;
+int kind{0}; ///< CompletionKind as int
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when the editor requests hover information.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(HoverRequestEvent)
+std::string panel_id;
+int line{0};
+int character{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when the editor requests go-to-definition.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(GoToDefinitionRequestEvent)
+std::string panel_id;
+int line{0};
+int character{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when the editor requests code actions for a range.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CodeActionRequestEvent)
+std::string panel_id;
+int start_line{0};
+int start_char{0};
+int end_line{0};
+int end_char{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when inlay hints are toggled on/off.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(InlayHintToggleEvent)
+bool enabled{false};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when the editor requests document highlights for the word under cursor.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DocumentHighlightEvent)
+std::string panel_id;
+int line{0};
+int character{0};
+std::string word; ///< The word to highlight occurrences of
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when the user searches for workspace symbols (Ctrl+T / Cmd+T).
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(WorkspaceSymbolSearchEvent)
+std::string query;
+int max_results{50};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// Phase 45: Live Preview & WYSIWYG Events
+// ============================================================================
+
+/// Fired when the WYSIWYG editing mode changes (Source / LivePreview / WYSIWYG).
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(WysiwygModeChangedEvent)
+int old_mode{0}; ///< Previous WysiwygMode (cast from enum)
+int new_mode{0}; ///< New WysiwygMode (cast from enum)
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when cursor enters a new block in WYSIWYG mode, activating it for editing.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(WysiwygBlockActivatedEvent)
+int block_index{0};
+int block_type{0}; ///< WysiwygBlockType (cast from enum)
+int line{0};       ///< Line number of the activated block
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a checkbox is toggled in a task list in WYSIWYG mode.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(WysiwygCheckboxToggledEvent)
+int line{0};
+bool new_state{false}; ///< true = checked, false = unchecked
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a link is clicked in WYSIWYG mode.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(WysiwygLinkClickedEvent)
+std::string url;
+int action{0}; ///< LinkClickAction (cast from enum)
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a block edit is committed in WYSIWYG mode.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(WysiwygBlockEditCommittedEvent)
+int block_index{0};
+std::string old_content;
+std::string new_content;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when an image is inserted in WYSIWYG mode.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(WysiwygImageInsertedEvent)
+std::string path;
+std::string alt_text;
+int line{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V9 Phase 17: Cross-Surface Navigation & Linking events
+// ============================================================================
+
+/// Fired when a block reference (^block-id) is resolved.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BlockReferenceResolvedEvent)
+std::string block_id;
+std::string document_id;
+int line_number{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a heading jump navigates to/from a heading.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(HeadingJumpEvent)
+std::string source_document;
+std::string target_document;
+std::string heading_text;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when broken links are detected in a document.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BrokenLinkDetectedEvent)
+std::string document_id;
+int broken_count{0};
+std::string scan_type;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when links are refactored (rename, format conversion, etc.).
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(LinkRefactoredEvent)
+int edit_count{0};
+std::string refactor_type;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a deep link URI is generated.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DeepLinkGeneratedEvent)
+std::string uri;
+int surface_kind{0}; ///< SurfaceKind cast to int
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a peek definition popup is shown.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PeekDefinitionEvent)
+std::string target_uri;
+int content_type{0}; ///< PeekContentType cast to int
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V9 Phase 23: Task Management & Calendar events
+// ============================================================================
+
+/// Tasks were aggregated/re-indexed across all documents.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TaskAggregatedEvent)
+int total_tasks{0};
+int documents_scanned{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// A recurring task pattern was detected.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TaskRecurrenceCreatedEvent)
+std::string task_id;
+std::string pattern; ///< e.g. "daily", "every 2 weeks"
+MARKAMP_DECLARE_EVENT_END;
+
+/// A task reminder has triggered (is now due).
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TaskReminderDueEvent)
+std::string reminder_id;
+std::string task_id;
+std::string task_text;
+MARKAMP_DECLARE_EVENT_END;
+
+/// The task board layout or column assignments changed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TaskBoardUpdatedEvent)
+std::string task_id;
+std::string from_column;
+std::string to_column;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Gantt timeline data was rebuilt.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TaskGanttRefreshedEvent)
+int bar_count{0};
+int milestone_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// A task has become overdue.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TaskOverdueEvent)
+std::string task_id;
+std::string task_text;
+int days_overdue{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V9 Phase 24: Export & Publishing events
+// ============================================================================
+
+/// An export template was applied to content.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ExportTemplateAppliedEvent)
+std::string template_id;
+std::string format;
+MARKAMP_DECLARE_EVENT_END;
+
+/// A batch export job started.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BatchExportStartedEvent)
+int document_count{0};
+std::string format;
+MARKAMP_DECLARE_EVENT_END;
+
+/// A batch export job completed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BatchExportCompletedEvent)
+int succeeded{0};
+int failed{0};
+int64_t elapsed_ms{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// A print preview was generated.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PrintPreviewGeneratedEvent)
+int page_count{0};
+std::string document_id;
+MARKAMP_DECLARE_EVENT_END;
+
+/// A publishing profile was executed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PublishingProfileExecutedEvent)
+std::string profile_id;
+std::string profile_name;
+bool success{false};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Export validation completed on a document.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ExportValidationCompletedEvent)
+int errors{0};
+int warnings{0};
+std::string document_id;
+MARKAMP_DECLARE_EVENT_END;
+
+// ========================= Phase 30 Performance Optimization Events =========================
+
+/// Fired when application startup completes with timing data.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PerfStartupCompletedEvent)
+double startup_ms{0.0};
+int32_t phase_count{0};
+std::string slowest_phase;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a frame exceeds the frame budget.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PerfFrameOverbudgetEvent)
+double frame_time_us{0.0};
+double budget_us{0.0};
+uint64_t frame_number{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a subsystem exceeds its memory budget.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PerfMemoryBudgetExceededEvent)
+std::string subsystem;
+size_t usage_bytes{0};
+size_t budget_bytes{0};
+double usage_percent{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when the user requests the performance metrics view.
+MARKAMP_DECLARE_EVENT(PerfShowMetricsEvent);
+
+/// Fired when a frame profile capture completes.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PerfProfileCapturedEvent)
+uint64_t frame_count{0};
+double avg_frame_us{0.0};
+double p95_frame_us{0.0};
+double min_frame_us{0.0};
+double max_frame_us{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ========================= Phase 35 Documentation & Help System Events =========================
+
+/// Fired when the user requests help for a specific topic or article.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(HelpRequestEvent)
+std::string article_id; ///< Target article ID (e.g. "syntax.headings")
+std::string context_id; ///< Current context (e.g. "editor", "canvas")
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when the user searches help content.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(HelpSearchEvent)
+std::string query;   ///< Search query string
+int result_count{0}; ///< Number of results found
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a feature discovery hint should be displayed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FeatureHintEvent)
+std::string hint_id;       ///< Hint identifier
+std::string message;       ///< User-facing hint message
+std::string learn_more_id; ///< Help article for "Learn More"
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired during onboarding flow step transitions.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(OnboardingStepEvent)
+int step_index{0};     ///< Current step index (0-based)
+std::string step_name; ///< Step name (e.g. "Welcome", "ChooseTheme")
+bool skipped{false};   ///< Whether the step was skipped
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V9 Phase 36: Command System Completion ──
+
+/// Fired when a new command is registered in the CommandRegistry.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CommandRegisteredEvent)
+std::string command_id; ///< Registered command ID
+std::string category;   ///< Command category
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a command is executed via any source.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CommandExecutedEvent)
+std::string command_id; ///< Executed command ID
+std::string source;     ///< Source: "palette", "shortcut", "menu", "extension", "internal"
+int64_t duration_ms{0}; ///< Execution duration in milliseconds
+bool success{true};     ///< Whether execution succeeded
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when the command palette is opened or changes mode.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CommandPaletteEvent)
+std::string mode;  ///< Mode: "commands", "quick_open", "go_to_symbol", "go_to_line"
+bool opened{true}; ///< True if opened, false if closed
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a chord shortcut enters waiting state.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ChordWaitingEvent)
+std::string description; ///< E.g. "Cmd+K was pressed, awaiting second key..."
+bool waiting{true};      ///< True if entering waiting state, false if resolved/canceled
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V9 Phase 37 — Bookmark & Asset Management Events
+// ============================================================================
+
+/// Fired when bookmarks are exported to a file format.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BookmarkExportedEvent)
+std::string format;    ///< Export format: "markdown", "json", "csv", "opml"
+int bookmark_count{0}; ///< Number of bookmarks exported
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when sequential bookmark navigation moves to a new entry.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BookmarkNavigatedEvent)
+std::string block_id;  ///< Target block ID
+std::string label;     ///< Bookmark label
+std::string direction; ///< "next", "previous", or "go_to"
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when an image asset has been optimized.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AssetOptimizedEvent)
+std::string asset_id;      ///< Optimized asset ID
+int64_t original_size{0};  ///< Original size in bytes
+int64_t optimized_size{0}; ///< Optimized size in bytes
+double savings_percent{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a broken asset link is detected.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AssetLinkBrokenEvent)
+std::string document_id;   ///< Document containing the broken link
+std::string expected_path; ///< The broken path
+std::string suggestion;    ///< Suggested repair (may be empty)
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a broken asset link is auto-repaired.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AssetLinkRepairedEvent)
+std::string document_id; ///< Document containing the repaired link
+std::string old_path;    ///< Original broken path
+std::string new_path;    ///< Repaired path
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when an asset storage report is generated.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AssetStorageReportEvent)
+int64_t used_bytes{0};        ///< Total storage used
+int32_t total_assets{0};      ///< Total asset count
+int32_t orphans{0};           ///< Orphaned asset count
+double savings_estimate{0.0}; ///< Potential savings percentage
+MARKAMP_DECLARE_EVENT_END;
+
+// ── Phase 38: Vault Style & Workspace Customization ─────────────────────────
+
+/// Fired when a CSS snippet is applied to vault styling.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CssSnippetAppliedEvent)
+std::string snippet_name; ///< Name of the applied snippet
+std::string category;     ///< Snippet category
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a workspace profile is saved.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(WorkspaceProfileSavedEvent)
+std::string profile_name; ///< Name of the saved profile
+bool is_new{false};       ///< True if this is a new profile
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a workspace profile is loaded.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(WorkspaceProfileLoadedEvent)
+std::string profile_name; ///< Name of the loaded profile
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a custom font is registered.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CustomFontRegisteredEvent)
+std::string font_name;   ///< Display name of the font
+std::string font_family; ///< CSS font-family
+std::string file_path;   ///< Path to font file
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a theme override is changed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ThemeOverrideChangedEvent)
+std::string token_name; ///< Token that was overridden
+std::string new_value;  ///< New override value
+std::string scope;      ///< Scope: "vault", "workspace", "global"
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when workspace customization is reset to defaults.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(WorkspaceCustomizationResetEvent)
+std::string scope;       ///< Scope that was reset
+int settings_cleared{0}; ///< Number of settings cleared
+MARKAMP_DECLARE_EVENT_END;
+
+// ── Phase 39: Notification & Activity System ────────────────────────────────
+
+/// Fired when a notification is added to the center.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NotificationAddedEvent)
+std::string notification_id; ///< Unique notification ID
+std::string title;           ///< Notification title
+std::string source;          ///< Source module
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when notification status changes (read, dismissed, archived).
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NotificationStatusChangedEvent)
+std::string notification_id; ///< Notification ID
+std::string new_status;      ///< "read", "dismissed", "archived"
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a filter rule is added or modified.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NotificationFilterChangedEvent)
+std::string rule_id; ///< Filter rule ID
+std::string action;  ///< "added", "removed", "enabled", "disabled"
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when an activity is recorded in the feed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ActivityRecordedEvent)
+std::string activity_id; ///< Activity entry ID
+std::string description; ///< Activity description
+std::string category;    ///< Activity category name
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when the activity timeline is rebuilt.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ActivityTimelineBuiltEvent)
+int active_days{0};  ///< Number of active days
+int total_events{0}; ///< Total events in timeline
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when an activity entry is pinned or unpinned.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ActivityPinChangedEvent)
+std::string activity_id; ///< Activity entry ID
+bool pinned{false};      ///< New pin state
+MARKAMP_DECLARE_EVENT_END;
+
+// ── Phase 40: Workspace Automation & Hooks ──────────────────────────────────
+
+/// Fired when a workspace lifecycle hook is triggered.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(WorkspaceHookFiredEvent)
+std::string hook_id;        ///< Hook that was fired
+std::string hook_type;      ///< Hook type name
+std::string workspace_path; ///< Workspace context
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when an automation rule executes.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AutomationRuleExecutedEvent)
+std::string rule_id;   ///< Rule that executed
+std::string rule_name; ///< Rule display name
+std::string trigger;   ///< Trigger type
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a scheduled task completes.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ScheduledTaskCompletedEvent)
+std::string task_id;   ///< Task that completed
+std::string task_name; ///< Task display name
+bool success{false};   ///< Whether task succeeded
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a file change is detected by the file watcher service.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FileWatcherNotificationEvent)
+std::string watch_id;    ///< Watch that detected change
+std::string file_path;   ///< Changed file
+std::string change_type; ///< Type of change
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a new hook is registered.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(HookRegisteredEvent)
+std::string hook_id;     ///< Newly registered hook
+std::string hook_type;   ///< Hook type
+std::string description; ///< Hook description
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when an automation rule is added or modified.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AutomationRuleChangedEvent)
+std::string rule_id; ///< Affected rule
+std::string action;  ///< "added", "removed", "enabled", "disabled"
+MARKAMP_DECLARE_EVENT_END;
+
+// ── Phase 41: Widget & Sidebar Extensions ───────────────────────────────────
+
+/// Fired when a sidebar widget is registered or unregistered.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SidebarWidgetChangedEvent)
+std::string widget_id; ///< Affected widget
+std::string action;    ///< "registered", "unregistered", "moved"
+std::string slot;      ///< Current slot name
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a widget's display mode changes.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(WidgetDisplayModeChangedEvent)
+std::string widget_id; ///< Affected widget
+std::string new_mode;  ///< New display mode
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when widget data is refreshed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(WidgetDataRefreshedEvent)
+std::string provider_id; ///< Data provider
+std::string widget_id;   ///< Target widget
+int item_count{0};       ///< Number of items returned
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a custom panel is registered.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CustomPanelRegisteredEvent)
+std::string panel_id;     ///< Panel identifier
+std::string extension_id; ///< Contributing extension
+std::string location;     ///< Panel location
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a widget container layout changes.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(WidgetLayoutChangedEvent)
+std::string container_id; ///< Container that changed
+int widget_count{0};      ///< Number of widgets
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a sidebar panel visibility changes.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SidebarPanelVisibilityEvent)
+std::string panel_id; ///< Panel that changed
+bool visible{false};  ///< New visibility state
+MARKAMP_DECLARE_EVENT_END;
+
+// ── Phase 42: PDF Viewer & Document Import ──────────────────────────────────
+
+/// Fired when a PDF document is loaded.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PdfDocumentLoadedEvent)
+std::string document_id; ///< Loaded document
+std::string file_path;   ///< Source file path
+int total_pages{0};      ///< Number of pages
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when the user navigates to a different PDF page.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PdfPageNavigatedEvent)
+std::string document_id; ///< Document
+int page_number{0};      ///< New page number
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a PDF annotation is added or removed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PdfAnnotationChangedEvent)
+std::string annotation_id; ///< Annotation
+std::string document_id;   ///< Document
+std::string action;        ///< "added", "removed"
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a document import completes.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DocumentImportCompletedEvent)
+std::string import_id;   ///< Import operation
+std::string source_path; ///< Source file
+std::string format;      ///< Import format
+bool success{false};     ///< Whether import succeeded
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when an import preset is created or modified.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ImportPresetChangedEvent)
+std::string preset_id; ///< Preset
+std::string action;    ///< "created", "removed", "updated"
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when PDF text is extracted.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PdfTextExtractedEvent)
+std::string document_id; ///< Source document
+int page_count{0};       ///< Pages extracted
+int text_length{0};      ///< Total chars extracted
+MARKAMP_DECLARE_EVENT_END;
+
+// ═══════════════════════════════════════════════════════════════════
+// Phase 43 — Presentation & Slide System Events
+// ═══════════════════════════════════════════════════════════════════
+
+/// Fired when a presentation is created.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PresentationCreatedEvent)
+std::string presentation_id;
+std::string title;
+int slide_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a slideshow starts or stops.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SlideshowStateChangedEvent)
+std::string presentation_id;
+std::string new_state; ///< "playing", "paused", "idle"
+int current_slide{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a presentation slide is added, removed, or reordered.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PresentationSlideChangedEvent)
+std::string slide_id;
+std::string action; ///< "added", "removed", "moved", "modified"
+int slide_number{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a slide theme is applied.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SlideThemeAppliedEvent)
+std::string presentation_id;
+std::string theme_id;
+std::string theme_name;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a presentation export completes.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SlideExportCompletedEvent)
+std::string export_id;
+std::string presentation_id;
+std::string format; ///< "pdf", "html", "png", etc.
+bool success{false};
+int slides_exported{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when slide content blocks change.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SlideBlockChangedEvent)
+std::string slide_id;
+std::string block_id;
+std::string action; ///< "added", "removed", "modified"
+MARKAMP_DECLARE_EVENT_END;
+
+// ── Phase 44: Encryption & Privacy ──────────────────────────────────────────
+
+/// Fired when vault encryption state changes.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(VaultEncryptionChangedEvent)
+std::string vault_id;
+std::string new_state; ///< "encrypted", "decrypted"
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a vault is locked or unlocked.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(VaultLockedEvent)
+std::string vault_id;
+bool is_locked{false};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when an encryption key is rotated.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(KeyRotatedEvent)
+std::string old_key_id;
+std::string new_key_id;
+std::string algorithm;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a document privacy classification changes.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DocumentClassifiedEvent)
+std::string document_id;
+std::string level; ///< "public", "internal", "confidential", "secret"
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when PII redaction is applied to content.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DataRedactedEvent)
+std::string document_id;
+int redactions_applied{0};
+int rules_matched{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when the privacy policy is updated.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PrivacyPolicyChangedEvent)
+std::string setting; ///< which policy field changed
+std::string new_value;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── Phase 46: Multi-Window & Workspace Management ───────────────────────────
+
+/// Fired when a new window is created.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(WindowCreatedEvent)
+std::string window_id;
+std::string title;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a window is closed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(WindowClosedEvent)
+std::string window_id;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when an editor group is created, closed, or focused.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(EditorGroupChangedEvent)
+std::string group_id;
+std::string action; ///< "created", "closed", "focused", "split"
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a file tab is opened in an editor group.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TabOpenedEvent)
+std::string group_id;
+std::string tab_id;
+std::string file_path;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a layout preset is applied.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(LayoutRestoredEvent)
+std::string preset_id;
+std::string preset_name;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a workspace session is restored.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SessionRestoredEvent)
+std::string snapshot_id;
+std::string workspace_name;
+int files_restored{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── Phase 47: Localization & Internationalization ────────────────────────────
+
+/// Fired when the active locale is changed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(LocaleChangedEvent)
+std::string old_locale;
+std::string new_locale;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a translation entry is added.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TranslationAddedEvent)
+std::string key;
+std::string locale_id;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a translation key is not found (fallback used).
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TranslationMissingEvent)
+std::string key;
+std::string locale_id;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when text direction changes.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TextDirectionChangedEvent)
+std::string direction; ///< "ltr", "rtl", "auto"
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a translation catalog is loaded.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CatalogLoadedEvent)
+int entries_loaded{0};
+int locales_loaded{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when the formatter locale is updated.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FormatterLocaleChangedEvent)
+std::string old_locale;
+std::string new_locale;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── Phase 48: Data Processing & Computation ─────────────────────────────────
+
+/// Fired when a data table is created.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TableCreatedEvent)
+std::string table_id;
+std::string table_name;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a row is added to a data table.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(RowAddedEvent)
+std::string table_id;
+int row_index{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a formula is evaluated.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FormulaEvaluatedEvent)
+std::string expression;
+double result{0.0};
+bool is_error{false};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a transform pipeline is executed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TransformExecutedEvent)
+int steps_applied{0};
+int rows_input{0};
+int rows_output{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a chart dataset is generated.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ChartGeneratedEvent)
+std::string dataset_id;
+std::string chart_type;
+int series_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when data is imported.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DataImportedEvent)
+std::string source;
+int rows_imported{0};
+int columns_imported{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── Phase 49: End-to-End Integration Testing ────────────────────────────────
+
+/// Fired when a test suite completes execution.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TestSuiteCompletedEvent)
+std::string suite_id;
+int passed{0};
+int failed{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a test fails.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TestFailedEvent)
+std::string test_id;
+std::string test_name;
+std::string error_msg;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when all health checks complete.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(HealthCheckCompletedEvent)
+int checks_passed{0};
+int checks_failed{0};
+bool is_healthy{false};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a regression is detected.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(RegressionDetectedEvent)
+std::string test_name;
+double expected_val{0.0};
+double actual_val{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a dependency check completes.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DependencyCheckEvent)
+int modules_checked{0};
+int deps_satisfied{0};
+int deps_missing{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when an integration report is generated.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(IntegrationReportEvent)
+int total_tests{0};
+int total_passed{0};
+int total_failed{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── Phase 50: Release Preparation & Polish ──────────────────────────────────
+
+/// Fired when a new release is created.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ReleaseCreatedEvent)
+std::string release_id;
+std::string version;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a version is bumped.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(VersionBumpedEvent)
+std::string old_version;
+std::string new_version;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when changelog is updated.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ChangelogUpdatedEvent)
+std::string version;
+int entries_added{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a deprecation is added.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DeprecationAddedEvent)
+std::string feature_name;
+std::string replacement;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a release is published.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ReleasePublishedEvent)
+std::string version;
+int entry_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when polish checks complete.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PolishCompleteEvent)
+int checks_passed{0};
+int issues_found{0};
+bool release_ready{false};
 MARKAMP_DECLARE_EVENT_END;
 
 } // namespace markamp::core::events

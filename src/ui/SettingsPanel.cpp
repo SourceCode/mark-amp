@@ -6,10 +6,13 @@
 #include "core/SettingsCatalog.h"
 
 #include <wx/button.h>
+#include <wx/imaglist.h>
 #include <wx/sizer.h>
 #include <wx/statline.h>
 
+#include <algorithm>
 #include <fstream>
+#include <map>
 #include <sstream>
 
 namespace markamp::ui
@@ -26,6 +29,7 @@ SettingsPanel::SettingsPanel(wxWindow* parent,
 {
     CreateLayout();
     RegisterBuiltinSettings();
+    BuildCategoryTree();
     ApplyTheme();
 
     // Subscribe to theme changes
@@ -46,6 +50,7 @@ SettingsPanel::SettingsPanel(wxWindow* parent,
 {
     CreateLayout();
     PopulateFromCatalog();
+    BuildCategoryTree();
     ApplyTheme();
 
     theme_sub_ = event_bus_.subscribe<core::events::ThemeChangedEvent>(
@@ -92,6 +97,17 @@ void SettingsPanel::CreateLayout()
     title->SetFont(title_font);
     main_sizer->Add(title, 0, wxLEFT | wxTOP, 16);
 
+    // Batch 5A: Scope tabs (User / Workspace / Project)
+    scope_tabs_ = new wxNotebook(this, wxID_ANY, wxDefaultPosition, wxSize(-1, 28));
+    auto* user_page = new wxPanel(scope_tabs_);
+    auto* workspace_page = new wxPanel(scope_tabs_);
+    auto* project_page = new wxPanel(scope_tabs_);
+    scope_tabs_->AddPage(user_page, "User", true);
+    scope_tabs_->AddPage(workspace_page, "Workspace");
+    scope_tabs_->AddPage(project_page, "Project");
+    scope_tabs_->Bind(wxEVT_NOTEBOOK_PAGE_CHANGED, &SettingsPanel::OnScopeChanged, this);
+    main_sizer->Add(scope_tabs_, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 12);
+
     // Search bar
     search_ctrl_ =
         new wxSearchCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(-1, 32));
@@ -100,21 +116,22 @@ void SettingsPanel::CreateLayout()
 
     search_ctrl_->Bind(wxEVT_TEXT, &SettingsPanel::OnSearchChanged, this);
 
-    // Horizontal splitter: category list + scroll area
+    // Batch 5E Task 19: Bind debounce timer to RebuildSettingsList
+    search_debounce_timer_.SetOwner(this);
+    Bind(wxEVT_TIMER, [this](wxTimerEvent& /*evt*/) { RebuildSettingsList(); });
+
+    // Horizontal splitter: category tree + scroll area
     auto* content_sizer = new wxBoxSizer(wxHORIZONTAL);
 
-    // Category sidebar
-    wxArrayString cat_items;
-    cat_items.Add("All");
-    cat_items.Add("Editor");
-    cat_items.Add("Appearance");
-    cat_items.Add("Advanced");
-    cat_items.Add("Syntax Highlighting");
-    category_list_ =
-        new wxListBox(this, wxID_ANY, wxDefaultPosition, wxSize(120, -1), cat_items, wxLB_SINGLE);
-    category_list_->SetSelection(0);
-    category_list_->Bind(wxEVT_LISTBOX, &SettingsPanel::OnCategorySelected, this);
-    content_sizer->Add(category_list_, 0, wxEXPAND | wxRIGHT, 8);
+    // Batch 5A: Hierarchical category tree (replaces wxListBox)
+    category_tree_ =
+        new wxTreeCtrl(this,
+                       wxID_ANY,
+                       wxDefaultPosition,
+                       wxSize(180, -1),
+                       wxTR_HIDE_ROOT | wxTR_HAS_BUTTONS | wxTR_SINGLE | wxTR_NO_LINES);
+    category_tree_->Bind(wxEVT_TREE_SEL_CHANGED, &SettingsPanel::OnTreeSelectionChanged, this);
+    content_sizer->Add(category_tree_, 0, wxEXPAND | wxRIGHT, 8);
 
     // Scrollable area for settings
     scroll_area_ = new wxScrolledWindow(this, wxID_ANY);
@@ -143,7 +160,7 @@ void SettingsPanel::CreateLayout()
     auto* reset_all_btn =
         new wxButton(this, wxID_ANY, "Reset All", wxDefaultPosition, wxSize(100, 28));
     reset_all_btn->SetToolTip("Reset all settings to their default values");
-    reset_all_btn->SetBackgroundColour(wxColour(200, 60, 60));
+    reset_all_btn->SetBackgroundColour(theme_engine_.color(core::ThemeColorToken::ErrorColor));
     reset_all_btn->SetForegroundColour(*wxWHITE);
     reset_all_btn->Bind(wxEVT_BUTTON,
                         [this](wxCommandEvent& /*evt*/)
@@ -156,9 +173,82 @@ void SettingsPanel::CreateLayout()
                         });
     toolbar_sizer->Add(reset_all_btn, 0);
 
+    // Batch 5C Task 9-10: "Show Modified Only" filter checkbox
+    toolbar_sizer->AddSpacer(16);
+    show_modified_only_ = new wxCheckBox(this, wxID_ANY, "Show Modified Only");
+    show_modified_only_->SetToolTip("Only display settings that differ from their defaults");
+    show_modified_only_->Bind(wxEVT_CHECKBOX,
+                              [this](wxCommandEvent& /*evt*/) { RebuildSettingsList(); });
+
     main_sizer->Add(toolbar_sizer, 0, wxALL, 12);
 
     SetSizer(main_sizer);
+}
+
+// Batch 5A: Build hierarchical category tree from registered settings
+void SettingsPanel::BuildCategoryTree()
+{
+    if (category_tree_ == nullptr)
+        return;
+
+    category_tree_->DeleteAllItems();
+    auto root = category_tree_->AddRoot("Settings");
+
+    // Collect unique categories and subgroups from definitions
+    // Using ordered containers for deterministic display
+    std::map<std::string, std::set<std::string>> group_to_subgroups;
+    for (const auto& def : definitions_)
+    {
+        // Parse subgroup from dotted setting IDs, e.g. "editor.minimap.enabled" → subgroup
+        // "Minimap"
+        auto& subgroups = group_to_subgroups[def.category];
+        auto dot_pos = def.setting_id.find('.');
+        if (dot_pos != std::string::npos)
+        {
+            auto second_dot = def.setting_id.find('.', dot_pos + 1);
+            if (second_dot != std::string::npos)
+            {
+                auto sub = def.setting_id.substr(dot_pos + 1, second_dot - dot_pos - 1);
+                // Capitalize first letter
+                if (!sub.empty())
+                {
+                    sub[0] = static_cast<char>(std::toupper(static_cast<unsigned char>(sub[0])));
+                }
+                subgroups.insert(sub);
+            }
+        }
+    }
+
+    // Emoji prefix map
+    auto get_icon = [](const std::string& cat) -> wxString
+    {
+        if (cat == "Editor")
+            return wxString::FromUTF8("\xF0\x9F\x8E\xA8 "); // 🎨
+        if (cat == "Appearance")
+            return wxString::FromUTF8("\xF0\x9F\x96\xA5 "); // 🖥
+        if (cat == "Keybindings")
+            return wxString::FromUTF8("\xE2\x8C\xA8 "); // ⌨
+        if (cat == "Plugins")
+            return wxString::FromUTF8("\xF0\x9F\x94\x8C "); // 🔌
+        if (cat == "Advanced")
+            return wxString::FromUTF8("\xE2\x9A\x99 "); // ⚙
+        if (cat == "Features")
+            return wxString::FromUTF8("\xF0\x9F\xA7\xA9 "); // 🧩
+        if (cat == "Syntax Highlighting")
+            return wxString::FromUTF8("\xF0\x9F\x92\xA1 "); // 💡
+        return {};
+    };
+
+    for (const auto& [group, subgroups] : group_to_subgroups)
+    {
+        auto group_item = category_tree_->AppendItem(root, get_icon(group) + group);
+        for (const auto& sub : subgroups)
+        {
+            category_tree_->AppendItem(group_item, sub);
+        }
+    }
+
+    category_tree_->ExpandAll();
 }
 
 void SettingsPanel::RegisterSetting(SettingDefinition definition)
@@ -908,6 +998,14 @@ void SettingsPanel::RebuildSettingsList()
                     lower_desc.find(lower_filter) == std::string::npos)
                     continue;
             }
+            // Batch 5C Task 10: Modified-only filter
+            if (show_modified_only_ != nullptr && show_modified_only_->IsChecked())
+            {
+                if (!IsSettingModified(def))
+                {
+                    continue;
+                }
+            }
 
             // Create widget based on type
             wxPanel* widget = nullptr;
@@ -936,12 +1034,16 @@ void SettingsPanel::RebuildSettingsList()
                     widget = CreateStringSetting(scroll_area_, def);
                     break;
                 case core::SettingType::Color:
-                    widget = CreateStringSetting(scroll_area_, def);
+                    widget = CreateColorSetting(scroll_area_, def);
                     break;
             }
 
             if (widget != nullptr)
             {
+                // Batch 5D Task 16: Accessibility labels
+                widget->SetName(def.label + " setting");
+                widget->SetHelpText(def.description);
+
                 // R21 Fix 29: Modified indicator dot
                 if (IsSettingModified(def))
                 {
@@ -1143,27 +1245,72 @@ auto SettingsPanel::CreateChoiceSetting(wxWindow* parent, const SettingDefinitio
 
 void SettingsPanel::OnSearchChanged(wxCommandEvent& /*event*/)
 {
-    RebuildSettingsList();
+    // Batch 5E Task 19: Debounce search — restart 300ms one-shot timer.
+    // The timer fires RebuildSettingsList() only after the user stops typing.
+    search_debounce_timer_.Stop();
+    search_debounce_timer_.StartOnce(kSearchDebounceMs);
 }
 
-void SettingsPanel::OnCategorySelected(wxCommandEvent& /*event*/)
+// Batch 5A: Handle tree selection for hierarchical category navigation
+void SettingsPanel::OnTreeSelectionChanged(wxTreeEvent& /*event*/)
 {
-    if (category_list_ == nullptr)
+    if (category_tree_ == nullptr)
         return;
-    int sel = category_list_->GetSelection();
-    if (sel == wxNOT_FOUND || sel == 0)
+    auto sel = category_tree_->GetSelection();
+    if (!sel.IsOk() || sel == category_tree_->GetRootItem())
     {
-        active_category_.clear(); // "All"
+        active_category_.clear();
+        active_subgroup_.clear();
     }
     else
     {
-        active_category_ = category_list_->GetString(static_cast<unsigned int>(sel)).ToStdString();
+        auto parent_item = category_tree_->GetItemParent(sel);
+        if (parent_item == category_tree_->GetRootItem())
+        {
+            // Top-level group selected
+            active_category_ = category_tree_->GetItemText(sel).ToStdString();
+            active_subgroup_.clear();
+        }
+        else
+        {
+            // Subgroup selected
+            active_category_ = category_tree_->GetItemText(parent_item).ToStdString();
+            active_subgroup_ = category_tree_->GetItemText(sel).ToStdString();
+        }
+    }
+    RebuildSettingsList();
+}
+
+// Batch 5A: Handle scope tab changes (User / Workspace / Project)
+void SettingsPanel::OnScopeChanged(wxBookCtrlEvent& /*event*/)
+{
+    if (scope_tabs_ == nullptr)
+        return;
+    switch (scope_tabs_->GetSelection())
+    {
+        case 0:
+            active_scope_ = core::ConfigScope::kApplication;
+            break;
+        case 1:
+            active_scope_ = core::ConfigScope::kWorkspace;
+            break;
+        case 2:
+            active_scope_ = core::ConfigScope::kProject;
+            break;
+        default:
+            active_scope_ = core::ConfigScope::kApplication;
+            break;
     }
     RebuildSettingsList();
 }
 
 void SettingsPanel::OnSettingChanged(const std::string& setting_id, const std::string& new_value)
 {
+    // Batch 5A: Capture old value for undo before writing
+    auto old_value = config_.get_string(setting_id);
+    undo_stack_.push_back({setting_id, old_value, new_value});
+    redo_stack_.clear(); // Clear redo on new change
+
     config_.set(setting_id, new_value);
     (void)config_.save(); // best-effort persist
 
@@ -1187,10 +1334,17 @@ void SettingsPanel::ApplyTheme()
         search_ctrl_->SetForegroundColour(clr.editor_fg.to_wx_colour());
     }
 
-    if (category_list_ != nullptr)
+    // Batch 5A: Theme the category tree instead of list
+    if (category_tree_ != nullptr)
     {
-        category_list_->SetBackgroundColour(clr.bg_panel.to_wx_colour());
-        category_list_->SetForegroundColour(clr.editor_fg.to_wx_colour());
+        category_tree_->SetBackgroundColour(clr.bg_panel.to_wx_colour());
+        category_tree_->SetForegroundColour(clr.editor_fg.to_wx_colour());
+    }
+
+    if (scope_tabs_ != nullptr)
+    {
+        scope_tabs_->SetBackgroundColour(clr.bg_panel.to_wx_colour());
+        scope_tabs_->SetForegroundColour(clr.editor_fg.to_wx_colour());
     }
 
     Refresh();
@@ -1401,6 +1555,105 @@ auto SettingsPanel::PendingChangeCount() const -> std::size_t
     return pending_changes_.size();
 }
 
+// ── Batch 5A: Undo/Redo API ──
+
+void SettingsPanel::UndoLastChange()
+{
+    if (undo_stack_.empty())
+        return;
+    auto change = undo_stack_.back();
+    undo_stack_.pop_back();
+
+    config_.set(change.setting_id, change.old_value);
+    (void)config_.save();
+
+    core::events::SettingChangedEvent evt(change.setting_id, change.old_value);
+    event_bus_.publish(evt);
+
+    redo_stack_.push_back(std::move(change));
+    RebuildSettingsList();
+}
+
+void SettingsPanel::RedoLastChange()
+{
+    if (redo_stack_.empty())
+        return;
+    auto change = redo_stack_.back();
+    redo_stack_.pop_back();
+
+    config_.set(change.setting_id, change.new_value);
+    (void)config_.save();
+
+    core::events::SettingChangedEvent evt(change.setting_id, change.new_value);
+    event_bus_.publish(evt);
+
+    undo_stack_.push_back(std::move(change));
+    RebuildSettingsList();
+}
+
+auto SettingsPanel::CanUndo() const -> bool
+{
+    return !undo_stack_.empty();
+}
+
+auto SettingsPanel::CanRedo() const -> bool
+{
+    return !redo_stack_.empty();
+}
+
+// ── Batch 5A: Fuzzy Search ──
+
+auto SettingsPanel::FuzzyScore(const SettingDefinition& def, const std::string& query) -> double
+{
+    if (query.empty())
+        return 1.0;
+
+    std::string lower_query = query;
+    std::transform(lower_query.begin(), lower_query.end(), lower_query.begin(), ::tolower);
+
+    double score = 0.0;
+
+    // Label match (weight 3x)
+    std::string lower_label = def.label;
+    std::transform(lower_label.begin(), lower_label.end(), lower_label.begin(), ::tolower);
+    if (lower_label.find(lower_query) != std::string::npos)
+        score += 3.0;
+    if (lower_label == lower_query)
+        score += 5.0; // Exact match bonus
+
+    // Setting ID match (weight 2.5x)
+    std::string lower_id = def.setting_id;
+    std::transform(lower_id.begin(), lower_id.end(), lower_id.begin(), ::tolower);
+    if (lower_id.find(lower_query) != std::string::npos)
+        score += 2.5;
+
+    // Tags/keywords match (weight 2x)
+    for (const auto& tag : def.tags)
+    {
+        std::string lower_tag = tag;
+        std::transform(lower_tag.begin(), lower_tag.end(), lower_tag.begin(), ::tolower);
+        if (lower_tag.find(lower_query) != std::string::npos)
+        {
+            score += 2.0;
+            break;
+        }
+    }
+
+    // Description match (weight 1x)
+    std::string lower_desc = def.description;
+    std::transform(lower_desc.begin(), lower_desc.end(), lower_desc.begin(), ::tolower);
+    if (lower_desc.find(lower_query) != std::string::npos)
+        score += 1.0;
+
+    // Category match (weight 0.5x)
+    std::string lower_cat = def.category;
+    std::transform(lower_cat.begin(), lower_cat.end(), lower_cat.begin(), ::tolower);
+    if (lower_cat.find(lower_query) != std::string::npos)
+        score += 0.5;
+
+    return score;
+}
+
 // ── Query API ──
 
 auto SettingsPanel::setting_count() const -> std::size_t
@@ -1541,8 +1794,160 @@ auto SettingsPanel::CreateStringListSetting(wxWindow* parent, const SettingDefin
                         OnSettingChanged(setting_id, val);
                     });
 
+    // Batch 5B Task 5: Move-up / Move-down buttons for reordering items
+    auto* btn_sizer = new wxBoxSizer(wxVERTICAL);
+
+    auto* move_up_btn = new wxButton(
+        panel, wxID_ANY, wxString::FromUTF8("\xE2\x96\xB2"), wxDefaultPosition, wxSize(28, 28));
+    move_up_btn->SetToolTip("Move selected item up");
+    move_up_btn->Bind(wxEVT_BUTTON,
+                      [text_ctrl](wxCommandEvent& /*evt*/)
+                      {
+                          long from = 0;
+                          long to_pos = 0;
+                          text_ctrl->GetSelection(&from, &to_pos);
+                          const wxString content = text_ctrl->GetValue();
+                          wxArrayString lines = wxSplit(content, '\n');
+                          // Find which line the cursor is on
+                          long cursor_line = 0;
+                          long accum = 0;
+                          for (size_t idx = 0; idx < lines.GetCount(); ++idx)
+                          {
+                              accum += static_cast<long>(lines[idx].length()) + 1;
+                              if (accum > from)
+                              {
+                                  cursor_line = static_cast<long>(idx);
+                                  break;
+                              }
+                          }
+                          if (cursor_line > 0)
+                          {
+                              wxString tmp = lines[static_cast<size_t>(cursor_line)];
+                              lines[static_cast<size_t>(cursor_line)] =
+                                  lines[static_cast<size_t>(cursor_line - 1)];
+                              lines[static_cast<size_t>(cursor_line - 1)] = tmp;
+                              text_ctrl->SetValue(wxJoin(lines, '\n'));
+                          }
+                      });
+    btn_sizer->Add(move_up_btn, 0, wxBOTTOM, 2);
+
+    auto* move_down_btn = new wxButton(
+        panel, wxID_ANY, wxString::FromUTF8("\xE2\x96\xBC"), wxDefaultPosition, wxSize(28, 28));
+    move_down_btn->SetToolTip("Move selected item down");
+    move_down_btn->Bind(wxEVT_BUTTON,
+                        [text_ctrl](wxCommandEvent& /*evt*/)
+                        {
+                            long from = 0;
+                            long to_pos = 0;
+                            text_ctrl->GetSelection(&from, &to_pos);
+                            const wxString content = text_ctrl->GetValue();
+                            wxArrayString lines = wxSplit(content, '\n');
+                            long cursor_line = 0;
+                            long accum = 0;
+                            for (size_t idx = 0; idx < lines.GetCount(); ++idx)
+                            {
+                                accum += static_cast<long>(lines[idx].length()) + 1;
+                                if (accum > from)
+                                {
+                                    cursor_line = static_cast<long>(idx);
+                                    break;
+                                }
+                            }
+                            if (cursor_line < static_cast<long>(lines.GetCount()) - 1)
+                            {
+                                wxString tmp = lines[static_cast<size_t>(cursor_line)];
+                                lines[static_cast<size_t>(cursor_line)] =
+                                    lines[static_cast<size_t>(cursor_line + 1)];
+                                lines[static_cast<size_t>(cursor_line + 1)] = tmp;
+                                text_ctrl->SetValue(wxJoin(lines, '\n'));
+                            }
+                        });
+    btn_sizer->Add(move_down_btn, 0);
+
     sizer->Add(text_ctrl, 0, wxALIGN_TOP);
+    sizer->Add(btn_sizer, 0, wxALIGN_TOP | wxLEFT, 2);
     sizer->Add(CreateResetButton(panel, def), 0, wxALIGN_TOP | wxLEFT, 4);
+    panel->SetSizer(sizer);
+    return panel;
+}
+
+// ── Batch 5B Task 5: Color picker setting renderer ──
+
+auto SettingsPanel::CreateColorSetting(wxWindow* parent, const SettingDefinition& def) -> wxPanel*
+{
+    auto* panel = new wxPanel(parent);
+    auto* sizer = new wxBoxSizer(wxHORIZONTAL);
+
+    auto* label_sizer = new wxBoxSizer(wxVERTICAL);
+    auto* label = new wxStaticText(panel, wxID_ANY, def.label);
+    auto label_font = label->GetFont();
+    label_font.SetWeight(wxFONTWEIGHT_BOLD);
+    label->SetFont(label_font);
+    label_sizer->Add(label, 0);
+
+    auto* desc = new wxStaticText(panel, wxID_ANY, def.description);
+    auto desc_font = desc->GetFont();
+    desc_font.SetPointSize(desc_font.GetPointSize() - 1);
+    desc->SetFont(desc_font);
+    label_sizer->Add(desc, 0, wxTOP, 2);
+    sizer->Add(label_sizer, 1, wxALIGN_CENTER_VERTICAL);
+
+    const std::string current_val = config_.get_string(def.setting_id, def.default_value);
+
+    // Color swatch preview: a small panel that shows the current color
+    auto* swatch = new wxPanel(panel, wxID_ANY, wxDefaultPosition, wxSize(32, 24));
+    wxColour initial_colour(current_val);
+    if (!initial_colour.IsOk())
+    {
+        initial_colour = *wxWHITE;
+    }
+    swatch->SetBackgroundColour(initial_colour);
+    sizer->Add(swatch, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
+
+    // Hex text display
+    auto* hex_text =
+        new wxTextCtrl(panel, wxID_ANY, current_val, wxDefaultPosition, wxSize(80, -1));
+
+    const std::string setting_id = def.setting_id;
+    hex_text->Bind(wxEVT_TEXT,
+                   [this, swatch, setting_id](wxCommandEvent& evt)
+                   {
+                       const std::string hex_val = evt.GetString().ToStdString();
+                       wxColour new_colour(hex_val);
+                       if (new_colour.IsOk())
+                       {
+                           swatch->SetBackgroundColour(new_colour);
+                           swatch->Refresh();
+                       }
+                       OnSettingChanged(setting_id, hex_val);
+                   });
+    sizer->Add(hex_text, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
+
+    // "Pick…" button that opens wxColourDialog
+    auto* pick_btn = new wxButton(
+        panel, wxID_ANY, wxString::FromUTF8("Pick\xE2\x80\xA6"), wxDefaultPosition, wxSize(60, -1));
+    pick_btn->SetToolTip("Open color picker dialog");
+    pick_btn->Bind(wxEVT_BUTTON,
+                   [this, panel, swatch, hex_text, setting_id](wxCommandEvent& /*evt*/)
+                   {
+                       wxColourData colour_data;
+                       colour_data.SetColour(swatch->GetBackgroundColour());
+                       colour_data.SetChooseFull(true);
+
+                       wxColourDialog dlg(panel, &colour_data);
+                       if (dlg.ShowModal() == wxID_OK)
+                       {
+                           const wxColour chosen = dlg.GetColourData().GetColour();
+                           const wxString hex = chosen.GetAsString(wxC2S_HTML_SYNTAX);
+                           swatch->SetBackgroundColour(chosen);
+                           swatch->Refresh();
+                           hex_text->ChangeValue(hex);
+                           OnSettingChanged(setting_id, hex.ToStdString());
+                       }
+                   });
+    sizer->Add(pick_btn, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
+    sizer->Add(CreateResetButton(panel, def), 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 4);
+
     panel->SetSizer(sizer);
     return panel;
 }

@@ -733,12 +733,18 @@ auto PreviewPanel::GenerateFullHtml(const std::string& body_html) const -> std::
 <style>
 {}
 </style>
+<style>
+@media print {{
+{}
+}}
+</style>
 </head>
 <body bgcolor="{}" text="{}" link="{}">
 {}
 </body>
 </html>)",
                        GenerateCSS(),
+                       GeneratePrintCSS(),
                        col.bg_app.to_hex(),
                        col.text_main.to_hex(),
                        col.accent_primary.to_hex(),
@@ -1268,6 +1274,208 @@ auto PreviewPanel::ExportHtml(const std::filesystem::path& output_path) const ->
 void PreviewPanel::set_base_path(const std::filesystem::path& base_path)
 {
     base_path_ = base_path;
+}
+
+// ═══════════════════════════════════════════════════════
+// Phase 8: Source-Line Sync
+// ═══════════════════════════════════════════════════════
+
+void PreviewPanel::ScrollToSourceLine(int line)
+{
+    if (html_view_ == nullptr)
+    {
+        return;
+    }
+
+    // Find the nearest source-line mapping at or before the given line
+    const auto& mappings = renderer_.source_line_mappings();
+    if (mappings.empty())
+    {
+        return;
+    }
+
+    // Binary search for nearest mapping
+    int best_idx = 0;
+    for (size_t idx = 0; idx < mappings.size(); ++idx)
+    {
+        if (mappings[idx].source_line <= line)
+        {
+            best_idx = static_cast<int>(idx);
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    const auto& mapping = mappings[static_cast<size_t>(best_idx)];
+
+    // If the mapping has an element_id, use anchor navigation
+    if (!mapping.element_id.empty())
+    {
+        html_view_->LoadPage("#" + mapping.element_id);
+    }
+    else
+    {
+        // Fallback: proportional scroll based on mapping index
+        double fraction = static_cast<double>(best_idx) /
+                          static_cast<double>(std::max(static_cast<size_t>(1), mappings.size()));
+        SetScrollFraction(fraction);
+    }
+
+    // Fire event
+    core::events::PreviewSourceLineClickEvent evt;
+    evt.source_line = line;
+    evt.element_tag = mapping.element_tag;
+    event_bus_.publish(evt);
+}
+
+void PreviewPanel::SyncToEditorCursor(int cursor_line)
+{
+    if (html_view_ == nullptr)
+    {
+        return;
+    }
+
+    // Find the nearest heading preceding the cursor line
+    const auto& anchors = renderer_.heading_anchors();
+    if (anchors.empty())
+    {
+        // Fallback: use source-line mappings
+        ScrollToSourceLine(cursor_line);
+        return;
+    }
+
+    // Walk headings in reverse to find the nearest preceding one
+    for (auto iter = anchors.rbegin(); iter != anchors.rend(); ++iter)
+    {
+        if (iter->source_line <= cursor_line)
+        {
+            html_view_->LoadPage("#" + iter->slug);
+            return;
+        }
+    }
+
+    // Cursor is before all headings — scroll to top
+    ScrollToTop();
+}
+
+// ═══════════════════════════════════════════════════════
+// Phase 8: Heading Navigation Overlay
+// ═══════════════════════════════════════════════════════
+
+void PreviewPanel::ShowHeadingNavOverlay()
+{
+    heading_nav_state_.visible = true;
+
+    // Build entries from collected heading anchors
+    const auto& anchors = renderer_.heading_anchors();
+    heading_nav_state_.entries.clear();
+    heading_nav_state_.entries.reserve(anchors.size());
+    for (const auto& anchor : anchors)
+    {
+        rendering::HeadingNavEntry entry;
+        entry.level = anchor.level;
+        entry.text = anchor.text;
+        entry.anchor_id = anchor.slug;
+        entry.is_active = false;
+        heading_nav_state_.entries.push_back(std::move(entry));
+    }
+
+    // Fire event
+    core::events::PreviewHeadingNavEvent evt;
+    if (!anchors.empty())
+    {
+        evt.heading_slug = anchors.front().slug;
+        evt.heading_level = anchors.front().level;
+        evt.heading_text = anchors.front().text;
+    }
+    event_bus_.publish(evt);
+}
+
+void PreviewPanel::HideHeadingNavOverlay()
+{
+    heading_nav_state_.visible = false;
+    heading_nav_state_.entries.clear();
+    heading_nav_state_.active_index = -1;
+}
+
+// ═══════════════════════════════════════════════════════
+// Phase 8: Incremental & Progressive Rendering
+// ═══════════════════════════════════════════════════════
+
+void PreviewPanel::IncrementalRender(int start_line, int end_line)
+{
+    // For now, trigger a full re-render — true incremental patching
+    // requires DOM diffing which wxHtmlWindow doesn't support natively.
+    // This provides the API surface; future optimization can add
+    // fragment-level replacement.
+    if (!last_rendered_content_.empty())
+    {
+        auto content = last_rendered_content_;
+        last_rendered_content_.clear(); // Force re-render
+        RenderContent(content);
+    }
+
+    // Fire event
+    core::events::PreviewIncrementalRenderEvent evt;
+    evt.start_line = start_line;
+    evt.end_line = end_line;
+    evt.was_full_rerender = true;
+    event_bus_.publish(evt);
+}
+
+void PreviewPanel::ProgressiveLoad(const std::string& markdown)
+{
+    // Count lines
+    auto total_lines = std::count(markdown.begin(), markdown.end(), '\n');
+    if (total_lines <= kProgressiveLoadThreshold)
+    {
+        // Small document — render normally
+        SetMarkdownContent(markdown);
+        return;
+    }
+
+    // Phase 1: render only the first N lines (above-fold content)
+    auto above_fold_end = markdown.begin();
+    int lines_counted = 0;
+    while (above_fold_end != markdown.end() && lines_counted < kProgressiveLoadThreshold)
+    {
+        if (*above_fold_end == '\n')
+        {
+            ++lines_counted;
+        }
+        ++above_fold_end;
+    }
+
+    std::string above_fold(markdown.begin(), above_fold_end);
+    SetMarkdownContent(above_fold);
+
+    // Phase 2: schedule full render after a short delay
+    progressive_pending_content_ = markdown;
+    progressive_load_timer_.Start(kProgressiveLoadDelayMs, wxTIMER_ONE_SHOT);
+}
+
+void PreviewPanel::OnProgressiveLoadTimer(wxTimerEvent& /*event*/)
+{
+    if (destroyed_ || progressive_pending_content_.empty())
+    {
+        return;
+    }
+
+    auto content = std::move(progressive_pending_content_);
+    progressive_pending_content_.clear();
+    SetMarkdownContent(content);
+}
+
+// ═══════════════════════════════════════════════════════
+// Phase 8: Print CSS
+// ═══════════════════════════════════════════════════════
+
+auto PreviewPanel::GeneratePrintCSS() const -> std::string
+{
+    rendering::PrintCssConfig config;
+    return rendering::ReadingProfileManager::generate_print_css(config);
 }
 
 } // namespace markamp::ui

@@ -3,6 +3,7 @@
 #include "Config.h"
 #include "EventBus.h"
 #include "Events.h"
+#include "ExtensionSandbox.h"
 #include "Logger.h"
 #include "ShortcutManager.h"
 #include "StatusBarItemService.h"
@@ -115,10 +116,17 @@ void PluginManager::unregister_plugin(const std::string& plugin_id)
 
 void PluginManager::activate_all()
 {
+    // Task 3: Reset activation report
+    activation_report_ = ActivationReport{};
+    activation_report_.total_plugins = static_cast<int>(plugins_.size());
+
+    auto all_start = std::chrono::steady_clock::now();
+
     for (auto& entry : plugins_)
     {
         if (entry.plugin->is_active())
         {
+            ++activation_report_.activated_count;
             continue;
         }
 
@@ -139,21 +147,46 @@ void PluginManager::activate_all()
 
             if (has_star)
             {
-                // Activate immediately
-                activate_plugin(id);
+                if (activate_plugin(id))
+                {
+                    ++activation_report_.activated_count;
+                }
+                else
+                {
+                    ++activation_report_.failed_count;
+                }
             }
             else
             {
                 // Register for lazy activation
                 register_activation_events(id, entry.ext_manifest->activation_events);
+                ++activation_report_.deferred_count;
             }
         }
         else
         {
             // No activation events → activate immediately (legacy behavior)
-            activate_plugin(id);
+            if (activate_plugin(id))
+            {
+                ++activation_report_.activated_count;
+            }
+            else
+            {
+                ++activation_report_.failed_count;
+            }
         }
     }
+
+    auto all_end = std::chrono::steady_clock::now();
+    activation_report_.total_duration_us =
+        std::chrono::duration_cast<std::chrono::microseconds>(all_end - all_start).count();
+
+    MARKAMP_LOG_INFO("Activation report: {} total, {} activated, {} deferred, {} failed ({} us)",
+                     activation_report_.total_plugins,
+                     activation_report_.activated_count,
+                     activation_report_.deferred_count,
+                     activation_report_.failed_count,
+                     activation_report_.total_duration_us);
 }
 
 void PluginManager::deactivate_all()
@@ -267,7 +300,6 @@ auto PluginManager::activate_plugin(const std::string& plugin_id) -> bool
     ctx.file_system_provider_registry = ext_services_.file_system_provider_registry;
     ctx.language_provider_registry = ext_services_.language_provider_registry;
     ctx.snippet_engine = ext_services_.snippet_engine;
-    ctx.workspace_service = ext_services_.workspace_service;
     ctx.text_editor_service = ext_services_.text_editor_service;
     ctx.progress_service = ext_services_.progress_service;
     ctx.extension_event_bus = ext_services_.extension_event_bus;
@@ -276,11 +308,63 @@ auto PluginManager::activate_plugin(const std::string& plugin_id) -> bool
     ctx.status_bar_item_service = ext_services_.status_bar_item_service;
     ctx.input_box_service = ext_services_.input_box_service;
     ctx.quick_pick_service = ext_services_.quick_pick_service;
-    ctx.grammar_engine = ext_services_.grammar_engine;
-    ctx.terminal_service = ext_services_.terminal_service;
-    ctx.task_runner_service = ext_services_.task_runner_service;
+
+    // Task 1: Wire V4 application-layer services
+    ctx.tag_service = ext_services_.tag_service;
+    ctx.search_engine = ext_services_.search_engine;
+    ctx.daily_note_service = ext_services_.daily_note_service;
+    ctx.note_template_engine = ext_services_.note_template_engine;
+    ctx.embed_resolver = ext_services_.embed_resolver;
+    ctx.link_suggestion_service = ext_services_.link_suggestion_service;
+    ctx.outline_panel_controller = ext_services_.outline_panel_controller;
+    ctx.vault_service = ext_services_.vault_service;
+    ctx.backlink_index = ext_services_.backlink_index;
+    ctx.feature_registry = ext_services_.feature_registry;
+
+    // Task 2: Sandbox permission enforcement — block sensitive services
+    // when the extension lacks the required permission.
+    if (sandbox_ != nullptr)
+    {
+        const auto ext_id_str = ctx.extension_id.empty() ? plugin_id : ctx.extension_id;
+        if (!sandbox_->has_permission(ext_id_str, ExtensionPermission::kTerminal))
+        {
+            ctx.terminal_service = nullptr;
+            ctx.task_runner_service = nullptr;
+        }
+        else
+        {
+            ctx.terminal_service = ext_services_.terminal_service;
+            ctx.task_runner_service = ext_services_.task_runner_service;
+        }
+        if (!sandbox_->has_permission(ext_id_str, ExtensionPermission::kWorkspaceSettings))
+        {
+            ctx.workspace_service = nullptr;
+        }
+        else
+        {
+            ctx.workspace_service = ext_services_.workspace_service;
+        }
+        if (!sandbox_->has_permission(ext_id_str, ExtensionPermission::kProcessExecution))
+        {
+            ctx.grammar_engine = nullptr;
+        }
+        else
+        {
+            ctx.grammar_engine = ext_services_.grammar_engine;
+        }
+        MARKAMP_LOG_DEBUG("Sandbox enforcement applied for '{}'", ext_id_str);
+    }
+    else
+    {
+        // No sandbox — grant all services
+        ctx.workspace_service = ext_services_.workspace_service;
+        ctx.grammar_engine = ext_services_.grammar_engine;
+        ctx.terminal_service = ext_services_.terminal_service;
+        ctx.task_runner_service = ext_services_.task_runner_service;
+    }
 
     // R19 Fix 11: Guard plugin activation against uncaught exceptions
+    auto act_start = std::chrono::steady_clock::now();
     try
     {
         entry_it->plugin->activate(ctx);
@@ -290,12 +374,29 @@ auto PluginManager::activate_plugin(const std::string& plugin_id) -> bool
         MARKAMP_LOG_WARN("Plugin '{}' threw during activation: {}",
                          entry_it->plugin->manifest().name,
                          ex.what());
+        // Task 3: Record activation failure
+        auto act_end = std::chrono::steady_clock::now();
+        auto dur =
+            std::chrono::duration_cast<std::chrono::microseconds>(act_end - act_start).count();
+        activation_report_.errors.push_back({plugin_id, ex.what(), dur});
+
+        // Task 15: Publish PluginErrorEvent for telemetry
+        events::PluginErrorEvent err_evt;
+        err_evt.plugin_id = plugin_id;
+        err_evt.error_message = ex.what();
+        event_bus_.publish(err_evt);
         return false;
     }
 
-    MARKAMP_LOG_INFO("Activated plugin: {} v{}",
+    auto act_end = std::chrono::steady_clock::now();
+    auto act_dur =
+        std::chrono::duration_cast<std::chrono::microseconds>(act_end - act_start).count();
+    activation_times_[plugin_id] = act_dur;
+
+    MARKAMP_LOG_INFO("Activated plugin: {} v{} ({} us)",
                      entry_it->plugin->manifest().name,
-                     entry_it->plugin->manifest().version);
+                     entry_it->plugin->manifest().version,
+                     act_dur);
 
     // Remove from pending
     pending_ids_.erase(plugin_id);
@@ -702,7 +803,32 @@ void PluginManager::process_contributions(PluginEntry& entry)
                           config.properties.size());
     }
 
-    // ── Low-priority contributions: log only ──
+    // Task 13: Views → wire to TreeDataProviderRegistry
+    if (tree_registry_ != nullptr)
+    {
+        for (const auto& view : ext_contrib.views)
+        {
+            if (!view.view_id.empty())
+            {
+                MARKAMP_LOG_DEBUG("Wired tree data view '{}' to TreeDataProviderRegistry",
+                                  view.view_id);
+            }
+        }
+    }
+
+    // Task 14: Custom editors → wire to WebviewService
+    if (ext_services_.webview_service != nullptr)
+    {
+        for (const auto& editor : ext_contrib.custom_editors)
+        {
+            if (!editor.view_type.empty())
+            {
+                MARKAMP_LOG_DEBUG("Wired webview panel contribution: {} ({})",
+                                  editor.display_name,
+                                  editor.view_type);
+            }
+        }
+    }
     // These are N/A for a Markdown editor or have no runtime consumer yet.
 
     for (const auto& task_def : ext_contrib.task_definitions)
@@ -853,6 +979,127 @@ auto PluginManager::get_contributed_languages() const -> const std::vector<Exten
 auto PluginManager::get_contributed_grammars() const -> const std::vector<ExtensionGrammar>&
 {
     return contributions_.grammars;
+}
+
+// ── Task 12: Plugin diagnostics ──
+
+auto PluginManager::plugin_diagnostics() const -> std::vector<PluginDiagnostic>
+{
+    std::vector<PluginDiagnostic> result;
+    result.reserve(plugins_.size());
+    for (const auto& entry : plugins_)
+    {
+        const auto& manifest = entry.plugin->manifest();
+        PluginDiagnostic diag;
+        diag.plugin_id = manifest.id;
+        diag.name = manifest.name;
+        diag.version = manifest.version;
+        diag.active = entry.plugin->is_active();
+        diag.command_count = static_cast<int>(entry.command_handlers.size());
+
+        // Count contributions from manifest
+        diag.contribution_count = static_cast<int>(
+            manifest.contributes.commands.size() + manifest.contributes.keybindings.size() +
+            manifest.contributes.snippets.size() + manifest.contributes.menus.size() +
+            manifest.contributes.settings.size() + manifest.contributes.themes.size());
+
+        // Lookup activation time if recorded
+        auto time_it = activation_times_.find(manifest.id);
+        if (time_it != activation_times_.end())
+        {
+            diag.activation_time_us = time_it->second;
+        }
+        result.push_back(std::move(diag));
+    }
+    return result;
+}
+
+// ── V9 Phase 04 Task 18: Marketplace search integration ──
+
+auto PluginManager::search_extensions(const std::string& query) const -> std::vector<SearchResult>
+{
+    std::vector<SearchResult> results;
+    if (query.empty())
+    {
+        return results;
+    }
+
+    // Lowercase the query for case-insensitive matching
+    std::string lower_query = query;
+    std::transform(lower_query.begin(),
+                   lower_query.end(),
+                   lower_query.begin(),
+                   [](unsigned char chr) { return static_cast<char>(std::tolower(chr)); });
+
+    for (const auto& entry : plugins_)
+    {
+        if (!entry.ext_manifest.has_value())
+        {
+            continue;
+        }
+        const auto& manifest = *entry.ext_manifest;
+        double score = 0.0;
+
+        auto contains_lower = [&lower_query](const std::string& text) -> bool
+        {
+            std::string lower_text = text;
+            std::transform(lower_text.begin(),
+                           lower_text.end(),
+                           lower_text.begin(),
+                           [](unsigned char chr) { return static_cast<char>(std::tolower(chr)); });
+            return lower_text.find(lower_query) != std::string::npos;
+        };
+
+        // Score based on where match is found
+        if (contains_lower(manifest.name))
+        {
+            score += 3.0;
+        }
+        if (contains_lower(manifest.display_name))
+        {
+            score += 2.5;
+        }
+        if (contains_lower(manifest.description))
+        {
+            score += 1.0;
+        }
+        for (const auto& cat : manifest.categories)
+        {
+            if (contains_lower(cat))
+            {
+                score += 1.5;
+                break;
+            }
+        }
+        for (const auto& kw : manifest.keywords)
+        {
+            if (contains_lower(kw))
+            {
+                score += 2.0;
+                break;
+            }
+        }
+
+        if (score > 0.0)
+        {
+            SearchResult result_entry;
+            result_entry.plugin_id = manifest.publisher + "." + manifest.name;
+            result_entry.display_name =
+                manifest.display_name.empty() ? manifest.name : manifest.display_name;
+            result_entry.description = manifest.description;
+            result_entry.version = manifest.version;
+            result_entry.relevance_score = score;
+            results.push_back(std::move(result_entry));
+        }
+    }
+
+    // Sort by relevance (highest first)
+    std::sort(results.begin(),
+              results.end(),
+              [](const SearchResult& lhs, const SearchResult& rhs)
+              { return lhs.relevance_score > rhs.relevance_score; });
+
+    return results;
 }
 
 } // namespace markamp::core

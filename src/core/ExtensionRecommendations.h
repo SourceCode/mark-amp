@@ -36,10 +36,25 @@ public:
     /// Get the file path that was loaded.
     [[nodiscard]] auto file_path() const -> const std::string&;
 
+    // ── V9 Phase 04 Task 19: Workspace-aware recommendations ──
+
+    /// File extension → recommended extension IDs mapping.
+    /// Used for suggesting extensions based on open file types.
+    void add_file_type_recommendation(const std::string& file_extension,
+                                      const std::string& extension_id);
+
+    /// Get extension recommendations based on a set of open file extensions.
+    [[nodiscard]] auto
+    recommend_for_file_types(const std::vector<std::string>& file_extensions) const
+        -> std::vector<std::string>;
+
 private:
     std::vector<std::string> recommended_;
     std::vector<std::string> unwanted_;
     std::string file_path_;
+
+    /// File extension → extension IDs mapping for workspace-aware recommendations.
+    std::unordered_map<std::string, std::vector<std::string>> file_type_recommendations_;
 };
 
 } // namespace markamp::core

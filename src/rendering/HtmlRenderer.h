@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CodeBlockRenderer.h"
+#include "MarkdownRenderingFeatures.h"
 #include "core/Types.h"
 
 #include <filesystem>
@@ -90,6 +91,51 @@ public:
     {
         return code_renderer_;
     }
+
+    // ── Phase 8: Source-Line Attributes ──────────────────
+
+    /// Enable/disable data-source-line="N" attributes on block elements.
+    void set_source_line_attributes(bool enabled)
+    {
+        source_line_attrs_enabled_ = enabled;
+    }
+    [[nodiscard]] auto source_line_attributes_enabled() const -> bool
+    {
+        return source_line_attrs_enabled_;
+    }
+
+    /// Collected heading anchors from the most recent render() call.
+    [[nodiscard]] auto heading_anchors() const -> const std::vector<HeadingAnchor>&
+    {
+        return heading_anchors_;
+    }
+
+    /// Collected source-line mappings from the most recent render() call.
+    [[nodiscard]] auto source_line_mappings() const -> const std::vector<SourceLineMapping>&
+    {
+        return source_line_mappings_;
+    }
+
+    // ── Phase 8: Code Block Controls ─────────────────────
+
+    /// Set code block rendering configuration.
+    void set_code_block_config(const CodeBlockConfig& config)
+    {
+        code_block_config_ = config;
+    }
+    [[nodiscard]] auto code_block_config() const -> const CodeBlockConfig&
+    {
+        return code_block_config_;
+    }
+
+    // ── Phase 8: Sortable Tables ─────────────────────────
+
+    /// Set sortable table configuration.
+    void set_sortable_table_config(const SortableTableConfig& config)
+    {
+        sortable_table_config_ = config;
+    }
+
     /// Static utilities (public for cross-component use)
     [[nodiscard]] static auto escape_html(std::string_view text) -> std::string;
     [[nodiscard]] static auto slugify(std::string_view text) -> std::string;
@@ -131,6 +177,14 @@ private:
 
     /// Max image file size: 10 MB
     static constexpr size_t kMaxImageFileSize = static_cast<size_t>(10) * 1024 * 1024;
+
+    // ── Phase 8 state ────────────────────────────────────
+    bool source_line_attrs_enabled_{false};
+    int current_source_line_{0};
+    std::vector<HeadingAnchor> heading_anchors_;
+    std::vector<SourceLineMapping> source_line_mappings_;
+    CodeBlockConfig code_block_config_;
+    SortableTableConfig sortable_table_config_;
 };
 
 } // namespace markamp::rendering

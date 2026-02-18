@@ -4,6 +4,8 @@
 // ============================================================================
 #include "PDFViewerPanel.h"
 
+#include "core/Theme.h"
+
 #include <wx/dcclient.h>
 
 namespace markamp::ui
@@ -20,7 +22,8 @@ wxBEGIN_EVENT_TABLE(PDFViewerPanel, wxPanel) EVT_PAINT(PDFViewerPanel::on_paint)
     , event_bus_(event_bus)
     , annotation_store_(annotation_store)
 {
-    SetBackgroundColour(wxColour(245, 245, 245));
+    const core::Theme default_theme;
+    SetBackgroundColour(default_theme.colors.bg_panel.to_wx_colour());
 }
 
 auto PDFViewerPanel::load_document(const std::string& path) -> bool
@@ -68,7 +71,8 @@ auto PDFViewerPanel::zoom() const -> double
 void PDFViewerPanel::on_paint(wxPaintEvent& /*evt*/)
 {
     wxPaintDC dc(this);
-    dc.SetTextForeground(wxColour(128, 128, 128));
+    const core::Theme default_theme;
+    dc.SetTextForeground(default_theme.colors.text_muted.to_wx_colour());
     dc.DrawText(wxString::Format("PDF Viewer: %s (Page %d/%d, Zoom %.0f%%)",
                                  document_path_,
                                  current_page_ + 1,

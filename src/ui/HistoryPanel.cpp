@@ -4,6 +4,8 @@
 // ============================================================================
 #include "HistoryPanel.h"
 
+#include "core/Theme.h"
+
 #include <wx/dcclient.h>
 #include <wx/msgdlg.h>
 
@@ -19,7 +21,8 @@ wxBEGIN_EVENT_TABLE(HistoryPanel, wxPanel) EVT_PAINT(HistoryPanel::on_paint) wxE
     , event_bus_(event_bus)
     , history_service_(history_service)
 {
-    SetBackgroundColour(wxColour(250, 250, 250));
+    const core::Theme default_theme;
+    SetBackgroundColour(default_theme.colors.bg_panel.to_wx_colour());
 }
 
 void HistoryPanel::populate_timeline(const std::string& root_id)
@@ -59,7 +62,8 @@ void HistoryPanel::on_rollback_clicked(const std::string& entry_id)
 void HistoryPanel::on_paint(wxPaintEvent& /*evt*/)
 {
     wxPaintDC dc(this);
-    dc.SetTextForeground(wxColour(128, 128, 128));
+    const core::Theme default_theme;
+    dc.SetTextForeground(default_theme.colors.text_muted.to_wx_colour());
     dc.DrawText("Document History: " + current_root_id_, 10, 10);
 }
 

@@ -223,3 +223,96 @@ struct FileNode {
     auto extension() const -> std::string;
 };
 ```
+
+---
+
+## Plugin System (`core/IPlugin.h`, `core/PluginManager.h`)
+
+### IPlugin Lifecycle
+
+```cpp
+class IPlugin {
+    virtual auto id() const -> std::string = 0;
+    virtual auto name() const -> std::string = 0;
+    virtual auto version() const -> std::string = 0;
+    virtual auto api_version() const -> ApiVersion;  // default {1,0}
+    virtual void activate(PluginContext& ctx) = 0;
+    virtual void deactivate() = 0;
+};
+```
+
+**Lifecycle stages:** `register_plugin()` → `activate_all()` → `deactivate_all()`
+
+### PluginContext Services
+
+Plugins receive a `PluginContext` during activation with access to:
+
+| Service Pointer          | Permission Required  | Description               |
+| ------------------------ | -------------------- | ------------------------- |
+| `event_bus`              | —                    | Pub/sub event bus         |
+| `config`                 | —                    | Application configuration |
+| `command_registry`       | —                    | Register/execute commands |
+| `workspace_service`      | `kWorkspaceSettings` | Workspace file operations |
+| `terminal_service`       | `kTerminal`          | Terminal access           |
+| `theme_engine`           | —                    | Theme queries and changes |
+| `storage_service`        | —                    | Encrypted secret storage  |
+| `output_channel_service` | —                    | Plugin output logging     |
+| `diagnostics_service`    | —                    | Diagnostic collection     |
+
+### Activation Events
+
+| Kind                 | Format                      | Triggers when                |
+| -------------------- | --------------------------- | ---------------------------- |
+| `kOnLanguage`        | `"onLanguage:markdown"`     | File of that language opened |
+| `kOnCommand`         | `"onCommand:ext.doThing"`   | Command executed             |
+| `kOnView`            | `"onView:myView"`           | View container shown         |
+| `kOnCustomEditor`    | `"onCustomEditor:myEditor"` | Custom editor opened         |
+| `kOnStartupFinished` | `"onStartupFinished"`       | App startup complete         |
+| `kStar`              | `"*"`                       | Immediate activation         |
+
+### Sandbox Permissions (`core/ExtensionSandbox.h`)
+
+| Permission           | Controls                  |
+| -------------------- | ------------------------- |
+| `kFileSystem`        | File read/write access    |
+| `kNetwork`           | Outbound network requests |
+| `kTerminal`          | Terminal process spawning |
+| `kWorkspaceSettings` | Workspace config changes  |
+| `kClipboard`         | Clipboard access          |
+
+### Contribution Points (`core/ExtensionManifest.h`)
+
+Extensions declare contributions in their `package.json`:
+
+| Contribution Type | Struct                  | Key Field     |
+| ----------------- | ----------------------- | ------------- |
+| Commands          | `ExtensionCommand`      | `command`     |
+| Keybindings       | `ExtensionKeybinding`   | `key`         |
+| Views             | `ExtensionView`         | `view_id`     |
+| Themes            | `ExtensionTheme`        | `theme_id`    |
+| Languages         | `ExtensionLanguage`     | `language_id` |
+| Grammars          | `ExtensionGrammar`      | `scope_name`  |
+| Settings          | `SettingContribution`   | `key`         |
+| Custom Editors    | `ExtensionCustomEditor` | `view_type`   |
+
+### Manifest Verification
+
+```cpp
+auto manifest.verify() -> ManifestVerificationResult;
+// Validates: required fields, semver format, activation events, contributions
+```
+
+### Extension Search
+
+```cpp
+auto manager.search_extensions("query") -> std::vector<SearchResult>;
+// Case-insensitive search across name, display_name, description, categories
+```
+
+### Workspace Recommendations
+
+```cpp
+recommendations.add_file_type_recommendation(".py", "python.extension");
+auto recs = recommendations.recommend_for_file_types({".py", ".md"});
+// Returns extension IDs matching file types, excluding unwanted
+```

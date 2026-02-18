@@ -1,8 +1,10 @@
 #include "ActivityBar.h"
 
 #include "core/Logger.h"
+#include "core/ThemeEngine.h"
 
 #include <wx/dcbuffer.h>
+#include <wx/menu.h>
 
 namespace markamp::ui
 {
@@ -21,15 +23,41 @@ ActivityBar::ActivityBar(wxWindow* parent,
     CreateItems();
     ApplyTheme();
 
+    // Phase 06 Task 19: Accessibility labels for screen readers
+    SetName("Activity Bar");
+    SetHelpText("Vertical navigation bar for switching sidebar modes. "
+                "Use arrow keys to navigate, Enter/Space to activate.");
+
     Bind(wxEVT_PAINT, &ActivityBar::OnPaint, this);
     Bind(wxEVT_LEFT_DOWN, &ActivityBar::OnMouseDown, this);
     Bind(wxEVT_LEFT_UP, &ActivityBar::OnMouseUp, this);         // R20 Fix 18
     Bind(wxEVT_LEFT_DCLICK, &ActivityBar::OnDoubleClick, this); // R20 Fix 16
     Bind(wxEVT_MOTION, &ActivityBar::OnMouseMove, this);
     Bind(wxEVT_LEAVE_WINDOW, &ActivityBar::OnMouseLeave, this);
+    Bind(wxEVT_KEY_DOWN, &ActivityBar::OnKeyDown, this);     // Phase 06 Task 6
+    Bind(wxEVT_SET_FOCUS, &ActivityBar::OnSetFocus, this);   // Phase 06 Task 6
+    Bind(wxEVT_KILL_FOCUS, &ActivityBar::OnKillFocus, this); // Phase 06 Task 6
+    Bind(wxEVT_RIGHT_UP, &ActivityBar::OnRightClick, this);  // Phase 06 Task 13
+
+    // Make the activity bar focusable for keyboard navigation
+    SetCanFocus(true);
 
     theme_sub_ = event_bus_.subscribe<core::events::ThemeChangedEvent>(
         [this](const core::events::ThemeChangedEvent& /*evt*/) { ApplyTheme(); });
+
+    // Phase 06 Task 7: Subscribe to badge notification events
+    search_count_sub_ = event_bus_.subscribe<core::events::SearchResultCountEvent>(
+        [this](const core::events::SearchResultCountEvent& evt)
+        { SetBadge(core::events::ActivityBarItem::Search, evt.count); });
+
+    diagnostics_sub_ = event_bus_.subscribe<core::events::DiagnosticsCountChangedEvent>(
+        [this](const core::events::DiagnosticsCountChangedEvent& evt) {
+            SetBadge(core::events::ActivityBarItem::Settings, evt.error_count + evt.warning_count);
+        });
+
+    extension_updates_sub_ = event_bus_.subscribe<core::events::ExtensionUpdatesAvailableEvent>(
+        [this](const core::events::ExtensionUpdatesAvailableEvent& evt)
+        { SetBadge(core::events::ActivityBarItem::Extensions, evt.update_count); });
 }
 
 void ActivityBar::CreateItems()
@@ -164,6 +192,15 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
             paint_dc.SetFont(font);
         }
 
+        // Phase 06 Task 6: Focus ring around focused item
+        if (idx == focus_index_ && HasFocus())
+        {
+            auto focus_col = clr.accent_primary.with_alpha(0.6F);
+            paint_dc.SetBrush(*wxTRANSPARENT_BRUSH);
+            paint_dc.SetPen(wxPen(focus_col.to_wx_colour(), 2));
+            paint_dc.DrawRoundedRectangle(3, item_y + 2, kBarWidth - 6, kBarWidth - 4, 4);
+        }
+
         item_y += kBarWidth;
     }
 
@@ -227,9 +264,13 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
 
 void ActivityBar::OnMouseDown(wxMouseEvent& event)
 {
-    int idx = HitTest(event.GetPosition());
+    const int idx = HitTest(event.GetPosition());
     // R20 Fix 18: Track pressed item for visual feedback
     pressed_index_ = idx;
+    // Phase 06 Task 12: Record drag start
+    drag_start_pos_ = event.GetPosition();
+    drag_index_ = idx;
+    is_dragging_ = false;
     Refresh();
 
     if (idx >= 0 && idx < static_cast<int>(items_.size()))
@@ -237,7 +278,7 @@ void ActivityBar::OnMouseDown(wxMouseEvent& event)
         auto item = items_[static_cast<std::size_t>(idx)].item_id;
         SetActiveItem(item);
 
-        core::events::ActivityBarSelectionEvent evt(item);
+        const core::events::ActivityBarSelectionEvent evt(item);
         event_bus_.publish(evt);
     }
 }
@@ -245,7 +286,14 @@ void ActivityBar::OnMouseDown(wxMouseEvent& event)
 // R20 Fix 18: Mouse-up restores press state
 void ActivityBar::OnMouseUp(wxMouseEvent& /*event*/)
 {
+    if (is_dragging_)
+    {
+        FinishDrag();
+    }
     pressed_index_ = -1;
+    drag_index_ = -1;
+    is_dragging_ = false;
+    drag_target_index_ = -1;
     Refresh();
 }
 
@@ -266,7 +314,28 @@ void ActivityBar::OnDoubleClick(wxMouseEvent& event)
 
 void ActivityBar::OnMouseMove(wxMouseEvent& event)
 {
-    int idx = HitTest(event.GetPosition());
+    // Phase 06 Task 12: Drag detection
+    if (drag_index_ >= 0 && event.LeftIsDown())
+    {
+        const auto delta = event.GetPosition() - drag_start_pos_;
+        constexpr int kDragThreshold = 5;
+        if (!is_dragging_ && std::abs(delta.y) > kDragThreshold)
+        {
+            is_dragging_ = true;
+        }
+        if (is_dragging_)
+        {
+            const int target = HitTest(event.GetPosition());
+            if (target != drag_target_index_)
+            {
+                drag_target_index_ = target;
+                Refresh();
+            }
+            return;
+        }
+    }
+
+    const int idx = HitTest(event.GetPosition());
     if (idx != hover_index_)
     {
         hover_index_ = idx;
@@ -313,6 +382,174 @@ void ActivityBar::SetBadge(core::events::ActivityBarItem item, int count)
             return;
         }
     }
+}
+
+// Phase 06 Task 6: Keyboard focus navigation
+void ActivityBar::OnKeyDown(wxKeyEvent& event)
+{
+    const int key_code = event.GetKeyCode();
+    const int item_count = static_cast<int>(items_.size());
+
+    if (item_count == 0)
+    {
+        event.Skip();
+        return;
+    }
+
+    switch (key_code)
+    {
+        case WXK_UP:
+        {
+            if (focus_index_ <= 0)
+            {
+                focus_index_ = item_count - 1;
+            }
+            else
+            {
+                --focus_index_;
+            }
+            Refresh();
+            break;
+        }
+        case WXK_DOWN:
+        {
+            if (focus_index_ < 0 || focus_index_ >= item_count - 1)
+            {
+                focus_index_ = 0;
+            }
+            else
+            {
+                ++focus_index_;
+            }
+            Refresh();
+            break;
+        }
+        case WXK_RETURN:
+        case WXK_SPACE:
+        {
+            if (focus_index_ >= 0 && focus_index_ < item_count)
+            {
+                auto item = items_[static_cast<std::size_t>(focus_index_)].item_id;
+                SetActiveItem(item);
+                core::events::ActivityBarSelectionEvent evt(item);
+                event_bus_.publish(evt);
+            }
+            break;
+        }
+        case WXK_HOME:
+        {
+            focus_index_ = 0;
+            Refresh();
+            break;
+        }
+        case WXK_END:
+        {
+            focus_index_ = item_count - 1;
+            Refresh();
+            break;
+        }
+        default:
+            event.Skip();
+            break;
+    }
+}
+
+void ActivityBar::OnSetFocus(wxFocusEvent& /*event*/)
+{
+    if (focus_index_ < 0)
+    {
+        // Default focus to the active item
+        for (int idx = 0; idx < static_cast<int>(items_.size()); ++idx)
+        {
+            if (items_[static_cast<std::size_t>(idx)].item_id == active_item_)
+            {
+                focus_index_ = idx;
+                break;
+            }
+        }
+        if (focus_index_ < 0 && !items_.empty())
+        {
+            focus_index_ = 0;
+        }
+    }
+    Refresh();
+}
+
+void ActivityBar::OnKillFocus(wxFocusEvent& /*event*/)
+{
+    Refresh();
+}
+
+// Phase 06 Task 6: Programmatic focus to a specific item
+void ActivityBar::FocusItem(int index)
+{
+    if (index >= 0 && index < static_cast<int>(items_.size()))
+    {
+        focus_index_ = index;
+        SetFocus();
+        Refresh();
+    }
+}
+
+// Phase 06 Task 12: Complete drag reorder — swap items
+void ActivityBar::FinishDrag()
+{
+    if (drag_index_ < 0 || drag_target_index_ < 0)
+    {
+        return;
+    }
+    if (drag_index_ == drag_target_index_)
+    {
+        return;
+    }
+
+    const int item_count = static_cast<int>(items_.size());
+    if (drag_index_ >= item_count || drag_target_index_ >= item_count)
+    {
+        return;
+    }
+
+    // Move the dragged item to the target position
+    auto dragged = std::move(items_[static_cast<std::size_t>(drag_index_)]);
+    items_.erase(items_.begin() + drag_index_);
+    items_.insert(items_.begin() + drag_target_index_, std::move(dragged));
+
+    MARKAMP_LOG_INFO(
+        "ActivityBar: Reordered item from index {} to {}", drag_index_, drag_target_index_);
+}
+
+// Phase 06 Task 13: Right-click context menu
+void ActivityBar::OnRightClick(wxMouseEvent& event)
+{
+    wxMenu menu;
+    constexpr int kMenuBaseId = 10000;
+
+    // Add show/hide toggle for each item
+    for (int idx = 0; idx < static_cast<int>(items_.size()); ++idx)
+    {
+        const auto& item = items_[static_cast<std::size_t>(idx)];
+        wxMenuItem* menu_item = menu.AppendCheckItem(kMenuBaseId + idx, item.label);
+        menu_item->Check(true); // All items visible by default
+    }
+
+    menu.AppendSeparator();
+
+    // "Reset Activity Bar" option to restore default order
+    constexpr int kResetId = 10100;
+    menu.Append(kResetId, "Reset Activity Bar");
+
+    // Bind the reset handler
+    menu.Bind(
+        wxEVT_MENU,
+        [this](wxCommandEvent& /*cmd*/)
+        {
+            CreateItems();
+            Refresh();
+            MARKAMP_LOG_INFO("ActivityBar: Reset to default order");
+        },
+        kResetId);
+
+    PopupMenu(&menu, event.GetPosition());
 }
 
 } // namespace markamp::ui

@@ -58,7 +58,7 @@ public:
     auto set_last_snapshot(SyncSnapshot snapshot) -> void;
 
 private:
-    EventBus& event_bus_;
+    [[maybe_unused]] EventBus& event_bus_;
     SyncSnapshot last_snapshot_;
     mutable std::mutex mutex_;
 

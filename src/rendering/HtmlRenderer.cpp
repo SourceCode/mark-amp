@@ -205,6 +205,11 @@ auto HtmlRenderer::render(const core::MarkdownDocument& doc) -> std::string
     {
         code_renderer_.reset_counter();
         heading_slug_counts_.clear(); // Improvement #6: reset per render
+        // Phase 8: reset per-render state
+        current_source_line_ = 0;
+        heading_anchors_.clear();
+        source_line_mappings_.clear();
+
         std::string output;
         // Improvement #13: pre-allocate based on total text length estimate
         size_t estimate = 0;
@@ -230,6 +235,11 @@ auto HtmlRenderer::render_with_footnotes(const core::MarkdownDocument& doc,
     {
         code_renderer_.reset_counter();
         heading_slug_counts_.clear(); // Improvement #6: reset per render
+        // Phase 8: reset per-render state
+        current_source_line_ = 0;
+        heading_anchors_.clear();
+        source_line_mappings_.clear();
+
         std::string output;
         output.reserve(doc.root.children.size() * 256 + footnote_section.size());
         render_children(doc.root, output);
@@ -274,10 +284,24 @@ void HtmlRenderer::render_node(const core::MdNode& node, std::string& output, in
             break;
 
         case MdNodeType::Paragraph:
-            output += "<p>";
+        {
+            if (source_line_attrs_enabled_)
+            {
+                output += fmt::format("<p data-source-line=\"{}\">", current_source_line_);
+                source_line_mappings_.push_back({current_source_line_, "", "p"});
+            }
+            else
+            {
+                output += "<p>";
+            }
             render_children(node, output, depth + 1);
             output += "</p>\n";
+            // Advance source line by counting newlines in text content
+            auto newline_count =
+                std::count(node.text_content.begin(), node.text_content.end(), '\n');
+            current_source_line_ += static_cast<int>(newline_count) + 1;
             break;
+        }
 
         case MdNodeType::Heading:
         {
@@ -309,14 +333,38 @@ void HtmlRenderer::render_node(const core::MdNode& node, std::string& output, in
             // Stability #32: clamp heading level to valid range [1, 6]
             int level = std::clamp(node.heading_level, 1, 6);
 
-            output += fmt::format("<h{} id=\"{}\">", level, slug);
+            if (source_line_attrs_enabled_)
+            {
+                output += fmt::format(
+                    "<h{} id=\"{}\" data-source-line=\"{}\">", level, slug, current_source_line_);
+                source_line_mappings_.push_back(
+                    {current_source_line_, slug, fmt::format("h{}", level)});
+            }
+            else
+            {
+                output += fmt::format("<h{} id=\"{}\">", level, slug);
+            }
+
+            // Phase 8: collect heading anchor for navigation
+            heading_anchors_.push_back({level, heading_text, slug, current_source_line_});
+
             render_children(node, output, depth + 1);
             output += fmt::format("</h{}>\n", level);
+            ++current_source_line_;
             break;
         }
 
         case MdNodeType::BlockQuote:
-            output += "<blockquote>\n";
+            if (source_line_attrs_enabled_)
+            {
+                output +=
+                    fmt::format("<blockquote data-source-line=\"{}\">\n", current_source_line_);
+                source_line_mappings_.push_back({current_source_line_, "", "blockquote"});
+            }
+            else
+            {
+                output += "<blockquote>\n";
+            }
             render_children(node, output, depth + 1);
             output += "</blockquote>\n";
             break;
@@ -381,7 +429,60 @@ void HtmlRenderer::render_node(const core::MdNode& node, std::string& output, in
             }
 
             auto hl_spec = CodeBlockRenderer::extract_highlight_spec(node.info_string, lang);
+
+            // Phase 8: code block controls — container with copy button and language label
+            const bool kWrapCodeBlock =
+                code_block_config_.show_copy_button || code_block_config_.show_language_label;
+            if (kWrapCodeBlock)
+            {
+                output += "<div class=\"code-block-container\"";
+                if (source_line_attrs_enabled_)
+                {
+                    output += fmt::format(" data-source-line=\"{}\"", current_source_line_);
+                    source_line_mappings_.push_back({current_source_line_, "", "pre"});
+                }
+                output += ">\n";
+                if (code_block_config_.show_language_label && !lang.empty())
+                {
+                    output += fmt::format("<span class=\"code-lang-label\">{}</span>\n",
+                                          escape_html(lang));
+                }
+                if (code_block_config_.show_copy_button)
+                {
+                    output += "<button class=\"copy-btn\" title=\"Copy\""
+                              " aria-label=\"Copy code\">📋</button>\n";
+                }
+            }
+            else if (source_line_attrs_enabled_)
+            {
+                // Still emit source-line even without container
+                source_line_mappings_.push_back({current_source_line_, "", "pre"});
+            }
+
+            // Phase 8: collapsible long code blocks
+            auto line_count = std::count(node.text_content.begin(), node.text_content.end(), '\n');
+            const bool kCollapse = code_block_config_.auto_collapse_long &&
+                                   line_count > code_block_config_.collapse_threshold;
+            if (kCollapse)
+            {
+                output += fmt::format("<details class=\"code-collapse\"><summary>"
+                                      "Show code ({} lines)</summary>\n",
+                                      line_count);
+            }
+
             output += code_renderer_.render(node.text_content, lang, hl_spec);
+
+            if (kCollapse)
+            {
+                output += "</details>\n";
+            }
+            if (kWrapCodeBlock)
+            {
+                output += "</div>\n";
+            }
+
+            // Advance source line
+            current_source_line_ += static_cast<int>(line_count) + 1;
             break;
         }
 
@@ -413,10 +514,27 @@ void HtmlRenderer::render_node(const core::MdNode& node, std::string& output, in
             break;
 
         case MdNodeType::Table:
-            output += "<div class=\"table-wrapper\">\n<table>\n";
+        {
+            // Phase 8: sortable table support
+            output += "<div class=\"table-wrapper\">\n";
+            if (sortable_table_config_.enable_sorting)
+            {
+                output += "<table data-sortable=\"true\"";
+            }
+            else
+            {
+                output += "<table";
+            }
+            if (source_line_attrs_enabled_)
+            {
+                output += fmt::format(" data-source-line=\"{}\"", current_source_line_);
+                source_line_mappings_.push_back({current_source_line_, "", "table"});
+            }
+            output += ">\n";
             render_children(node, output, depth + 1);
             output += "</table>\n</div>\n";
             break;
+        }
 
         case MdNodeType::TableHead:
             output += "<thead>\n";

@@ -49,6 +49,25 @@ struct ThemeColors
     Color scrollbar_thumb;
     Color scrollbar_track;
 
+    // V9 Phase 3: Extended semantic UI colors
+    Color sidebar_bg{30, 30, 50};
+    Color sidebar_fg{200, 200, 220};
+    Color activity_bar_bg{22, 22, 40};
+    Color activity_bar_fg{180, 180, 200};
+    Color activity_bar_badge_bg{100, 99, 255};
+    Color activity_bar_badge_fg{255, 255, 255};
+    Color breadcrumb_fg{160, 160, 180};
+    Color breadcrumb_focus_fg{220, 220, 240};
+    Color tab_active_bg{35, 35, 55};
+    Color tab_inactive_bg{25, 25, 42};
+    Color tab_active_fg{220, 220, 240};
+    Color tab_inactive_fg{140, 140, 160};
+    Color diff_inserted_bg{30, 80, 50};
+    Color diff_removed_bg{80, 30, 40};
+    Color minimap_bg{20, 20, 38};
+    Color peek_view_border{100, 99, 255};
+    Color notebook_cell_bg{28, 28, 48};
+
     auto operator<=>(const ThemeColors&) const = default;
     auto operator==(const ThemeColors&) const -> bool = default;
 };
@@ -360,9 +379,11 @@ struct Theme
 {
     std::string id;
     std::string name;
-    std::string author;      ///< Theme author (for VSCode imports)
-    std::string description; ///< Theme description
-    std::string source;      ///< "built-in", "custom", "extension", "vscode-import"
+    std::string author;          ///< Theme author (for VSCode imports)
+    std::string description;     ///< Theme description
+    std::string source;          ///< "built-in", "custom", "extension", "vscode-import"
+    int format_version{1};       ///< V9: Persistence format version
+    std::string parent_theme_id; ///< V9: Inheritance chain (empty = no parent)
     ThemeColors colors;
 
     // Phase 4: Layered token system (optional — populated from ThemeColors if empty)
@@ -396,6 +417,14 @@ struct Theme
     [[nodiscard]] auto error_color() const -> Color;
     [[nodiscard]] auto success_color() const -> Color;
     [[nodiscard]] auto is_dark() const -> bool;
+
+    /// V9: Contrast-safe hover state (WCAG AA compliant against bg_app).
+    [[nodiscard]] auto hover_safe() const -> Color;
+    /// V9: Contrast-safe selection state (WCAG AA compliant against bg_app).
+    [[nodiscard]] auto selected_safe() const -> Color;
+
+    /// V9: Check if this theme inherits from a parent.
+    [[nodiscard]] auto inherits_from(const std::string& theme_id) const -> bool;
 
     /// Populate chrome/syntax/render layers from the flat ThemeColors struct.
     void sync_layers_from_colors();

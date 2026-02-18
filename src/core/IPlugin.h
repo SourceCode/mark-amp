@@ -80,6 +80,34 @@ struct ThemeContribution
     std::string path;  // Relative path to theme file within plugin resources
 };
 
+// ── API Versioning (V9 Phase 04 Task 6) ──
+
+/// Plugin API version for compatibility checking.
+struct ApiVersion
+{
+    int major{1};
+    int minor{0};
+
+    [[nodiscard]] auto is_compatible_with(const ApiVersion& host) const -> bool
+    {
+        // Major must match exactly; plugin minor <= host minor
+        return major == host.major && minor <= host.minor;
+    }
+
+    auto operator==(const ApiVersion& other) const -> bool
+    {
+        return major == other.major && minor == other.minor;
+    }
+
+    auto operator!=(const ApiVersion& other) const -> bool
+    {
+        return !(*this == other);
+    }
+};
+
+/// Current host API version — bump when adding new PluginContext services.
+inline constexpr ApiVersion kHostApiVersion{1, 0};
+
 // ── Plugin Manifest ──
 
 /// Describes everything a plugin contributes. Modeled after VS Code's
@@ -142,6 +170,13 @@ public:
     [[nodiscard]] virtual auto is_active() const -> bool
     {
         return active_;
+    }
+
+    /// V9 Phase 04 Task 6: Return the API version this plugin targets.
+    /// Default returns {1,0}. Override to declare a newer required API.
+    [[nodiscard]] virtual auto api_version() const -> ApiVersion
+    {
+        return {1, 0};
     }
 
 protected:

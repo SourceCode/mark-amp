@@ -81,4 +81,41 @@ auto ExtensionRecommendations::file_path() const -> const std::string&
     return file_path_;
 }
 
+// ── V9 Phase 04 Task 19: Workspace-aware recommendations ──
+
+void ExtensionRecommendations::add_file_type_recommendation(const std::string& file_extension,
+                                                            const std::string& extension_id)
+{
+    auto& ids = file_type_recommendations_[file_extension];
+    if (std::find(ids.begin(), ids.end(), extension_id) == ids.end())
+    {
+        ids.push_back(extension_id);
+    }
+}
+
+auto ExtensionRecommendations::recommend_for_file_types(
+    const std::vector<std::string>& file_extensions) const -> std::vector<std::string>
+{
+    std::vector<std::string> result;
+
+    for (const auto& ext : file_extensions)
+    {
+        auto iter = file_type_recommendations_.find(ext);
+        if (iter != file_type_recommendations_.end())
+        {
+            for (const auto& ext_id : iter->second)
+            {
+                // Deduplicate and skip unwanted
+                if (std::find(result.begin(), result.end(), ext_id) == result.end() &&
+                    !is_unwanted(ext_id))
+                {
+                    result.push_back(ext_id);
+                }
+            }
+        }
+    }
+
+    return result;
+}
+
 } // namespace markamp::core
