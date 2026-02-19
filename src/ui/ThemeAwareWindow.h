@@ -4,10 +4,21 @@
 #include "core/Theme.h"
 #include "core/ThemeEngine.h"
 
+#include <wx/cursor.h>
 #include <wx/panel.h>
 
 namespace markamp::ui
 {
+
+/// V10 Phase 01 Task 3: Canonical cursor types for interactive surfaces.
+enum class ControlCursorType
+{
+    kArrow,    ///< Default / passive areas / disabled controls
+    kHand,     ///< Interactive controls (buttons, tabs, links, rows)
+    kIBeam,    ///< Text input areas
+    kResizeWE, ///< Horizontal splitters
+    kResizeNS, ///< Vertical splitters
+};
 
 /// Base class for UI panels that respond to theme changes.
 /// Subscribes to ThemeChangedEvent via RAII and provides convenience accessors.
@@ -41,6 +52,11 @@ protected:
 
     /// Fill the DC background with a theme color token.
     void FillBackground(wxDC& dc, core::ThemeColorToken token);
+
+    /// V10 Phase 01 Task 3: Centralized cursor policy.
+    /// Call this instead of SetCursor() directly to enforce consistent cursor
+    /// behavior across all control surfaces.
+    void SetControlCursor(ControlCursorType cursor_type);
 
     /// R18 Fix 40: Draw a focus ring around the control when focused.
     void DrawFocusRing(wxDC& dc);

@@ -556,6 +556,10 @@ void register_builtin_plugins(PluginManager& plugin_manager, FeatureRegistry& fe
         {builtin_features::kDiagramLibrary,
          "Diagram Library",
          "UML/BPMN diagram stencils for canvas"},
+        // V11 Node Editor
+        {builtin_features::kNodeEditor,
+         "Node Editor",
+         "Multi-domain node-based visual programming editor"},
     };
 
     // Register features in FeatureRegistry

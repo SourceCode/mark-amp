@@ -48,8 +48,9 @@ namespace markamp::core::events
 //   V8 Collaboration/Marketplace       | ~40 events    | 2076
 //   V8 Navigation/Tool Windows         | ~25 events    | 2265
 //   V8 FX Engine                       | ~10 events    | 2397
+//   V11 Node Editor                    | ~20 events    | 4104
 //
-// Total: ~450+ unique event types across ~100 sections.
+// Total: ~470+ unique event types across ~100 sections.
 // Rule: always grep before adding. No event name may appear twice.
 // ============================================================================
 
@@ -4098,6 +4099,279 @@ MARKAMP_DECLARE_EVENT_WITH_FIELDS(PolishCompleteEvent)
 int checks_passed{0};
 int issues_found{0};
 bool release_ready{false};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V11 Node Editor events
+// ============================================================================
+
+// -- Graph lifecycle --
+MARKAMP_DECLARE_EVENT(NodeEditorOpenedEvent);
+MARKAMP_DECLARE_EVENT(NodeEditorClosedEvent);
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(GraphLoadedEvent)
+std::string graph_name;
+uint64_t graph_id{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(GraphSavedEvent)
+std::string graph_name;
+std::string file_path;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT(GraphClearedEvent);
+
+// -- Node CRUD --
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NodeAddedEvent)
+uint64_t node_id{0};
+std::string node_type;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NodeRemovedEvent)
+uint64_t node_id{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NodeMovedEvent)
+uint64_t node_id{0};
+float new_x{0};
+float new_y{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NodeSelectedEvent)
+uint64_t node_id{0};
+bool multi_select{false};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NodeDeselectedEvent)
+uint64_t node_id{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// -- Link CRUD --
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(LinkCreatedEvent)
+uint64_t link_id{0};
+uint64_t source_socket{0};
+uint64_t target_socket{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(LinkRemovedEvent)
+uint64_t link_id{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(LinkValidationChangedEvent)
+uint64_t link_id{0};
+bool valid{true};
+MARKAMP_DECLARE_EVENT_END;
+
+// -- Node definition --
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NodeDefinitionRegisteredEvent)
+std::string definition_type;
+std::string category;
+MARKAMP_DECLARE_EVENT_END;
+
+// -- Evaluation --
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(EvaluationStartedEvent)
+uint64_t graph_id{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(EvaluationCompletedEvent)
+uint64_t graph_id{0};
+int nodes_evaluated{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(EvaluationErrorEvent)
+uint64_t graph_id{0};
+uint64_t node_id{0};
+std::string error_message;
+MARKAMP_DECLARE_EVENT_END;
+
+// -- Mode --
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NodeEditorModeChangedEvent)
+int mode{0}; // GraphMode as int (avoids circular include with node_editor/)
+MARKAMP_DECLARE_EVENT_END;
+
+// -- V11 Tier 2: Domain & Execution events --
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DomainRegisteredEvent)
+std::string domain_id;
+int graph_mode{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DomainRemovedEvent)
+std::string domain_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(EvaluationStepEvent)
+uint64_t graph_id{0};
+uint64_t node_id{0};
+int step_index{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NodeDirtyEvent)
+uint64_t node_id{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NodeCleanEvent)
+uint64_t node_id{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SandboxViolationEvent)
+uint64_t graph_id{0};
+int violation_type{0};
+std::string violation_message;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NodeEditorStateChangedEvent)
+bool editor_active{false};
+bool has_selection{false};
+int selection_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V11 Node Editor Tier 3 Events ──
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NodeEditorViewportChangedEvent)
+float zoom_level{1.0F};
+float pan_x{0.0F};
+float pan_y{0.0F};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NodeEditorSelectionChangedEvent)
+int selected_count{0};
+uint64_t focused_node_id{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NodeEditorNodeDraggedEvent)
+uint64_t node_id{0};
+float delta_x{0.0F};
+float delta_y{0.0F};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NodeEditorLinkCreatedEvent)
+uint64_t link_id{0};
+uint64_t source_socket_id{0};
+uint64_t target_socket_id{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NodeEditorLinkRemovedEvent)
+uint64_t link_id{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT(NodeEditorSearchOpenedEvent);
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NodeEditorClipboardPasteEvent)
+int pasted_node_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NodeEditorAnnotationAddedEvent)
+uint64_t frame_id{0};
+int annotation_type{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NodeEditorGroupEnteredEvent)
+uint64_t group_node_id{0};
+int navigation_depth{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V11 Node Editor Tier 4 Events ──
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NodeEditorInspectorPropertyChangedEvent)
+uint64_t node_id{0};
+int property_index{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NodeEditorPreviewRequestedEvent)
+uint64_t node_id{0};
+bool pinned{false};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NodeEditorBreakpointToggledEvent)
+uint64_t node_id{0};
+bool enabled{false};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NodeEditorDirtyPropagatedEvent)
+int dirty_count{0};
+uint64_t source_node_id{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NodeEditorEvaluationJobCompletedEvent)
+uint64_t job_id{0};
+int status{0};
+float duration_ms{0.0F};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NodeEditorDiagnosticAddedEvent)
+uint64_t node_id{0};
+int severity{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NodeEditorShortcutTriggeredEvent)
+int key_code{0};
+int modifiers{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NodeEditorWorkspaceSnapshotEvent)
+uint64_t version{0};
+bool is_recovery{false};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT(NodeEditorAutosaveTriggeredEvent);
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NodeEditorBenchmarkCompletedEvent)
+float duration_ms{0.0F};
+bool passed{true};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V11 Node Editor Tier 5 Events ──
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NodeEditorPackRegisteredEvent)
+uint64_t pack_id{0};
+std::string pack_name;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NodeEditorWidgetEmbedChangedEvent)
+uint64_t embed_id{0};
+uint64_t node_id{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NodeEditorDecorationUpdatedEvent)
+uint64_t decoration_id{0};
+uint64_t target_node{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NodeEditorNodeStatusChangedEvent)
+uint64_t node_id{0};
+int status_level{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NodeEditorTemplateLoadedEvent)
+uint64_t template_id{0};
+std::string template_name;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NodeEditorFormatExportedEvent)
+uint64_t adapter_id{0};
+std::string format_name;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NodeEditorTrustPolicyViolationEvent)
+std::string pack_id;
+int permission{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NodeEditorGraphLintCompletedEvent)
+int issue_count{0};
+int error_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NodeEditorMigrationAppliedEvent)
+int from_version{0};
+int to_version{0};
+int steps_applied{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NodeEditorRolloutStageChangedEvent)
+uint64_t stage_id{0};
+std::string stage_name;
+int phase{0};
 MARKAMP_DECLARE_EVENT_END;
 
 } // namespace markamp::core::events

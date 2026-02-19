@@ -90,6 +90,19 @@ enum class ThemeColorToken
     MinimapBg,
     PeekViewBorderColor,
     NotebookCellBg,
+
+    // V10 Phase 02: Control state tokens
+    ControlBgNormal,
+    ControlBgHover,
+    ControlBgPressed,
+    ControlBgFocus,
+    ControlBgDisabled,
+    ControlBgSelected,
+    ControlFgNormal,
+    ControlFgDisabled,
+    ControlBorderNormal,
+    ControlBorderFocus,
+    FocusRingColor,
 };
 
 /// Font tokens for themed text rendering.
@@ -107,7 +120,7 @@ enum class ThemeFontToken
 
 /// Total number of ThemeColorToken values.
 static constexpr std::size_t kColorTokenCount =
-    static_cast<std::size_t>(ThemeColorToken::NotebookCellBg) + 1;
+    static_cast<std::size_t>(ThemeColorToken::FocusRingColor) + 1;
 
 /// Runtime theme engine — applies colors to wxWidgets components and
 /// enables instant theme hot-swapping via EventBus notifications.

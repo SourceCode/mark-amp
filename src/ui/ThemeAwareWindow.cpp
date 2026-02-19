@@ -84,4 +84,27 @@ void ThemeAwareWindow::DrawFocusRing(wxDC& dc)
     dc.DrawRectangle(1, 1, client_size.GetWidth() - 2, client_size.GetHeight() - 2);
 }
 
+void ThemeAwareWindow::SetControlCursor(ControlCursorType cursor_type)
+{
+    switch (cursor_type)
+    {
+        case ControlCursorType::kHand:
+            SetCursor(wxCursor(wxCURSOR_HAND));
+            break;
+        case ControlCursorType::kIBeam:
+            SetCursor(wxCursor(wxCURSOR_IBEAM));
+            break;
+        case ControlCursorType::kResizeWE:
+            SetCursor(wxCursor(wxCURSOR_SIZEWE));
+            break;
+        case ControlCursorType::kResizeNS:
+            SetCursor(wxCursor(wxCURSOR_SIZENS));
+            break;
+        case ControlCursorType::kArrow:
+        default:
+            SetCursor(wxCursor(wxCURSOR_ARROW));
+            break;
+    }
+}
+
 } // namespace markamp::ui

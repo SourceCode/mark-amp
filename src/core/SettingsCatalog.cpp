@@ -1743,6 +1743,27 @@ void SettingsCatalog::register_builtins()
                       0,
                       100,
                       "builtin"});
+
+    // ── V10 Phase 03: Density Profile ──
+
+    register_setting(
+        {"ui.densityProfile",
+         "Density Profile",
+         "Controls spacing density across all UI surfaces (comfortable, default, compact)",
+         "Appearance",
+         "",
+         ConfigScope::kApplication,
+         SettingType::Choice,
+         "default",
+         {"comfortable", "default", "compact"},
+         {"density", "spacing", "compact", "comfortable"},
+         false,
+         false,
+         false,
+         0,
+         0,
+         100,
+         "builtin"});
 }
 
 } // namespace markamp::core

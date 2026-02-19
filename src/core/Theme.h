@@ -439,6 +439,19 @@ struct Theme
     Color info_fg_token{80, 160, 240};      ///< Info foreground
     Color success_fg_token{60, 180, 90};    ///< Success foreground
 
+    // V10 Phase 02: Control state colors (defaults derived from chrome tokens)
+    Color control_bg_normal{35, 35, 55};      ///< Control resting background
+    Color control_bg_hover{50, 50, 80};       ///< Control hover background
+    Color control_bg_pressed{30, 30, 50};     ///< Control pressed background
+    Color control_bg_focus{40, 40, 70};       ///< Control focus background
+    Color control_bg_disabled{35, 35, 55};    ///< Control disabled background (same as normal)
+    Color control_bg_selected{45, 45, 85};    ///< Control selected background
+    Color control_fg_normal{220, 220, 240};   ///< Control normal foreground
+    Color control_fg_disabled{120, 120, 140}; ///< Control disabled foreground (dimmed)
+    Color control_border_normal{60, 60, 80};  ///< Control normal border
+    Color control_border_focus{100, 99, 255}; ///< Control focus border
+    Color focus_ring_color{100, 99, 255};     ///< Focus ring color (typically accent)
+
     auto operator==(const Theme&) const -> bool = default;
 };
 

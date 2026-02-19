@@ -6,6 +6,7 @@
 
 #include "ExportTypes.h"
 
+#include <optional>
 #include <string>
 #include <vector>
 

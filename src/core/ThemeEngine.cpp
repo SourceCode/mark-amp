@@ -259,6 +259,19 @@ void ThemeEngine::rebuild_cache()
     cache_color(ThemeColorToken::PeekViewBorderColor, current_theme_.colors.peek_view_border);
     cache_color(ThemeColorToken::NotebookCellBg, current_theme_.colors.notebook_cell_bg);
 
+    // V10 Phase 02: Control state tokens
+    cache_color(ThemeColorToken::ControlBgNormal, current_theme_.control_bg_normal);
+    cache_color(ThemeColorToken::ControlBgHover, current_theme_.control_bg_hover);
+    cache_color(ThemeColorToken::ControlBgPressed, current_theme_.control_bg_pressed);
+    cache_color(ThemeColorToken::ControlBgFocus, current_theme_.control_bg_focus);
+    cache_color(ThemeColorToken::ControlBgDisabled, current_theme_.control_bg_disabled);
+    cache_color(ThemeColorToken::ControlBgSelected, current_theme_.control_bg_selected);
+    cache_color(ThemeColorToken::ControlFgNormal, current_theme_.control_fg_normal);
+    cache_color(ThemeColorToken::ControlFgDisabled, current_theme_.control_fg_disabled);
+    cache_color(ThemeColorToken::ControlBorderNormal, current_theme_.control_border_normal);
+    cache_color(ThemeColorToken::ControlBorderFocus, current_theme_.control_border_focus);
+    cache_color(ThemeColorToken::FocusRingColor, current_theme_.focus_ring_color);
+
     // Rebuild fonts
     build_fonts();
 }

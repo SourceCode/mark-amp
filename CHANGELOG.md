@@ -1,5 +1,37 @@
 # MarkAmp Release History
 
+## v2.4.18 — 2026-02-19
+
+### Highlights
+
+V10 Canvas Completeness (Tiers 1–15, Phases 71–75) and V11 Node Editor (Tiers 1–5) implementation. Added 159 new source files across canvas model layer, UI components, and node editor domain runtimes. Complete documentation suite generated. Build system hardened with expanded `markamp_core` test library covering all core, canvas, and AV source modules. 249 new files, 17 modified files, 2777 insertions across 74 tracked files.
+
+### Added
+
+- **V10 Canvas Completeness** — 80 new canvas model/service files: `AccessibilityModel`, `AutoLayoutModel`, `BenchmarkModel`, `CameraModel`, `CanvasClipboardService`, `CanvasColorModel`, `CanvasExportService`, `CanvasInputModel`, `CanvasSearchModel`, `CanvasTextModel`, `CanvasThemeModel`, `ClipboardModel`, `ConnectorModel`, `ConnectorRoutingService`, `ContextMenuModel`, `CustomObjectTypeRegistry`, `DiagramCoordinator`, `ExportModel`, `FrameContainerModel`, `FreehandModel`, `HitTestModel`, `ImageAssetModel`, `InspectorModel`, `IntegrityModel`, `KanbanModel`, `KeyboardCommandModel`, `LargeBoardModel`, `LayeringModel`, `MediaEmbedModel`, `MindMapModel`, `MinimapModel`, `PolishModel`, `ShapeModel`, `SnappingModel`, `StencilModel`, `StickyNoteModel`, `StyleModel`, `TableModel`, `ToolRailModel`, `UndoRedoModel`, and more
+- **V11 Node Editor** — Domain runtimes (`GraphicsRuntime`, `CodeFlowRuntime`, `AudioRuntime`, `DataTransformRuntime`, `DataGenRuntime`), `DomainRegistry`, `DomainSDK`, `ExecutionPlan`, `EvaluationIR`, `NodeScheduler`, `NodeValue`, `ValueConverter`, `RuntimeSandbox`, `NodeAnnotation`, `NodeTrustPolicy`, `NodeDevTools`, `NodeMigrationEngine`, `NodeRolloutController`
+- **V10 Canvas UI** — 78 new UI component files for canvas model layer
+- **Node Editor Tests** — 5 tiers of comprehensive test suites (`test_node_editor_core/tier2/tier3/tier4/tier5`)
+- **Canvas Model Tests** — 35+ test suites covering all canvas model components
+- **Documentation Suite** — complete docs for v2.3.16 including API reference, architecture, and contribution guides
+- **V10/V12 UX Docs** — control adoption checklist, state matrix, input mapping, UX control spec
+
+### Changed
+
+- `tests/CMakeLists.txt` — expanded `markamp_core` library with ~145 additional core, canvas, and AV source files for comprehensive test linking
+- `tests/CMakeLists.txt` — added `markamp_core` to `test_phase17_navigation` and `test_phase11_canvas` link targets
+- `tests/unit/test_node_editor_tier2.cpp` — aligned with actual `DomainRegistry` API (`unique_ptr` ownership, corrected method names `find`/`count`/`all_domain_ids`)
+- `tests/unit/test_node_editor_tier2.cpp` — fixed `ExecutionStep` API usage (replaced `is_root`/`is_leaf` with `plan.root_steps()`/`plan.leaf_steps()`)
+- `tests/unit/test_node_editor_tier2.cpp` — corrected `ExecutionResult` field order and `sandbox.execute` const-correctness
+
+### Fixed
+
+- **`AssetService.h`** — added missing `<unordered_map>` include causing build failure
+- **`ExportDialog.h`** — added missing `<optional>` include causing build failure
+- **`test_node_editor_tier2.cpp`** — fixed `shared_ptr` to `unique_ptr` conversion for `DomainRegistry::register_runtime`
+- **`test_node_editor_tier2.cpp`** — fixed `ExecutionResult{true, 0, ""}` initializer order to match struct field layout `{success, error_message, nodes_evaluated, elapsed}`
+- **`test_canvas_search`** — resolved linker error by adding `CanvasSearchModel.cpp` to `markamp_core`
+
 ## v2.3.16 — 2026-02-18
 
 ### Highlights

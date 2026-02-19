@@ -28,6 +28,9 @@ inline constexpr auto kCanvasApps = "canvas-apps";
 inline constexpr auto kKanban = "kanban";
 inline constexpr auto kMindMap = "mind-map";
 inline constexpr auto kDiagramLibrary = "diagram-library";
+
+// V11 Node Editor
+inline constexpr auto kNodeEditor = "node-editor";
 } // namespace builtin_features
 
 /// Register all built-in features as plugins + feature-registry entries.

@@ -5,6 +5,46 @@ add_executable(markamp
     ui/CustomChrome.cpp
     ui/BevelPanel.cpp
     ui/ThemeAwareWindow.cpp
+    # V10 Phase 01: Unified control state tracking
+    ui/ControlState.cpp
+    ui/LayoutMetrics.cpp
+    ui/InputModel.cpp
+    ui/FocusManager.cpp
+    ui/ActivityBarModel.cpp
+    ui/FileTreeModel.cpp
+    ui/TabStripModel.cpp
+    ui/ToolbarModel.cpp
+    ui/CommandPaletteModel.cpp
+    ui/SettingsNavModel.cpp
+    ui/SettingsControlModel.cpp
+    ui/StatusBarModel.cpp
+    ui/BreadcrumbModel.cpp
+    ui/SplitterModel.cpp
+    ui/ContextMenuModel.cpp
+    ui/ShortcutOverlayModel.cpp
+    ui/NotificationModel.cpp
+    ui/DialogModel.cpp
+    ui/StartupModel.cpp
+    ui/SearchPanelModel.cpp
+    ui/FindReplaceModel.cpp
+    ui/EditorOverlayModel.cpp
+    ui/PreviewControlModel.cpp
+    ui/CanvasControlModel.cpp
+    ui/GraphControlModel.cpp
+    ui/ExtensionBrowserModel.cpp
+    ui/ThemeGalleryModel.cpp
+    ui/ToolWindowModel.cpp
+    ui/NavigationModel.cpp
+    ui/MotionModel.cpp
+    ui/DragDropModel.cpp
+    ui/MultiSelectModel.cpp
+    ui/ErrorRecoveryModel.cpp
+    ui/AccessibilityModel.cpp
+    ui/ResponsiveModel.cpp
+    ui/LayoutPresetModel.cpp
+    ui/UxMetricsModel.cpp
+    ui/RegressionHarnessModel.cpp
+    ui/ReleaseAuditModel.cpp
     ui/ThemedScrollbar.cpp
     ui/LayoutManager.cpp
     ui/ToolWindowHost.cpp
@@ -484,6 +524,54 @@ add_executable(markamp
     canvas/FreehandPath.cpp
     canvas/FreehandPathRenderer.cpp
     canvas/DrawTool.cpp
+    # V10 Phase 41-45: Canvas Input & Drawing Models
+    canvas/CanvasInputModel.cpp
+    canvas/FreehandModel.cpp
+    canvas/ShapeModel.cpp
+    canvas/ConnectorModel.cpp
+    canvas/CanvasTextModel.cpp
+    # V10 Phase 46-50: Canvas Styling Models
+    canvas/CanvasColorModel.cpp
+    canvas/StyleModel.cpp
+    canvas/SelectionTransformModel.cpp
+    canvas/SnappingModel.cpp
+    canvas/LayeringModel.cpp
+    # V10 Phase 51-55: Canvas Object Models
+    canvas/FrameContainerModel.cpp
+    canvas/StickyNoteModel.cpp
+    canvas/ImageAssetModel.cpp
+    canvas/MediaEmbedModel.cpp
+    canvas/PdfObjectModel.cpp
+    # V10 Phase 56-60: Canvas Data Object Models
+    canvas/TableModel.cpp
+    canvas/StencilModel.cpp
+    canvas/MindMapModel.cpp
+    canvas/KanbanModel.cpp
+    canvas/InspectorModel.cpp
+    # V10 Phase 61-65: Canvas Chrome Models
+    canvas/ToolRailModel.cpp
+    canvas/ContextMenuModel.cpp
+    canvas/CanvasSearchModel.cpp
+    canvas/MinimapModel.cpp
+    canvas/CameraModel.cpp
+    # V10 Phase 66-70: Canvas Data & Performance Models
+    canvas/ClipboardModel.cpp
+    canvas/UndoRedoModel.cpp
+    canvas/BoardSerializerModel.cpp
+    canvas/LargeBoardModel.cpp
+    canvas/HitTestModel.cpp
+    # V10 Phase 71-75: Canvas Completeness Models
+    canvas/ExportModel.cpp
+    canvas/KeyboardCommandModel.cpp
+    canvas/AccessibilityModel.cpp
+    canvas/CanvasThemeModel.cpp
+    canvas/AutoLayoutModel.cpp
+    # V10 Phase 76-80: Canvas Quality & Audit Models
+    canvas/IntegrityModel.cpp
+    canvas/BenchmarkModel.cpp
+    canvas/OnboardingModel.cpp
+    canvas/PolishModel.cpp
+    canvas/AuditModel.cpp
     # V5 Phase 12: Smart Drawing Recognition
     canvas/ShapeRecognizer.cpp
     # V5 Phase 13: Image & File Objects
@@ -1120,6 +1208,114 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "Src" FILES
     platform/MacPlatform.h
     platform/WinPlatform.h
     platform/LinuxPlatform.h
+    # V11 Node Editor core
+    node_editor/NodeEditorTypes.h
+    node_editor/NodeGraph.h
+    node_editor/NodeGraph.cpp
+    node_editor/NodeDefinition.h
+    node_editor/NodeDefinitionRegistry.h
+    node_editor/NodeDefinitionRegistry.cpp
+    node_editor/GraphSerializer.h
+    node_editor/GraphSerializer.cpp
+    node_editor/NodeCommand.h
+    node_editor/NodeCommand.cpp
+    node_editor/NodeCommandStack.h
+    node_editor/NodeCommandStack.cpp
+    # V11 Node Editor Tier 2
+    node_editor/NodeEditorContext.h
+    node_editor/NodeEditorContext.cpp
+    node_editor/EvaluationIR.h
+    node_editor/EvaluationIR.cpp
+    node_editor/ExecutionPlan.h
+    node_editor/ExecutionPlan.cpp
+    node_editor/IDomainRuntime.h
+    node_editor/DomainRegistry.h
+    node_editor/DomainRegistry.cpp
+    node_editor/NodeScheduler.h
+    node_editor/NodeScheduler.cpp
+    node_editor/NodeValue.h
+    node_editor/NodeValue.cpp
+    node_editor/ValueConverter.h
+    node_editor/ValueConverter.cpp
+    node_editor/GraphicsRuntime.h
+    node_editor/GraphicsRuntime.cpp
+    node_editor/CodeFlowRuntime.h
+    node_editor/CodeFlowRuntime.cpp
+    node_editor/DataTransformRuntime.h
+    node_editor/DataTransformRuntime.cpp
+    node_editor/DataGenRuntime.h
+    node_editor/DataGenRuntime.cpp
+    node_editor/AudioRuntime.h
+    node_editor/AudioRuntime.cpp
+    node_editor/DomainSDK.h
+    node_editor/DomainSDK.cpp
+    node_editor/RuntimeSandbox.h
+    node_editor/RuntimeSandbox.cpp
+    # V11 Node Editor Tier 3
+    node_editor/CanvasViewport.h
+    node_editor/CanvasViewport.cpp
+    node_editor/NodeThemeTokens.h
+    node_editor/NodeLayout.h
+    node_editor/NodeLayout.cpp
+    node_editor/NodeEditorWorkbench.h
+    node_editor/NodeEditorWorkbench.cpp
+    node_editor/HitTester.h
+    node_editor/HitTester.cpp
+    node_editor/LinkRouter.h
+    node_editor/LinkRouter.cpp
+    node_editor/LinkDragState.h
+    node_editor/SelectionModel.h
+    node_editor/SelectionModel.cpp
+    node_editor/DragState.h
+    node_editor/NodeSearchProvider.h
+    node_editor/NodeSearchProvider.cpp
+    node_editor/NodeClipboard.h
+    node_editor/NodeClipboard.cpp
+    node_editor/NodeAnnotation.h
+    node_editor/NodeAnnotation.cpp
+    node_editor/NodeGroup.h
+    node_editor/NodeGroup.cpp
+    node_editor/InspectorModel.h
+    node_editor/InspectorModel.cpp
+    node_editor/PreviewSystem.h
+    node_editor/PreviewSystem.cpp
+    node_editor/DebugOverlay.h
+    node_editor/DebugOverlay.cpp
+    node_editor/DirtyPropagator.h
+    node_editor/DirtyPropagator.cpp
+    node_editor/ViewportCuller.h
+    node_editor/ViewportCuller.cpp
+    node_editor/AsyncEvaluator.h
+    node_editor/AsyncEvaluator.cpp
+    node_editor/NodeDiagnostics.h
+    node_editor/NodeDiagnostics.cpp
+    node_editor/NodeShortcuts.h
+    node_editor/NodeShortcuts.cpp
+    node_editor/WorkspacePersistence.h
+    node_editor/WorkspacePersistence.cpp
+    node_editor/NodeTestHarness.h
+    node_editor/NodeTestHarness.cpp
+    # ── V11 Node Editor Tier 5 ──
+    node_editor/NodePackRegistry.h
+    node_editor/NodePackRegistry.cpp
+    node_editor/NodeWidgetEmbed.h
+    node_editor/NodeWidgetEmbed.cpp
+    node_editor/NodeDecorationProvider.h
+    node_editor/NodeDecorationProvider.cpp
+    node_editor/NodeStatusModel.h
+    node_editor/NodeStatusModel.cpp
+    node_editor/NodeTemplateLibrary.h
+    node_editor/NodeTemplateLibrary.cpp
+    node_editor/NodeFormatBridge.h
+    node_editor/NodeFormatBridge.cpp
+    node_editor/NodeTrustPolicy.h
+    node_editor/NodeTrustPolicy.cpp
+    node_editor/NodeDevTools.h
+    node_editor/NodeDevTools.cpp
+    node_editor/NodeMigrationEngine.h
+    node_editor/NodeMigrationEngine.cpp
+    node_editor/NodeRolloutController.h
+    node_editor/NodeRolloutController.cpp
 )
 
 # Apply quality tooling per-target
