@@ -1,5 +1,15 @@
 # MarkAmp Release History
 
+## v2.4.20 — 2026-02-20
+
+### Highlights
+
+Fixed `test_node_editor_tier3` linker error by adding 8 missing Tier 3 source files to `markamp_core`. All 536 tests now link and pass (previously 535 due to excluded tier3). This completes the Node Editor V11 build with all 5 tiers fully operational.
+
+### Fixed
+
+- **`tests/CMakeLists.txt`** — added 8 missing Tier 3 node_editor sources to `markamp_core`: `HitTester.cpp`, `NodeEditorWorkbench.cpp`, `NodeGroup.cpp`, `CanvasViewport.cpp`, `LinkRouter.cpp`, `NodeAnnotation.cpp`, `NodeClipboard.cpp`, `NodeSearchProvider.cpp`
+
 ## v2.4.19 — 2026-02-20
 
 ### Highlights

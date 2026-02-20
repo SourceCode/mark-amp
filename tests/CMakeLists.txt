@@ -567,6 +567,15 @@ add_library(markamp_core STATIC
     ${CMAKE_SOURCE_DIR}/src/node_editor/RuntimeSandbox.cpp
     ${CMAKE_SOURCE_DIR}/src/node_editor/SelectionModel.cpp
     ${CMAKE_SOURCE_DIR}/src/node_editor/NodeLayout.cpp
+    # Tier 3 — Node Editor UI (Phases 21-30)
+    ${CMAKE_SOURCE_DIR}/src/node_editor/HitTester.cpp
+    ${CMAKE_SOURCE_DIR}/src/node_editor/NodeEditorWorkbench.cpp
+    ${CMAKE_SOURCE_DIR}/src/node_editor/NodeGroup.cpp
+    ${CMAKE_SOURCE_DIR}/src/node_editor/CanvasViewport.cpp
+    ${CMAKE_SOURCE_DIR}/src/node_editor/LinkRouter.cpp
+    ${CMAKE_SOURCE_DIR}/src/node_editor/NodeAnnotation.cpp
+    ${CMAKE_SOURCE_DIR}/src/node_editor/NodeClipboard.cpp
+    ${CMAKE_SOURCE_DIR}/src/node_editor/NodeSearchProvider.cpp
     # Tier 4 — Runtime Infrastructure (Phases 31-40)
     ${CMAKE_SOURCE_DIR}/src/node_editor/InspectorModel.cpp
     ${CMAKE_SOURCE_DIR}/src/node_editor/PreviewSystem.cpp
