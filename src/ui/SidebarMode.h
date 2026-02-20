@@ -13,7 +13,13 @@ enum class SidebarMode
     kExtensions,
     kNotebooks,
     kCanvas,
-    kGraph
+    kGraph,
+    kAI,
+    kFlashcards,
+    kGit,
+    kTasks,
+    kDatabase,
+    kPresentation
 };
 
 } // namespace markamp::ui

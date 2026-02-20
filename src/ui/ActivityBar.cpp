@@ -65,9 +65,18 @@ void ActivityBar::CreateItems()
     items_ = {
         {core::events::ActivityBarItem::FileExplorer, "Explorer", "\xF0\x9F\x93\x81", {}},
         {core::events::ActivityBarItem::Search, "Search", "\xF0\x9F\x94\x8D", {}},
+        {core::events::ActivityBarItem::kNotebooks, "Notebooks", "\xF0\x9F\x93\x93", {}},
+        {core::events::ActivityBarItem::kCanvas, "Canvas", "\xF0\x9F\x96\xBC", {}},
+        {core::events::ActivityBarItem::kGraph, "Knowledge Graph", "\xF0\x9F\x95\xB8", {}},
+        {core::events::ActivityBarItem::kAI, "AI Assistant", "\xF0\x9F\xA4\x96", {}},
+        {core::events::ActivityBarItem::kFlashcards, "Flashcards", "\xF0\x9F\x83\x8F", {}},
+        {core::events::ActivityBarItem::kGit, "Git", "\xF0\x9F\x94\x80", {}},
+        {core::events::ActivityBarItem::kTasks, "Tasks", "\xE2\x9C\x85", {}},
+        {core::events::ActivityBarItem::kDatabase, "Database", "\xF0\x9F\x97\x84", {}},
+        {core::events::ActivityBarItem::kPresentation, "Presentation", "\xF0\x9F\x93\xBD", {}},
+        {core::events::ActivityBarItem::Extensions, "Extensions", "\xF0\x9F\xA7\xA9", {}},
         {core::events::ActivityBarItem::Settings, "Settings", "\xE2\x9A\x99", {}},
         {core::events::ActivityBarItem::Themes, "Themes", "\xF0\x9F\x8E\xA8", {}},
-        {core::events::ActivityBarItem::Extensions, "Extensions", "\xF0\x9F\xA7\xA9", {}},
     };
 }
 

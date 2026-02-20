@@ -156,7 +156,12 @@ auto PandocBaseExporter::export_content(const std::string& markdown_source,
 
 auto PandocBaseExporter::check_dependencies() const -> std::expected<void, std::string>
 {
-    return find_pandoc("pandoc").transform([](const std::string&) {});
+    auto pandoc = find_pandoc("pandoc");
+    if (!pandoc)
+    {
+        return std::unexpected(pandoc.error());
+    }
+    return {};
 }
 
 auto PandocBaseExporter::pandoc_format_name() const -> std::string

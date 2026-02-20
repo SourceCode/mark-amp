@@ -438,7 +438,7 @@ TEST_CASE("Render blockquote HTML", "[markdown][html]")
 TEST_CASE("Render table HTML", "[markdown][html]")
 {
     auto html = render("| A | B |\n|---|---|\n| 1 | 2 |\n");
-    REQUIRE_THAT(html, ContainsSubstring("<table>"));
+    REQUIRE_THAT(html, ContainsSubstring("<table"));
     REQUIRE_THAT(html, ContainsSubstring("<th>"));
     REQUIRE_THAT(html, ContainsSubstring("<td>"));
 }

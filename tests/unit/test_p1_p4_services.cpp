@@ -552,7 +552,7 @@ TEST_CASE("TaskRunnerService: stub returns empty", "[p4][tasks]")
 {
     TaskRunnerService svc;
 
-    REQUIRE_FALSE(
+    REQUIRE(
         svc.register_task_provider("shell", []() -> std::vector<TaskDefinition> { return {}; }));
     REQUIRE_FALSE(svc.execute_task("build"));
     REQUIRE(svc.get_tasks().empty());

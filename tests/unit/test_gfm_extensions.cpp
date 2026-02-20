@@ -21,7 +21,7 @@ TEST_CASE("Table: basic table with headers", "[gfm][table]")
     REQUIRE(doc->has_tables());
 
     auto html = parser.render_html(*doc);
-    REQUIRE_THAT(html, ContainsSubstring("<table>"));
+    REQUIRE_THAT(html, ContainsSubstring("<table"));
     REQUIRE_THAT(html, ContainsSubstring("<thead>"));
     REQUIRE_THAT(html, ContainsSubstring("<tbody>"));
     REQUIRE_THAT(html, ContainsSubstring("<th>"));

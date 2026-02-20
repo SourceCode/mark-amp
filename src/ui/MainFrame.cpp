@@ -720,7 +720,49 @@ enum MenuId : int
     kMenuPreferences = wxID_PREFERENCES,
     // V8 Phase 6 — Canvas Workbench
     kMenuNewBoard = wxID_HIGHEST + 500,
-    kMenuCanvasMode
+    kMenuCanvasMode,
+    // ── UI Completeness — Feature Menus ──
+    kMenuToolsAI = wxID_HIGHEST + 600,
+    kMenuToolsFlashcardBrowser,
+    kMenuToolsFlashcardReview,
+    kMenuToolsKnowledgeGraph,
+    kMenuToolsPresentation,
+    kMenuNotebookNew,
+    kMenuNotebookRunCell,
+    kMenuNotebookRunAll,
+    kMenuNotebookClearOutputs,
+    kMenuCanvasAddNote,
+    kMenuCanvasAddShape,
+    kMenuCanvasAddConnector,
+    kMenuCanvasToggleGrid,
+    kMenuCanvasExportImage,
+    kMenuGitStatus,
+    kMenuGitStageAll,
+    kMenuGitCommit,
+    kMenuGitPush,
+    kMenuGitPull,
+    kMenuGitBlame,
+    kMenuGitDiff,
+    kMenuGitHistory,
+    kMenuDataNewDB,
+    kMenuDataAddProperty,
+    kMenuDataViewTable,
+    kMenuDataViewGallery,
+    kMenuDataViewKanban,
+    kMenuDataViewTimeline,
+    kMenuDataImportCSV,
+    kMenuDataExport,
+    kMenuExportHTML,
+    kMenuExportPDF,
+    kMenuExportMarkdown,
+    kMenuImportHTML,
+    kMenuImportMarkdown,
+    kMenuExportBatch,
+    kMenuImportPDFAnnotations,
+    kMenuSyncConfigure,
+    kMenuSyncNow,
+    kMenuSyncHistory,
+    kMenuSyncConflict
 };
 
 // (Moved logic to end of file to fix redefinition and structure)
@@ -770,6 +812,20 @@ void MainFrame::createMenuBar()
     // R13: Copy Path / Reveal in Finder
     fileMenu->Append(kMenuCopyFilePath, "Copy File Pat&h");
     fileMenu->Append(kMenuRevealInFinder, "Reveal in &Finder");
+    fileMenu->AppendSeparator();
+    // Export submenu
+    auto* export_submenu = new wxMenu();
+    export_submenu->Append(kMenuExportHTML, "Export as &HTML");
+    export_submenu->Append(kMenuExportPDF, "Export as &PDF");
+    export_submenu->Append(kMenuExportMarkdown, "Export as &Markdown");
+    export_submenu->Append(kMenuExportBatch, "&Batch Export");
+    fileMenu->AppendSubMenu(export_submenu, "&Export");
+    // Import submenu
+    auto* import_submenu = new wxMenu();
+    import_submenu->Append(kMenuImportHTML, "Import &HTML");
+    import_submenu->Append(kMenuImportMarkdown, "Import &Markdown");
+    import_submenu->Append(kMenuImportPDFAnnotations, "Import &PDF Annotations");
+    fileMenu->AppendSubMenu(import_submenu, "&Import");
     fileMenu->AppendSeparator();
     fileMenu->Append(wxID_EXIT, "E&xit\tAlt+F4");
     menu_bar->Append(fileMenu, "&File");
@@ -1062,6 +1118,76 @@ void MainFrame::createMenuBar()
     view_menu->Append(kMenuZoomOut, "Zoom &Out\tCtrl+-");
     view_menu->Append(kMenuZoomReset, "&Reset Zoom\tCtrl+0");
     menu_bar->Append(view_menu, "&View");
+
+    // --- Tools menu ---
+    auto* tools_menu = new wxMenu();
+    tools_menu->Append(kMenuToolsAI, "AI &Assistant\tCtrl+Shift+A");
+    tools_menu->AppendSeparator();
+    tools_menu->Append(kMenuToolsFlashcardBrowser, "Flashcard &Browser");
+    tools_menu->Append(kMenuToolsFlashcardReview, "Flashcard &Review Session");
+    tools_menu->AppendSeparator();
+    tools_menu->Append(kMenuToolsKnowledgeGraph, "&Knowledge Graph\tCtrl+Shift+G");
+    tools_menu->Append(kMenuToolsPresentation, "&Presentation Mode\tCtrl+Shift+P");
+    menu_bar->Append(tools_menu, "&Tools");
+
+    // --- Notebooks menu ---
+    auto* notebooks_menu = new wxMenu();
+    notebooks_menu->Append(kMenuNotebookNew, "&New Notebook\tCtrl+Alt+N");
+    notebooks_menu->AppendSeparator();
+    notebooks_menu->Append(kMenuNotebookRunCell, "&Run Cell\tCtrl+Return");
+    notebooks_menu->Append(kMenuNotebookRunAll, "Run &All Cells\tCtrl+Shift+Return");
+    notebooks_menu->Append(kMenuNotebookClearOutputs, "&Clear Outputs");
+    menu_bar->Append(notebooks_menu, "&Notebooks");
+
+    // --- Canvas menu ---
+    auto* canvas_menu = new wxMenu();
+    canvas_menu->Append(kMenuCanvasAddNote, "Add &Sticky Note");
+    canvas_menu->Append(kMenuCanvasAddShape, "Add &Shape");
+    canvas_menu->Append(kMenuCanvasAddConnector, "Add &Connector");
+    canvas_menu->AppendSeparator();
+    canvas_menu->Append(kMenuCanvasToggleGrid, "Toggle &Grid/Snap");
+    canvas_menu->Append(kMenuCanvasExportImage, "&Export Board as Image");
+    menu_bar->Append(canvas_menu, "&Canvas");
+
+    // --- Git menu ---
+    auto* git_menu = new wxMenu();
+    git_menu->Append(kMenuGitStatus, "&Status");
+    git_menu->Append(kMenuGitStageAll, "Stage &All");
+    git_menu->Append(kMenuGitCommit, "&Commit\tCtrl+K");
+    git_menu->AppendSeparator();
+    git_menu->Append(kMenuGitPush, "&Push");
+    git_menu->Append(kMenuGitPull, "Pu&ll");
+    git_menu->AppendSeparator();
+    git_menu->Append(kMenuGitBlame, "&Blame");
+    git_menu->Append(kMenuGitDiff, "&Diff");
+    git_menu->Append(kMenuGitHistory, "&History");
+    menu_bar->Append(git_menu, "&Git");
+
+    // --- Data menu ---
+    auto* data_menu = new wxMenu();
+    data_menu->Append(kMenuDataNewDB, "&New Database");
+    data_menu->Append(kMenuDataAddProperty, "Add &Property");
+    data_menu->AppendSeparator();
+    auto* view_submenu = new wxMenu();
+    view_submenu->Append(kMenuDataViewTable, "&Table");
+    view_submenu->Append(kMenuDataViewGallery, "&Gallery");
+    view_submenu->Append(kMenuDataViewKanban, "&Kanban");
+    view_submenu->Append(kMenuDataViewTimeline, "T&imeline");
+    data_menu->AppendSubMenu(view_submenu, "Switch &View");
+    data_menu->AppendSeparator();
+    data_menu->Append(kMenuDataImportCSV, "&Import CSV");
+    data_menu->Append(kMenuDataExport, "&Export");
+    menu_bar->Append(data_menu, "&Data");
+
+    // --- Sync menu ---
+    auto* sync_menu = new wxMenu();
+    sync_menu->Append(kMenuSyncConfigure, "&Configure Sync...");
+    sync_menu->AppendSeparator();
+    sync_menu->Append(kMenuSyncNow, "Sync &Now");
+    sync_menu->Append(kMenuSyncHistory, "Sync &History");
+    sync_menu->AppendSeparator();
+    sync_menu->Append(kMenuSyncConflict, "Conflict &Resolution");
+    menu_bar->Append(sync_menu, "&Sync");
 
     // --- Window menu ---
     auto* window_menu = new wxMenu();

@@ -5,6 +5,9 @@
 
 #include "MarkdownExporter.h"
 
+#include <algorithm>
+#include <sstream>
+
 namespace markamp::core
 {
 
@@ -39,9 +42,12 @@ auto MarkdownExporter::export_content(const std::string& markdown_source,
             if (line.starts_with("#"))
             {
                 int level = 0;
-                while (level < static_cast<int>(line.size()) && line[level] == '#')
+                while (level < static_cast<int>(line.size()) &&
+                       line[static_cast<size_t>(level)] == '#')
+                {
                     ++level;
-                int new_level = std::clamp(level + options.heading_offset, 1, 6);
+                }
+                const int new_level = std::clamp(level + options.heading_offset, 1, 6);
                 adjusted += std::string(static_cast<size_t>(new_level), '#') +
                             line.substr(static_cast<size_t>(level)) + "\n";
             }
@@ -114,7 +120,9 @@ auto PlainTextExporter::export_content(const std::string& markdown_source,
         for (size_t i = 0; i < line.size(); ++i)
         {
             if (line[i] == '*' || line[i] == '_' || line[i] == '`')
+            {
                 continue;
+            }
             // Strip image/link syntax: ![text](url) or [text](url).
             if (line[i] == '!' && i + 1 < line.size() && line[i + 1] == '[')
             {

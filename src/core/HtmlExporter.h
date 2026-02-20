@@ -19,10 +19,10 @@ public:
         -> std::expected<std::string, std::string> override;
     [[nodiscard]] auto check_dependencies() const -> std::expected<void, std::string> override;
 
-private:
     // Convert Markdown to HTML body (basic converter).
     [[nodiscard]] static auto md_to_html(const std::string& markdown) -> std::string;
 
+private:
     // Default CSS for standalone HTML export.
     [[nodiscard]] static auto default_css() -> std::string;
 };

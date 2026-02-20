@@ -174,7 +174,7 @@ TEST_CASE("Pipeline: table renders with th and td", "[preview][pipeline]")
     REQUIRE(doc.has_value());
 
     auto html = parser.render_html(*doc);
-    REQUIRE_THAT(html, ContainsSubstring("<table>"));
+    REQUIRE_THAT(html, ContainsSubstring("<table"));
     REQUIRE_THAT(html, ContainsSubstring("<th>"));
     REQUIRE_THAT(html, ContainsSubstring("<td>"));
     REQUIRE_THAT(html, ContainsSubstring("</table>"));
@@ -382,7 +382,7 @@ A --> B;
     REQUIRE_THAT(html, ContainsSubstring("<code>"));
     REQUIRE_THAT(html, ContainsSubstring("code-block-wrapper"));
     REQUIRE_THAT(html, ContainsSubstring("<blockquote>"));
-    REQUIRE_THAT(html, ContainsSubstring("<table>"));
+    REQUIRE_THAT(html, ContainsSubstring("<table"));
     REQUIRE_THAT(html, ContainsSubstring("<hr>"));
     REQUIRE_THAT(html, ContainsSubstring("<del>"));
     REQUIRE_THAT(html, ContainsSubstring("<a href"));

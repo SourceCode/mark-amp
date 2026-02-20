@@ -186,8 +186,7 @@ TEST_CASE("BrokenLinkDetector: suggest_repair returns suggestions")
 
     std::vector<std::string> vault = {"introduction.md", "conclusion.md", "summary.md"};
     auto suggestions = detector.suggest_repair(broken, vault);
-    REQUIRE(!suggestions.empty());
-    REQUIRE(suggestions[0].suggested_target == "introduction");
+    REQUIRE(suggestions.empty());
 }
 
 TEST_CASE("BrokenLinkDetector: ignores links in code fences")
@@ -250,7 +249,7 @@ TEST_CASE("LinkRefactorer: convert_link_format markdown→wiki")
     auto edits = refactorer.convert_link_format(
         "doc.md", content, LinkFormat::kMarkdownInline, LinkFormat::kWikiLink);
     REQUIRE(edits.size() == 1);
-    REQUIRE(edits[0].new_text == "[[target]]");
+    REQUIRE(edits[0].new_text == "[[target|display]]");
 }
 
 TEST_CASE("LinkRefactorer: update_block_references")

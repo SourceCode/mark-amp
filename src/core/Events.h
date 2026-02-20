@@ -641,9 +641,15 @@ enum class ActivityBarItem
     Settings,
     Themes,
     Extensions,
-    kNotebooks, // V8 Phase 11
-    kCanvas,    // V8 Phase 11
-    kGraph      // V8 Phase 11
+    kNotebooks,   // V8 Phase 11
+    kCanvas,      // V8 Phase 11
+    kGraph,       // V8 Phase 11
+    kAI,          // UI Completeness
+    kFlashcards,  // UI Completeness
+    kGit,         // UI Completeness
+    kTasks,       // UI Completeness
+    kDatabase,    // UI Completeness
+    kPresentation // UI Completeness
 };
 
 MARKAMP_DECLARE_EVENT_WITH_FIELDS(ActivityBarSelectionEvent)

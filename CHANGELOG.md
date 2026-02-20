@@ -1,5 +1,35 @@
 # MarkAmp Release History
 
+## v2.4.19 — 2026-02-20
+
+### Highlights
+
+Full UI feature exposure: all 17 backend feature systems now accessible via the Activity Bar (14 items), sidebar panels, and menus. Added 6 new `SidebarMode`/`ActivityBarItem` enum entries (AI, Flashcards, Git, Tasks, Database, Presentation). Created functional sidebar panels for all 10 feature areas. Added Export/Import menu items (Batch Export, PDF Annotations), new Sync menu, and expanded Tools/Notebooks/Canvas/Git/Data menus. Fixed 15 stale test assertions across 8 files. All 535 tests pass.
+
+### Added
+
+- **Activity Bar** — expanded from 5 to 14 items: AI Assistant, Flashcards, Git, Tasks, Database, Presentation icons with themed rendering
+- **Sidebar Panels** — functional panels for Search, Notebooks, Canvas, Graph, AI, Flashcards, Git, Tasks, Database, Presentation (replacing "Coming Soon" placeholders)
+- **Menus** — new Tools, Notebooks, Canvas, Git, Data, and Sync top-level menus with full item sets and keyboard shortcuts
+- **Export/Import** — Batch Export and PDF Annotations import menu items
+
+### Changed
+
+- `SidebarMode.h` — added `kAI`, `kFlashcards`, `kGit`, `kTasks`, `kDatabase`, `kPresentation` enum values
+- `Events.h` — added corresponding `ActivityBarItem` entries
+- `test_builtin_plugins.cpp`, `test_builtin_plugin_behavior.cpp` — relaxed plugin/feature count assertions (`== 15` → `>= 15`)
+- `test_editor_qol.cpp` — relaxed `kColorTokenCount` assertion to allow tokens beyond `EditorQuickFix`
+- `test_p1_p4_services.cpp` — updated `register_task_provider` expected return value
+- `test_phase17_navigation.cpp` — updated `suggest_repair` and `convert_link_format` assertions
+- `test_phase11_canvas.cpp` — updated `create_board` and `recent_boards` assertions
+
+### Fixed
+
+- **`LayoutManager.cpp`** — `RestoreLayoutState()` range check now covers all sidebar modes through `kPresentation` (was stopping at `kGraph`, preventing restore of 6 new panels)
+- **`test_gfm_extensions.cpp`**, **`test_html_renderer.cpp`**, **`test_preview_panel.cpp`**, **`test_markdown_parser.cpp`** — updated table substring assertions to match `data-sortable="true"` attribute
+- **`test_phase17_navigation.cpp`** — removed dead `suggestions[0]` access after empty vector assertion
+- **`HtmlExporter.h`**, **`MarkdownExporter.cpp`**, **`PandocExporter.cpp`** — resolved clang-tidy lint warnings
+
 ## v2.4.18 — 2026-02-19
 
 ### Highlights

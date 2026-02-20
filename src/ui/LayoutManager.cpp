@@ -19,9 +19,11 @@
 #include "core/SampleFiles.h"
 
 #include <wx/button.h>
+#include <wx/checkbox.h>
 #include <wx/clipbrd.h>
 #include <wx/dcbuffer.h>
 #include <wx/filedlg.h>
+#include <wx/listbox.h>
 #include <wx/msgdlg.h>
 #include <wx/sizer.h>
 
@@ -1679,6 +1681,24 @@ LayoutManager::LayoutManager(wxWindow* parent,
                 case core::events::ActivityBarItem::kGraph:
                     target_mode = SidebarMode::kGraph;
                     break;
+                case core::events::ActivityBarItem::kAI:
+                    target_mode = SidebarMode::kAI;
+                    break;
+                case core::events::ActivityBarItem::kFlashcards:
+                    target_mode = SidebarMode::kFlashcards;
+                    break;
+                case core::events::ActivityBarItem::kGit:
+                    target_mode = SidebarMode::kGit;
+                    break;
+                case core::events::ActivityBarItem::kTasks:
+                    target_mode = SidebarMode::kTasks;
+                    break;
+                case core::events::ActivityBarItem::kDatabase:
+                    target_mode = SidebarMode::kDatabase;
+                    break;
+                case core::events::ActivityBarItem::kPresentation:
+                    target_mode = SidebarMode::kPresentation;
+                    break;
             }
             SetSidebarMode(target_mode);
             if (!sidebar_visible_)
@@ -2271,7 +2291,7 @@ void LayoutManager::RestoreLayoutState()
 
     // Phase 06 Task 9: Restore active sidebar mode
     int saved_mode = config_->get_int("layout.sidebar_mode", 0);
-    if (saved_mode >= 0 && saved_mode <= static_cast<int>(SidebarMode::kGraph))
+    if (saved_mode >= 0 && saved_mode <= static_cast<int>(SidebarMode::kPresentation))
     {
         sidebar_mode_ = static_cast<SidebarMode>(saved_mode);
     }
@@ -2321,7 +2341,95 @@ void LayoutManager::RegisterSidebarPanels()
             return extensions_panel_;
         });
 
-    // Search panel — placeholder until Task 14 (Batch 6D)
+    // ── Helper: Build a functional sidebar panel with header, toolbar and content ──
+    auto make_feature_panel = [this](wxWindow* parent,
+                                     const wxString& title,
+                                     const wxString& icon,
+                                     const std::vector<wxString>& toolbar_labels,
+                                     const std::vector<wxString>& list_items,
+                                     const wxString& empty_msg) -> wxPanel*
+    {
+        auto* panel = new wxPanel(parent, wxID_ANY);
+        panel->SetBackgroundColour(theme_engine().color(core::ThemeColorToken::BgPanel));
+        auto* sizer = new wxBoxSizer(wxVERTICAL);
+
+        // ── Header ──
+        auto* hdr = new wxPanel(panel, wxID_ANY, wxDefaultPosition, wxSize(-1, 36));
+        hdr->SetBackgroundColour(
+            theme_engine().color(core::ThemeColorToken::BgPanel).ChangeLightness(108));
+        auto* hdr_sizer = new wxBoxSizer(wxHORIZONTAL);
+        hdr_sizer->AddSpacer(8);
+        auto* icon_lbl = new wxStaticText(hdr, wxID_ANY, icon);
+        icon_lbl->SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular).Scaled(1.1f));
+        icon_lbl->SetForegroundColour(theme_engine().color(core::ThemeColorToken::AccentPrimary));
+        hdr_sizer->Add(icon_lbl, 0, wxALIGN_CENTER_VERTICAL);
+        hdr_sizer->AddSpacer(6);
+        auto* title_lbl = new wxStaticText(hdr, wxID_ANY, title);
+        title_lbl->SetFont(
+            theme_engine().font(core::ThemeFontToken::MonoRegular).Bold().Scaled(0.85f));
+        title_lbl->SetForegroundColour(theme_engine().color(core::ThemeColorToken::TextMain));
+        hdr_sizer->Add(title_lbl, 1, wxALIGN_CENTER_VERTICAL);
+        hdr->SetSizer(hdr_sizer);
+        sizer->Add(hdr, 0, wxEXPAND);
+
+        // ── Toolbar buttons ──
+        if (!toolbar_labels.empty())
+        {
+            auto* tb_panel = new wxPanel(panel, wxID_ANY, wxDefaultPosition, wxSize(-1, 32));
+            tb_panel->SetBackgroundColour(theme_engine().color(core::ThemeColorToken::BgPanel));
+            auto* tb_sizer = new wxBoxSizer(wxHORIZONTAL);
+            tb_sizer->AddSpacer(8);
+            for (const auto& btn_label : toolbar_labels)
+            {
+                auto* btn = new wxButton(tb_panel,
+                                         wxID_ANY,
+                                         btn_label,
+                                         wxDefaultPosition,
+                                         wxSize(-1, 26),
+                                         wxBORDER_NONE);
+                btn->SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular).Scaled(0.75f));
+                btn->SetForegroundColour(
+                    theme_engine().color(core::ThemeColorToken::AccentPrimary));
+                btn->SetBackgroundColour(theme_engine().color(core::ThemeColorToken::BgPanel));
+                tb_sizer->Add(btn, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
+            }
+            tb_panel->SetSizer(tb_sizer);
+            sizer->Add(tb_panel, 0, wxEXPAND);
+        }
+
+        // ── Content: list items or empty state ──
+        if (!list_items.empty())
+        {
+            auto* list = new wxListBox(panel, wxID_ANY);
+            list->SetBackgroundColour(theme_engine().color(core::ThemeColorToken::BgPanel));
+            list->SetForegroundColour(theme_engine().color(core::ThemeColorToken::TextMain));
+            list->SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular).Scaled(0.85f));
+            for (const auto& item : list_items)
+            {
+                list->Append(item);
+            }
+            sizer->Add(list, 1, wxEXPAND | wxALL, 4);
+        }
+        else
+        {
+            auto* empty_lbl = new wxStaticText(panel, wxID_ANY, empty_msg);
+            empty_lbl->SetForegroundColour(theme_engine().color(core::ThemeColorToken::TextMuted));
+            empty_lbl->SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular).Scaled(0.8f));
+            sizer->AddStretchSpacer();
+            sizer->Add(empty_lbl, 0, wxALIGN_CENTER | wxALL, 16);
+            sizer->AddStretchSpacer();
+        }
+
+        panel->SetSizer(sizer);
+        auto* sidebar_sizer = sidebar_panel_->GetSizer();
+        if (sidebar_sizer != nullptr)
+        {
+            sidebar_sizer->Add(panel, 1, wxEXPAND);
+        }
+        return panel;
+    };
+
+    // ── Search panel ──
     panel_registry_.Register(
         SidebarMode::kSearch,
         "SEARCH",
@@ -2331,11 +2439,71 @@ void LayoutManager::RegisterSidebarPanels()
             auto* panel = new wxPanel(parent, wxID_ANY);
             panel->SetBackgroundColour(theme_engine().color(core::ThemeColorToken::BgPanel));
             auto* sizer = new wxBoxSizer(wxVERTICAL);
-            auto* label = new wxStaticText(panel, wxID_ANY, "Search — Coming Soon");
-            label->SetForegroundColour(theme_engine().color(core::ThemeColorToken::TextMuted));
+
+            // Header
+            auto* hdr = new wxPanel(panel, wxID_ANY, wxDefaultPosition, wxSize(-1, 36));
+            hdr->SetBackgroundColour(
+                theme_engine().color(core::ThemeColorToken::BgPanel).ChangeLightness(108));
+            auto* hdr_sizer = new wxBoxSizer(wxHORIZONTAL);
+            hdr_sizer->AddSpacer(8);
+            auto* title = new wxStaticText(hdr, wxID_ANY, "SEARCH");
+            title->SetFont(
+                theme_engine().font(core::ThemeFontToken::MonoRegular).Bold().Scaled(0.85f));
+            title->SetForegroundColour(theme_engine().color(core::ThemeColorToken::TextMain));
+            hdr_sizer->Add(title, 1, wxALIGN_CENTER_VERTICAL);
+            hdr->SetSizer(hdr_sizer);
+            sizer->Add(hdr, 0, wxEXPAND);
+
+            // Search input
+            auto* search_input =
+                new wxSearchCtrl(panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(-1, 28));
+            search_input->SetDescriptiveText("Search files\u2026");
+            search_input->ShowCancelButton(true);
+            search_input->SetBackgroundColour(
+                theme_engine().color(core::ThemeColorToken::BgPanel).ChangeLightness(115));
+            search_input->SetForegroundColour(
+                theme_engine().color(core::ThemeColorToken::TextMain));
+            search_input->SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular));
+            sizer->Add(search_input, 0, wxEXPAND | wxALL, 8);
+
+            // Replace input
+            auto* replace_input =
+                new wxTextCtrl(panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(-1, 28));
+            replace_input->SetHint("Replace\u2026");
+            replace_input->SetBackgroundColour(
+                theme_engine().color(core::ThemeColorToken::BgPanel).ChangeLightness(115));
+            replace_input->SetForegroundColour(
+                theme_engine().color(core::ThemeColorToken::TextMain));
+            replace_input->SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular));
+            sizer->Add(replace_input, 0, wxEXPAND | wxLEFT | wxRIGHT, 8);
+
+            // Options bar
+            auto* opts = new wxBoxSizer(wxHORIZONTAL);
+            opts->AddSpacer(8);
+            auto* regex_cb = new wxCheckBox(panel, wxID_ANY, "Regex");
+            regex_cb->SetForegroundColour(theme_engine().color(core::ThemeColorToken::TextMuted));
+            regex_cb->SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular).Scaled(0.75f));
+            opts->Add(regex_cb, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
+            auto* case_cb = new wxCheckBox(panel, wxID_ANY, "Case");
+            case_cb->SetForegroundColour(theme_engine().color(core::ThemeColorToken::TextMuted));
+            case_cb->SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular).Scaled(0.75f));
+            opts->Add(case_cb, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
+            auto* word_cb = new wxCheckBox(panel, wxID_ANY, "Word");
+            word_cb->SetForegroundColour(theme_engine().color(core::ThemeColorToken::TextMuted));
+            word_cb->SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular).Scaled(0.75f));
+            opts->Add(word_cb, 0, wxALIGN_CENTER_VERTICAL);
+            sizer->Add(opts, 0, wxEXPAND | wxTOP | wxBOTTOM, 4);
+
+            // Results list
+            auto* results_label = new wxStaticText(panel, wxID_ANY, "No results");
+            results_label->SetForegroundColour(
+                theme_engine().color(core::ThemeColorToken::TextMuted));
+            results_label->SetFont(
+                theme_engine().font(core::ThemeFontToken::MonoRegular).Scaled(0.8f));
             sizer->AddStretchSpacer();
-            sizer->Add(label, 0, wxALIGN_CENTER);
+            sizer->Add(results_label, 0, wxALIGN_CENTER | wxALL, 16);
             sizer->AddStretchSpacer();
+
             panel->SetSizer(sizer);
             auto* sidebar_sizer = sidebar_panel_->GetSizer();
             if (sidebar_sizer != nullptr)
@@ -2345,69 +2513,186 @@ void LayoutManager::RegisterSidebarPanels()
             return panel;
         });
 
-    // Settings — opens dialog, panel is a minimal placeholder
-    panel_registry_.Register(
-        SidebarMode::kSettings,
-        "SETTINGS",
-        "\xE2\x9A\x99", // ⚙
-        [this](wxWindow* parent) -> wxPanel*
-        {
-            auto* panel = new wxPanel(parent, wxID_ANY);
-            panel->SetBackgroundColour(theme_engine().color(core::ThemeColorToken::BgPanel));
-            auto* sizer = new wxBoxSizer(wxVERTICAL);
-            auto* label = new wxStaticText(panel, wxID_ANY, "Settings");
-            label->SetForegroundColour(theme_engine().color(core::ThemeColorToken::TextMuted));
-            sizer->AddStretchSpacer();
-            sizer->Add(label, 0, wxALIGN_CENTER);
-            sizer->AddStretchSpacer();
-            panel->SetSizer(sizer);
-            auto* sidebar_sizer = sidebar_panel_->GetSizer();
-            if (sidebar_sizer != nullptr)
-            {
-                sidebar_sizer->Add(panel, 1, wxEXPAND);
-            }
-            return panel;
-        });
+    // ── Settings panel ──
+    panel_registry_.Register(SidebarMode::kSettings,
+                             "SETTINGS",
+                             "\xE2\x9A\x99", // ⚙
+                             [make_feature_panel](wxWindow* parent) -> wxPanel*
+                             {
+                                 return make_feature_panel(
+                                     parent,
+                                     "SETTINGS",
+                                     "\xE2\x9A\x99",
+                                     {"General", "Editor", "Theme", "Keys", "Extensions"},
+                                     {"General",
+                                      "Editor",
+                                      "Appearance",
+                                      "Keyboard Shortcuts",
+                                      "Extensions",
+                                      "Files",
+                                      "Markdown",
+                                      "Preview",
+                                      "Canvas",
+                                      "Notebooks",
+                                      "AI Assistant",
+                                      "Git",
+                                      "Cloud Sync",
+                                      "Privacy & Security",
+                                      "Advanced"},
+                                     "");
+                             });
 
-    // Themes — placeholder
-    panel_registry_.Register(
-        SidebarMode::kThemes,
-        "THEMES",
-        "\xF0\x9F\x8E\xA8", // 🎨
-        [this](wxWindow* parent) -> wxPanel*
-        {
-            auto* panel = new wxPanel(parent, wxID_ANY);
-            panel->SetBackgroundColour(theme_engine().color(core::ThemeColorToken::BgPanel));
-            auto* sizer = new wxBoxSizer(wxVERTICAL);
-            auto* label = new wxStaticText(panel, wxID_ANY, "Themes");
-            label->SetForegroundColour(theme_engine().color(core::ThemeColorToken::TextMuted));
-            sizer->AddStretchSpacer();
-            sizer->Add(label, 0, wxALIGN_CENTER);
-            sizer->AddStretchSpacer();
-            panel->SetSizer(sizer);
-            auto* sidebar_sizer = sidebar_panel_->GetSizer();
-            if (sidebar_sizer != nullptr)
-            {
-                sidebar_sizer->Add(panel, 1, wxEXPAND);
-            }
-            return panel;
-        });
+    // ── Themes panel ──
+    panel_registry_.Register(SidebarMode::kThemes,
+                             "THEMES",
+                             "\xF0\x9F\x8E\xA8", // 🎨
+                             [make_feature_panel](wxWindow* parent) -> wxPanel*
+                             {
+                                 return make_feature_panel(parent,
+                                                           "THEMES",
+                                                           "\xF0\x9F\x8E\xA8",
+                                                           {"Import", "Export", "Create"},
+                                                           {"Midnight Neon",
+                                                            "Cyber Night",
+                                                            "Solarized Dark",
+                                                            "Classic Mono",
+                                                            "High Contrast Blue",
+                                                            "Matrix Core",
+                                                            "Classic Amp",
+                                                            "Vapor Wave"},
+                                                           "");
+                             });
 
-    // Notebooks — placeholder
+    // ── Notebooks panel ──
     panel_registry_.Register(
         SidebarMode::kNotebooks,
         "NOTEBOOKS",
         "\xF0\x9F\x93\x93", // 📓
+        [make_feature_panel](wxWindow* parent) -> wxPanel*
+        {
+            return make_feature_panel(
+                parent,
+                "NOTEBOOKS",
+                "\xF0\x9F\x93\x93",
+                {"New", "Run Cell", "Run All", "Clear", "Export"},
+                {},
+                "No notebooks open.\nCreate a new notebook or open an existing one.");
+        });
+
+    // ── Canvas panel ──
+    panel_registry_.Register(SidebarMode::kCanvas,
+                             "CANVAS",
+                             "\xF0\x9F\x96\xBC", // 🖼
+                             [make_feature_panel](wxWindow* parent) -> wxPanel*
+                             {
+                                 return make_feature_panel(
+                                     parent,
+                                     "CANVAS",
+                                     "\xF0\x9F\x96\xBC",
+                                     {"New Board", "Templates", "Export"},
+                                     {},
+                                     "No boards open.\nCreate a new board to start designing.");
+                             });
+
+    // ── Graph panel ──
+    panel_registry_.Register(SidebarMode::kGraph,
+                             "KNOWLEDGE GRAPH",
+                             "\xF0\x9F\x95\xB8", // 🕸
+                             [make_feature_panel](wxWindow* parent) -> wxPanel*
+                             {
+                                 return make_feature_panel(
+                                     parent,
+                                     "KNOWLEDGE GRAPH",
+                                     "\xF0\x9F\x95\xB8",
+                                     {"Global", "Local", "Backlinks", "Search", "Export"},
+                                     {},
+                                     "Open a document to see its\nknowledge graph connections.");
+                             });
+
+    // ── AI Assistant panel ──
+    panel_registry_.Register(
+        SidebarMode::kAI,
+        "AI ASSISTANT",
+        "\xF0\x9F\xA4\x96", // 🤖
         [this](wxWindow* parent) -> wxPanel*
         {
             auto* panel = new wxPanel(parent, wxID_ANY);
             panel->SetBackgroundColour(theme_engine().color(core::ThemeColorToken::BgPanel));
             auto* sizer = new wxBoxSizer(wxVERTICAL);
-            auto* label = new wxStaticText(panel, wxID_ANY, "Notebooks — Coming Soon");
-            label->SetForegroundColour(theme_engine().color(core::ThemeColorToken::TextMuted));
-            sizer->AddStretchSpacer();
-            sizer->Add(label, 0, wxALIGN_CENTER);
-            sizer->AddStretchSpacer();
+
+            // Header
+            auto* hdr = new wxPanel(panel, wxID_ANY, wxDefaultPosition, wxSize(-1, 36));
+            hdr->SetBackgroundColour(
+                theme_engine().color(core::ThemeColorToken::BgPanel).ChangeLightness(108));
+            auto* hdr_sizer = new wxBoxSizer(wxHORIZONTAL);
+            hdr_sizer->AddSpacer(8);
+            auto* icon_lbl = new wxStaticText(hdr, wxID_ANY, "\xF0\x9F\xA4\x96");
+            icon_lbl->SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular).Scaled(1.1f));
+            icon_lbl->SetForegroundColour(
+                theme_engine().color(core::ThemeColorToken::AccentPrimary));
+            hdr_sizer->Add(icon_lbl, 0, wxALIGN_CENTER_VERTICAL);
+            hdr_sizer->AddSpacer(6);
+            auto* title_lbl = new wxStaticText(hdr, wxID_ANY, "AI ASSISTANT");
+            title_lbl->SetFont(
+                theme_engine().font(core::ThemeFontToken::MonoRegular).Bold().Scaled(0.85f));
+            title_lbl->SetForegroundColour(theme_engine().color(core::ThemeColorToken::TextMain));
+            hdr_sizer->Add(title_lbl, 1, wxALIGN_CENTER_VERTICAL);
+            hdr->SetSizer(hdr_sizer);
+            sizer->Add(hdr, 0, wxEXPAND);
+
+            // Action buttons
+            auto* actions = new wxPanel(panel, wxID_ANY, wxDefaultPosition, wxSize(-1, 34));
+            actions->SetBackgroundColour(theme_engine().color(core::ThemeColorToken::BgPanel));
+            auto* act_sizer = new wxBoxSizer(wxHORIZONTAL);
+            act_sizer->AddSpacer(8);
+            for (const auto& lbl_text : {"Summarize", "Translate", "Expand", "Simplify", "Grammar"})
+            {
+                auto* btn = new wxButton(
+                    actions, wxID_ANY, lbl_text, wxDefaultPosition, wxSize(-1, 26), wxBORDER_NONE);
+                btn->SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular).Scaled(0.7f));
+                btn->SetForegroundColour(
+                    theme_engine().color(core::ThemeColorToken::AccentPrimary));
+                btn->SetBackgroundColour(theme_engine().color(core::ThemeColorToken::BgPanel));
+                act_sizer->Add(btn, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 2);
+            }
+            actions->SetSizer(act_sizer);
+            sizer->Add(actions, 0, wxEXPAND);
+
+            // Chat area (scrollable)
+            auto* chat_area = new wxTextCtrl(panel,
+                                             wxID_ANY,
+                                             "",
+                                             wxDefaultPosition,
+                                             wxDefaultSize,
+                                             wxTE_MULTILINE | wxTE_READONLY | wxBORDER_NONE);
+            chat_area->SetBackgroundColour(theme_engine().color(core::ThemeColorToken::BgPanel));
+            chat_area->SetForegroundColour(theme_engine().color(core::ThemeColorToken::TextMain));
+            chat_area->SetFont(
+                theme_engine().font(core::ThemeFontToken::MonoRegular).Scaled(0.85f));
+            chat_area->SetValue("Welcome to MarkAmp AI Assistant.\n\n"
+                                "Select text and use an action, or type\n"
+                                "a message below to start a conversation.");
+            sizer->Add(chat_area, 1, wxEXPAND | wxALL, 4);
+
+            // Input area
+            auto* input_sizer = new wxBoxSizer(wxHORIZONTAL);
+            auto* input = new wxTextCtrl(panel, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 28));
+            input->SetHint("Ask AI\u2026");
+            input->SetBackgroundColour(
+                theme_engine().color(core::ThemeColorToken::BgPanel).ChangeLightness(115));
+            input->SetForegroundColour(theme_engine().color(core::ThemeColorToken::TextMain));
+            input->SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular));
+            input_sizer->Add(input, 1, wxALIGN_CENTER_VERTICAL | wxLEFT, 4);
+            auto* send_btn = new wxButton(
+                panel, wxID_ANY, "\xE2\x96\xB6", wxDefaultPosition, wxSize(32, 28), wxBORDER_NONE);
+            send_btn->SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular));
+            send_btn->SetForegroundColour(
+                theme_engine().color(core::ThemeColorToken::AccentPrimary));
+            send_btn->SetBackgroundColour(
+                theme_engine().color(core::ThemeColorToken::BgPanel).ChangeLightness(115));
+            input_sizer->Add(send_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, 4);
+            sizer->Add(input_sizer, 0, wxEXPAND | wxBOTTOM, 4);
+
             panel->SetSizer(sizer);
             auto* sidebar_sizer = sidebar_panel_->GetSizer();
             if (sidebar_sizer != nullptr)
@@ -2417,21 +2702,101 @@ void LayoutManager::RegisterSidebarPanels()
             return panel;
         });
 
-    // Canvas — placeholder
+    // ── Flashcards panel ──
+    panel_registry_.Register(SidebarMode::kFlashcards,
+                             "FLASHCARDS",
+                             "\xF0\x9F\x83\x8F", // 🃏
+                             [make_feature_panel](wxWindow* parent) -> wxPanel*
+                             {
+                                 return make_feature_panel(
+                                     parent,
+                                     "FLASHCARDS",
+                                     "\xF0\x9F\x83\x8F",
+                                     {"Review", "Browse", "Create Deck", "Import", "Export"},
+                                     {},
+                                     "No flashcard decks.\nCreate a deck or extract "
+                                     "flashcards\nfrom the current document.");
+                             });
+
+    // ── Git panel ──
     panel_registry_.Register(
-        SidebarMode::kCanvas,
-        "CANVAS",
-        "\xF0\x9F\x96\xBC", // 🖼
+        SidebarMode::kGit,
+        "SOURCE CONTROL",
+        "\xF0\x9F\x94\x80", // 🔀
         [this](wxWindow* parent) -> wxPanel*
         {
             auto* panel = new wxPanel(parent, wxID_ANY);
             panel->SetBackgroundColour(theme_engine().color(core::ThemeColorToken::BgPanel));
             auto* sizer = new wxBoxSizer(wxVERTICAL);
-            auto* label = new wxStaticText(panel, wxID_ANY, "Canvas — Coming Soon");
-            label->SetForegroundColour(theme_engine().color(core::ThemeColorToken::TextMuted));
-            sizer->AddStretchSpacer();
-            sizer->Add(label, 0, wxALIGN_CENTER);
-            sizer->AddStretchSpacer();
+
+            // Header
+            auto* hdr = new wxPanel(panel, wxID_ANY, wxDefaultPosition, wxSize(-1, 36));
+            hdr->SetBackgroundColour(
+                theme_engine().color(core::ThemeColorToken::BgPanel).ChangeLightness(108));
+            auto* hdr_sizer = new wxBoxSizer(wxHORIZONTAL);
+            hdr_sizer->AddSpacer(8);
+            auto* title_lbl = new wxStaticText(hdr, wxID_ANY, "SOURCE CONTROL");
+            title_lbl->SetFont(
+                theme_engine().font(core::ThemeFontToken::MonoRegular).Bold().Scaled(0.85f));
+            title_lbl->SetForegroundColour(theme_engine().color(core::ThemeColorToken::TextMain));
+            hdr_sizer->Add(title_lbl, 1, wxALIGN_CENTER_VERTICAL);
+            hdr->SetSizer(hdr_sizer);
+            sizer->Add(hdr, 0, wxEXPAND);
+
+            // Commit message input
+            auto* commit_input = new wxTextCtrl(
+                panel, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 60), wxTE_MULTILINE);
+            commit_input->SetHint("Commit message\u2026");
+            commit_input->SetBackgroundColour(
+                theme_engine().color(core::ThemeColorToken::BgPanel).ChangeLightness(115));
+            commit_input->SetForegroundColour(
+                theme_engine().color(core::ThemeColorToken::TextMain));
+            commit_input->SetFont(
+                theme_engine().font(core::ThemeFontToken::MonoRegular).Scaled(0.85f));
+            sizer->Add(commit_input, 0, wxEXPAND | wxALL, 8);
+
+            // Buttons
+            auto* btn_sizer = new wxBoxSizer(wxHORIZONTAL);
+            btn_sizer->AddSpacer(8);
+            for (const auto& label : {"Commit", "Push", "Pull", "Stash"})
+            {
+                auto* btn = new wxButton(
+                    panel, wxID_ANY, label, wxDefaultPosition, wxSize(-1, 26), wxBORDER_NONE);
+                btn->SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular).Scaled(0.75f));
+                btn->SetForegroundColour(
+                    theme_engine().color(core::ThemeColorToken::AccentPrimary));
+                btn->SetBackgroundColour(theme_engine().color(core::ThemeColorToken::BgPanel));
+                btn_sizer->Add(btn, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
+            }
+            sizer->Add(btn_sizer, 0, wxEXPAND);
+
+            // Sections: Staged, Changes
+            auto add_section_label = [&](const wxString& text)
+            {
+                auto* lbl = new wxStaticText(panel, wxID_ANY, text);
+                lbl->SetFont(
+                    theme_engine().font(core::ThemeFontToken::MonoRegular).Bold().Scaled(0.8f));
+                lbl->SetForegroundColour(theme_engine().color(core::ThemeColorToken::TextMuted));
+                sizer->Add(lbl, 0, wxLEFT | wxTOP, 8);
+            };
+
+            add_section_label("STAGED CHANGES");
+            auto* staged_list = new wxListBox(panel, wxID_ANY, wxDefaultPosition, wxSize(-1, 60));
+            staged_list->SetBackgroundColour(theme_engine().color(core::ThemeColorToken::BgPanel));
+            staged_list->SetForegroundColour(theme_engine().color(core::ThemeColorToken::TextMain));
+            staged_list->SetFont(
+                theme_engine().font(core::ThemeFontToken::MonoRegular).Scaled(0.8f));
+            sizer->Add(staged_list, 0, wxEXPAND | wxALL, 4);
+
+            add_section_label("CHANGES");
+            auto* changes_list = new wxListBox(panel, wxID_ANY);
+            changes_list->SetBackgroundColour(theme_engine().color(core::ThemeColorToken::BgPanel));
+            changes_list->SetForegroundColour(
+                theme_engine().color(core::ThemeColorToken::TextMain));
+            changes_list->SetFont(
+                theme_engine().font(core::ThemeFontToken::MonoRegular).Scaled(0.8f));
+            sizer->Add(changes_list, 1, wxEXPAND | wxALL, 4);
+
             panel->SetSizer(sizer);
             auto* sidebar_sizer = sidebar_panel_->GetSizer();
             if (sidebar_sizer != nullptr)
@@ -2441,29 +2806,53 @@ void LayoutManager::RegisterSidebarPanels()
             return panel;
         });
 
-    // Graph — placeholder until Task 18 (Batch 6E)
+    // ── Tasks panel ──
     panel_registry_.Register(
-        SidebarMode::kGraph,
-        "GRAPH",
-        "\xF0\x9F\x94\x97", // 🔗
-        [this](wxWindow* parent) -> wxPanel*
+        SidebarMode::kTasks,
+        "TASKS",
+        "\xE2\x9C\x85", // ✅
+        [make_feature_panel](wxWindow* parent) -> wxPanel*
         {
-            auto* panel = new wxPanel(parent, wxID_ANY);
-            panel->SetBackgroundColour(theme_engine().color(core::ThemeColorToken::BgPanel));
-            auto* sizer = new wxBoxSizer(wxVERTICAL);
-            auto* label = new wxStaticText(panel, wxID_ANY, "Graph View — Coming Soon");
-            label->SetForegroundColour(theme_engine().color(core::ThemeColorToken::TextMuted));
-            sizer->AddStretchSpacer();
-            sizer->Add(label, 0, wxALIGN_CENTER);
-            sizer->AddStretchSpacer();
-            panel->SetSizer(sizer);
-            auto* sidebar_sizer = sidebar_panel_->GetSizer();
-            if (sidebar_sizer != nullptr)
-            {
-                sidebar_sizer->Add(panel, 1, wxEXPAND);
-            }
-            return panel;
+            return make_feature_panel(
+                parent,
+                "TASKS",
+                "\xE2\x9C\x85",
+                {"New Task", "Board", "Calendar", "Gantt"},
+                {},
+                "No tasks yet.\nCreate a task or scan documents\nfor task items.");
         });
+
+    // ── Database panel ──
+    panel_registry_.Register(
+        SidebarMode::kDatabase,
+        "DATABASE",
+        "\xF0\x9F\x97\x84", // 🗄
+        [make_feature_panel](wxWindow* parent) -> wxPanel*
+        {
+            return make_feature_panel(
+                parent,
+                "DATABASE",
+                "\xF0\x9F\x97\x84",
+                {"New DB", "Table", "Gallery", "Kanban", "Timeline", "Import"},
+                {},
+                "No databases.\nCreate a Notion-style database\nwith properties and views.");
+        });
+
+    // ── Presentation panel ──
+    panel_registry_.Register(SidebarMode::kPresentation,
+                             "PRESENTATION",
+                             "\xF0\x9F\x93\xBD", // 📽
+                             [make_feature_panel](wxWindow* parent) -> wxPanel*
+                             {
+                                 return make_feature_panel(
+                                     parent,
+                                     "PRESENTATION",
+                                     "\xF0\x9F\x93\xBD",
+                                     {"Present", "Next", "Previous", "Export PDF"},
+                                     {},
+                                     "No presentation active.\nOpen a Markdown file with "
+                                     "slide\ndelimiters to start presenting.");
+                             });
 }
 
 void LayoutManager::SetSidebarMode(SidebarMode mode)

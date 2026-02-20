@@ -352,7 +352,7 @@ TEST_CASE("Horizontal rule with asterisks", "[html_renderer][hr]")
 TEST_CASE("Table renders basic structure", "[html_renderer][table]")
 {
     auto html = render("| A | B |\n|---|---|\n| 1 | 2 |\n");
-    REQUIRE_THAT(html, ContainsSubstring("<table>"));
+    REQUIRE_THAT(html, ContainsSubstring("<table"));
     REQUIRE_THAT(html, ContainsSubstring("<thead>"));
     REQUIRE_THAT(html, ContainsSubstring("<tbody>"));
     REQUIRE_THAT(html, ContainsSubstring("<th>"));
@@ -581,7 +581,7 @@ A --> B;
     REQUIRE_THAT(html, ContainsSubstring("checkbox"));
     REQUIRE_THAT(html, ContainsSubstring("code-block"));
     REQUIRE_THAT(html, ContainsSubstring("<blockquote>"));
-    REQUIRE_THAT(html, ContainsSubstring("<table>"));
+    REQUIRE_THAT(html, ContainsSubstring("<table"));
     REQUIRE_THAT(html, ContainsSubstring("<hr>"));
     REQUIRE_THAT(html, ContainsSubstring("<del>"));
     REQUIRE_THAT(html, ContainsSubstring("example.com"));
