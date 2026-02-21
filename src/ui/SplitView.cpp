@@ -1361,7 +1361,7 @@ void SplitView::SetPinPreview(bool pinned)
         // Unpin: re-sync to current editor content
         if (editor_panel_ != nullptr && preview_panel_ != nullptr)
         {
-            preview_panel_->SetMarkdownContent(editor_panel_->GetContent());
+            preview_panel_->SetContent(editor_panel_->GetContent());
         }
         spdlog::debug("SplitView: preview UNPINNED");
     }
@@ -1410,7 +1410,7 @@ void SplitView::OpenInSide(const std::string& file_path)
 
         if (preview_panel_ != nullptr)
         {
-            preview_panel_->SetMarkdownContent(content);
+            preview_panel_->SetContent(content);
             // Pin the preview so it doesn't get overwritten
             SetPinPreview(true);
         }

@@ -3,9 +3,17 @@
 #include "BevelPanel.h"
 #include "core/Config.h"
 #include "core/Events.h"
+#include "core/IMathRenderer.h" // Added this include based on context
 #include "core/IMermaidRenderer.h"
+#include "core/Logger.h"
+#include "core/MarkdownDocument.h"
+#include "core/MarkdownParser.h"
 #include "core/Profiler.h"
+#include "core/ThemeEngine.h"
 #include "rendering/HtmlRenderer.h"
+#include "rendering/JsonRenderer.h"
+#include "rendering/ScriptRenderer.h"
+#include "ui/ThemeAwareWindow.h"
 
 #include <wx/clipbrd.h>
 #include <wx/sizer.h>
@@ -129,15 +137,17 @@ PreviewPanel::PreviewPanel(wxWindow* parent,
 
     // Subscribe to editor content changes (debounced)
     content_changed_sub_ = event_bus_.subscribe<core::events::EditorContentChangedEvent>(
-        [this](const core::events::EditorContentChangedEvent& evt)
-        {
-            pending_content_ = evt.content;
-            render_timer_.Start(render_debounce_ms_, wxTIMER_ONE_SHOT);
-        });
+        [this](const core::events::EditorContentChangedEvent& e) { SetContent(e.content); });
 
-    // Subscribe to active file changes (immediate render + scroll to top)
-    active_file_sub_ = event_bus_.subscribe<core::events::ActiveFileChangedEvent>(
-        [this](const core::events::ActiveFileChangedEvent& /*evt*/) { ScrollToTop(); });
+    event_subscriptions_.push_back(event_bus_.subscribe<core::events::ActiveFileChangedEvent>(
+        [this](const core::events::ActiveFileChangedEvent& e)
+        {
+            SetActiveFile(e.file_id);
+            ScrollToTop(); // Immediate scroll to top on file change
+        }));
+
+    event_subscriptions_.push_back(event_bus_.subscribe<core::events::ViewModeChangedEvent>(
+        [this](const core::events::ViewModeChangedEvent& e) { handle_view_mode_changed(e); }));
 
     // Subscribe to editor scroll changes for scroll sync
     scroll_sync_sub_ = event_bus_.subscribe<core::events::EditorScrollChangedEvent>(
@@ -168,13 +178,17 @@ PreviewPanel::~PreviewPanel()
 // Content
 // ═══════════════════════════════════════════════════════
 
-void PreviewPanel::SetMarkdownContent(const std::string& markdown)
+void PreviewPanel::SetActiveFile(const std::string& path)
+{
+    active_file_path_ = path;
+}
+
+void PreviewPanel::SetContent(const std::string& content)
 {
     // Cancel any pending debounced render
     render_timer_.Stop();
-    pending_content_.clear();
-
-    RenderContent(markdown);
+    pending_content_ = content; // Store content for debounced render
+    render_timer_.Start(render_debounce_ms_, wxTIMER_ONE_SHOT);
 }
 
 void PreviewPanel::Clear()
@@ -755,17 +769,17 @@ auto PreviewPanel::GenerateFullHtml(const std::string& body_html) const -> std::
 // Rendering pipeline
 // ═══════════════════════════════════════════════════════
 
-void PreviewPanel::RenderContent(const std::string& markdown)
+void PreviewPanel::RenderContent(const std::string& content)
 {
     MARKAMP_PROFILE_SCOPE("PreviewPanel::RenderContent");
-    if (markdown == last_rendered_content_)
+    if (content == last_rendered_content_)
     {
         return; // No change
     }
 
     // Stability #23: reject unreasonably large content (> 10MB)
     constexpr size_t kMaxContentSize = 10 * 1024 * 1024;
-    if (markdown.size() > kMaxContentSize)
+    if (content.size() > kMaxContentSize)
     {
         DisplayError("Content too large to render (> 10MB)");
         return;
@@ -782,32 +796,58 @@ void PreviewPanel::RenderContent(const std::string& markdown)
             html_view_->GetViewStart(&scroll_x, &scroll_y);
         }
 
-        // Parse markdown (handles footnote preprocessing internally)
-        auto doc_result = parser_.parse(markdown);
-        if (!doc_result.has_value())
+        std::string ext;
+        if (auto pos = active_file_path_.find_last_of('.'); pos != std::string::npos)
         {
-            DisplayError(doc_result.error());
-            return;
+            ext = active_file_path_.substr(pos);
+            for (auto& c : ext)
+                c = static_cast<char>(std::tolower(c));
         }
 
-        // Improvement #21: lazy renderer config — only reconfigure if renderers changed
-        renderer_.set_mermaid_renderer(mermaid_renderer_);
-        renderer_.set_math_renderer(math_renderer_);
-        if (!base_path_.empty())
-        {
-            renderer_.set_base_path(base_path_);
-        }
-
-        // Render with footnotes (using data from parser result)
         std::string body_html;
-        if (doc_result->has_footnotes_)
+        if (ext == ".json")
         {
-            body_html =
-                renderer_.render_with_footnotes(*doc_result, doc_result->footnote_section_html);
+            rendering::JsonRenderer json_renderer;
+            body_html = json_renderer.render(content);
+        }
+        else if (ext == ".cpp" || ext == ".h" || ext == ".hpp" || ext == ".c" || ext == ".cc" ||
+                 ext == ".py" || ext == ".js" || ext == ".ts" || ext == ".jsx" || ext == ".tsx")
+        {
+            rendering::ScriptRenderer script_renderer;
+            body_html = script_renderer.render(content, ext);
         }
         else
         {
-            body_html = renderer_.render(*doc_result);
+            // Default to Markdown
+            // Parse markdown (handles footnote preprocessing internally)
+            auto doc_result = parser_.parse(content);
+            if (!doc_result.has_value())
+            {
+                MARKAMP_LOG_ERROR("PreviewPanel", "Failed to parse markdown content");
+                body_html = "<div style=\"color: var(--text-error);\">Failed to parse markdown "
+                            "content</div>";
+            }
+            else
+            {
+                // Improvement #21: lazy renderer config — only reconfigure if renderers changed
+                renderer_.set_mermaid_renderer(mermaid_renderer_);
+                renderer_.set_math_renderer(math_renderer_);
+                if (!base_path_.empty())
+                {
+                    renderer_.set_base_path(base_path_);
+                }
+
+                // Render with footnotes (using data from parser result)
+                if (doc_result->has_footnotes_)
+                {
+                    body_html = renderer_.render_with_footnotes(*doc_result,
+                                                                doc_result->footnote_section_html);
+                }
+                else
+                {
+                    body_html = renderer_.render(*doc_result);
+                }
+            }
         }
 
         // Sanitize HTML output (defense-in-depth)
@@ -829,7 +869,7 @@ void PreviewPanel::RenderContent(const std::string& markdown)
             html_view_->Thaw();
         }
 
-        last_rendered_content_ = markdown;
+        last_rendered_content_ = content;
     }
     catch (const std::exception& ex)
     {
@@ -1432,7 +1472,7 @@ void PreviewPanel::ProgressiveLoad(const std::string& markdown)
     if (total_lines <= kProgressiveLoadThreshold)
     {
         // Small document — render normally
-        SetMarkdownContent(markdown);
+        SetContent(markdown);
         return;
     }
 
@@ -1449,7 +1489,7 @@ void PreviewPanel::ProgressiveLoad(const std::string& markdown)
     }
 
     std::string above_fold(markdown.begin(), above_fold_end);
-    SetMarkdownContent(above_fold);
+    SetContent(above_fold);
 
     // Phase 2: schedule full render after a short delay
     progressive_pending_content_ = markdown;
@@ -1465,7 +1505,7 @@ void PreviewPanel::OnProgressiveLoadTimer(wxTimerEvent& /*event*/)
 
     auto content = std::move(progressive_pending_content_);
     progressive_pending_content_.clear();
-    SetMarkdownContent(content);
+    SetContent(content);
 }
 
 // ═══════════════════════════════════════════════════════

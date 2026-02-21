@@ -1,5 +1,21 @@
 # MarkAmp Release History
 
+## v2.6.22 — 2026-02-21
+
+### Highlights
+
+Markdown Preview Enhancements implementing structural and dynamic rendering for JSON and code script files. The PreviewPanel now intelligently routes payloads to a newly added `JsonRenderer` or `ScriptRenderer` depending on file extension.
+
+### Added
+
+- **JsonRenderer** — Parses and syntax-highlights `.json` file payloads securely utilizing `nlohmann::json`. Gracefully falls back on malformed input.
+- **ScriptRenderer** — Regex-based logic extraction for `.cpp`, `.py`, `.ts`, and other script files to generate interactive HTML `<details>` components exposing classes, functions, and imports.
+
+### Changed
+
+- **PreviewPanel** — Switched context-setting from `SetMarkdownContent` to `SetContent`. Integrated comprehensive parsing `try-catch` stability guards routing `spdlog` exceptions and safe visual errors.
+- **SplitView** — Adapted to use updated PreviewPanel file rendering interface.
+
 ## v2.5.822 — 2026-02-21
 
 ### Highlights

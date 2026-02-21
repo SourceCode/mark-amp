@@ -47,7 +47,14 @@ public:
     PreviewPanel& operator=(PreviewPanel&&) = delete;
 
     // Content
-    void SetMarkdownContent(const std::string& markdown);
+    /// Set the content to render (Markdown, JSON, Script).
+    void SetContent(const std::string& content);
+
+    /// Force an immediate render
+    void RenderNow();
+
+    /// Track the active file to know the extension
+    void SetActiveFile(const std::string& path);
     void Clear();
 
     // Scrolling
@@ -128,13 +135,15 @@ private:
     std::filesystem::path base_path_;
 
     // Rendering pipeline
-    void RenderContent(const std::string& markdown);
+    /// Core rendering logic for dynamic file types
+    void RenderContent(const std::string& content);
     void DisplayError(const std::string& error_message);
 
     // Debouncing
     int render_debounce_ms_{300};
     wxTimer render_timer_;
     std::string pending_content_;
+    std::string active_file_path_;
     std::string last_rendered_content_;
     mutable std::string cached_css_;
     std::string last_rendered_html_;   // Improvement 25: cached HTML body for DisplayError
@@ -161,6 +170,8 @@ private:
     // Event handling
     void OnLinkClicked(wxHtmlLinkEvent& event);
     void OnSize(wxSizeEvent& event);
+    void OnZoomOut(wxCommandEvent& event);
+    void OnZoomReset(wxCommandEvent& event);
 
     // Event subscriptions
     core::Subscription content_changed_sub_;

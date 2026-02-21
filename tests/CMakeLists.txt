@@ -49,6 +49,8 @@ add_library(markamp_core STATIC
     ${CMAKE_SOURCE_DIR}/src/core/IncrementalSearcher.cpp
     ${CMAKE_SOURCE_DIR}/src/core/FeatureRegistry.cpp
     ${CMAKE_SOURCE_DIR}/src/rendering/HtmlRenderer.cpp
+    ${CMAKE_SOURCE_DIR}/src/rendering/JsonRenderer.cpp
+    ${CMAKE_SOURCE_DIR}/src/rendering/ScriptRenderer.cpp
     ${CMAKE_SOURCE_DIR}/src/rendering/CodeBlockRenderer.cpp
     ${CMAKE_SOURCE_DIR}/src/core/loader/ThemeLoader.cpp
     ${CMAKE_SOURCE_DIR}/src/rendering/MermaidBlockRenderer.cpp
@@ -798,12 +800,30 @@ add_test(NAME test_performance_infra COMMAND test_performance_infra)
 add_executable(test_perf_patterns_21_40
     unit/test_perf_patterns_21_40.cpp
 )
-target_include_directories(test_perf_patterns_21_40 PRIVATE ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(test_perf_patterns_21_40 PRIVATE
+add_test(NAME test_perf_patterns_21_40 COMMAND test_perf_patterns_21_40)
+
+# --- JSON Renderer test ---
+add_executable(test_json_renderer
+    unit/test_json_renderer.cpp
+)
+target_include_directories(test_json_renderer PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_json_renderer PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+    nlohmann_json::nlohmann_json
+)
+add_test(NAME test_json_renderer COMMAND test_json_renderer)
+
+# --- Script Renderer test ---
+add_executable(test_script_renderer
+    unit/test_script_renderer.cpp
+)
+target_include_directories(test_script_renderer PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_script_renderer PRIVATE
     Catch2::Catch2WithMain
     markamp_core
 )
-add_test(NAME test_perf_patterns_21_40 COMMAND test_perf_patterns_21_40)
+add_test(NAME test_script_renderer COMMAND test_script_renderer)
 
 # --- Split View Advanced test ---
 add_executable(test_split_view_advanced

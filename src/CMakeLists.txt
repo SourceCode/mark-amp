@@ -218,6 +218,9 @@ add_executable(markamp
     rendering/HtmlRenderer.cpp
     rendering/CodeBlockRenderer.cpp
     rendering/MermaidBlockRenderer.cpp
+    rendering/JsonRenderer.cpp
+    rendering/ScriptRenderer.cpp
+
     # V8 Phase 13: FX Engine
     rendering/FxEngine.cpp
     rendering/FxMotionPreset.cpp
