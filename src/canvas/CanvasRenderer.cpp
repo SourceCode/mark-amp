@@ -97,24 +97,48 @@ auto CanvasRenderer::render_grid(wxGraphicsContext& gc, const ViewportTransform&
     }
 
     const auto visible = viewport.visible_region();
-
-    // Draw grid lines within the visible region.
     const auto& col = grid_settings_.color;
-    gc.SetPen(gc.CreatePen(wxGraphicsPenInfo(wxColour(col.r, col.g, col.b, col.a)).Width(1)));
 
-    const double start_x = std::floor(visible.min_x / effective_spacing) * effective_spacing;
-    const double start_y = std::floor(visible.min_y / effective_spacing) * effective_spacing;
-
-    for (double world_x = start_x; world_x <= visible.max_x; world_x += effective_spacing)
+    if (grid_settings_.style == GridStyle::kDots)
     {
-        const auto screen_pt = viewport.world_to_screen(Point2D{world_x, 0.0});
-        gc.StrokeLine(screen_pt.x, 0, screen_pt.x, viewport.screen_height());
+        gc.SetBrush(gc.CreateBrush(wxBrush(wxColour(col.r, col.g, col.b, col.a))));
+        gc.SetPen(*wxTRANSPARENT_PEN);
+
+        const double dot_radius = std::max(1.0, 1.5 * zoom);
+        const double start_x = std::floor(visible.min_x / effective_spacing) * effective_spacing;
+        const double start_y = std::floor(visible.min_y / effective_spacing) * effective_spacing;
+
+        for (double world_x = start_x; world_x <= visible.max_x; world_x += effective_spacing)
+        {
+            for (double world_y = start_y; world_y <= visible.max_y; world_y += effective_spacing)
+            {
+                const auto screen_pt = viewport.world_to_screen(Point2D{world_x, world_y});
+                gc.DrawEllipse(screen_pt.x - dot_radius,
+                               screen_pt.y - dot_radius,
+                               dot_radius * 2,
+                               dot_radius * 2);
+            }
+        }
     }
-
-    for (double world_y = start_y; world_y <= visible.max_y; world_y += effective_spacing)
+    else
     {
-        const auto screen_pt = viewport.world_to_screen(Point2D{0.0, world_y});
-        gc.StrokeLine(0, screen_pt.y, viewport.screen_width(), screen_pt.y);
+        // Draw grid lines within the visible region.
+        gc.SetPen(gc.CreatePen(wxGraphicsPenInfo(wxColour(col.r, col.g, col.b, col.a)).Width(1)));
+
+        const double start_x = std::floor(visible.min_x / effective_spacing) * effective_spacing;
+        const double start_y = std::floor(visible.min_y / effective_spacing) * effective_spacing;
+
+        for (double world_x = start_x; world_x <= visible.max_x; world_x += effective_spacing)
+        {
+            const auto screen_pt = viewport.world_to_screen(Point2D{world_x, 0.0});
+            gc.StrokeLine(screen_pt.x, 0, screen_pt.x, viewport.screen_height());
+        }
+
+        for (double world_y = start_y; world_y <= visible.max_y; world_y += effective_spacing)
+        {
+            const auto screen_pt = viewport.world_to_screen(Point2D{0.0, world_y});
+            gc.StrokeLine(0, screen_pt.y, viewport.screen_width(), screen_pt.y);
+        }
     }
 }
 
@@ -177,17 +201,26 @@ auto CanvasRenderer::render_minimap(wxGraphicsContext& gc,
     const double map_x = viewport.screen_width() - minimap_width - margin;
     const double map_y = viewport.screen_height() - minimap_height - margin;
 
-    gc.SetBrush(gc.CreateBrush(wxBrush(wxColour(30, 30, 30, 180))));
-    gc.SetPen(gc.CreatePen(wxGraphicsPenInfo(wxColour(100, 100, 100, 200)).Width(1)));
-    gc.DrawRectangle(map_x, map_y, minimap_width, minimap_height);
+    const auto& bg = minimap_settings_.background;
+    const auto& border = minimap_settings_.border;
+    gc.SetBrush(gc.CreateBrush(wxBrush(wxColour(bg.r, bg.g, bg.b, bg.a))));
+    gc.SetPen(
+        gc.CreatePen(wxGraphicsPenInfo(wxColour(border.r, border.g, border.b, border.a)).Width(1)));
+
+    // Rounded rect for extra polish
+    gc.DrawRoundedRectangle(map_x, map_y, minimap_width, minimap_height, 6.0);
 
     // Scale factor: world -> minimap.
     const double scale_x = minimap_width / world_extent.width();
     const double scale_y = minimap_height / world_extent.height();
     const double scale = std::min(scale_x, scale_y) * 0.9;
 
+    // Set a clipping region to ensure objects don't draw outside the rounded rect
+    gc.Clip(map_x, map_y, minimap_width, minimap_height);
+
     // Draw each object as a small rect.
-    gc.SetBrush(gc.CreateBrush(wxBrush(wxColour(120, 180, 255, 120))));
+    const auto& obj_col = minimap_settings_.object_rect;
+    gc.SetBrush(gc.CreateBrush(wxBrush(wxColour(obj_col.r, obj_col.g, obj_col.b, obj_col.a))));
     gc.SetPen(*wxTRANSPARENT_PEN);
     for (const auto* obj : objects)
     {
@@ -200,18 +233,33 @@ auto CanvasRenderer::render_minimap(wxGraphicsContext& gc,
         const double ry = map_y + (wb.min_y - world_extent.min_y) * scale;
         const double rw = std::max(2.0, wb.width() * scale);
         const double rh = std::max(2.0, wb.height() * scale);
-        gc.DrawRectangle(rx, ry, rw, rh);
+        gc.DrawRoundedRectangle(rx, ry, rw, rh, 1.0);
     }
 
     // Draw visible region indicator.
     const auto vis = viewport.visible_region();
-    gc.SetBrush(*wxTRANSPARENT_BRUSH);
-    gc.SetPen(gc.CreatePen(wxGraphicsPenInfo(wxColour(255, 200, 50, 200)).Width(2)));
+    const auto& v_col = minimap_settings_.viewport_rect;
+    gc.SetBrush(gc.CreateBrush(
+        wxBrush(wxColour(v_col.r, v_col.g, v_col.b, static_cast<uint8_t>(v_col.a * 0.15)))));
+    gc.SetPen(
+        gc.CreatePen(wxGraphicsPenInfo(wxColour(v_col.r, v_col.g, v_col.b, v_col.a)).Width(2)));
     const double vx = map_x + (vis.min_x - world_extent.min_x) * scale;
     const double vy = map_y + (vis.min_y - world_extent.min_y) * scale;
     const double vw = vis.width() * scale;
     const double vh = vis.height() * scale;
-    gc.DrawRectangle(vx, vy, vw, vh);
+    gc.DrawRoundedRectangle(vx, vy, vw, vh, 2.0);
+
+    gc.ResetClip();
+}
+
+auto CanvasRenderer::minimap_settings() const -> const MinimapSettings&
+{
+    return minimap_settings_;
+}
+
+auto CanvasRenderer::set_minimap_settings(const MinimapSettings& settings) -> void
+{
+    minimap_settings_ = settings;
 }
 
 // --- Batch 3 (#17-18) ---

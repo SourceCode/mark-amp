@@ -302,6 +302,46 @@ void CanvasWorkspacePanel::ApplyTheme()
         minimap_strip_->SetBackgroundColour(border_clr);
     }
 
+    if (canvas_panel_ != nullptr)
+    {
+        auto& renderer = canvas_panel_->renderer();
+
+        // Background
+        const auto bg_col = theme_engine_.color(core::ThemeColorToken::BgApp);
+        renderer.set_background_color(
+            canvas::CanvasColor{bg_col.Red(), bg_col.Green(), bg_col.Blue(), bg_col.Alpha()});
+
+        // Grid
+        auto grid = renderer.grid_settings();
+        const auto grid_col = theme_engine_.color(core::ThemeColorToken::BorderLight);
+        grid.color = canvas::CanvasColor{grid_col.Red(),
+                                         grid_col.Green(),
+                                         grid_col.Blue(),
+                                         static_cast<uint8_t>(grid_col.Alpha() * 0.4)};
+        grid.major_color = canvas::CanvasColor{grid_col.Red(),
+                                               grid_col.Green(),
+                                               grid_col.Blue(),
+                                               static_cast<uint8_t>(grid_col.Alpha() * 0.8)};
+        grid.background =
+            canvas::CanvasColor{bg_col.Red(), bg_col.Green(), bg_col.Blue(), bg_col.Alpha()};
+        grid.style = canvas::GridStyle::kDots;
+        renderer.set_grid_settings(grid);
+
+        // Minimap
+        auto minimap = renderer.minimap_settings();
+        minimap.background = canvas::CanvasColor{bg_col.Red(), bg_col.Green(), bg_col.Blue(), 180};
+        minimap.border =
+            canvas::CanvasColor{grid_col.Red(), grid_col.Green(), grid_col.Blue(), 200};
+
+        const auto accent = theme_engine_.color(core::ThemeColorToken::AccentPrimary);
+        minimap.viewport_rect =
+            canvas::CanvasColor{accent.Red(), accent.Green(), accent.Blue(), 200};
+        minimap.object_rect = canvas::CanvasColor{accent.Red(), accent.Green(), accent.Blue(), 100};
+        renderer.set_minimap_settings(minimap);
+
+        canvas_panel_->request_repaint();
+    }
+
     Refresh();
 }
 

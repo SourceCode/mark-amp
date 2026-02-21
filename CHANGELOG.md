@@ -1,5 +1,17 @@
 # MarkAmp Release History
 
+## v2.5.822 — 2026-02-21
+
+### Highlights
+
+Canvas UI visual fidelity polish and theme integration. Refactored the canvas rendering pipeline and UI layer to fully leverage the dynamic `ThemeEngine`. Upgraded hardcoded grid lines to a styled dot grid and enhanced the minimap with themed foregrounds, rounded rectangles, and clipped overlays. Minor UI styling upgrades for `CanvasWorkspacePanel` integrating dynamic `wxColour` alpha derivations.
+
+### Changed
+
+- **CanvasRenderer** — Replaced hardcoded `wxColour` usage with dynamic configurations logically derived from `ThemeEngine`. Logically implemented `GridStyle::kDots` directly into renderer coordinates.
+- **Minimap Overlay** — Introduced `MinimapSettings` to encapsulate properties. Replaced direct block bounds rendering with `DrawRoundedRectangle()` and visually clipped viewport overlays utilizing `ThemeColorToken::AccentPrimary`.
+- **CanvasWorkspacePanel** — Modified `ApplyTheme()` hook to reliably construct `CanvasColor` utilizing `Red()`, `Green()`, `Blue()`, and `Alpha()` directly from the active `ThemeEngine`. Node rendering refactor definitively deferred.
+
 ## v2.4.20 — 2026-02-20
 
 ### Highlights

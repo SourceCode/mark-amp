@@ -232,7 +232,7 @@ MainFrame::MainFrame(const wxString& title,
     SetDropTarget(new FileDropTarget(this));
 
     // Restore saved window state, then center if no saved state
-    restoreWindowState();
+    // restoreWindowState();
 
     // Log DPI info
     logDpiInfo();

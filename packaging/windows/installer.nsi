@@ -2,7 +2,7 @@
 ; Usage: makensis /DVERSION="1.0.0" /DBUILD_DIR="..." /DPROJECT_DIR="..." /DOUTDIR="..." installer.nsi
 
 !ifndef VERSION
-  !define VERSION "1.0.0"
+  !define VERSION "2.5.822"
 !endif
 
 !ifndef OUTDIR

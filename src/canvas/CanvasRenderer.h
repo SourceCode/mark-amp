@@ -55,6 +55,15 @@ struct GridSettings
     bool show_rulers{false};            // (#25)
 };
 
+/// Minimap rendering settings.
+struct MinimapSettings
+{
+    CanvasColor background{30, 30, 38, 180};
+    CanvasColor border{100, 100, 100, 200};
+    CanvasColor viewport_rect{100, 99, 255, 200};
+    CanvasColor object_rect{120, 180, 255, 120};
+};
+
 /// Render statistics for performance monitoring.
 struct RenderStats
 {
@@ -100,6 +109,10 @@ public:
                         double minimap_width = 200.0,
                         double minimap_height = 150.0) -> void;
 
+    /// Minimap settings.
+    [[nodiscard]] auto minimap_settings() const -> const MinimapSettings&;
+    auto set_minimap_settings(const MinimapSettings& settings) -> void;
+
     // ── Batch 3 (#17-18) ──────────────────────────────────────────
 
     /// Override the grid_settings background with a user-specified canvas background.
@@ -113,6 +126,7 @@ public:
 private:
     std::unordered_map<uint8_t, std::unique_ptr<IObjectRenderer>> renderers_;
     GridSettings grid_settings_;
+    MinimapSettings minimap_settings_;
     CanvasColor background_color_{245, 245, 245, 255};
     bool debug_wireframes_{false};
 
