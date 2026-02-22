@@ -100,6 +100,17 @@ add_library(markamp_core STATIC
     ${CMAKE_SOURCE_DIR}/src/ui/TreeViewHost.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/WebviewHostPanel.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/WalkthroughPanel.cpp
+    # V10 Phase 01: Unified control state tracking
+    ${CMAKE_SOURCE_DIR}/src/ui/ControlState.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/LayoutMetrics.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/ColorPaletteGenerator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/ColorUtils.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/ComponentSizeResolver.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/DesignTokenRegistry.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/DesignTokenValue.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/ElevationSystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/SpacingGrid.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/TypographyScale.cpp
     # V3 Phases 1–3: Block Data Model, ID Generation, Notebook
     ${CMAKE_SOURCE_DIR}/src/core/Block.cpp
     ${CMAKE_SOURCE_DIR}/src/core/BlockID.cpp
@@ -3877,6 +3888,7 @@ add_executable(test_phase19_code_intelligence test_phase19_code_intelligence.cpp
 target_include_directories(test_phase19_code_intelligence PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_phase19_code_intelligence PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_phase19_code_intelligence COMMAND test_phase19_code_intelligence)
 
@@ -3885,6 +3897,7 @@ add_executable(test_phase45_wysiwyg unit/test_phase45_wysiwyg.cpp)
 target_include_directories(test_phase45_wysiwyg PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_phase45_wysiwyg PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_phase45_wysiwyg COMMAND test_phase45_wysiwyg)
 
@@ -3893,6 +3906,7 @@ add_executable(test_phase10_search unit/test_phase10_search.cpp)
 target_include_directories(test_phase10_search PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_phase10_search PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_phase10_search COMMAND test_phase10_search)
 
@@ -3901,6 +3915,7 @@ add_executable(test_phase16_knowledge_graph unit/test_phase16_knowledge_graph.cp
 target_include_directories(test_phase16_knowledge_graph PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_phase16_knowledge_graph PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_phase16_knowledge_graph COMMAND test_phase16_knowledge_graph)
 
@@ -4450,6 +4465,7 @@ add_executable(test_control_interaction_contracts
 target_include_directories(test_control_interaction_contracts PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_control_interaction_contracts PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_control_interaction_contracts COMMAND test_control_interaction_contracts)
 
@@ -4472,6 +4488,7 @@ add_executable(test_density_hit_targets
 target_include_directories(test_density_hit_targets PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_density_hit_targets PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_density_hit_targets COMMAND test_density_hit_targets)
 
@@ -4483,6 +4500,7 @@ add_executable(test_input_model_contracts
 target_include_directories(test_input_model_contracts PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_input_model_contracts PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_input_model_contracts COMMAND test_input_model_contracts)
 
@@ -4494,6 +4512,7 @@ add_executable(test_keyboard_navigation_controls
 target_include_directories(test_keyboard_navigation_controls PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_keyboard_navigation_controls PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_keyboard_navigation_controls COMMAND test_keyboard_navigation_controls)
 
@@ -4505,6 +4524,7 @@ add_executable(test_activity_bar_accessibility
 target_include_directories(test_activity_bar_accessibility PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_activity_bar_accessibility PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_activity_bar_accessibility COMMAND test_activity_bar_accessibility)
 
@@ -4516,6 +4536,7 @@ add_executable(test_file_tree_controls
 target_include_directories(test_file_tree_controls PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_file_tree_controls PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_file_tree_controls COMMAND test_file_tree_controls)
 
@@ -4527,6 +4548,7 @@ add_executable(test_tab_bar_interactions
 target_include_directories(test_tab_bar_interactions PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_tab_bar_interactions PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_tab_bar_interactions COMMAND test_tab_bar_interactions)
 
@@ -4538,6 +4560,7 @@ add_executable(test_toolbar_behavior
 target_include_directories(test_toolbar_behavior PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_toolbar_behavior PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_toolbar_behavior COMMAND test_toolbar_behavior)
 
@@ -4549,6 +4572,7 @@ add_executable(test_command_palette_ranking
 target_include_directories(test_command_palette_ranking PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_command_palette_ranking PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_command_palette_ranking COMMAND test_command_palette_ranking)
 
@@ -4560,6 +4584,7 @@ add_executable(test_settings_navigation
 target_include_directories(test_settings_navigation PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_settings_navigation PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_settings_navigation COMMAND test_settings_navigation)
 
@@ -4571,6 +4596,7 @@ add_executable(test_settings_control_types
 target_include_directories(test_settings_control_types PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_settings_control_types PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_settings_control_types COMMAND test_settings_control_types)
 
@@ -4582,6 +4608,7 @@ add_executable(test_status_bar_actions
 target_include_directories(test_status_bar_actions PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_status_bar_actions PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_status_bar_actions COMMAND test_status_bar_actions)
 
@@ -4593,6 +4620,7 @@ add_executable(test_breadcrumb_navigation
 target_include_directories(test_breadcrumb_navigation PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_breadcrumb_navigation PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_breadcrumb_navigation COMMAND test_breadcrumb_navigation)
 
@@ -4604,6 +4632,7 @@ add_executable(test_splitter_behavior
 target_include_directories(test_splitter_behavior PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_splitter_behavior PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_splitter_behavior COMMAND test_splitter_behavior)
 
@@ -4615,6 +4644,7 @@ add_executable(test_context_menu_enablement
 target_include_directories(test_context_menu_enablement PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_context_menu_enablement PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_context_menu_enablement COMMAND test_context_menu_enablement)
 
@@ -4626,6 +4656,7 @@ add_executable(test_shortcut_overlay
 target_include_directories(test_shortcut_overlay PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_shortcut_overlay PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_shortcut_overlay COMMAND test_shortcut_overlay)
 
@@ -4637,6 +4668,7 @@ add_executable(test_notification_manager
 target_include_directories(test_notification_manager PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_notification_manager PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_notification_manager COMMAND test_notification_manager)
 
@@ -4648,6 +4680,7 @@ add_executable(test_dialog_patterns
 target_include_directories(test_dialog_patterns PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_dialog_patterns PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_dialog_patterns COMMAND test_dialog_patterns)
 
@@ -4659,6 +4692,7 @@ add_executable(test_startup_controls
 target_include_directories(test_startup_controls PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_startup_controls PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_startup_controls COMMAND test_startup_controls)
 
@@ -4670,6 +4704,7 @@ add_executable(test_search_panel
 target_include_directories(test_search_panel PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_search_panel PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_search_panel COMMAND test_search_panel)
 
@@ -4681,6 +4716,7 @@ add_executable(test_editor_find_replace_controls
 target_include_directories(test_editor_find_replace_controls PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_editor_find_replace_controls PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_editor_find_replace_controls COMMAND test_editor_find_replace_controls)
 
@@ -4692,6 +4728,7 @@ add_executable(test_editor_overlays
 target_include_directories(test_editor_overlays PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_editor_overlays PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_editor_overlays COMMAND test_editor_overlays)
 
@@ -4703,6 +4740,7 @@ add_executable(test_preview_controls
 target_include_directories(test_preview_controls PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_preview_controls PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_preview_controls COMMAND test_preview_controls)
 
@@ -4714,6 +4752,7 @@ add_executable(test_canvas_control_ux
 target_include_directories(test_canvas_control_ux PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_control_ux PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_canvas_control_ux COMMAND test_canvas_control_ux)
 
@@ -4725,6 +4764,7 @@ add_executable(test_graph_controls
 target_include_directories(test_graph_controls PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_graph_controls PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_graph_controls COMMAND test_graph_controls)
 
@@ -4736,6 +4776,7 @@ add_executable(test_extensions_browser_controls
 target_include_directories(test_extensions_browser_controls PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_extensions_browser_controls PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_extensions_browser_controls COMMAND test_extensions_browser_controls)
 
@@ -4747,6 +4788,7 @@ add_executable(test_theme_gallery_controls
 target_include_directories(test_theme_gallery_controls PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_theme_gallery_controls PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_theme_gallery_controls COMMAND test_theme_gallery_controls)
 
@@ -4758,6 +4800,7 @@ add_executable(test_tool_window_controls
 target_include_directories(test_tool_window_controls PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_tool_window_controls PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_tool_window_controls COMMAND test_tool_window_controls)
 
@@ -4769,6 +4812,7 @@ add_executable(test_cross_surface_navigation_controls
 target_include_directories(test_cross_surface_navigation_controls PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_cross_surface_navigation_controls PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_cross_surface_navigation_controls COMMAND test_cross_surface_navigation_controls)
 
@@ -4780,6 +4824,7 @@ add_executable(test_control_motion_budget
 target_include_directories(test_control_motion_budget PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_control_motion_budget PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_control_motion_budget COMMAND test_control_motion_budget)
 
@@ -4791,6 +4836,7 @@ add_executable(test_drag_drop_controls
 target_include_directories(test_drag_drop_controls PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_drag_drop_controls PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_drag_drop_controls COMMAND test_drag_drop_controls)
 
@@ -4802,6 +4848,7 @@ add_executable(test_multi_select_controls
 target_include_directories(test_multi_select_controls PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_multi_select_controls PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_multi_select_controls COMMAND test_multi_select_controls)
 
@@ -4813,6 +4860,7 @@ add_executable(test_control_error_recovery
 target_include_directories(test_control_error_recovery PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_control_error_recovery PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_control_error_recovery COMMAND test_control_error_recovery)
 
@@ -4824,6 +4872,7 @@ add_executable(test_control_accessibility_semantics
 target_include_directories(test_control_accessibility_semantics PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_control_accessibility_semantics PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_control_accessibility_semantics COMMAND test_control_accessibility_semantics)
 
@@ -4835,6 +4884,7 @@ add_executable(test_control_responsiveness
 target_include_directories(test_control_responsiveness PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_control_responsiveness PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_control_responsiveness COMMAND test_control_responsiveness)
 
@@ -4846,6 +4896,7 @@ add_executable(test_layout_personalization_controls
 target_include_directories(test_layout_personalization_controls PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_layout_personalization_controls PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_layout_personalization_controls COMMAND test_layout_personalization_controls)
 
@@ -4857,6 +4908,7 @@ add_executable(test_control_metrics_instrumentation
 target_include_directories(test_control_metrics_instrumentation PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_control_metrics_instrumentation PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_control_metrics_instrumentation COMMAND test_control_metrics_instrumentation)
 
@@ -4868,6 +4920,7 @@ add_executable(test_control_regression_harness
 target_include_directories(test_control_regression_harness PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_control_regression_harness PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_control_regression_harness COMMAND test_control_regression_harness)
 
@@ -4879,6 +4932,7 @@ add_executable(test_release_audit_gates
 target_include_directories(test_release_audit_gates PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_release_audit_gates PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_release_audit_gates COMMAND test_release_audit_gates)
 
@@ -4890,6 +4944,7 @@ add_executable(test_canvas_input_state_machine
 target_include_directories(test_canvas_input_state_machine PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_input_state_machine PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_canvas_input_state_machine COMMAND test_canvas_input_state_machine)
 
@@ -4901,6 +4956,7 @@ add_executable(test_canvas_freehand
 target_include_directories(test_canvas_freehand PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_freehand PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_canvas_freehand COMMAND test_canvas_freehand)
 
@@ -4912,6 +4968,7 @@ add_executable(test_canvas_shapes
 target_include_directories(test_canvas_shapes PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_shapes PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_canvas_shapes COMMAND test_canvas_shapes)
 
@@ -4923,6 +4980,7 @@ add_executable(test_canvas_connectors
 target_include_directories(test_canvas_connectors PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_connectors PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_canvas_connectors COMMAND test_canvas_connectors)
 
@@ -4934,6 +4992,7 @@ add_executable(test_canvas_text
 target_include_directories(test_canvas_text PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_text PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_canvas_text COMMAND test_canvas_text)
 
@@ -4945,6 +5004,7 @@ add_executable(test_canvas_color_system
 target_include_directories(test_canvas_color_system PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_color_system PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_canvas_color_system COMMAND test_canvas_color_system)
 
@@ -4956,6 +5016,7 @@ add_executable(test_canvas_style_rendering
 target_include_directories(test_canvas_style_rendering PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_style_rendering PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_canvas_style_rendering COMMAND test_canvas_style_rendering)
 
@@ -4967,6 +5028,7 @@ add_executable(test_canvas_selection_transform
 target_include_directories(test_canvas_selection_transform PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_selection_transform PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_canvas_selection_transform COMMAND test_canvas_selection_transform)
 
@@ -4978,6 +5040,7 @@ add_executable(test_canvas_snapping
 target_include_directories(test_canvas_snapping PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_snapping PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_canvas_snapping COMMAND test_canvas_snapping)
 
@@ -4989,6 +5052,7 @@ add_executable(test_canvas_layering
 target_include_directories(test_canvas_layering PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_layering PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_canvas_layering COMMAND test_canvas_layering)
 
@@ -5000,6 +5064,7 @@ add_executable(test_canvas_frames_sections
 target_include_directories(test_canvas_frames_sections PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_frames_sections PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_canvas_frames_sections COMMAND test_canvas_frames_sections)
 
@@ -5011,6 +5076,7 @@ add_executable(test_canvas_sticky_notes
 target_include_directories(test_canvas_sticky_notes PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_sticky_notes PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_canvas_sticky_notes COMMAND test_canvas_sticky_notes)
 
@@ -5022,6 +5088,7 @@ add_executable(test_canvas_images
 target_include_directories(test_canvas_images PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_images PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_canvas_images COMMAND test_canvas_images)
 
@@ -5033,6 +5100,7 @@ add_executable(test_canvas_media_embeds
 target_include_directories(test_canvas_media_embeds PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_media_embeds PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_canvas_media_embeds COMMAND test_canvas_media_embeds)
 
@@ -5044,6 +5112,7 @@ add_executable(test_canvas_pdf_objects
 target_include_directories(test_canvas_pdf_objects PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_pdf_objects PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_canvas_pdf_objects COMMAND test_canvas_pdf_objects)
 
@@ -5055,6 +5124,7 @@ add_executable(test_canvas_tables
 target_include_directories(test_canvas_tables PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_tables PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_canvas_tables COMMAND test_canvas_tables)
 
@@ -5066,6 +5136,7 @@ add_executable(test_canvas_stencils
 target_include_directories(test_canvas_stencils PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_stencils PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_canvas_stencils COMMAND test_canvas_stencils)
 
@@ -5077,6 +5148,7 @@ add_executable(test_canvas_mindmap
 target_include_directories(test_canvas_mindmap PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_mindmap PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_canvas_mindmap COMMAND test_canvas_mindmap)
 
@@ -5088,6 +5160,7 @@ add_executable(test_canvas_kanban
 target_include_directories(test_canvas_kanban PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_kanban PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_canvas_kanban COMMAND test_canvas_kanban)
 
@@ -5099,6 +5172,7 @@ add_executable(test_canvas_inspector
 target_include_directories(test_canvas_inspector PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_inspector PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_canvas_inspector COMMAND test_canvas_inspector)
 
@@ -5110,6 +5184,7 @@ add_executable(test_canvas_tool_rail
 target_include_directories(test_canvas_tool_rail PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_tool_rail PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_canvas_tool_rail COMMAND test_canvas_tool_rail)
 
@@ -5121,6 +5196,7 @@ add_executable(test_canvas_context_actions
 target_include_directories(test_canvas_context_actions PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_context_actions PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_canvas_context_actions COMMAND test_canvas_context_actions)
 
@@ -5132,6 +5208,7 @@ add_executable(test_canvas_search_model
 target_include_directories(test_canvas_search_model PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_search_model PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_canvas_search_model COMMAND test_canvas_search_model)
 
@@ -5143,6 +5220,7 @@ add_executable(test_canvas_minimap
 target_include_directories(test_canvas_minimap PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_minimap PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_canvas_minimap COMMAND test_canvas_minimap)
 
@@ -5154,6 +5232,7 @@ add_executable(test_canvas_camera
 target_include_directories(test_canvas_camera PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_camera PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_canvas_camera COMMAND test_canvas_camera)
 
@@ -5165,6 +5244,7 @@ add_executable(test_canvas_clipboard_templates
 target_include_directories(test_canvas_clipboard_templates PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_clipboard_templates PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_canvas_clipboard_templates COMMAND test_canvas_clipboard_templates)
 
@@ -5176,6 +5256,7 @@ add_executable(test_canvas_undo_redo
 target_include_directories(test_canvas_undo_redo PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_undo_redo PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_canvas_undo_redo COMMAND test_canvas_undo_redo)
 
@@ -5187,6 +5268,7 @@ add_executable(test_canvas_board_serializer
 target_include_directories(test_canvas_board_serializer PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_board_serializer PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_canvas_board_serializer COMMAND test_canvas_board_serializer)
 
@@ -5198,6 +5280,7 @@ add_executable(test_canvas_large_board_performance
 target_include_directories(test_canvas_large_board_performance PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_large_board_performance PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_canvas_large_board_performance COMMAND test_canvas_large_board_performance)
 
@@ -5209,6 +5292,7 @@ add_executable(test_canvas_hit_testing
 target_include_directories(test_canvas_hit_testing PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_hit_testing PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_canvas_hit_testing COMMAND test_canvas_hit_testing)
 
@@ -5220,6 +5304,7 @@ add_executable(test_canvas_export
 target_include_directories(test_canvas_export PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_export PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_canvas_export COMMAND test_canvas_export)
 
@@ -5231,6 +5316,7 @@ add_executable(test_canvas_keyboard_commands
 target_include_directories(test_canvas_keyboard_commands PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_keyboard_commands PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_canvas_keyboard_commands COMMAND test_canvas_keyboard_commands)
 
@@ -5242,6 +5328,7 @@ add_executable(test_canvas_accessibility
 target_include_directories(test_canvas_accessibility PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_accessibility PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_canvas_accessibility COMMAND test_canvas_accessibility)
 
@@ -5253,6 +5340,7 @@ add_executable(test_canvas_theming
 target_include_directories(test_canvas_theming PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_theming PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_canvas_theming COMMAND test_canvas_theming)
 
@@ -5264,6 +5352,7 @@ add_executable(test_canvas_auto_layout
 target_include_directories(test_canvas_auto_layout PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_auto_layout PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_canvas_auto_layout COMMAND test_canvas_auto_layout)
 
@@ -5275,6 +5364,7 @@ add_executable(test_canvas_integrity
 target_include_directories(test_canvas_integrity PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_integrity PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_canvas_integrity COMMAND test_canvas_integrity)
 
@@ -5286,6 +5376,7 @@ add_executable(test_canvas_benchmark
 target_include_directories(test_canvas_benchmark PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_benchmark PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_canvas_benchmark COMMAND test_canvas_benchmark)
 
@@ -5297,6 +5388,7 @@ add_executable(test_canvas_onboarding
 target_include_directories(test_canvas_onboarding PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_onboarding PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_canvas_onboarding COMMAND test_canvas_onboarding)
 
@@ -5308,6 +5400,7 @@ add_executable(test_canvas_polish_contracts
 target_include_directories(test_canvas_polish_contracts PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_polish_contracts PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_canvas_polish_contracts COMMAND test_canvas_polish_contracts)
 
@@ -5319,6 +5412,7 @@ add_executable(test_canvas_audit
 target_include_directories(test_canvas_audit PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_audit PRIVATE
     Catch2::Catch2WithMain
+    markamp_core
 )
 add_test(NAME test_canvas_audit COMMAND test_canvas_audit)
 

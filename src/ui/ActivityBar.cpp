@@ -1,5 +1,9 @@
 #include "ActivityBar.h"
 
+#include "ComponentSizeResolver.h"
+#include "LayoutMetrics.h"
+#include "SpacingGrid.h"
+#include "TypographyScale.h"
 #include "core/Logger.h"
 #include "core/ThemeEngine.h"
 
@@ -9,17 +13,16 @@
 namespace markamp::ui
 {
 
-ActivityBar::ActivityBar(wxWindow* parent,
-                         core::ThemeEngine& theme_engine,
-                         core::EventBus& event_bus)
+ActivityBar::ActivityBar(wxWindow* parent, DesignSystemContext& ds, core::EventBus& event_bus)
     : wxPanel(parent,
               wxID_ANY,
               wxDefaultPosition,
-              wxSize(kBarWidth, -1),
+              wxSize(ds.metrics.activity_bar_slot_height(), -1),
               wxTAB_TRAVERSAL | wxNO_BORDER | wxWANTS_CHARS)
-    , theme_engine_(theme_engine)
+    , ds_(ds)
     , event_bus_(event_bus)
 {
+    const int kBarWidth = ds_.metrics.activity_bar_slot_height();
     SetMinSize(wxSize(kBarWidth, -1));
     SetMaxSize(wxSize(kBarWidth, -1));
     SetBackgroundStyle(wxBG_STYLE_PAINT);
@@ -56,6 +59,9 @@ ActivityBar::ActivityBar(wxWindow* parent,
 
     theme_sub_ = event_bus_.subscribe<core::events::ThemeChangedEvent>(
         [this](const core::events::ThemeChangedEvent& /*evt*/) { ApplyTheme(); });
+
+    density_sub_ = event_bus_.subscribe<core::events::DensityProfileChangedEvent>(
+        [this](const core::events::DensityProfileChangedEvent& /*evt*/) { UpdateLayoutMetrics(); });
 
     // Phase 06 Task 7: Subscribe to badge notification events
     search_count_sub_ = event_bus_.subscribe<core::events::SearchResultCountEvent>(
@@ -105,33 +111,46 @@ auto ActivityBar::GetActiveItem() const -> core::events::ActivityBarItem
 
 void ActivityBar::ApplyTheme()
 {
-    SetBackgroundColour(theme_engine_.color(core::ThemeColorToken::ActivityBarBg));
+    SetBackgroundColour(ds_.theme.color(core::ThemeColorToken::ActivityBarBg));
+    Refresh();
+}
+
+void ActivityBar::UpdateLayoutMetrics()
+{
+    const int kBarWidth = ds_.metrics.activity_bar_slot_height();
+    SetMinSize(wxSize(kBarWidth, -1));
+    SetMaxSize(wxSize(kBarWidth, -1));
+    if (GetParent() != nullptr)
+    {
+        GetParent()->Layout();
+    }
     Refresh();
 }
 
 void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
 {
     wxAutoBufferedPaintDC paint_dc(this);
-    const auto& theme = theme_engine_.current_theme();
+    const auto& theme = ds_.theme.current_theme();
     const auto& clr = theme.colors;
 
     // Background
-    paint_dc.SetBackground(wxBrush(theme_engine_.color(core::ThemeColorToken::ActivityBarBg)));
+    paint_dc.SetBackground(wxBrush(ds_.theme.color(core::ThemeColorToken::ActivityBarBg)));
     paint_dc.Clear();
 
     auto size = GetClientSize();
-    int item_y = kIconPadding;
+    const int kBarWidth = ds_.metrics.activity_bar_slot_height();
+    int item_y = ds_.spacing.scaled(SpacingToken::kMd);
 
     for (int item_index = 0; item_index < static_cast<int>(items_.size()); ++item_index)
     {
         auto& item = items_[static_cast<std::size_t>(item_index)];
         item.bounds = wxRect(0, item_y, kBarWidth, kBarWidth);
 
-        const bool is_active = (item.item_id == active_item_);
-        const bool is_hover = (item_index == hover_index_);
+        const bool kIsActive = (item.item_id == active_item_);
+        const bool kIsHover = (item_index == hover_index_);
 
         // R17 Fix 30: Active item background highlight — subtle accent tint
-        if (is_active)
+        if (kIsActive)
         {
             auto active_bg = clr.accent_primary.with_alpha(0.12F);
             paint_dc.SetBrush(wxBrush(active_bg.to_wx_colour()));
@@ -140,7 +159,7 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
         }
 
         // Active indicator (left border bar)
-        if (is_active)
+        if (kIsActive)
         {
             paint_dc.SetBrush(wxBrush(clr.accent_primary.to_wx_colour()));
             paint_dc.SetPen(*wxTRANSPARENT_PEN);
@@ -148,7 +167,7 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
         }
 
         // Hover background
-        if (is_hover && !is_active)
+        if (kIsHover && !kIsActive)
         {
             auto hover = clr.bg_panel.lighten(0.1F);
             paint_dc.SetBrush(wxBrush(hover.to_wx_colour()));
@@ -166,7 +185,7 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
             press_offset_y = 1;
         }
 
-        if (is_active)
+        if (kIsActive)
         {
             paint_dc.SetTextForeground(clr.editor_fg.to_wx_colour());
 
@@ -182,13 +201,12 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
             paint_dc.SetTextForeground(dimmed.to_wx_colour());
         }
 
-        auto font = GetFont();
-        font.SetPointSize(16);
+        auto font = ds_.typography.font(TypeSlot::kBodyStrong);
         paint_dc.SetFont(font);
 
-        const auto text_extent = paint_dc.GetTextExtent(item.icon_char);
-        const int text_x = (kBarWidth - text_extent.GetWidth()) / 2 + press_offset_x;
-        const int text_y = item_y + (kBarWidth - text_extent.GetHeight()) / 2 + press_offset_y;
+        const auto kTextExtent = paint_dc.GetTextExtent(item.icon_char);
+        const int kTextX = (kBarWidth - kTextExtent.GetWidth()) / 2 + press_offset_x;
+        const int kTextY = item_y + (kBarWidth - kTextExtent.GetHeight()) / 2 + press_offset_y;
 
         // 36. Modified Dot: Ensure dirty/modified dot uses warning color
         if (item.icon_char == "\xE2\x97\x8F")
@@ -196,7 +214,7 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
             paint_dc.SetTextForeground(clr.editor_gutter_warn.to_wx_colour());
         }
 
-        paint_dc.DrawText(item.icon_char, text_x, text_y);
+        paint_dc.DrawText(item.icon_char, kTextX, kTextY);
 
         // R18 Fix 25: Badge count indicator
         if (item.badge_count > 0)
@@ -206,23 +224,22 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
             paint_dc.SetPen(*wxTRANSPARENT_PEN);
 
             paint_dc.SetTextForeground(*wxWHITE);
-            auto badge_font = GetFont();
-            badge_font.SetPointSize(8);
+            auto badge_font = ds_.typography.font(TypeSlot::kCaption);
             paint_dc.SetFont(badge_font);
             auto badge_text = wxString::Format("%d", item.badge_count);
             auto badge_extent = paint_dc.GetTextExtent(badge_text);
 
-            const int text_w = badge_extent.GetWidth();
-            const int badge_h = 16;
-            const int badge_w = std::max(16, text_w + 8);
-            const int badge_x = kBarWidth - 8 - badge_w / 2;
-            const int badge_y_pos = item_y + 4;
+            const int kTextW = badge_extent.GetWidth();
+            const int kBadgeH = 16;
+            const int kBadgeW = std::max(16, kTextW + 8);
+            const int kBadgeX = kBarWidth - 8 - kBadgeW / 2;
+            const int kBadgeYPos = item_y + 4;
 
             paint_dc.DrawRoundedRectangle(
-                badge_x - badge_w / 2, badge_y_pos, badge_w, badge_h, badge_h / 2.0);
+                kBadgeX - kBadgeW / 2, kBadgeYPos, kBadgeW, kBadgeH, kBadgeH / 2.0);
             paint_dc.DrawText(badge_text,
-                              badge_x - text_w / 2,
-                              badge_y_pos + badge_h / 2 - badge_extent.GetHeight() / 2);
+                              kBadgeX - kTextW / 2,
+                              kBadgeYPos + kBadgeH / 2 - badge_extent.GetHeight() / 2);
 
             // Restore font
             paint_dc.SetFont(font);
@@ -252,22 +269,22 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
     if (items_.size() > 1)
     {
         const auto& last_item = items_.back();
-        const int sep_y = last_item.bounds.GetY() - 2;
+        const int kSepY = last_item.bounds.GetY() - 2;
         auto sep_col = clr.border_light.to_wx_colour();
         paint_dc.SetPen(wxPen(sep_col));
-        paint_dc.DrawLine(8, sep_y, kBarWidth - 8, sep_y);
+        paint_dc.DrawLine(8, kSepY, kBarWidth - 8, kSepY);
     }
 
     // R20 Fix 17: Drag handle dots — 3 small dots centered in bar
     {
-        const int drag_y = size.GetHeight() - 40;
+        const int kDragY = size.GetHeight() - 40;
         auto dot_col = clr.text_muted.to_wx_colour();
         paint_dc.SetBrush(wxBrush(dot_col));
         paint_dc.SetPen(*wxTRANSPARENT_PEN);
-        const int dot_x = kBarWidth / 2;
+        const int kDotX = kBarWidth / 2;
         for (int dot_idx = 0; dot_idx < 3; ++dot_idx)
         {
-            paint_dc.DrawCircle(dot_x, drag_y + dot_idx * 6, 2);
+            paint_dc.DrawCircle(kDotX, kDragY + dot_idx * 6, 2);
         }
     }
 
@@ -277,19 +294,18 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
         const auto& hov_item = items_[static_cast<std::size_t>(hover_index_)];
         auto pill_bg = clr.bg_header.to_wx_colour();
         auto pill_fg = clr.editor_fg.to_wx_colour();
-        auto pill_font = GetFont();
-        pill_font.SetPointSize(9);
+        auto pill_font = ds_.typography.font(TypeSlot::kBody);
         paint_dc.SetFont(pill_font);
         auto tip_extent = paint_dc.GetTextExtent(hov_item.label);
-        const int pill_x = kBarWidth + 4;
-        const int pill_y =
+        const int kPillX = kBarWidth + 4;
+        const int kPillY =
             hov_item.bounds.GetY() + (hov_item.bounds.GetHeight() - tip_extent.GetHeight() - 8) / 2;
         paint_dc.SetBrush(wxBrush(pill_bg));
         paint_dc.SetPen(wxPen(clr.border_light.to_wx_colour()));
         paint_dc.DrawRoundedRectangle(
-            pill_x, pill_y, tip_extent.GetWidth() + 16, tip_extent.GetHeight() + 8, 6);
+            kPillX, kPillY, tip_extent.GetWidth() + 16, tip_extent.GetHeight() + 8, 6);
         paint_dc.SetTextForeground(pill_fg);
-        paint_dc.DrawText(hov_item.label, pill_x + 8, pill_y + 4);
+        paint_dc.DrawText(hov_item.label, kPillX + 8, kPillY + 4);
     }
 
     // Separator line on the right edge

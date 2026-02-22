@@ -13,6 +13,7 @@
 #include "core/Logger.h"
 #include "core/ShortcutManager.h"
 #include "core/ThemeEngine.h"
+#include "ui/LayoutMetrics.h"
 
 #include <wx/aboutdlg.h>
 #include <wx/display.h>
@@ -1873,6 +1874,39 @@ void MainFrame::createMenuBar()
                 {
                     // Pre-fill search query for the settings panel
                     MARKAMP_LOG_DEBUG("Settings search pre-fill: {}", evt.query);
+                }
+            }));
+
+        // Task 13: Handle density profile change from Settings
+        subscriptions_.push_back(event_bus_->subscribe<core::events::SettingChangedEvent>(
+            [this](const core::events::SettingChangedEvent& evt)
+            {
+                if (evt.key == "appearance.densityProfile")
+                {
+                    ui::DensityProfile profile = ui::DensityProfile::kDefault;
+                    if (evt.value == "compact")
+                    {
+                        profile = ui::DensityProfile::kCompact;
+                    }
+                    else if (evt.value == "comfortable")
+                    {
+                        profile = ui::DensityProfile::kComfortable;
+                    }
+
+                    // 1. Update LayoutMetrics (and underlying CostSizeResolver)
+                    ui::LayoutMetrics::get().set_profile(profile);
+
+                    // 2. Publish explicit design system event
+                    core::events::DensityProfileChangedEvent density_evt;
+                    density_evt.new_profile = static_cast<int>(profile);
+                    event_bus_->publish(density_evt);
+
+                    // 3. Force re-layout and repaint
+                    MARKAMP_LOG_INFO("Applied new density profile: {}", evt.value);
+                    this->Freeze();
+                    this->Layout();
+                    this->Refresh();
+                    this->Thaw();
                 }
             }));
     }

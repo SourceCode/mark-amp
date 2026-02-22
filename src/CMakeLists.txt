@@ -8,6 +8,14 @@ add_executable(markamp
     # V10 Phase 01: Unified control state tracking
     ui/ControlState.cpp
     ui/LayoutMetrics.cpp
+    ui/ColorPaletteGenerator.cpp
+    ui/ColorUtils.cpp
+    ui/ComponentSizeResolver.cpp
+    ui/DesignTokenRegistry.cpp
+    ui/DesignTokenValue.cpp
+    ui/ElevationSystem.cpp
+    ui/SpacingGrid.cpp
+    ui/TypographyScale.cpp
     ui/InputModel.cpp
     ui/FocusManager.cpp
     ui/ActivityBarModel.cpp
@@ -715,10 +723,27 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "Src" FILES
     ui/BevelPanel.cpp
     ui/ThemeAwareWindow.h
     ui/ThemeAwareWindow.cpp
+    ui/ColorPaletteGenerator.h
+    ui/ColorPaletteGenerator.cpp
+    ui/ColorUtils.h
+    ui/ColorUtils.cpp
+    ui/ComponentSizeResolver.h
+    ui/ComponentSizeResolver.cpp
+    ui/DensityProfile.h
+    ui/DesignTokenRegistry.h
+    ui/DesignTokenRegistry.cpp
+    ui/DesignTokenValue.h
+    ui/DesignTokenValue.cpp
+    ui/ElevationSystem.h
+    ui/ElevationSystem.cpp
+    ui/LayoutMetrics.h
+    ui/LayoutMetrics.cpp
+    ui/SpacingGrid.h
+    ui/SpacingGrid.cpp
+    ui/TypographyScale.h
+    ui/TypographyScale.cpp
     ui/ThemedScrollbar.h
     ui/ThemedScrollbar.cpp
-    ui/LayoutManager.h
-    ui/LayoutManager.cpp
     ui/ToolWindowHost.h
     ui/ToolWindowHost.cpp
     # V8 Phase 12: Surface link router + transition coordinator

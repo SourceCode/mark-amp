@@ -1,5 +1,17 @@
 # MarkAmp Release History
 
+## v2.7.25 — 2026-02-22
+
+### Highlights
+
+V13 Phase 01: Design System Foundation enhancements. Refactored the core SplitView and SplitterBar components to utilize the new centralized DesignSystemContext for responsive layout metrics, spacing grids, and theme colors, removing legacy hard-coded values.
+
+### Changed
+
+- **LayoutMetrics** — Added `splitter_hit_width()` and `splitter_visual_width()` to provide density-aware sizing.
+- **SplitterBar** — Refactored to consume `DesignSystemContext`, dynamically resizing hit zones and dynamically painting layout indicators according to central metrics and themes.
+- **SplitView** — Updated child bounds calculation and central divider drawing heuristics to source layout dimensions from the central design system.
+
 ## v2.7.24 — 2026-02-22
 
 ### Highlights

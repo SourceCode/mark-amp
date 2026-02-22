@@ -10,14 +10,21 @@ namespace markamp::ui
 {
 
 SplitterBar::SplitterBar(wxWindow* parent,
-                         core::ThemeEngine& theme_engine,
+                         DesignSystemContext& ds_ctx,
                          LayoutManager* layout_manager)
-    : ThemeAwareWindow(
-          parent, theme_engine, wxID_ANY, wxDefaultPosition, wxSize(kHitWidth, -1), wxNO_BORDER)
+    : ThemeAwareWindow(parent,
+                       ds_ctx.theme,
+                       wxID_ANY,
+                       wxDefaultPosition,
+                       wxSize(ds_ctx.metrics.splitter_hit_width(), -1),
+                       wxNO_BORDER)
+    , ds_(ds_ctx)
     , layout_manager_(layout_manager)
     , hover_timer_(this, kHoverTimerId)
 {
     SetBackgroundStyle(wxBG_STYLE_PAINT);
+
+    const int kHitWidth = ds_.metrics.splitter_hit_width();
     SetMinSize(wxSize(kHitWidth, -1));
     SetMaxSize(wxSize(kHitWidth, -1));
 
@@ -40,33 +47,38 @@ void SplitterBar::OnPaint(wxPaintEvent& /*event*/)
 {
     wxAutoBufferedPaintDC paint_dc(this);
     auto client_sz = GetClientSize();
-    const int bar_width = client_sz.GetWidth();
-    const int bar_height = client_sz.GetHeight();
+    const int kBarWidth = client_sz.GetWidth();
+    const int kBarHeight = client_sz.GetHeight();
 
     // Background — BgApp
-    paint_dc.SetBrush(theme_engine().brush(core::ThemeColorToken::BgApp));
+    paint_dc.SetBrush(ds_.theme.brush(core::ThemeColorToken::BgApp));
     paint_dc.SetPen(*wxTRANSPARENT_PEN);
     paint_dc.DrawRectangle(client_sz);
 
     // 8B + 8C: Soft center line — blend between BorderLight and AccentPrimary
-    const int center_x = bar_width / 2;
+    const int kCenterX = kBarWidth / 2;
 
     if (hover_alpha_ > 0.01F)
     {
         // Draw accent line at hover_alpha_ opacity
-        auto accent = theme_engine().color(core::ThemeColorToken::AccentPrimary);
+        auto accent = ds_.theme.color(core::ThemeColorToken::AccentPrimary);
         auto alpha_val =
             static_cast<unsigned char>(std::clamp(static_cast<int>(hover_alpha_ * 180.0F), 0, 255));
-        paint_dc.SetPen(wxPen(wxColour(accent.Red(), accent.Green(), accent.Blue(), alpha_val), 2));
-        paint_dc.DrawLine(center_x, 0, center_x, bar_height);
+
+        const int kLineWidth = ds_.metrics.splitter_visual_width();
+        paint_dc.SetPen(
+            wxPen(wxColour(accent.Red(), accent.Green(), accent.Blue(), alpha_val), kLineWidth));
+        paint_dc.DrawLine(kCenterX, 0, kCenterX, kBarHeight);
     }
     else
     {
         // Default: subtle BorderLight at 30% alpha
-        auto border_col = theme_engine().color(core::ThemeColorToken::BorderLight);
-        paint_dc.SetPen(
-            wxPen(wxColour(border_col.Red(), border_col.Green(), border_col.Blue(), 77), 1));
-        paint_dc.DrawLine(center_x, 0, center_x, bar_height);
+        auto border_col = ds_.theme.color(core::ThemeColorToken::BorderLight);
+
+        const int kLineWidth = ds_.metrics.splitter_visual_width();
+        paint_dc.SetPen(wxPen(wxColour(border_col.Red(), border_col.Green(), border_col.Blue(), 77),
+                              kLineWidth));
+        paint_dc.DrawLine(kCenterX, 0, kCenterX, kBarHeight);
     }
 }
 
@@ -142,6 +154,14 @@ void SplitterBar::OnHoverTimer(wxTimerEvent& /*event*/)
     {
         hover_timer_.Stop();
     }
+}
+
+void SplitterBar::UpdateLayoutMetrics()
+{
+    const int hit_width = ds_.metrics.splitter_hit_width();
+    SetMinSize(wxSize(hit_width, -1));
+    SetMaxSize(wxSize(hit_width, -1));
+    Refresh();
 }
 
 } // namespace markamp::ui

@@ -2,6 +2,7 @@
 
 #include "BevelPanel.h"
 #include "EditorPanel.h"
+#include "LayoutMetrics.h"
 #include "PreviewPanel.h"
 #include "core/Config.h"
 #include "core/Events.h"
@@ -33,19 +34,20 @@ auto SplitView::EaseOutCubic(double progress) -> double
 // ═══════════════════════════════════════════════════════
 
 SplitView::SplitView(wxWindow* parent,
-                     core::ThemeEngine& theme_engine,
+                     DesignSystemContext& ds,
                      core::EventBus& event_bus,
                      core::Config* config,
                      core::IMermaidRenderer* mermaid_renderer,
                      core::IMathRenderer* math_renderer)
-    : ThemeAwareWindow(parent, theme_engine)
+    : ThemeAwareWindow(parent, ds.theme)
+    , ds_(ds)
     , event_bus_(event_bus)
     , config_(config)
 {
     // --- Create child panels ---
-    editor_panel_ = new EditorPanel(this, theme_engine, event_bus);
+    editor_panel_ = new EditorPanel(this, ds.theme, event_bus);
     preview_panel_ =
-        new PreviewPanel(this, theme_engine, event_bus, mermaid_renderer, nullptr, math_renderer);
+        new PreviewPanel(this, ds.theme, event_bus, mermaid_renderer, nullptr, math_renderer);
 
     // --- Divider (custom painted) ---
     divider_panel_ = new wxPanel(this, wxID_ANY);
@@ -320,9 +322,10 @@ void SplitView::OnTransitionTimer(wxTimerEvent& /*event*/)
     int split_pos = static_cast<int>(static_cast<double>(width) * current);
     split_pos = std::clamp(split_pos, 0, width);
 
+    const int divider_w = ds_.metrics.splitter_hit_width();
     int editor_width = split_pos;
     int divider_x = split_pos;
-    int preview_x = split_pos + (divider_panel_->IsShown() ? kDividerWidth : 0);
+    int preview_x = split_pos + (divider_panel_->IsShown() ? divider_w : 0);
     int preview_width = width - preview_x;
 
     if (editor_width > 0)
@@ -331,7 +334,7 @@ void SplitView::OnTransitionTimer(wxTimerEvent& /*event*/)
     }
     if (divider_panel_->IsShown())
     {
-        divider_panel_->SetSize(divider_x, 0, kDividerWidth, height);
+        divider_panel_->SetSize(divider_x, 0, divider_w, height);
     }
     if (preview_width > 0)
     {
@@ -645,7 +648,8 @@ void SplitView::OnDividerPaint(wxPaintEvent& /*event*/)
     }
 
     int center_x = size.GetWidth() / 2;
-    paint_dc.SetPen(wxPen(line_col, 1));
+    const int line_w = ds_.metrics.splitter_visual_width();
+    paint_dc.SetPen(wxPen(line_col, line_w));
     paint_dc.DrawLine(center_x, 0, center_x, size.GetHeight());
 
     // Grip dots (3 dots centered vertically)
@@ -837,36 +841,44 @@ void SplitView::UpdateLayout()
             if (split_direction_ == core::events::SplitDirection::Vertical)
             {
                 // Vertical: editor on top, preview on bottom
+                const int divider_w = ds_.metrics.splitter_hit_width();
                 const int split_pos =
                     std::clamp(static_cast<int>(static_cast<double>(height) * split_ratio_),
-                               kDividerWidth * 2,
-                               height - kDividerWidth * 2);
+                               divider_w * 2,
+                               height - divider_w * 2);
                 const int editor_height = split_pos;
-                const int preview_y = split_pos + kDividerWidth;
+                const int preview_y = split_pos + divider_w;
                 const int preview_height = height - preview_y;
 
                 editor_panel_->SetSize(0, 0, width, editor_height);
-                divider_panel_->SetSize(0, split_pos, width, kDividerWidth);
+                divider_panel_->SetSize(0, split_pos, width, divider_w);
                 preview_panel_->SetSize(0, preview_y, width, preview_height);
             }
             else
             {
                 // Horizontal: editor on left, preview on right
+                const int divider_w = ds_.metrics.splitter_hit_width();
                 const int split_pos =
                     std::clamp(static_cast<int>(static_cast<double>(width) * split_ratio_),
-                               kDividerWidth * 2,
-                               width - kDividerWidth * 2);
+                               divider_w * 2,
+                               width - divider_w * 2);
                 const int editor_width = split_pos;
-                const int preview_x = split_pos + kDividerWidth;
+                const int preview_x = split_pos + divider_w;
                 const int preview_width = width - preview_x;
 
                 editor_panel_->SetSize(0, 0, editor_width, height);
-                divider_panel_->SetSize(split_pos, 0, kDividerWidth, height);
+                divider_panel_->SetSize(split_pos, 0, divider_w, height);
                 preview_panel_->SetSize(preview_x, 0, preview_width, height);
             }
             break;
         }
     }
+}
+
+void SplitView::UpdateLayoutMetrics()
+{
+    UpdateLayout();
+    Refresh();
 }
 
 void SplitView::OnSize(wxSizeEvent& event)

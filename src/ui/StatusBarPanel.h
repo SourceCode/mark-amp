@@ -1,9 +1,9 @@
 #pragma once
 
+#include "DesignSystemContext.h"
 #include "ThemeAwareWindow.h"
 #include "core/EventBus.h"
 #include "core/Events.h"
-#include "core/ThemeEngine.h"
 
 #include <wx/panel.h>
 #include <wx/timer.h>
@@ -21,7 +21,7 @@ namespace markamp::ui
 class StatusBarPanel : public ThemeAwareWindow
 {
 public:
-    StatusBarPanel(wxWindow* parent, core::ThemeEngine& theme_engine, core::EventBus& event_bus);
+    StatusBarPanel(wxWindow* parent, DesignSystemContext& context, core::EventBus& event_bus);
 
     // State setters
     void set_cursor_position(int line, int column);
@@ -89,8 +89,6 @@ public:
         return view_mode_;
     }
 
-    static constexpr int kHeight = 24;
-
     /// Data-driven layout item for status bar rendering.
     struct StatusItem
     {
@@ -120,9 +118,11 @@ protected:
     void OnThemeChanged(const core::Theme& new_theme) override;
 
 private:
+    DesignSystemContext& ds_;
     core::EventBus& event_bus_;
 
     // Event subscriptions
+    core::Subscription density_sub_;
     core::Subscription theme_name_sub_;
     core::Subscription cursor_sub_;
     core::Subscription content_sub_;
@@ -172,6 +172,8 @@ private:
     // Layout items
     std::vector<StatusItem> left_items_;
     std::vector<StatusItem> right_items_;
+
+    void UpdateLayoutMetrics();
 
     // Event handlers
     void OnPaint(wxPaintEvent& event);

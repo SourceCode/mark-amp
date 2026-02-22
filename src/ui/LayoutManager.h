@@ -1,8 +1,15 @@
 #pragma once
 
+#include "ComponentSizeResolver.h"
+#include "DesignSystemContext.h"
+#include "DesignTokenRegistry.h"
+#include "ElevationSystem.h"
+#include "LayoutMetrics.h"
 #include "SidebarPanelRegistry.h"
 #include "SidebarToolbar.h"
+#include "SpacingGrid.h"
 #include "ThemeAwareWindow.h"
+#include "TypographyScale.h"
 #include "core/EventBus.h"
 #include "core/Events.h"
 #include "core/FileNode.h"
@@ -164,6 +171,12 @@ private:
     core::FeatureRegistry* feature_registry_{nullptr};
     core::IMermaidRenderer* mermaid_renderer_{nullptr};
     core::IMathRenderer* math_renderer_{nullptr};
+
+    std::unique_ptr<DesignTokenRegistry> design_registry_;
+    std::unique_ptr<TypographyScale> typography_scale_;
+    std::unique_ptr<SpacingGrid> spacing_grid_;
+    std::unique_ptr<ElevationSystem> elevation_system_;
+    std::unique_ptr<DesignSystemContext> ds_context_;
 
     // Child panels
     wxPanel* sidebar_panel_{nullptr};

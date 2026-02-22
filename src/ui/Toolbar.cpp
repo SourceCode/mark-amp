@@ -1,5 +1,7 @@
 #include "Toolbar.h"
 
+#include "SpacingGrid.h"
+#include "TypographyScale.h"
 #include "core/Events.h"
 #include "core/Logger.h"
 
@@ -12,21 +14,12 @@
 namespace markamp::ui
 {
 
-namespace
-{
-constexpr int kButtonPadH = 8;
-constexpr int kButtonPadV = 8; // 8E: was 6
-constexpr int kIconSize = 14;
-constexpr int kButtonGap = 12;   // UX: increased gap
-constexpr int kRightMargin = 24; // UX: increased margin
-constexpr int kLeftMargin = 24;  // UX: increased margin
-constexpr double kFontSizeLabel = 11.0;
-} // namespace
-
-Toolbar::Toolbar(wxWindow* parent, core::ThemeEngine& theme_engine, core::EventBus& event_bus)
-    : ThemeAwareWindow(parent, theme_engine)
+Toolbar::Toolbar(wxWindow* parent, DesignSystemContext& ds, core::EventBus& event_bus)
+    : ThemeAwareWindow(parent, ds.theme)
+    , ds_(ds)
     , event_bus_(event_bus)
 {
+    const int kHeight = ds_.metrics.toolbar_height();
     SetMinSize(wxSize(-1, kHeight));
     SetMaxSize(wxSize(-1, kHeight));
 
@@ -137,6 +130,15 @@ auto Toolbar::GetActiveViewMode() const -> core::events::ViewMode
     return active_mode_;
 }
 
+void Toolbar::UpdateLayoutMetrics()
+{
+    const int kHeight = ds_.metrics.toolbar_height();
+    SetMinSize(wxSize(-1, kHeight));
+    SetMaxSize(wxSize(-1, kHeight));
+    RecalculateButtonRects();
+    Refresh();
+}
+
 void Toolbar::SetOnThemeGalleryClick(ThemeGalleryCallback callback)
 {
     on_theme_gallery_click_ = std::move(callback);
@@ -173,6 +175,16 @@ void Toolbar::SetButtonEnabled(int icon_type, bool enabled)
 
 void Toolbar::RecalculateButtonRects()
 {
+    const int kLeftMargin = ds_.spacing.scaled(SpacingToken::kXl);
+    const int kRightMargin = ds_.spacing.scaled(SpacingToken::kXl);
+    const int kButtonPadV = ds_.spacing.scaled(SpacingToken::kSm);
+    const int kButtonPadH = ds_.spacing.scaled(SpacingToken::kSm);
+    const int kButtonGap = ds_.spacing.scaled(SpacingToken::kMd);
+    const int kIconSize = ds_.metrics.icon_size_small();
+    const int kHeight = ds_.metrics.toolbar_height();
+    const double kFontSizeLabel =
+        static_cast<double>(ds_.typography.font(TypeSlot::kCaption).GetPointSize());
+
     // Measure text widths using a temporary DC
     wxClientDC dc(this);
     auto font = wxFont(wxFontInfo(kFontSizeLabel).Family(wxFONTFAMILY_SWISS).Bold());
@@ -584,7 +596,7 @@ void Toolbar::OnPaint(wxPaintEvent& /*event*/)
         {
             zoom_x = right_buttons_.back().rect.GetLeft() - zw - 12;
         }
-        double zoom_y = (kHeight - zh) / 2.0;
+        double zoom_y = (ds_.metrics.toolbar_height() - zh) / 2.0;
         // Draw badge background pill
         auto badge_bg = wxColour(t.colors.bg_app.to_rgba_string());
         gc.SetBrush(gc.CreateBrush(wxBrush(badge_bg)));
@@ -655,6 +667,11 @@ void Toolbar::DrawButton(wxGraphicsContext& gc, const ButtonInfo& btn, const cor
 
     gc.SetPen(gc.CreatePen(wxGraphicsPenInfo(text_color).Width(1.5)));
     gc.SetBrush(*wxTRANSPARENT_BRUSH);
+
+    const int kButtonPadH = ds_.spacing.scaled(SpacingToken::kSm);
+    const int kIconSize = ds_.metrics.icon_size_small();
+    const double kFontSizeLabel =
+        static_cast<double>(ds_.typography.font(TypeSlot::kCaption).GetPointSize());
 
     // Draw icon (centered vertically, left-aligned in button)
     double icon_x = rx + kButtonPadH;

@@ -684,6 +684,24 @@ void SettingsCatalog::register_builtins()
                       100,
                       "builtin"});
 
+    register_setting({"appearance.densityProfile",
+                      "Density Profile",
+                      "Controls the overall UI spacing and sizing",
+                      "Appearance",
+                      "",
+                      ConfigScope::kApplication,
+                      SettingType::Choice,
+                      "default",
+                      {"compact", "default", "comfortable"},
+                      {"density", "spacing", "size", "compact", "comfortable"},
+                      false,
+                      false,
+                      false,
+                      0,
+                      0,
+                      100,
+                      "builtin"});
+
     // ── Advanced settings ──
 
     register_setting({"advanced.autoSave",

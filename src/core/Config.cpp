@@ -530,6 +530,7 @@ auto Config::cached() const -> const Config::CachedValues&
 void Config::rebuild_cache()
 {
     cached_.theme = get_string("theme", "midnight-neon");
+    cached_.density_profile = get_string("appearance.densityProfile", "default");
     cached_.view_mode = get_string("view_mode", "split");
     cached_.font_family = get_string("font_family", "Menlo");
     cached_.last_workspace = get_string("last_workspace", "");

@@ -119,6 +119,23 @@ MARKAMP_DECLARE_EVENT_WITH_FIELDS(ThemeUndoRequestEvent)
 MARKAMP_DECLARE_EVENT_END;
 
 // ============================================================================
+// Design System events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DensityProfileChangedEvent)
+int new_profile{0}; // DensityProfile as int
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TypographyScaleChangedEvent)
+std::string base_sans;
+std::string base_mono;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ElevationModeChangedEvent)
+bool dark_mode{true};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
 // File events
 // ============================================================================
 

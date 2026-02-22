@@ -1,5 +1,6 @@
 #pragma once
 
+#include "DesignSystemContext.h"
 #include "ThemeAwareWindow.h"
 #include "core/EventBus.h"
 #include "core/Events.h"
@@ -21,7 +22,7 @@ namespace markamp::ui
 class TabBar : public ThemeAwareWindow
 {
 public:
-    TabBar(wxWindow* parent, core::ThemeEngine& theme_engine, core::EventBus& event_bus);
+    TabBar(wxWindow* parent, DesignSystemContext& ds, core::EventBus& event_bus);
 
     // Tab management
     void AddTab(const std::string& file_path, const std::string& display_name);
@@ -61,12 +62,11 @@ public:
         workspace_root_ = root_path;
     }
 
+    void UpdateLayoutMetrics();
+
     // Constants
-    static constexpr int kHeight = 36;
     static constexpr int kMaxTabWidth = 200;
     static constexpr int kMinTabWidth = 100;
-    static constexpr int kTabPaddingH = 12;
-    static constexpr int kCloseButtonSize = 14;
     static constexpr int kCloseButtonMargin = 6;
     static constexpr int kPinnedStripeWidth = 2;    // R19 Fix 2
     static constexpr float kWidthAnimSpeed = 0.15F; // R19 Fix 1: interpolation factor
@@ -101,6 +101,7 @@ protected:
     void OnThemeChanged(const core::Theme& new_theme) override;
 
 private:
+    DesignSystemContext& ds_;
     core::EventBus& event_bus_;
 
     // Tab state

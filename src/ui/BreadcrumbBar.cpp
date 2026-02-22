@@ -1,5 +1,6 @@
 #include "BreadcrumbBar.h"
 
+#include "TypographyScale.h"
 #include "core/Events.h"
 
 #include <wx/sizer.h>
@@ -7,24 +8,23 @@
 namespace markamp::ui
 {
 
-BreadcrumbBar::BreadcrumbBar(wxWindow* parent,
-                             core::ThemeEngine& theme_engine,
-                             core::EventBus& event_bus)
-    : wxPanel(parent,
-              wxID_ANY,
-              wxDefaultPosition,
-              wxSize(-1, 24),
-              wxTAB_TRAVERSAL | wxNO_BORDER | wxWANTS_CHARS)
-    , theme_engine_(theme_engine)
+BreadcrumbBar::BreadcrumbBar(wxWindow* parent, DesignSystemContext& ds, core::EventBus& event_bus)
+    : ThemeAwareWindow(parent,
+                       ds.theme,
+                       wxID_ANY,
+                       wxDefaultPosition,
+                       wxSize(-1, ds.metrics.row_height()),
+                       wxTAB_TRAVERSAL | wxNO_BORDER | wxWANTS_CHARS)
+    , ds_(ds)
     , event_bus_(event_bus)
 {
     auto* sizer = new wxBoxSizer(wxHORIZONTAL);
 
     label_ = new wxStaticText(this, wxID_ANY, wxEmptyString);
-    sizer->Add(label_, 1, wxALIGN_CENTER_VERTICAL | wxLEFT, 12);
+    sizer->Add(label_, 1, wxALIGN_CENTER_VERTICAL | wxLEFT, ds_.spacing.scaled(SpacingToken::kMd));
 
     SetSizer(sizer);
-    ApplyTheme();
+    OnThemeChanged(ds_.theme.current_theme());
 
     SetCanFocus(true);
 
@@ -42,7 +42,8 @@ BreadcrumbBar::BreadcrumbBar(wxWindow* parent,
     Bind(wxEVT_SET_FOCUS,
          [this](wxFocusEvent& event)
          {
-             auto focus_col = theme_engine_.color(core::ThemeColorToken::AccentPrimary);
+             auto focus_col =
+                 wxColour(ds_.theme.current_theme().colors.accent_primary.to_rgba_string());
              label_->SetForegroundColour(focus_col);
              label_->Refresh();
              event.Skip();
@@ -51,7 +52,7 @@ BreadcrumbBar::BreadcrumbBar(wxWindow* parent,
     Bind(wxEVT_KILL_FOCUS,
          [this](wxFocusEvent& event)
          {
-             ApplyTheme();
+             OnThemeChanged(ds_.theme.current_theme());
              label_->Refresh();
              event.Skip();
          });
@@ -63,7 +64,7 @@ BreadcrumbBar::BreadcrumbBar(wxWindow* parent,
                  [this](wxMouseEvent& evt)
                  {
                      label_->SetForegroundColour(
-                         theme_engine_.color(core::ThemeColorToken::TextMain));
+                         wxColour(ds_.theme.current_theme().colors.text_main.to_rgba_string()));
                      label_->Refresh();
                      evt.Skip();
                  });
@@ -72,13 +73,10 @@ BreadcrumbBar::BreadcrumbBar(wxWindow* parent,
                  [this](wxMouseEvent& evt)
                  {
                      label_->SetForegroundColour(
-                         theme_engine_.color(core::ThemeColorToken::TextMuted));
+                         wxColour(ds_.theme.current_theme().colors.text_muted.to_rgba_string()));
                      label_->Refresh();
                      evt.Skip();
                  });
-
-    theme_sub_ = event_bus_.subscribe<core::events::ThemeChangedEvent>(
-        [this](const core::events::ThemeChangedEvent& /*evt*/) { ApplyTheme(); });
 }
 
 void BreadcrumbBar::SetSegmentClickCallback(SegmentClickCallback callback)
@@ -98,10 +96,12 @@ void BreadcrumbBar::SetHeadingPath(const std::vector<std::string>& headings)
     Rebuild();
 }
 
-void BreadcrumbBar::ApplyTheme()
+void BreadcrumbBar::OnThemeChanged(const core::Theme& new_theme)
 {
-    auto bg_color = theme_engine_.color(core::ThemeColorToken::BgPanel);
-    auto text_color = theme_engine_.color(core::ThemeColorToken::TextMuted);
+    ThemeAwareWindow::OnThemeChanged(new_theme);
+
+    auto bg_color = wxColour(new_theme.colors.bg_panel.to_rgba_string());
+    auto text_color = wxColour(new_theme.colors.text_muted.to_rgba_string());
 
     SetBackgroundColour(bg_color);
     if (label_ != nullptr)
@@ -110,8 +110,7 @@ void BreadcrumbBar::ApplyTheme()
         // Since we're using a single wxStaticText, apply accent tint to text
         label_->SetForegroundColour(text_color);
 
-        auto font = label_->GetFont();
-        font.SetPointSize(11);
+        auto font = ds_.typography.font(TypeSlot::kCaption);
         label_->SetFont(font);
     }
 }

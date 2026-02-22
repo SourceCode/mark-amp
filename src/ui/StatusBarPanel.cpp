@@ -1,5 +1,9 @@
 #include "StatusBarPanel.h"
 
+#include "ComponentSizeResolver.h"
+#include "LayoutMetrics.h"
+#include "SpacingGrid.h"
+#include "TypographyScale.h"
 #include "core/Events.h"
 #include "core/Logger.h"
 
@@ -14,29 +18,38 @@ namespace markamp::ui
 {
 
 StatusBarPanel::StatusBarPanel(wxWindow* parent,
-                               core::ThemeEngine& theme_engine,
+                               DesignSystemContext& context,
                                core::EventBus& event_bus)
-    : ThemeAwareWindow(
-          parent, theme_engine, wxID_ANY, wxDefaultPosition, wxSize(-1, kHeight), wxNO_BORDER)
+    : ThemeAwareWindow(parent,
+                       context.theme,
+                       wxID_ANY,
+                       wxDefaultPosition,
+                       wxSize(-1, context.metrics.status_bar_height()),
+                       wxNO_BORDER)
+    , ds_(context)
     , event_bus_(event_bus)
 {
+    const int kHeight = ds_.metrics.status_bar_height();
     SetBackgroundStyle(wxBG_STYLE_PAINT);
     SetMinSize(wxSize(-1, kHeight));
     SetMaxSize(wxSize(-1, kHeight));
 
     // Cache current theme name
-    theme_name_ = theme_engine.current_theme().name;
+    theme_name_ = ds_.theme.current_theme().name;
 
     // --- Event subscriptions ---
 
     // Theme changes → update displayed theme name
-    theme_name_sub_ = theme_engine.subscribe_theme_change(
+    theme_name_sub_ = ds_.theme.subscribe_theme_change(
         [this](const std::string& /*theme_id*/)
         {
-            theme_name_ = this->theme_engine().current_theme().name;
+            theme_name_ = ds_.theme.current_theme().name;
             RebuildItems();
             Refresh();
         });
+
+    density_sub_ = event_bus_.subscribe<core::events::DensityProfileChangedEvent>(
+        [this](const core::events::DensityProfileChangedEvent& /*evt*/) { UpdateLayoutMetrics(); });
 
     // Cursor position changes
     cursor_sub_ = event_bus_.subscribe<core::events::CursorPositionChangedEvent>(
@@ -524,6 +537,18 @@ void StatusBarPanel::RebuildItems()
     }
 }
 
+void StatusBarPanel::UpdateLayoutMetrics()
+{
+    const int kHeight = ds_.metrics.status_bar_height();
+    SetMinSize(wxSize(-1, kHeight));
+    SetMaxSize(wxSize(-1, kHeight));
+    if (GetParent() != nullptr)
+    {
+        GetParent()->Layout();
+    }
+    Refresh();
+}
+
 // --- Drawing ---
 
 void StatusBarPanel::OnPaint(wxPaintEvent& /*event*/)
@@ -561,21 +586,19 @@ void StatusBarPanel::OnPaint(wxPaintEvent& /*event*/)
         dc.DrawLine(0, 0, width, 0);
     }
 
-    // Font: 10px monospace, uppercase
-    auto small_font = theme_engine().font(core::ThemeFontToken::UISmall);
-    small_font.MakeSmaller();
+    auto small_font = ds_.typography.font(TypeSlot::kCaption);
     dc.SetFont(small_font);
 
-    const int padding = 16;                                   // 8E: was 12
-    const int text_y = (height - dc.GetCharHeight()) / 2 + 1; // 26. Vertical Centering (+1px)
-    const int separator_gap = 24;
+    const int kPadding = ds_.spacing.scaled(SpacingToken::kLg); // ~16px
+    const int text_y = (height - dc.GetCharHeight()) / 2 + 1;   // 26. Vertical Centering (+1px)
+    const int kSeparatorGap = ds_.spacing.scaled(SpacingToken::kXxl); // ~24px
 
     // Separator character
     const wxString separator = wxString::FromUTF8("\xE2\x80\xA2"); // • (bullet)
     const int separator_width = dc.GetTextExtent(separator).GetWidth();
 
     // --- Left section ---
-    int left_x = padding;
+    int left_x = kPadding;
 
     for (size_t idx = 0; idx < left_items_.size(); ++idx)
     {
@@ -586,13 +609,13 @@ void StatusBarPanel::OnPaint(wxPaintEvent& /*event*/)
         {
             dc.SetTextForeground(theme_engine().color(core::ThemeColorToken::TextMuted));
             dc.DrawText(separator, left_x, text_y);
-            left_x += separator_width + separator_gap;
+            left_x += separator_width + kSeparatorGap;
         }
 
         // R16 Fix 14: bold for accent items
         if (item.is_accent)
         {
-            wxFont bold_font = theme_engine().font(core::ThemeFontToken::UISmall);
+            wxFont bold_font = ds_.typography.font(TypeSlot::kCaption);
             bold_font.SetWeight(wxFONTWEIGHT_SEMIBOLD);
             dc.SetFont(bold_font);
         }
@@ -664,11 +687,11 @@ void StatusBarPanel::OnPaint(wxPaintEvent& /*event*/)
             dc.SetFont(small_font);
         }
 
-        left_x += text_width + separator_gap;
+        left_x += text_width + kSeparatorGap;
     }
 
     // --- Right section ---
-    int right_x = width - padding;
+    int right_x = width - kPadding;
 
     for (auto it = right_items_.rbegin(); it != right_items_.rend(); ++it)
     {
@@ -679,7 +702,7 @@ void StatusBarPanel::OnPaint(wxPaintEvent& /*event*/)
         // R16 Fix 14: bold for accent items (right section)
         if (item.is_accent)
         {
-            wxFont bold_font = theme_engine().font(core::ThemeFontToken::UISmall);
+            wxFont bold_font = ds_.typography.font(TypeSlot::kCaption);
             bold_font.SetWeight(wxFONTWEIGHT_SEMIBOLD);
             dc.SetFont(bold_font);
         }
@@ -714,7 +737,7 @@ void StatusBarPanel::OnPaint(wxPaintEvent& /*event*/)
             dc.SetFont(small_font);
         }
 
-        right_x -= separator_gap;
+        right_x -= kSeparatorGap;
 
         // Draw separator after each right item (except the last one, which is first in reverse)
         if (std::next(it) != right_items_.rend())
@@ -722,7 +745,7 @@ void StatusBarPanel::OnPaint(wxPaintEvent& /*event*/)
             dc.SetTextForeground(theme_engine().color(core::ThemeColorToken::TextMuted));
             right_x -= separator_width;
             dc.DrawText(separator, right_x, text_y);
-            right_x -= separator_gap;
+            right_x -= kSeparatorGap;
         }
     }
 }

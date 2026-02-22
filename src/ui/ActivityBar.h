@@ -1,8 +1,8 @@
 #pragma once
 
+#include "DesignSystemContext.h"
 #include "core/EventBus.h"
 #include "core/Events.h"
-#include "core/ThemeEngine.h"
 
 #include <wx/panel.h>
 #include <wx/timer.h>
@@ -19,17 +19,13 @@ namespace markamp::ui
 class ActivityBar : public wxPanel
 {
 public:
-    ActivityBar(wxWindow* parent, core::ThemeEngine& theme_engine, core::EventBus& event_bus);
+    ActivityBar(wxWindow* parent, DesignSystemContext& ds, core::EventBus& event_bus);
 
     /// Set the currently active item (visually highlights it)
     void SetActiveItem(core::events::ActivityBarItem item);
 
     /// Get the currently active item
     [[nodiscard]] auto GetActiveItem() const -> core::events::ActivityBarItem;
-
-    static constexpr int kBarWidth = 48;
-    static constexpr int kIconSize = 24;
-    static constexpr int kIconPadding = 12;
 
     /// R18 Fix 25: Set badge count on an activity bar item
     void SetBadge(core::events::ActivityBarItem item, int count);
@@ -47,7 +43,7 @@ private:
         int badge_count{0};    // R18 Fix 25: Badge count indicator
     };
 
-    core::ThemeEngine& theme_engine_;
+    DesignSystemContext& ds_;
     core::EventBus& event_bus_;
 
     std::vector<BarItem> items_;
@@ -70,8 +66,11 @@ private:
     core::Subscription diagnostics_sub_;       // Phase 06 Task 7
     core::Subscription extension_updates_sub_; // Phase 06 Task 7
 
+    core::Subscription density_sub_;
+
     void CreateItems();
     void ApplyTheme();
+    void UpdateLayoutMetrics();
 
     void OnPaint(wxPaintEvent& event);
     void OnMouseDown(wxMouseEvent& event);

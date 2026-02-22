@@ -87,6 +87,7 @@ public:
     struct CachedValues
     {
         std::string theme = "midnight-neon";
+        std::string density_profile = "default";
         std::string view_mode = "split";
         std::string font_family = "Menlo";
         std::string last_workspace;

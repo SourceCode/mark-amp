@@ -1,5 +1,6 @@
 #include "TabBar.h"
 
+#include "LayoutMetrics.h"
 #include "core/Logger.h"
 
 #include <wx/clipbrd.h>
@@ -34,15 +35,17 @@ constexpr int kContextCloseSaved = 13;   // R4 Fix 8
 constexpr int kContextDuplicateTab = 14; // R19 Fix 4
 } // namespace
 
-TabBar::TabBar(wxWindow* parent, core::ThemeEngine& theme_engine, core::EventBus& event_bus)
+TabBar::TabBar(wxWindow* parent, DesignSystemContext& ds, core::EventBus& event_bus)
     : ThemeAwareWindow(parent,
-                       theme_engine,
+                       ds.theme,
                        wxID_ANY,
                        wxDefaultPosition,
-                       wxSize(-1, kHeight),
+                       wxSize(-1, ds.metrics.tab_height()),
                        wxNO_BORDER | wxTAB_TRAVERSAL | wxWANTS_CHARS)
+    , ds_(ds)
     , event_bus_(event_bus)
 {
+    const int kHeight = ds_.metrics.tab_height();
     SetBackgroundStyle(wxBG_STYLE_PAINT);
     SetMinSize(wxSize(-1, kHeight));
     SetMaxSize(wxSize(-1, kHeight));
@@ -425,6 +428,7 @@ void TabBar::OnPaint(wxPaintEvent& /*event*/)
             wxDouble chev_w = 0;
             wxDouble chev_h = 0;
             gc->GetTextExtent("›", &chev_w, &chev_h);
+            const int kHeight = ds_.metrics.tab_height();
             gc->DrawText("›",
                          sz.GetWidth() - static_cast<int>(chev_w) - 4,
                          (kHeight - static_cast<int>(chev_h)) / 2);
@@ -442,6 +446,7 @@ void TabBar::OnPaint(wxPaintEvent& /*event*/)
         wxDouble count_w = 0;
         wxDouble count_h = 0;
         gc->GetTextExtent(count_text, &count_w, &count_h);
+        const int kHeight = ds_.metrics.tab_height();
         gc->DrawText(count_text,
                      sz.GetWidth() - static_cast<int>(count_w) - 12,
                      (kHeight - static_cast<int>(count_h)) / 2);
@@ -596,6 +601,8 @@ void TabBar::DrawTab(wxGraphicsContext& gc, const TabInfo& tab, const core::Them
     std::string display = tab.display_name;
 
     // Calculate text area (leave room for close button)
+    const int kTabPaddingH = ds_.metrics.control_padding_h();
+    const int kCloseButtonSize = ds_.metrics.icon_size_small();
     int text_x = tab_x + kTabPaddingH;
     int text_max_w = tab_w - kTabPaddingH * 2 - kCloseButtonSize - kCloseButtonMargin;
 
@@ -1109,6 +1116,7 @@ auto TabBar::HitTestCloseButton(const wxPoint& point, int tab_index) const -> bo
         return false;
     }
 
+    const int kCloseButtonSize = ds_.metrics.icon_size_small();
     const auto& tab = tabs_[static_cast<size_t>(tab_index)];
     int close_x = tab.rect.GetLeft() - scroll_offset_ + tab.rect.GetWidth() - kCloseButtonSize -
                   kCloseButtonMargin;
@@ -1126,6 +1134,10 @@ void TabBar::RecalculateTabRects()
     wxFont font = theme_engine().font(core::ThemeFontToken::MonoRegular);
     font.SetPointSize(10);
     dc.SetFont(font);
+
+    const int kTabPaddingH = ds_.metrics.control_padding_h();
+    const int kCloseButtonSize = ds_.metrics.icon_size_small();
+    const int kHeight = ds_.metrics.tab_height();
 
     int x_offset = 0;
     for (auto& tab : tabs_)
@@ -1165,6 +1177,18 @@ void TabBar::RecalculateTabRects()
 
         x_offset += effective_width;
     }
+}
+
+void TabBar::UpdateLayoutMetrics()
+{
+    const int kHeight = ds_.metrics.tab_height();
+    SetMinSize(wxSize(-1, kHeight));
+    SetMaxSize(wxSize(-1, kHeight));
+    if (GetParent() != nullptr)
+    {
+        GetParent()->Layout();
+    }
+    Refresh();
 }
 
 void TabBar::OnSize(wxSizeEvent& event)

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "DesignSystemContext.h"
+#include "LayoutMetrics.h"
 #include "ThemeAwareWindow.h"
 #include "core/EventBus.h"
 #include "core/Events.h"
@@ -18,7 +20,7 @@ namespace markamp::ui
 class Toolbar : public ThemeAwareWindow
 {
 public:
-    Toolbar(wxWindow* parent, core::ThemeEngine& theme_engine, core::EventBus& event_bus);
+    Toolbar(wxWindow* parent, DesignSystemContext& ds, core::EventBus& event_bus);
 
     /// Update which view mode button is shown as active.
     void SetActiveViewMode(core::events::ViewMode mode);
@@ -26,7 +28,8 @@ public:
     /// Get the current active view mode shown in the toolbar.
     [[nodiscard]] auto GetActiveViewMode() const -> core::events::ViewMode;
 
-    static constexpr int kHeight = 40;
+    void UpdateLayoutMetrics();
+
     static constexpr int kDropShadowHeight = 2;    // R19 Fix 8
     static constexpr float kSavePulseSpeed = 0.1F; // R19 Fix 7: scale step per tick
     static constexpr float kPressScale = 0.9F;     // R20 Fix 6: press scale-down factor
@@ -42,6 +45,7 @@ protected:
     void OnThemeChanged(const core::Theme& new_theme) override;
 
 private:
+    DesignSystemContext& ds_;
     core::EventBus& event_bus_;
     core::events::ViewMode active_mode_{core::events::ViewMode::Split};
 

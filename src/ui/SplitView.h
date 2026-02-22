@@ -1,5 +1,6 @@
 #pragma once
 
+#include "DesignSystemContext.h"
 #include "ThemeAwareWindow.h"
 #include "core/EventBus.h"
 #include "core/Events.h"
@@ -62,7 +63,7 @@ class SplitView : public ThemeAwareWindow
 {
 public:
     SplitView(wxWindow* parent,
-              core::ThemeEngine& theme_engine,
+              DesignSystemContext& ds,
               core::EventBus& event_bus,
               core::Config* config,
               core::IMermaidRenderer* mermaid_renderer = nullptr,
@@ -148,8 +149,6 @@ public:
     void RevealInPreview(int editor_line);
 
     // Divider constants
-    static constexpr int kDividerWidth = 6;     // visual width
-    static constexpr int kDividerHitWidth = 12; // wider hit area for grabbing
     static constexpr double kMinSplitRatio = 0.2;
     static constexpr double kMaxSplitRatio = 0.8;
     static constexpr double kDefaultSplitRatio = 0.5;
@@ -179,6 +178,7 @@ protected:
     void OnThemeChanged(const core::Theme& new_theme) override;
 
 private:
+    DesignSystemContext& ds_;
     core::EventBus& event_bus_;
     core::Config* config_;
 
@@ -255,6 +255,7 @@ private:
 
     // Layout
     void UpdateLayout();
+    void UpdateLayoutMetrics();
     void UpdateFocusLayout();
     void OnSize(wxSizeEvent& event);
 

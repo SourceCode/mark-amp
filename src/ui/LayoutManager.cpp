@@ -51,6 +51,19 @@ LayoutManager::LayoutManager(wxWindow* parent,
     , math_renderer_(math_renderer)
     , sidebar_anim_timer_(this)
 {
+    design_registry_ = std::make_unique<DesignTokenRegistry>(theme_engine, event_bus_);
+    typography_scale_ = std::make_unique<TypographyScale>();
+    spacing_grid_ = std::make_unique<SpacingGrid>();
+    elevation_system_ = std::make_unique<ElevationSystem>();
+
+    ds_context_.reset(new DesignSystemContext{theme_engine,
+                                              *design_registry_,
+                                              *typography_scale_,
+                                              *spacing_grid_,
+                                              ComponentSizeResolver::get(),
+                                              *elevation_system_,
+                                              LayoutMetrics::get()});
+
     RestoreLayoutState();
     CreateLayout();
 
@@ -1929,7 +1942,7 @@ void LayoutManager::CreateLayout()
     sidebar_panel_->SetSizer(sidebar_sizer);
 
     // --- Splitter ---
-    splitter_ = new SplitterBar(this, theme_engine(), this);
+    splitter_ = new SplitterBar(this, *ds_context_, this);
 
     // --- Content panel ---
     content_panel_ = new wxPanel(this, wxID_ANY);
@@ -1938,7 +1951,7 @@ void LayoutManager::CreateLayout()
     // Content internal: toolbar + split view
     auto* content_sizer = new wxBoxSizer(wxVERTICAL);
 
-    toolbar_ = new Toolbar(content_panel_, theme_engine(), event_bus_);
+    toolbar_ = new Toolbar(content_panel_, *ds_context_, event_bus_);
     toolbar_->SetOnThemeGalleryClick(
         [this]()
         {
@@ -1954,11 +1967,11 @@ void LayoutManager::CreateLayout()
     content_sizer->Add(toolbar_, 0, wxEXPAND);
 
     // Tab bar (QoL feature 1)
-    tab_bar_ = new TabBar(content_panel_, theme_engine(), event_bus_);
+    tab_bar_ = new TabBar(content_panel_, *ds_context_, event_bus_);
     content_sizer->Add(tab_bar_, 0, wxEXPAND);
 
     // R3 Fix 14: BreadcrumbBar between tab bar and split view
-    breadcrumb_bar_ = new BreadcrumbBar(content_panel_, theme_engine(), event_bus_);
+    breadcrumb_bar_ = new BreadcrumbBar(content_panel_, *ds_context_, event_bus_);
     content_sizer->Add(breadcrumb_bar_, 0, wxEXPAND);
 
     // Phase 9: Respect initial feature toggle state for breadcrumb
@@ -1969,7 +1982,7 @@ void LayoutManager::CreateLayout()
     }
 
     split_view_ = new SplitView(
-        content_panel_, theme_engine(), event_bus_, config_, mermaid_renderer_, math_renderer_);
+        content_panel_, *ds_context_, event_bus_, config_, mermaid_renderer_, math_renderer_);
 
     // Phase 4: Wire FeatureRegistry to SplitView (forwards to EditorPanel)
     if (feature_registry_ != nullptr)
@@ -1986,7 +1999,7 @@ void LayoutManager::CreateLayout()
     content_panel_->SetSizer(content_sizer);
 
     // --- Status bar ---
-    statusbar_panel_ = new StatusBarPanel(this, theme_engine(), event_bus_);
+    statusbar_panel_ = new StatusBarPanel(this, *ds_context_, event_bus_);
 
     // --- Main layout ---
     main_sizer_ = new wxBoxSizer(wxVERTICAL);

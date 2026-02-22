@@ -1,7 +1,7 @@
 #pragma once
 
+#include "DesignSystemContext.h"
 #include "ThemeAwareWindow.h"
-#include "core/ThemeEngine.h"
 
 #include <wx/timer.h>
 
@@ -15,15 +15,17 @@ class LayoutManager;
 class SplitterBar : public ThemeAwareWindow
 {
 public:
-    SplitterBar(wxWindow* parent, core::ThemeEngine& theme_engine, LayoutManager* layout_manager);
+    SplitterBar(wxWindow* parent, DesignSystemContext& ds, LayoutManager* layout_manager);
 
-    static constexpr int kHitWidth = 8;            // 8E: was 4
+    void UpdateLayoutMetrics();
+
     static constexpr float kHoverFadeStep = 0.08F; // 8C: per-tick animation increment
 
 protected:
     void OnThemeChanged(const core::Theme& new_theme) override;
 
 private:
+    DesignSystemContext& ds_;
     LayoutManager* layout_manager_;
     bool is_dragging_{false};
     int drag_start_x_{0};

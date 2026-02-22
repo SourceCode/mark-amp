@@ -1,18 +1,13 @@
 #pragma once
 
+#include "ComponentSizeResolver.h"
+#include "DensityProfile.h"
+#include "SpacingGrid.h"
+
 #include <cstdint>
 
 namespace markamp::ui
 {
-
-/// Density profile controlling spacing, row heights, icon sizes, and paddings
-/// across all chrome surfaces.
-enum class DensityProfile : uint8_t
-{
-    kComfortable, ///< Generous spacing — touch-friendly
-    kDefault,     ///< Standard spacing — balanced
-    kCompact,     ///< Tight spacing — information-dense
-};
 
 /// Centralized layout metrics that all chrome controls consume.
 ///
@@ -83,6 +78,12 @@ public:
     /// Minimum hit-target dimension (accessibility: ≥ 24px even in compact).
     [[nodiscard]] auto min_hit_target() const -> int;
 
+    /// Drag hit target width for splitters (sidebar, panels).
+    [[nodiscard]] auto splitter_hit_width() const -> int;
+
+    /// Visual line width for splitters.
+    [[nodiscard]] auto splitter_visual_width() const -> int;
+
     // ── Elevation ───────────────────────────────────────────────────────
 
     /// Focus ring width in pixels.
@@ -94,6 +95,7 @@ public:
 private:
     LayoutMetrics() = default;
     DensityProfile profile_{DensityProfile::kDefault};
+    SpacingGrid spacing_grid_;
 };
 
 } // namespace markamp::ui
