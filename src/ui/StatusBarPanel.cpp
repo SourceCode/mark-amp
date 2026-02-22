@@ -286,11 +286,16 @@ void StatusBarPanel::RebuildItems()
 
     // Left zone: READY [●] • LN X, COL Y • UTF-8 • SRC/SPLIT/VIEW
     std::string ready_text = ready_state_;
+    bool has_warning_dot = false;
     if (file_modified_)
     {
         ready_text += " \xE2\x97\x8F"; // UTF-8 for ● (black circle / modified indicator)
+        has_warning_dot = true;
     }
-    left_items_.push_back({ready_text, {}, file_modified_, false, nullptr, "Editor status"});
+    StatusItem state_item{ready_text, {}, file_modified_, false, nullptr, "Editor status"};
+    state_item.is_success = save_flash_active_;
+    state_item.has_warning_dot = has_warning_dot;
+    left_items_.push_back(state_item);
 
     auto cursor_text = fmt::format("LN {}, COL {}", cursor_line_, cursor_col_);
     // R4 Fix 16: Cursor position is clickable — triggers Go-To-Line
@@ -454,12 +459,16 @@ void StatusBarPanel::RebuildItems()
     // R2 Fix 13 + R20 Fix 15: Filename with modified dot indicator
     if (!filename_.empty())
     {
-        std::string display_name = filename_;
+        std::string display_name = "\xF0\x9F\x93\x84 " + filename_; // 25. Document Icon
+        bool file_has_warning_dot = false;
         if (file_modified_)
         {
             display_name = "\xE2\x97\x8F " + display_name; // ● prefix when modified
+            file_has_warning_dot = true;
         }
-        left_items_.push_back({display_name, {}, file_modified_, false, nullptr, "Active file"});
+        StatusItem file_item{display_name, {}, file_modified_, false, nullptr, "Active file"};
+        file_item.has_warning_dot = file_has_warning_dot;
+        left_items_.push_back(file_item);
     }
 
     // R2 Fix 14: Language in right items — R7: clickable, cycles languages
@@ -555,8 +564,8 @@ void StatusBarPanel::OnPaint(wxPaintEvent& /*event*/)
     // Font: 10px monospace, uppercase
     dc.SetFont(theme_engine().font(core::ThemeFontToken::UISmall));
 
-    const int padding = 16; // 8E: was 12
-    const int text_y = (height - dc.GetCharHeight()) / 2;
+    const int padding = 16;                                   // 8E: was 12
+    const int text_y = (height - dc.GetCharHeight()) / 2 + 1; // 26. Vertical Centering (+1px)
     const int separator_gap = 16;
 
     // Separator character
@@ -586,21 +595,62 @@ void StatusBarPanel::OnPaint(wxPaintEvent& /*event*/)
             dc.SetFont(bold_font);
         }
 
-        dc.SetTextForeground(item.is_accent
-                                 ? theme_engine().color(core::ThemeColorToken::AccentPrimary)
-                                 : theme_engine().color(core::ThemeColorToken::TextMuted));
+        if (item.is_success)
+        {
+            dc.SetTextForeground(theme_engine().color(core::ThemeColorToken::SuccessColor));
+        }
+        else
+        {
+            dc.SetTextForeground(item.is_accent
+                                     ? theme_engine().color(core::ThemeColorToken::AccentPrimary)
+                                     : theme_engine().color(core::ThemeColorToken::TextMuted));
+        }
 
         int text_width = dc.GetTextExtent(item.text).GetWidth();
 
-        // R20 Fix 12: Hover highlight for ALL items (extended from R16 Fix 11)
-        // R16 Fix 11: Subtle hover highlight for clickable items
-        if (item.is_clickable || item.bounds.Contains(ScreenToClient(wxGetMousePosition())))
+        // Font reset
+        dc.SetFont(theme_engine().font(core::ThemeFontToken::UISmall));
+
+        // Draw string with warning dot coloring
+        if (item.has_warning_dot && item.text.starts_with("\xE2\x97\x8F "))
+        {
+            dc.SetTextForeground(theme_engine().color(core::ThemeColorToken::EditorGutterWarn));
+            dc.DrawText("\xE2\x97\x8F", left_x, text_y);
+            int dot_w = dc.GetTextExtent("\xE2\x97\x8F ").GetWidth();
+
+            if (item.is_success)
+            {
+                dc.SetTextForeground(theme_engine().color(core::ThemeColorToken::SuccessColor));
+            }
+            else
+            {
+                dc.SetTextForeground(
+                    item.is_accent ? theme_engine().color(core::ThemeColorToken::AccentPrimary)
+                                   : theme_engine().color(core::ThemeColorToken::TextMuted));
+            }
+            dc.DrawText(item.text.substr(4), left_x + dot_w, text_y);
+        }
+        else if (item.has_warning_dot && item.text.ends_with(" \xE2\x97\x8F"))
+        {
+            std::string main_text = item.text.substr(0, item.text.length() - 4);
+            int main_w = dc.GetTextExtent(main_text).GetWidth();
+            dc.DrawText(main_text, left_x, text_y);
+
+            dc.SetTextForeground(theme_engine().color(core::ThemeColorToken::EditorGutterWarn));
+            dc.DrawText(" \xE2\x97\x8F", left_x + main_w, text_y);
+        }
+        else
+        {
+            dc.DrawText(item.text, left_x, text_y);
+        }
+        // 23. Label hover highlight (only if clickable)
+        if (item.is_clickable && item.bounds.Contains(ScreenToClient(wxGetMousePosition())))
         {
             auto hover_bg =
                 theme_engine().color(core::ThemeColorToken::BgPanel).ChangeLightness(115);
             dc.SetBrush(wxBrush(hover_bg));
             dc.SetPen(*wxTRANSPARENT_PEN);
-            dc.DrawRoundedRectangle(left_x - 4, 2, text_width + 8, height - 4, 3);
+            dc.DrawRoundedRectangle(left_x - 4, 3, text_width + 8, height - 6, 3);
         }
 
         item.bounds = wxRect(left_x, 0, text_width, height);
@@ -632,18 +682,25 @@ void StatusBarPanel::OnPaint(wxPaintEvent& /*event*/)
             dc.SetFont(bold_font);
         }
 
-        dc.SetTextForeground(item.is_accent
-                                 ? theme_engine().color(core::ThemeColorToken::AccentPrimary)
-                                 : theme_engine().color(core::ThemeColorToken::TextMuted));
+        if (item.is_success)
+        {
+            dc.SetTextForeground(theme_engine().color(core::ThemeColorToken::SuccessColor));
+        }
+        else
+        {
+            dc.SetTextForeground(item.is_accent
+                                     ? theme_engine().color(core::ThemeColorToken::AccentPrimary)
+                                     : theme_engine().color(core::ThemeColorToken::TextMuted));
+        }
 
-        // R20 Fix 12: Hover highlight for ALL items (right side)
-        if (item.is_clickable || item.bounds.Contains(ScreenToClient(wxGetMousePosition())))
+        // 23. Label hover highlight for right side (only if clickable)
+        if (item.is_clickable && item.bounds.Contains(ScreenToClient(wxGetMousePosition())))
         {
             auto hover_bg =
                 theme_engine().color(core::ThemeColorToken::BgPanel).ChangeLightness(115);
             dc.SetBrush(wxBrush(hover_bg));
             dc.SetPen(*wxTRANSPARENT_PEN);
-            dc.DrawRoundedRectangle(right_x - 4, 2, text_width + 8, height - 4, 3);
+            dc.DrawRoundedRectangle(right_x - 4, 3, text_width + 8, height - 6, 3);
         }
 
         item.bounds = wxRect(right_x, 0, text_width, height);

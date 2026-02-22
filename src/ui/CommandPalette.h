@@ -4,8 +4,8 @@
 #include "core/ThemeEngine.h"
 
 #include <wx/dialog.h>
-#include <wx/listbox.h>
 #include <wx/textctrl.h>
+#include <wx/vlbox.h>
 
 #include <functional>
 #include <string>
@@ -18,6 +18,8 @@ class CommandRegistry;
 
 namespace markamp::ui
 {
+
+class PaletteListBox;
 
 /// Entry representing a command in the palette
 struct PaletteCommand
@@ -66,6 +68,11 @@ public:
     /// Set an optional CommandRegistry reference for context-aware commands
     void SetRegistry(core::CommandRegistry* registry);
 
+    // Rendering for wxVListBox
+    void DrawListItem(wxDC& dc, const wxRect& rect, size_t n) const;
+    wxCoord MeasureListItem(size_t n) const;
+    void DrawListItemBackground(wxDC& dc, const wxRect& rect, size_t n) const;
+
 private:
     void OnFilterChanged(wxCommandEvent& event);
     void OnCommandSelected(wxCommandEvent& event);
@@ -83,11 +90,25 @@ private:
     core::Subscription theme_sub_;
 
     wxTextCtrl* input_{nullptr};
-    wxListBox* list_{nullptr};
+    PaletteListBox* list_{nullptr};
+
+    enum class ItemType
+    {
+        Header,
+        Command,
+        Empty
+    };
+    struct DisplayItem
+    {
+        ItemType type;
+        size_t cmd_index;  // Valid if Command
+        std::string label; // Valid if Header or Empty
+    };
 
     std::vector<PaletteCommand> all_commands_;
-    std::vector<size_t> filtered_indices_; // indices into all_commands_
+    std::vector<DisplayItem> display_items_;
     std::vector<std::string> mru_history_; // R18 Fix 17: recently used command labels
+    std::string current_filter_;
 
     PaletteMode current_mode_{PaletteMode::kCommands};
     core::CommandRegistry* registry_{nullptr};

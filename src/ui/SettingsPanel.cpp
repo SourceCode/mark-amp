@@ -112,7 +112,7 @@ void SettingsPanel::CreateLayout()
     search_ctrl_ =
         new wxSearchCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(-1, 32));
     search_ctrl_->SetDescriptiveText("Search settings...");
-    main_sizer->Add(search_ctrl_, 0, wxEXPAND | wxALL, 12);
+    main_sizer->Add(search_ctrl_, 0, wxEXPAND | wxALL, 16);
 
     search_ctrl_->Bind(wxEVT_TEXT, &SettingsPanel::OnSearchChanged, this);
 
@@ -130,6 +130,7 @@ void SettingsPanel::CreateLayout()
                        wxDefaultPosition,
                        wxSize(180, -1),
                        wxTR_HIDE_ROOT | wxTR_HAS_BUTTONS | wxTR_SINGLE | wxTR_NO_LINES);
+    category_tree_->SetIndent(category_tree_->GetIndent() + 8);
     category_tree_->Bind(wxEVT_TREE_SEL_CHANGED, &SettingsPanel::OnTreeSelectionChanged, this);
     content_sizer->Add(category_tree_, 0, wxEXPAND | wxRIGHT, 8);
 
@@ -249,6 +250,13 @@ void SettingsPanel::BuildCategoryTree()
     }
 
     category_tree_->ExpandAll();
+
+    wxTreeItemIdValue cookie;
+    auto first_child = category_tree_->GetFirstChild(root, cookie);
+    if (first_child.IsOk())
+    {
+        category_tree_->SelectItem(first_child);
+    }
 }
 
 void SettingsPanel::RegisterSetting(SettingDefinition definition)
@@ -1063,6 +1071,13 @@ void SettingsPanel::RebuildSettingsList()
                 {
                     category_sizer->Add(widget, 0, wxEXPAND | wxLEFT | wxRIGHT, kCategoryPadding);
                 }
+
+                // 6. Zebra striping
+                bool is_even = (setting_widgets_.size() % 2 == 0);
+                auto base_bg = theme_engine_.current_theme().colors.editor_bg;
+                auto row_bg = is_even ? base_bg : base_bg.lighten(0.03F);
+                widget->SetBackgroundColour(row_bg.to_wx_colour());
+
                 setting_widgets_.push_back(widget);
             }
         }
@@ -1119,6 +1134,7 @@ auto SettingsPanel::CreateIntegerSetting(wxWindow* parent, const SettingDefiniti
     auto* label = new wxStaticText(row, wxID_ANY, def.label);
     auto label_font = label->GetFont();
     label_font.SetWeight(wxFONTWEIGHT_BOLD);
+    label_font.SetPointSize(label_font.GetPointSize() + 1);
     label->SetFont(label_font);
     label_sizer->Add(label, 0);
 
@@ -1175,6 +1191,7 @@ auto SettingsPanel::CreateStringSetting(wxWindow* parent, const SettingDefinitio
     auto* label = new wxStaticText(row, wxID_ANY, def.label);
     auto label_font = label->GetFont();
     label_font.SetWeight(wxFONTWEIGHT_BOLD);
+    label_font.SetPointSize(label_font.GetPointSize() + 1);
     label->SetFont(label_font);
     label_sizer->Add(label, 0);
 
@@ -1210,6 +1227,7 @@ auto SettingsPanel::CreateChoiceSetting(wxWindow* parent, const SettingDefinitio
     auto* label = new wxStaticText(row, wxID_ANY, def.label);
     auto label_font = label->GetFont();
     label_font.SetWeight(wxFONTWEIGHT_BOLD);
+    label_font.SetPointSize(label_font.GetPointSize() + 1);
     label->SetFont(label_font);
     label_sizer->Add(label, 0);
 
@@ -1708,6 +1726,10 @@ auto SettingsPanel::CreateKeyBindingSetting(wxWindow* parent, const SettingDefin
     auto* sizer = new wxBoxSizer(wxHORIZONTAL);
 
     auto* label = new wxStaticText(panel, wxID_ANY, def.label);
+    auto label_font = label->GetFont();
+    label_font.SetWeight(wxFONTWEIGHT_BOLD);
+    label_font.SetPointSize(label_font.GetPointSize() + 1);
+    label->SetFont(label_font);
     label->SetToolTip(def.description);
     sizer->Add(label, 1, wxALIGN_CENTER_VERTICAL);
 
@@ -1773,6 +1795,10 @@ auto SettingsPanel::CreateStringListSetting(wxWindow* parent, const SettingDefin
     auto* sizer = new wxBoxSizer(wxHORIZONTAL);
 
     auto* label = new wxStaticText(panel, wxID_ANY, def.label);
+    auto label_font = label->GetFont();
+    label_font.SetWeight(wxFONTWEIGHT_BOLD);
+    label_font.SetPointSize(label_font.GetPointSize() + 1);
+    label->SetFont(label_font);
     label->SetToolTip(def.description);
     sizer->Add(label, 1, wxALIGN_TOP | wxTOP, 4);
 
@@ -1882,6 +1908,7 @@ auto SettingsPanel::CreateColorSetting(wxWindow* parent, const SettingDefinition
     auto* label = new wxStaticText(panel, wxID_ANY, def.label);
     auto label_font = label->GetFont();
     label_font.SetWeight(wxFONTWEIGHT_BOLD);
+    label_font.SetPointSize(label_font.GetPointSize() + 1);
     label->SetFont(label_font);
     label_sizer->Add(label, 0);
 

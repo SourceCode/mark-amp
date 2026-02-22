@@ -43,7 +43,7 @@ public:
     void SetWorkspaceRoot(const std::string& root_path);
 
     // Layout constants
-    static constexpr int kRowHeight = 22;
+    static constexpr int kRowHeight = 24;
     static constexpr int kIndentWidth = 16;
     static constexpr int kLeftPadding = 6;
     static constexpr int kIconSize = 16;

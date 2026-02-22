@@ -39,6 +39,14 @@ ActivityBar::ActivityBar(wxWindow* parent,
     Bind(wxEVT_KILL_FOCUS, &ActivityBar::OnKillFocus, this); // Phase 06 Task 6
     Bind(wxEVT_RIGHT_UP, &ActivityBar::OnRightClick, this);  // Phase 06 Task 13
 
+    tooltip_timer_.SetOwner(this);
+    Bind(wxEVT_TIMER,
+         [this](wxTimerEvent& /*evt*/)
+         {
+             tooltip_visible_ = true;
+             Refresh();
+         });
+
     // Make the activity bar focusable for keyboard navigation
     SetCanFocus(true);
 
@@ -133,7 +141,7 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
         {
             paint_dc.SetBrush(wxBrush(clr.accent_primary.to_wx_colour()));
             paint_dc.SetPen(*wxTRANSPARENT_PEN);
-            paint_dc.DrawRectangle(0, item_y, 3, kBarWidth);
+            paint_dc.DrawRectangle(0, item_y, 4, kBarWidth);
         }
 
         // Hover background
@@ -162,7 +170,7 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
         else
         {
             // Dimmed for inactive — blend fg towards bg
-            auto dimmed = clr.editor_fg.blend(clr.bg_panel, 0.5F);
+            auto dimmed = clr.editor_fg.blend(clr.bg_panel, 0.3F);
             paint_dc.SetTextForeground(dimmed.to_wx_colour());
         }
 
@@ -173,6 +181,13 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
         auto text_extent = paint_dc.GetTextExtent(item.icon_char);
         int text_x = (kBarWidth - text_extent.GetWidth()) / 2 + press_offset_x;
         int text_y = item_y + (kBarWidth - text_extent.GetHeight()) / 2 + press_offset_y;
+
+        // 36. Modified Dot: Ensure dirty/modified dot uses warning color
+        if (item.icon_char == "\xE2\x97\x8F")
+        {
+            paint_dc.SetTextForeground(clr.editor_gutter_warn.to_wx_colour());
+        }
+
         paint_dc.DrawText(item.icon_char, text_x, text_y);
 
         // R18 Fix 25: Badge count indicator
@@ -182,20 +197,24 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
             paint_dc.SetBrush(wxBrush(badge_bg));
             paint_dc.SetPen(*wxTRANSPARENT_PEN);
 
-            int badge_x = kBarWidth - 16;
-            int badge_y_pos = item_y + 4;
-            int badge_r = 8;
-            paint_dc.DrawCircle(badge_x, badge_y_pos + badge_r, badge_r);
-
             paint_dc.SetTextForeground(*wxWHITE);
             auto badge_font = GetFont();
             badge_font.SetPointSize(8);
             paint_dc.SetFont(badge_font);
             auto badge_text = wxString::Format("%d", item.badge_count);
             auto badge_extent = paint_dc.GetTextExtent(badge_text);
+
+            int text_w = badge_extent.GetWidth();
+            int badge_h = 16;
+            int badge_w = std::max(16, text_w + 8);
+            int badge_x = kBarWidth - 8 - badge_w / 2;
+            int badge_y_pos = item_y + 4;
+
+            paint_dc.DrawRoundedRectangle(
+                badge_x - badge_w / 2, badge_y_pos, badge_w, badge_h, badge_h / 2.0);
             paint_dc.DrawText(badge_text,
-                              badge_x - badge_extent.GetWidth() / 2,
-                              badge_y_pos + badge_r - badge_extent.GetHeight() / 2);
+                              badge_x - text_w / 2,
+                              badge_y_pos + badge_h / 2 - badge_extent.GetHeight() / 2);
 
             // Restore font
             paint_dc.SetFont(font);
@@ -244,8 +263,8 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
         }
     }
 
-    // R20 Fix 19: Themed tooltip pill for hovered item
-    if (hover_index_ >= 0 && hover_index_ < static_cast<int>(items_.size()))
+    // R20 Fix 19: Themed tooltip pill for hovered item (with delay)
+    if (hover_index_ >= 0 && hover_index_ < static_cast<int>(items_.size()) && tooltip_visible_)
     {
         const auto& hov_item = items_[static_cast<std::size_t>(hover_index_)];
         auto pill_bg = clr.bg_header.to_wx_colour();
@@ -269,6 +288,11 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
     auto border = clr.border_light.to_wx_colour();
     paint_dc.SetPen(wxPen(border));
     paint_dc.DrawLine(size.GetWidth() - 1, 0, size.GetWidth() - 1, size.GetHeight());
+
+    // Soft shadow logic directly inside right edge
+    auto shadow_col = clr.bg_panel.to_wx_colour().ChangeLightness(90);
+    paint_dc.SetPen(wxPen(shadow_col));
+    paint_dc.DrawLine(size.GetWidth() - 2, 0, size.GetWidth() - 2, size.GetHeight());
 }
 
 void ActivityBar::OnMouseDown(wxMouseEvent& event)
@@ -348,6 +372,15 @@ void ActivityBar::OnMouseMove(wxMouseEvent& event)
     if (idx != hover_index_)
     {
         hover_index_ = idx;
+        tooltip_visible_ = false;
+        if (hover_index_ >= 0)
+        {
+            tooltip_timer_.StartOnce(300); // 300ms delay for tooltip
+        }
+        else
+        {
+            tooltip_timer_.Stop();
+        }
 
         // R20 Fix 19: Use themed tooltip pill instead of native (drawn in OnPaint)
         // Still unset native tooltip to avoid double display
@@ -362,6 +395,8 @@ void ActivityBar::OnMouseLeave(wxMouseEvent& /*event*/)
     if (hover_index_ != -1)
     {
         hover_index_ = -1;
+        tooltip_visible_ = false;
+        tooltip_timer_.Stop();
         UnsetToolTip();
         Refresh();
     }

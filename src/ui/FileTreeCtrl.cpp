@@ -398,7 +398,7 @@ void FileTreeCtrl::DrawNode(wxDC& dc, const core::FileNode& node, int depth, int
             // R20 Fix 23: Full-width hover row highlight with distinct color
             dc.SetBrush(wxBrush(theme_engine()
                                     .color(core::ThemeColorToken::BgPanel)
-                                    .ChangeLightness(112))); // Slightly brighter for hover
+                                    .ChangeLightness(115))); // Slightly brighter for hover
             dc.SetPen(*wxTRANSPARENT_PEN);
             dc.DrawRectangle(0, row_top, row_w, kRowHeight);
         }
@@ -517,8 +517,10 @@ void FileTreeCtrl::DrawNode(wxDC& dc, const core::FileNode& node, int depth, int
         // 3. Draw Text
         // Fix 4: Distinct colors for selected vs hovered vs normal
         // V8 Phase 1 Task 3: Bold font + TextMain for open folders
+        // 13. Active File Styling: Bold text of currently open file
         bool is_open_folder = node.is_folder() && node.is_open;
-        if (is_open_folder)
+        bool should_bold = is_open_folder || is_selected;
+        if (should_bold)
         {
             wxFont bold_font = dc.GetFont();
             bold_font.SetWeight(wxFONTWEIGHT_BOLD);
@@ -527,8 +529,7 @@ void FileTreeCtrl::DrawNode(wxDC& dc, const core::FileNode& node, int depth, int
 
         if (is_selected)
         {
-            dc.SetTextForeground(
-                theme_engine().color(core::ThemeColorToken::AccentPrimary).ChangeLightness(80));
+            dc.SetTextForeground(theme_engine().color(core::ThemeColorToken::TextMain));
         }
         else if (is_hovered)
         {
@@ -665,7 +666,7 @@ void FileTreeCtrl::DrawNode(wxDC& dc, const core::FileNode& node, int depth, int
         }
 
         // V8 Phase 1 Task 3: Restore regular font after open folder text draw
-        if (is_open_folder)
+        if (should_bold)
         {
             dc.SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular));
         }

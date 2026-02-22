@@ -1191,8 +1191,8 @@ void EditorPanel::ConfigureEditorDefaults()
     // Disable auto-complete
     editor_->AutoCompCancel();
 
-    // Padding inside the editor (QoL Item 4)
-    editor_->SetMarginLeft(16);
+    // Padding inside the editor (QoL Item 4 + UX 32)
+    editor_->SetMarginLeft(20);
     editor_->SetMarginRight(16); // Balanced padding
 
     // Current line highlight — always visible
@@ -6538,9 +6538,9 @@ void EditorPanel::ShowEditorContextMenu()
 
     // R14 Fix 16: Format submenu
     auto* format_menu = new wxMenu();
-    format_menu->Append(kCtxUppercase, "UPPERCASE");
-    format_menu->Append(kCtxLowercase, "lowercase");
-    format_menu->Append(kCtxTitleCase, "Title Case");
+    format_menu->Append(kCtxUppercase, "UPPERCASE\tCtrl+U");
+    format_menu->Append(kCtxLowercase, "lowercase\tCtrl+L");
+    format_menu->Append(kCtxTitleCase, "Title Case\tCtrl+Shift+U");
     menu.AppendSubMenu(format_menu, "Format");
 
     // R15 Fixes 17-20: Additional context menu items
@@ -6549,10 +6549,10 @@ void EditorPanel::ShowEditorContextMenu()
     constexpr int kCtxDuplicateLine = 213;
     constexpr int kCtxDeleteLine = 214;
     constexpr int kCtxToggleComment = 215;
-    menu.Append(kCtxSortLines, "Sort Lines");
-    menu.Append(kCtxDuplicateLine, "Duplicate Line");
-    menu.Append(kCtxDeleteLine, "Delete Line");
-    menu.Append(kCtxToggleComment, "Toggle Comment");
+    menu.Append(kCtxSortLines, "Sort Lines\tF9");
+    menu.Append(kCtxDuplicateLine, "Duplicate Line\tCtrl+Shift+D");
+    menu.Append(kCtxDeleteLine, "Delete Line\tCtrl+Shift+K");
+    menu.Append(kCtxToggleComment, "Toggle Comment\tCtrl+/");
 
     // Enable/disable based on state
     menu.Enable(kCtxUndo, editor_->CanUndo());

@@ -801,6 +801,11 @@ add_executable(test_perf_patterns_21_40
     unit/test_perf_patterns_21_40.cpp
 )
 add_test(NAME test_perf_patterns_21_40 COMMAND test_perf_patterns_21_40)
+target_include_directories(test_perf_patterns_21_40 PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_perf_patterns_21_40 PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
 
 # --- JSON Renderer test ---
 add_executable(test_json_renderer

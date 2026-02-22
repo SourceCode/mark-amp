@@ -64,7 +64,7 @@ public:
     // Constants
     static constexpr int kHeight = 32;
     static constexpr int kMaxTabWidth = 200;
-    static constexpr int kMinTabWidth = 80;
+    static constexpr int kMinTabWidth = 100;
     static constexpr int kTabPaddingH = 12;
     static constexpr int kCloseButtonSize = 14;
     static constexpr int kCloseButtonMargin = 6;

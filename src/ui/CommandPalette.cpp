@@ -2,6 +2,9 @@
 
 #include "core/Events.h"
 
+#include <wx/dcbuffer.h>
+#include <wx/graphics.h>
+#include <wx/panel.h>
 #include <wx/sizer.h>
 
 #include <algorithm>
@@ -9,6 +12,37 @@
 
 namespace markamp::ui
 {
+
+class PaletteListBox : public wxVListBox
+{
+public:
+    PaletteListBox(CommandPalette* logic_parent, wxWindow* ui_parent)
+        : wxVListBox(
+              ui_parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE | wxVSCROLL)
+        , parent_palette_(logic_parent)
+    {
+        SetBackgroundStyle(wxBG_STYLE_PAINT);
+    }
+
+protected:
+    void OnDrawItem(wxDC& dc, const wxRect& rect, size_t n) const override
+    {
+        parent_palette_->DrawListItem(dc, rect, n);
+    }
+
+    wxCoord OnMeasureItem(size_t n) const override
+    {
+        return parent_palette_->MeasureListItem(n);
+    }
+
+    void OnDrawBackground(wxDC& dc, const wxRect& rect, size_t n) const override
+    {
+        parent_palette_->DrawListItemBackground(dc, rect, n);
+    }
+
+private:
+    CommandPalette* parent_palette_;
+};
 
 CommandPalette::CommandPalette(wxWindow* parent,
                                core::ThemeEngine& theme_engine,
@@ -22,17 +56,27 @@ CommandPalette::CommandPalette(wxWindow* parent,
     , theme_engine_(theme_engine)
     , event_bus_(event_bus)
 {
+    // 30. Drop Shadow / Pop wrapper: 1px accent border wrapper around the main content
+    auto* outer_sizer = new wxBoxSizer(wxVERTICAL);
+    auto* content_panel = new wxPanel(this);
+    outer_sizer->Add(content_panel, 1, wxEXPAND | wxALL, 1);
+    SetSizer(outer_sizer);
+
     auto* sizer = new wxBoxSizer(wxVERTICAL);
 
-    input_ = new wxTextCtrl(
-        this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_PROCESS_ENTER);
-    sizer->Add(input_, 0, wxEXPAND | wxALL, 8);
+    input_ = new wxTextCtrl(content_panel,
+                            wxID_ANY,
+                            wxEmptyString,
+                            wxDefaultPosition,
+                            wxDefaultSize,
+                            wxTE_PROCESS_ENTER | wxBORDER_NONE);
+    // 29. Input Padding: Increase internal padding via sizer margin
+    sizer->Add(input_, 0, wxEXPAND | wxALL, 12);
 
-    list_ = new wxListBox(
-        this, wxID_ANY, wxDefaultPosition, wxDefaultSize, 0, nullptr, wxLB_SINGLE | wxLB_NEEDED_SB);
+    list_ = new PaletteListBox(this, content_panel);
     sizer->Add(list_, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 8);
 
-    SetSizer(sizer);
+    content_panel->SetSizer(sizer);
 
     // Event bindings
     input_->Bind(wxEVT_TEXT, &CommandPalette::OnFilterChanged, this);
@@ -105,9 +149,14 @@ void CommandPalette::OnKeyDown(wxKeyEvent& event)
     if (key == WXK_DOWN)
     {
         int sel = list_->GetSelection();
-        if (sel < static_cast<int>(list_->GetCount()) - 1)
+        for (int i = sel + 1; i < static_cast<int>(display_items_.size()); ++i)
         {
-            list_->SetSelection(sel + 1);
+            if (display_items_[static_cast<std::size_t>(i)].type == ItemType::Command)
+            {
+                list_->SetSelection(i);
+                list_->Refresh();
+                break;
+            }
         }
         return;
     }
@@ -115,9 +164,14 @@ void CommandPalette::OnKeyDown(wxKeyEvent& event)
     if (key == WXK_UP)
     {
         int sel = list_->GetSelection();
-        if (sel > 0)
+        for (int i = sel - 1; i >= 0; --i)
         {
-            list_->SetSelection(sel - 1);
+            if (display_items_[static_cast<std::size_t>(i)].type == ItemType::Command)
+            {
+                list_->SetSelection(i);
+                list_->Refresh();
+                break;
+            }
         }
         return;
     }
@@ -134,6 +188,7 @@ void CommandPalette::ApplyFilter()
     {
         filter_lower += static_cast<char>(std::tolower(static_cast<unsigned char>(chr)));
     }
+    current_filter_ = filter_lower;
 
     // Score all commands
     struct ScoredIndex
@@ -175,9 +230,7 @@ void CommandPalette::ApplyFilter()
               [](const ScoredIndex& left, const ScoredIndex& right)
               { return left.score > right.score; });
 
-    // Update list with R18 Fix 18: Category headers
-    list_->Clear();
-    filtered_indices_.clear();
+    display_items_.clear();
     std::string last_category;
     for (const auto& entry : scored)
     {
@@ -187,88 +240,48 @@ void CommandPalette::ApplyFilter()
         if (cmd.category != last_category)
         {
             last_category = cmd.category;
-            list_->Append(wxString::FromUTF8("── " + cmd.category + " ──"));
-            // Don't add to filtered_indices_ — headers are non-selectable
+            display_items_.push_back({ItemType::Header, 0, cmd.category});
         }
-
-        // R21 Fix 2: Category badge prefix [Category]
-        std::string display = "[" + cmd.category + "]  ";
-
-        // R21 Fix 1: Fuzzy match highlight — mark matched chars with « » brackets
-        if (!filter_lower.empty())
-        {
-            std::string label_lower;
-            label_lower.reserve(cmd.label.size());
-            for (const char chr : cmd.label)
-            {
-                label_lower += static_cast<char>(std::tolower(static_cast<unsigned char>(chr)));
-            }
-            size_t fpos = 0;
-            for (size_t ci = 0; ci < cmd.label.size(); ++ci)
-            {
-                if (fpos < filter_lower.size() && label_lower[ci] == filter_lower[fpos])
-                {
-                    display += "\xC2\xAB"; // « (UTF-8)
-                    display += cmd.label[ci];
-                    display += "\xC2\xBB"; // » (UTF-8)
-                    ++fpos;
-                }
-                else
-                {
-                    display += cmd.label[ci];
-                }
-            }
-        }
-        else
-        {
-            display += cmd.label;
-        }
-
-        // R21 Fix 3: Right-aligned shortcut display
-        if (!cmd.shortcut.empty())
-        {
-            // Pad with spaces to push shortcut to the right
-            size_t current_len = display.size();
-            constexpr size_t kTargetWidth = 50;
-            if (current_len < kTargetWidth)
-            {
-                display += std::string(kTargetWidth - current_len, ' ');
-            }
-            display += cmd.shortcut;
-        }
-
-        // R21 Fix 5: Selected item accent bar — visual prefix marker
-        // The first item will get ▸ prefix; others get space prefix
-        auto prefix = filtered_indices_.empty() ? "\xE2\x96\xB8 " : "  ";
-        list_->Append(wxString::FromUTF8(prefix + display));
-        filtered_indices_.push_back(entry.index);
+        display_items_.push_back({ItemType::Command, entry.index, ""});
     }
 
-    if (!filtered_indices_.empty())
+    if (display_items_.empty() && !filter_lower.empty())
     {
-        list_->SetSelection(0);
+        // 28. Empty State: Display an aesthetic "No results found" placeholder
+        display_items_.push_back({ItemType::Empty, 0, "✦ No commands found ✦"});
+        display_items_.push_back({ItemType::Empty, 0, "Try a different search term"});
+    }
 
-        // R17 Fix 35: Result count indicator
-        auto count_label = std::to_string(filtered_indices_.size()) + " commands";
-        list_->Append(wxString::FromUTF8("  ── " + count_label + " ──"));
-    }
-    else if (!filter_lower.empty())
+    list_->SetItemCount(display_items_.size());
+    list_->SetSelection(-1);
+
+    // Auto-select first command
+    for (size_t i = 0; i < display_items_.size(); ++i)
     {
-        // R21 Fix 4: No-results placeholder with centered visual cue
-        list_->Append(wxString::FromUTF8("      ✦ No commands found ✦"));
-        list_->Append(wxString::FromUTF8("      Try a different search term"));
+        if (display_items_[i].type == ItemType::Command)
+        {
+            list_->SetSelection(static_cast<int>(i));
+            break;
+        }
     }
+
+    list_->Refresh();
 }
 
 void CommandPalette::ExecuteSelected()
 {
     int sel = list_->GetSelection();
-    if (sel == wxNOT_FOUND || sel >= static_cast<int>(filtered_indices_.size()))
+    if (sel == wxNOT_FOUND || sel >= static_cast<int>(display_items_.size()))
     {
         return;
     }
 
-    size_t cmd_index = filtered_indices_[static_cast<size_t>(sel)];
+    if (display_items_[static_cast<std::size_t>(sel)].type != ItemType::Command)
+    {
+        return;
+    }
+
+    size_t cmd_index = display_items_[static_cast<std::size_t>(sel)].cmd_index;
     Hide();
 
     // R18 Fix 17: Update MRU history
@@ -295,15 +308,141 @@ void CommandPalette::ApplyTheme()
     auto bg_color = theme_engine_.color(core::ThemeColorToken::BgPanel);
     auto fg_color = theme_engine_.color(core::ThemeColorToken::TextMain);
     auto input_bg = theme_engine_.color(core::ThemeColorToken::BgInput);
+    auto accent = theme_engine_.color(core::ThemeColorToken::AccentPrimary);
 
-    SetBackgroundColour(bg_color);
+    // 30. Drop Shadow / Window pop: Set Dialog BG to accent to create 1px border
+    SetBackgroundColour(accent.ChangeLightness(50));
+    GetSizer()->GetItem(size_t(0))->GetWindow()->SetBackgroundColour(bg_color); // content_panel
+
     input_->SetBackgroundColour(input_bg);
     input_->SetForegroundColour(fg_color);
     list_->SetBackgroundColour(bg_color);
     list_->SetForegroundColour(fg_color);
+}
 
-    // R16 Fix 34: Accent border highlight on the dialog
-    SetBackgroundColour(bg_color);
+void CommandPalette::DrawListItemBackground(wxDC& dc, const wxRect& rect, size_t n) const
+{
+    if (list_->IsSelected(n) && display_items_[n].type == ItemType::Command)
+    {
+        // 31. Selection Indicator: Prominent background highlight
+        auto select_bg =
+            theme_engine_.color(core::ThemeColorToken::AccentPrimary).ChangeLightness(70);
+        dc.SetBrush(wxBrush(select_bg));
+        dc.SetPen(*wxTRANSPARENT_PEN);
+        dc.DrawRectangle(rect);
+
+        // Subtly brighter left edge border for selected items
+        dc.SetBrush(wxBrush(
+            theme_engine_.color(core::ThemeColorToken::AccentPrimary).ChangeLightness(140)));
+        dc.DrawRectangle(rect.x, rect.y, 3, rect.height);
+    }
+    else
+    {
+        dc.SetBrush(wxBrush(theme_engine_.color(core::ThemeColorToken::BgPanel)));
+        dc.SetPen(*wxTRANSPARENT_PEN);
+        dc.DrawRectangle(rect);
+    }
+}
+
+wxCoord CommandPalette::MeasureListItem(size_t n) const
+{
+    if (display_items_[n].type == ItemType::Header)
+        return 24;
+    if (display_items_[n].type == ItemType::Empty)
+        return 30;
+    return 26;
+}
+
+void CommandPalette::DrawListItem(wxDC& dc, const wxRect& rect, size_t n) const
+{
+    const auto& item = display_items_[n];
+    if (item.type == ItemType::Header)
+    {
+        wxFont bold_font = theme_engine_.font(core::ThemeFontToken::UISmall);
+        bold_font.SetWeight(wxFONTWEIGHT_SEMIBOLD);
+        dc.SetFont(bold_font);
+        dc.SetTextForeground(theme_engine_.color(core::ThemeColorToken::TextMuted));
+        wxString text = wxString::FromUTF8("── " + item.label + " ──");
+        int w, h;
+        dc.GetTextExtent(text, &w, &h);
+        dc.DrawText(text, rect.x + 8, rect.y + (rect.height - h) / 2);
+        return;
+    }
+    else if (item.type == ItemType::Empty)
+    {
+        dc.SetFont(theme_engine_.font(core::ThemeFontToken::SansRegular));
+        dc.SetTextForeground(
+            theme_engine_.color(core::ThemeColorToken::TextMuted).ChangeLightness(120));
+        wxString empty1 = wxString::FromUTF8(item.label);
+        int w1, h1;
+        dc.GetTextExtent(empty1, &w1, &h1);
+        dc.DrawText(empty1, rect.x + (rect.width - w1) / 2, rect.y + (rect.height - h1) / 2);
+        return;
+    }
+
+    bool is_selected = list_->IsSelected(n);
+    const auto& cmd = all_commands_[item.cmd_index];
+    dc.SetFont(theme_engine_.font(core::ThemeFontToken::SansRegular));
+
+    int text_y = rect.y + (rect.height - dc.GetCharHeight() + 1) / 2;
+    int x_off = rect.x + 12;
+
+    // Draw Category Badge
+    dc.SetTextForeground(theme_engine_.color(core::ThemeColorToken::TextMuted));
+    wxString cat_text = wxString::FromUTF8("[" + cmd.category + "] ");
+    dc.DrawText(cat_text, x_off, text_y);
+    x_off += dc.GetTextExtent(cat_text).GetWidth();
+
+    // 27. Match Highlighting
+    auto main_col = is_selected
+                        ? theme_engine_.color(core::ThemeColorToken::TextMain)
+                        : theme_engine_.color(core::ThemeColorToken::TextMain).ChangeLightness(180);
+    auto hl_col =
+        is_selected
+            ? theme_engine_.color(core::ThemeColorToken::TextMain).ChangeLightness(220)
+            : theme_engine_.color(core::ThemeColorToken::AccentPrimary).ChangeLightness(140);
+
+    std::string label_lower;
+    label_lower.reserve(cmd.label.size());
+    for (char c : cmd.label)
+        label_lower += static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+
+    if (!current_filter_.empty())
+    {
+        size_t fpos = 0;
+        for (size_t ci = 0; ci < cmd.label.size(); ++ci)
+        {
+            wxString char_str = wxString::FromUTF8(std::string(1, cmd.label[ci]));
+            if (fpos < current_filter_.size() && label_lower[ci] == current_filter_[fpos])
+            {
+                dc.SetTextForeground(hl_col); // Fuzzy match char color
+                dc.DrawText(char_str, x_off, text_y);
+                x_off += dc.GetTextExtent(char_str).GetWidth();
+                ++fpos;
+            }
+            else
+            {
+                dc.SetTextForeground(main_col);
+                dc.DrawText(char_str, x_off, text_y);
+                x_off += dc.GetTextExtent(char_str).GetWidth();
+            }
+        }
+    }
+    else
+    {
+        dc.SetTextForeground(main_col);
+        wxString label_str = wxString::FromUTF8(cmd.label);
+        dc.DrawText(label_str, x_off, text_y);
+    }
+
+    // Shortcut
+    if (!cmd.shortcut.empty())
+    {
+        dc.SetTextForeground(theme_engine_.color(core::ThemeColorToken::TextMuted));
+        wxString short_str = wxString::FromUTF8(cmd.shortcut);
+        int sw = dc.GetTextExtent(short_str).GetWidth();
+        dc.DrawText(short_str, rect.x + rect.width - sw - 12, text_y);
+    }
 }
 
 auto CommandPalette::FuzzyScore(const std::string& filter, const std::string& candidate) -> int

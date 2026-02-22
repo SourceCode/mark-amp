@@ -5,6 +5,7 @@
 #include "core/ThemeEngine.h"
 
 #include <wx/panel.h>
+#include <wx/timer.h>
 
 #include <string>
 #include <vector>
@@ -60,6 +61,9 @@ private:
     int drag_target_index_{-1};
     bool is_dragging_{false};
     wxPoint drag_start_pos_;
+
+    wxTimer tooltip_timer_;
+    bool tooltip_visible_{false};
 
     core::Subscription theme_sub_;
     core::Subscription search_count_sub_;      // Phase 06 Task 7

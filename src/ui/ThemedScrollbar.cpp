@@ -80,6 +80,12 @@ void ThemedScrollbar::OnPaint(wxPaintEvent& /*event*/)
     dc.SetPen(*wxTRANSPARENT_PEN);
 
     auto tr = thumb_rect();
+    // 33. Scrollbar Hover: Widen the custom scrollbar thumb slightly when hovered
+    if (!is_hovering_ && !is_dragging_)
+    {
+        tr.SetWidth(tr.GetWidth() - 4);
+        tr.SetX(4); // align right
+    }
     dc.DrawRoundedRectangle(tr, 4.0);
 
     // R20 Fix 38: Scroll position tick marks at regular intervals

@@ -2,14 +2,14 @@
 
 #include "BevelPanel.h"
 #include "core/Config.h"
+#include "core/EventBus.h"
 #include "core/Events.h"
 #include "core/IMathRenderer.h" // Added this include based on context
 #include "core/IMermaidRenderer.h"
-#include "core/Logger.h"
-#include "core/MarkdownDocument.h"
 #include "core/MarkdownParser.h"
 #include "core/Profiler.h"
 #include "core/ThemeEngine.h"
+#include "core/Types.h"
 #include "rendering/HtmlRenderer.h"
 #include "rendering/JsonRenderer.h"
 #include "rendering/ScriptRenderer.h"
@@ -139,15 +139,15 @@ PreviewPanel::PreviewPanel(wxWindow* parent,
     content_changed_sub_ = event_bus_.subscribe<core::events::EditorContentChangedEvent>(
         [this](const core::events::EditorContentChangedEvent& e) { SetContent(e.content); });
 
-    event_subscriptions_.push_back(event_bus_.subscribe<core::events::ActiveFileChangedEvent>(
+    active_file_sub_ = event_bus_.subscribe<core::events::ActiveFileChangedEvent>(
         [this](const core::events::ActiveFileChangedEvent& e)
         {
             SetActiveFile(e.file_id);
             ScrollToTop(); // Immediate scroll to top on file change
-        }));
+        });
 
-    event_subscriptions_.push_back(event_bus_.subscribe<core::events::ViewModeChangedEvent>(
-        [this](const core::events::ViewModeChangedEvent& e) { handle_view_mode_changed(e); }));
+    view_mode_sub_ = event_bus_.subscribe<core::events::ViewModeChangedEvent>(
+        [this](const core::events::ViewModeChangedEvent& /*e*/) { RenderNow(); });
 
     // Subscribe to editor scroll changes for scroll sync
     scroll_sync_sub_ = event_bus_.subscribe<core::events::EditorScrollChangedEvent>(
@@ -205,6 +205,22 @@ void PreviewPanel::Clear()
     if (scroll_to_top_btn_ != nullptr)
     {
         scroll_to_top_btn_->Hide();
+    }
+}
+
+void PreviewPanel::RenderNow()
+{
+    render_timer_.Stop();
+
+    // Choose content: use pending if any, otherwise last rendered
+    std::string content_to_render =
+        pending_content_.empty() ? last_rendered_content_ : pending_content_;
+
+    if (!content_to_render.empty())
+    {
+        // Clear cached content to bypass the early exit check in RenderContent
+        last_rendered_content_.clear();
+        RenderContent(content_to_render);
     }
 }
 

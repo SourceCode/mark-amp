@@ -507,14 +507,14 @@ void TabBar::DrawTab(wxGraphicsContext& gc, const TabInfo& tab, const core::Them
         gc.DrawRectangle(tab_x, tab_y, tab_w, tab_h);
     }
 
-    // Active indicator — 2px accent line at bottom
+    // 17. Active indicator — 2px accent line at top
     if (tab.is_active)
     {
         gc.SetBrush(
             gc.CreateBrush(wxBrush(theme_engine().color(core::ThemeColorToken::AccentPrimary))));
-        gc.DrawRectangle(tab_x, tab_y + tab_h - 2, tab_w, 2);
+        gc.DrawRectangle(tab_x, tab_y, tab_w, 2);
 
-        // R20 Fix 3: Active tab bottom glow (neon-edge beneath indicator)
+        // R20 Fix 3: Active tab top glow (neon-edge beneath indicator)
         auto accent = theme_engine().color(core::ThemeColorToken::AccentPrimary);
         for (int glow_row = 0; glow_row < kGlowLineHeight; ++glow_row)
         {
@@ -528,7 +528,7 @@ void TabBar::DrawTab(wxGraphicsContext& gc, const TabInfo& tab, const core::Them
                                 accent.Blue(),
                                 static_cast<unsigned char>(glow_alpha));
             gc.SetPen(gc.CreatePen(wxPen(glow_color, 1)));
-            gc.StrokeLine(tab_x, tab_y + tab_h + glow_row, tab_x + tab_w, tab_y + tab_h + glow_row);
+            gc.StrokeLine(tab_x, tab_y + 2 + glow_row, tab_x + tab_w, tab_y + 2 + glow_row);
         }
     }
 
@@ -541,11 +541,12 @@ void TabBar::DrawTab(wxGraphicsContext& gc, const TabInfo& tab, const core::Them
         gc.DrawRectangle(tab_x, tab_y + 4, kPinnedStripeWidth, tab_h - 8);
     }
 
-    // Right separator
+    // 21. Right separator
     if (!tab.is_active)
     {
-        gc.SetPen(gc.CreatePen(wxPen(theme_engine().color(core::ThemeColorToken::BorderLight), 1)));
-        gc.StrokeLine(tab_x + tab_w, tab_y + 4, tab_x + tab_w, tab_y + tab_h - 4);
+        gc.SetPen(gc.CreatePen(
+            wxPen(theme_engine().color(core::ThemeColorToken::BgPanel).ChangeLightness(120), 1)));
+        gc.StrokeLine(tab_x + tab_w, tab_y + 8, tab_x + tab_w, tab_y + tab_h - 8);
     }
 
     // R16 Fix 4: Active tab uses semibold weight
@@ -656,11 +657,12 @@ void TabBar::DrawTab(wxGraphicsContext& gc, const TabInfo& tab, const core::Them
         }
         else
         {
-            // Close button hover background
+            // 19. Close button hover background (soft red)
             if (tab.close_hovered)
             {
-                gc.SetBrush(gc.CreateBrush(wxBrush(
-                    theme_engine().color(core::ThemeColorToken::BgPanel).ChangeLightness(85))));
+                auto error_color = theme_engine().color(core::ThemeColorToken::ErrorColor);
+                wxColour hover_bg(error_color.Red(), error_color.Green(), error_color.Blue(), 40);
+                gc.SetBrush(gc.CreateBrush(wxBrush(hover_bg)));
                 gc.SetPen(wxNullPen);
                 gc.DrawRoundedRectangle(
                     close_x - 2, close_y - 2, kCloseButtonSize + 4, kCloseButtonSize + 4, 3);
@@ -758,22 +760,12 @@ void TabBar::OnMouseMove(wxMouseEvent& event)
         }
     }
 
-    // R3 Fix 6: Show relative file path tooltip on tab hover
+    // 18. Show absolute file path tooltip on tab hover
     if (new_hovered != hovered_tab_index_)
     {
         if (new_hovered >= 0)
         {
             std::string tip = tabs_[static_cast<size_t>(new_hovered)].file_path;
-            if (!workspace_root_.empty())
-            {
-                try
-                {
-                    tip = std::filesystem::relative(tip, workspace_root_).string();
-                }
-                catch (const std::filesystem::filesystem_error& /*err*/)
-                {
-                }
-            }
             SetToolTip(tip);
         }
         else

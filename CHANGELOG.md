@@ -1,5 +1,25 @@
 # MarkAmp Release History
 
+## v2.6.23 — 2026-02-21
+
+### Highlights
+
+Implemented 40 comprehensive User Experience (UX) improvements across the entire application interface to enhance readability, feedback loops, and interaction fidelity. Addressed inconsistencies across 8 key UI surfaces.
+
+### Added
+
+- **Activity Bar** — Unified right-edge gradient drop shadow and explicitly pill-shaped notification badges.
+- **Settings Panel** — Striped row backgrounds (`bg.lighten`) and formatted subgroups for improved visual scanning.
+- **Tab Bar** — Visual active-tab accent highlight borders and full absolute file-path tooltips on hover.
+- **Command Palette** — "No results found" placeholder state and highlighted fuzzy-matching results.
+- **Overlays & Feedback** — Export success toast notifications mapping explicitly to user action outcomes.
+
+### Changed
+
+- **File Tree** — Increased vertical padding by 2px and enabled full-width hover background rendering. Bolded active file representation.
+- **Editor UI** — Increased left physical margin padding by 4px and standardized modified (dirty) dot indicators.
+- **Status Bar** — Improved horizontal segments with hand-pointer cursors, background hover states, document icons, and vertical text-centering alignment.
+
 ## v2.6.22 — 2026-02-21
 
 ### Highlights
