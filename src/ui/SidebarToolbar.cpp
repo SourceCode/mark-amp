@@ -99,6 +99,24 @@ void SidebarToolbar::RebuildActions(const std::vector<ToolbarAction>& actions)
         btn->SetBackgroundColour(theme_engine_.color(core::ThemeColorToken::BgHeader));
         btn->SetForegroundColour(theme_engine_.color(core::ThemeColorToken::TextMuted));
 
+        btn->Bind(wxEVT_SET_FOCUS,
+                  [btn](wxFocusEvent& evt)
+                  {
+                      auto base_col = btn->GetBackgroundColour();
+                      btn->SetBackgroundColour(base_col.ChangeLightness(140));
+                      btn->Refresh();
+                      evt.Skip();
+                  });
+
+        btn->Bind(wxEVT_KILL_FOCUS,
+                  [this, btn](wxFocusEvent& evt)
+                  {
+                      btn->SetBackgroundColour(
+                          theme_engine_.color(core::ThemeColorToken::BgHeader));
+                      btn->Refresh();
+                      evt.Skip();
+                  });
+
         auto font = btn->GetFont();
         font.SetPointSize(11);
         btn->SetFont(font);

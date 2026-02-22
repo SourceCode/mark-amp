@@ -25,9 +25,9 @@ public:
     }
 
 protected:
-    void OnDrawItem(wxDC& dc, const wxRect& rect, size_t n) const override
+    void OnDrawItem(wxDC& draw_dc, const wxRect& rect, size_t n) const override
     {
-        parent_palette_->DrawListItem(dc, rect, n);
+        parent_palette_->DrawListItem(draw_dc, rect, n);
     }
 
     wxCoord OnMeasureItem(size_t n) const override
@@ -35,9 +35,9 @@ protected:
         return parent_palette_->MeasureListItem(n);
     }
 
-    void OnDrawBackground(wxDC& dc, const wxRect& rect, size_t n) const override
+    void OnDrawBackground(wxDC& draw_dc, const wxRect& rect, size_t n) const override
     {
-        parent_palette_->DrawListItemBackground(dc, rect, n);
+        parent_palette_->DrawListItemBackground(draw_dc, rect, n);
     }
 
 private:
@@ -70,6 +70,7 @@ CommandPalette::CommandPalette(wxWindow* parent,
                             wxDefaultPosition,
                             wxDefaultSize,
                             wxTE_PROCESS_ENTER | wxBORDER_NONE);
+    input_->SetToolTip("Type to search commands...");
     // 29. Input Padding: Increase internal padding via sizer margin
     sizer->Add(input_, 0, wxEXPAND | wxALL, 12);
 
@@ -117,7 +118,14 @@ void CommandPalette::ShowPalette()
     // Center on parent
     CenterOnParent();
     Show(true);
-    input_->SetFocus();
+    CallAfter(
+        [this]()
+        {
+            if (input_ != nullptr)
+            {
+                input_->SetFocus();
+            }
+        });
 }
 
 void CommandPalette::OnFilterChanged(wxCommandEvent& /*event*/)
@@ -132,24 +140,24 @@ void CommandPalette::OnCommandSelected(wxCommandEvent& /*event*/)
 
 void CommandPalette::OnKeyDown(wxKeyEvent& event)
 {
-    int key = event.GetKeyCode();
+    const int key_code = event.GetKeyCode();
 
-    if (key == WXK_ESCAPE)
+    if (key_code == WXK_ESCAPE)
     {
         Hide();
         return;
     }
 
-    if (key == WXK_RETURN || key == WXK_NUMPAD_ENTER)
+    if (key_code == WXK_RETURN || key_code == WXK_NUMPAD_ENTER)
     {
         ExecuteSelected();
         return;
     }
 
-    if (key == WXK_DOWN)
+    if (key_code == WXK_DOWN)
     {
-        int sel = list_->GetSelection();
-        for (int i = sel + 1; i < static_cast<int>(display_items_.size()); ++i)
+        const int current_sel = list_->GetSelection();
+        for (int i = current_sel + 1; i < static_cast<int>(display_items_.size()); ++i)
         {
             if (display_items_[static_cast<std::size_t>(i)].type == ItemType::Command)
             {
@@ -161,10 +169,10 @@ void CommandPalette::OnKeyDown(wxKeyEvent& event)
         return;
     }
 
-    if (key == WXK_UP)
+    if (key_code == WXK_UP)
     {
-        int sel = list_->GetSelection();
-        for (int i = sel - 1; i >= 0; --i)
+        const int current_sel = list_->GetSelection();
+        for (int i = current_sel - 1; i >= 0; --i)
         {
             if (display_items_[static_cast<std::size_t>(i)].type == ItemType::Command)
             {
@@ -216,10 +224,10 @@ void CommandPalette::ApplyFilter()
         else
         {
             auto combined = all_commands_[idx].category + ": " + all_commands_[idx].label;
-            int sc = FuzzyScore(filter_lower, combined);
-            if (sc > 0)
+            const int score_val = FuzzyScore(filter_lower, combined);
+            if (score_val > 0)
             {
-                scored.push_back({idx, sc});
+                scored.push_back({idx, score_val});
             }
         }
     }
@@ -248,8 +256,8 @@ void CommandPalette::ApplyFilter()
     if (display_items_.empty() && !filter_lower.empty())
     {
         // 28. Empty State: Display an aesthetic "No results found" placeholder
-        display_items_.push_back({ItemType::Empty, 0, "✦ No commands found ✦"});
-        display_items_.push_back({ItemType::Empty, 0, "Try a different search term"});
+        display_items_.push_back({ItemType::Empty, 0, "No commands match your search"});
+        display_items_.push_back({ItemType::Empty, 0, "Try entering different keywords"});
     }
 
     list_->SetItemCount(display_items_.size());
@@ -270,18 +278,18 @@ void CommandPalette::ApplyFilter()
 
 void CommandPalette::ExecuteSelected()
 {
-    int sel = list_->GetSelection();
-    if (sel == wxNOT_FOUND || sel >= static_cast<int>(display_items_.size()))
+    const int current_sel = list_->GetSelection();
+    if (current_sel == wxNOT_FOUND || current_sel >= static_cast<int>(display_items_.size()))
     {
         return;
     }
 
-    if (display_items_[static_cast<std::size_t>(sel)].type != ItemType::Command)
+    if (display_items_[static_cast<std::size_t>(current_sel)].type != ItemType::Command)
     {
         return;
     }
 
-    size_t cmd_index = display_items_[static_cast<std::size_t>(sel)].cmd_index;
+    const size_t cmd_index = display_items_[static_cast<std::size_t>(current_sel)].cmd_index;
     Hide();
 
     // R18 Fix 17: Update MRU history
@@ -320,27 +328,27 @@ void CommandPalette::ApplyTheme()
     list_->SetForegroundColour(fg_color);
 }
 
-void CommandPalette::DrawListItemBackground(wxDC& dc, const wxRect& rect, size_t n) const
+void CommandPalette::DrawListItemBackground(wxDC& draw_dc, const wxRect& rect, size_t n) const
 {
     if (list_->IsSelected(n) && display_items_[n].type == ItemType::Command)
     {
         // 31. Selection Indicator: Prominent background highlight
         auto select_bg =
-            theme_engine_.color(core::ThemeColorToken::AccentPrimary).ChangeLightness(70);
-        dc.SetBrush(wxBrush(select_bg));
-        dc.SetPen(*wxTRANSPARENT_PEN);
-        dc.DrawRectangle(rect);
+            theme_engine_.color(core::ThemeColorToken::AccentPrimary).ChangeLightness(50);
+        draw_dc.SetBrush(wxBrush(select_bg));
+        draw_dc.SetPen(*wxTRANSPARENT_PEN);
+        draw_dc.DrawRectangle(rect);
 
         // Subtly brighter left edge border for selected items
-        dc.SetBrush(wxBrush(
-            theme_engine_.color(core::ThemeColorToken::AccentPrimary).ChangeLightness(140)));
-        dc.DrawRectangle(rect.x, rect.y, 3, rect.height);
+        draw_dc.SetBrush(wxBrush(
+            theme_engine_.color(core::ThemeColorToken::AccentPrimary).ChangeLightness(120)));
+        draw_dc.DrawRectangle(rect.x, rect.y, 4, rect.height);
     }
     else
     {
-        dc.SetBrush(wxBrush(theme_engine_.color(core::ThemeColorToken::BgPanel)));
-        dc.SetPen(*wxTRANSPARENT_PEN);
-        dc.DrawRectangle(rect);
+        draw_dc.SetBrush(wxBrush(theme_engine_.color(core::ThemeColorToken::BgPanel)));
+        draw_dc.SetPen(*wxTRANSPARENT_PEN);
+        draw_dc.DrawRectangle(rect);
     }
 }
 
@@ -353,95 +361,125 @@ wxCoord CommandPalette::MeasureListItem(size_t n) const
     return 26;
 }
 
-void CommandPalette::DrawListItem(wxDC& dc, const wxRect& rect, size_t n) const
+void CommandPalette::DrawListItem(wxDC& draw_dc, const wxRect& rect, size_t n) const
 {
     const auto& item = display_items_[n];
-    if (item.type == ItemType::Header)
+    auto fg_color = theme_engine_.color(core::ThemeColorToken::TextMain);
+    auto muted_color = theme_engine_.color(core::ThemeColorToken::TextMuted);
+    auto accent = theme_engine_.color(core::ThemeColorToken::AccentPrimary);
+
+    if (item.type == ItemType::Empty)
     {
-        wxFont bold_font = theme_engine_.font(core::ThemeFontToken::UISmall);
-        bold_font.SetWeight(wxFONTWEIGHT_SEMIBOLD);
-        dc.SetFont(bold_font);
-        dc.SetTextForeground(theme_engine_.color(core::ThemeColorToken::TextMuted));
-        wxString text = wxString::FromUTF8("── " + item.label + " ──");
-        int w, h;
-        dc.GetTextExtent(text, &w, &h);
-        dc.DrawText(text, rect.x + 8, rect.y + (rect.height - h) / 2);
-        return;
-    }
-    else if (item.type == ItemType::Empty)
-    {
-        dc.SetFont(theme_engine_.font(core::ThemeFontToken::SansRegular));
-        dc.SetTextForeground(
-            theme_engine_.color(core::ThemeColorToken::TextMuted).ChangeLightness(120));
-        wxString empty1 = wxString::FromUTF8(item.label);
-        int w1, h1;
-        dc.GetTextExtent(empty1, &w1, &h1);
-        dc.DrawText(empty1, rect.x + (rect.width - w1) / 2, rect.y + (rect.height - h1) / 2);
-        return;
-    }
+        draw_dc.SetTextForeground(muted_color);
+        const wxString empty_text = item.label;
+        const auto extent = draw_dc.GetTextExtent(empty_text);
 
-    bool is_selected = list_->IsSelected(n);
-    const auto& cmd = all_commands_[item.cmd_index];
-    dc.SetFont(theme_engine_.font(core::ThemeFontToken::SansRegular));
-
-    int text_y = rect.y + (rect.height - dc.GetCharHeight() + 1) / 2;
-    int x_off = rect.x + 12;
-
-    // Draw Category Badge
-    dc.SetTextForeground(theme_engine_.color(core::ThemeColorToken::TextMuted));
-    wxString cat_text = wxString::FromUTF8("[" + cmd.category + "] ");
-    dc.DrawText(cat_text, x_off, text_y);
-    x_off += dc.GetTextExtent(cat_text).GetWidth();
-
-    // 27. Match Highlighting
-    auto main_col = is_selected
-                        ? theme_engine_.color(core::ThemeColorToken::TextMain)
-                        : theme_engine_.color(core::ThemeColorToken::TextMain).ChangeLightness(180);
-    auto hl_col =
-        is_selected
-            ? theme_engine_.color(core::ThemeColorToken::TextMain).ChangeLightness(220)
-            : theme_engine_.color(core::ThemeColorToken::AccentPrimary).ChangeLightness(140);
-
-    std::string label_lower;
-    label_lower.reserve(cmd.label.size());
-    for (char c : cmd.label)
-        label_lower += static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-
-    if (!current_filter_.empty())
-    {
-        size_t fpos = 0;
-        for (size_t ci = 0; ci < cmd.label.size(); ++ci)
+        if (extent.GetWidth() > 0 && extent.GetHeight() > 0)
         {
-            wxString char_str = wxString::FromUTF8(std::string(1, cmd.label[ci]));
-            if (fpos < current_filter_.size() && label_lower[ci] == current_filter_[fpos])
-            {
-                dc.SetTextForeground(hl_col); // Fuzzy match char color
-                dc.DrawText(char_str, x_off, text_y);
-                x_off += dc.GetTextExtent(char_str).GetWidth();
-                ++fpos;
-            }
-            else
-            {
-                dc.SetTextForeground(main_col);
-                dc.DrawText(char_str, x_off, text_y);
-                x_off += dc.GetTextExtent(char_str).GetWidth();
-            }
+            draw_dc.DrawText(empty_text,
+                             rect.x + (rect.width - extent.GetWidth()) / 2,
+                             rect.y + (rect.height - extent.GetHeight()) / 2);
         }
+        return;
+    }
+    else if (item.type == ItemType::Header)
+    {
+        draw_dc.SetTextForeground(muted_color);
+        auto font = draw_dc.GetFont();
+        font.SetWeight(wxFONTWEIGHT_BOLD);
+        draw_dc.SetFont(font);
+
+        const wxString empty_cat = item.label;
+        const auto extent_cat = draw_dc.GetTextExtent(empty_cat);
+
+        if (extent_cat.GetWidth() > 0 && extent_cat.GetHeight() > 0)
+        {
+            draw_dc.DrawText(
+                item.label, rect.x + 8, rect.y + (rect.height - extent_cat.GetHeight()) / 2);
+        }
+        return;
+    }
+
+    const bool is_selected = list_->IsSelected(n);
+    if (is_selected)
+    {
+        draw_dc.SetTextForeground(theme_engine_.color(core::ThemeColorToken::TextMain));
     }
     else
     {
-        dc.SetTextForeground(main_col);
-        wxString label_str = wxString::FromUTF8(cmd.label);
-        dc.DrawText(label_str, x_off, text_y);
+        draw_dc.SetTextForeground(fg_color);
     }
 
-    // Shortcut
+    const int text_y_pos = rect.y + (rect.height - draw_dc.GetCharHeight()) / 2;
+
+    const auto& cmd = all_commands_[item.cmd_index];
+
+    // Split category and label
+    const wxString cat_text = wxString::FromUTF8(cmd.category) + ": ";
+    draw_dc.DrawText(cat_text, rect.x + 12, text_y_pos);
+
+    int cat_w = draw_dc.GetTextExtent(cat_text).GetWidth();
+    int draw_x = rect.x + 12 + cat_w;
+
+    auto font_normal = draw_dc.GetFont();
+
+    // Draw label, bolding matching characters
+    if (!current_filter_.empty())
+    {
+        wxFont font_bold = font_normal;
+        font_bold.SetWeight(wxFONTWEIGHT_BOLD);
+
+        std::string label_lower;
+        for (const char chr : cmd.label)
+        {
+            label_lower += static_cast<char>(std::tolower(static_cast<unsigned char>(chr)));
+        }
+
+        for (size_t i = 0; i < cmd.label.size(); ++i)
+        {
+            const wxString char_str = wxString::FromUTF8(std::string(1, cmd.label[i]));
+            bool is_match = false;
+            if (current_filter_.find(label_lower[i]) != std::string::npos)
+            {
+                is_match = true;
+            }
+
+            if (is_match)
+            {
+                draw_dc.SetFont(font_bold);
+                draw_dc.SetTextForeground(accent);
+            }
+            else
+            {
+                draw_dc.SetFont(font_normal);
+                draw_dc.SetTextForeground(
+                    is_selected ? theme_engine_.color(core::ThemeColorToken::TextMain) : fg_color);
+            }
+
+            draw_dc.DrawText(char_str, draw_x, text_y_pos);
+            draw_x += draw_dc.GetTextExtent(char_str).GetWidth();
+        }
+        draw_dc.SetFont(font_normal);
+    }
+    else
+    {
+        const wxString label_str = wxString::FromUTF8(cmd.label);
+        draw_dc.DrawText(label_str, draw_x, text_y_pos);
+    }
+
+    // Shortcut rendering on right side
     if (!cmd.shortcut.empty())
     {
-        dc.SetTextForeground(theme_engine_.color(core::ThemeColorToken::TextMuted));
-        wxString short_str = wxString::FromUTF8(cmd.shortcut);
-        int sw = dc.GetTextExtent(short_str).GetWidth();
-        dc.DrawText(short_str, rect.x + rect.width - sw - 12, text_y);
+        // 53. Monospace font for hints
+        wxFont font_mono = font_normal;
+        font_mono.SetFamily(wxFONTFAMILY_TELETYPE); // Use monospace
+        draw_dc.SetFont(font_mono);
+
+        const wxString short_str = wxString::FromUTF8(cmd.shortcut);
+        const int shortcut_w = draw_dc.GetTextExtent(short_str).GetWidth();
+        draw_dc.SetTextForeground(muted_color);
+        draw_dc.DrawText(short_str, rect.x + rect.width - shortcut_w - 16, text_y_pos);
+        draw_dc.SetFont(font_normal); // restore
     }
 }
 

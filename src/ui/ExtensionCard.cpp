@@ -101,6 +101,22 @@ void ExtensionCard::CreateLayout(const std::string& name,
 
     main_sizer->Add(action_button_, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, kCardPadding);
 
+    action_button_->Bind(wxEVT_SET_FOCUS,
+                         [this](wxFocusEvent& evt)
+                         {
+                             auto base_col = action_button_->GetBackgroundColour();
+                             action_button_->SetBackgroundColour(base_col.ChangeLightness(140));
+                             action_button_->Refresh();
+                             evt.Skip();
+                         });
+
+    action_button_->Bind(wxEVT_KILL_FOCUS,
+                         [this](wxFocusEvent& evt)
+                         {
+                             UpdateActionButton();
+                             evt.Skip();
+                         });
+
     SetSizer(main_sizer);
 }
 

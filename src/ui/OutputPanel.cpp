@@ -43,11 +43,13 @@ void OutputPanel::CreateLayout()
 
     auto* clear_btn =
         new wxButton(this, wxID_ANY, "Clear", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+    clear_btn->SetToolTip("Clear output console");
     clear_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent& /*evt*/) { clear_active_channel(); });
     top_bar->Add(clear_btn, 0, wxRIGHT, 4);
 
     auto* lock_btn =
         new wxButton(this, wxID_ANY, "Lock", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+    lock_btn->SetToolTip("Toggle auto-scroll lock");
     lock_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent& /*evt*/) { auto_scroll_ = !auto_scroll_; });
     top_bar->Add(lock_btn, 0);
 
@@ -112,7 +114,30 @@ void OutputPanel::RefreshContent()
     }
 
     // Update text content
-    text_area_->SetValue(wxString(active_content()));
+    const wxString full_text = wxString::FromUTF8(active_content());
+    text_area_->SetValue(full_text);
+
+    // Phase 06 Task 47: Error highlighting for logs
+    size_t last_pos = 0;
+    while (true)
+    {
+        const size_t err_pos = full_text.find("[ERROR]", last_pos);
+        if (err_pos == wxString::npos)
+        {
+            break;
+        }
+        size_t end_line = full_text.find('\n', err_pos);
+        if (end_line == wxString::npos)
+        {
+            end_line = full_text.length();
+        }
+
+        wxTextAttr error_style;
+        error_style.SetTextColour(wxColour(235, 87, 87)); // Red color
+        text_area_->SetStyle(static_cast<long>(err_pos), static_cast<long>(end_line), error_style);
+
+        last_pos = end_line;
+    }
 
     if (auto_scroll_)
     {

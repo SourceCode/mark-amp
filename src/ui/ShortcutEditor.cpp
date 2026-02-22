@@ -197,9 +197,10 @@ void ShortcutEditor::RecordNewBinding(long item_index)
         status_label_->SetLabel("Press key combo for \"" + target_id + "\"… (Esc to cancel)");
     }
 
-    // Temporarily highlight the row
+    // Temporarily highlight the row to indicate focus/recording
     shortcut_list_->SetItemBackgroundColour(
-        item_index, theme_engine_.color(core::ThemeColorToken::SelectionBg));
+        item_index, theme_engine_.color(core::ThemeColorToken::AccentPrimary));
+    shortcut_list_->SetItemTextColour(item_index, wxColour(255, 255, 255));
 
     // Use a shared flag so the lambda executes only once
     auto recorded = std::make_shared<bool>(false);

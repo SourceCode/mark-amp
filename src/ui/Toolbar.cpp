@@ -17,9 +17,9 @@ namespace
 constexpr int kButtonPadH = 8;
 constexpr int kButtonPadV = 8; // 8E: was 6
 constexpr int kIconSize = 14;
-constexpr int kButtonGap = 8;    // 8E: was 4
-constexpr int kRightMargin = 16; // 8E: was 12
-constexpr int kLeftMargin = 16;  // 8E: was 12
+constexpr int kButtonGap = 12;   // UX: increased gap
+constexpr int kRightMargin = 24; // UX: increased margin
+constexpr int kLeftMargin = 24;  // UX: increased margin
 constexpr double kFontSizeLabel = 11.0;
 } // namespace
 
@@ -33,15 +33,15 @@ Toolbar::Toolbar(wxWindow* parent, core::ThemeEngine& theme_engine, core::EventB
     SetBackgroundStyle(wxBG_STYLE_PAINT);
 
     // --- Left buttons: SRC, SPLIT, VIEW, FOCUS ---
-    left_buttons_.push_back({{}, "SRC", false, false, 0});
-    left_buttons_.push_back({{}, "SPLIT", true, false, 1}); // default active
-    left_buttons_.push_back({{}, "VIEW", false, false, 2});
-    left_buttons_.push_back({{}, "FOCUS", false, false, 6}); // focus mode
+    left_buttons_.push_back({{}, "SRC", false, false, true, 0});
+    left_buttons_.push_back({{}, "SPLIT", true, false, true, 1}); // default active
+    left_buttons_.push_back({{}, "VIEW", false, false, true, 2});
+    left_buttons_.push_back({{}, "FOCUS", false, false, true, 6}); // focus mode
 
     // --- Right buttons: Save, THEMES, Settings ---
-    right_buttons_.push_back({{}, "", false, false, 3});       // Save (icon only)
-    right_buttons_.push_back({{}, "THEMES", false, false, 4}); // Palette + label
-    right_buttons_.push_back({{}, "", false, false, 5});       // Settings (icon only)
+    right_buttons_.push_back({{}, "", false, false, true, 3});       // Save (icon only)
+    right_buttons_.push_back({{}, "THEMES", false, false, true, 4}); // Palette + label
+    right_buttons_.push_back({{}, "", false, false, true, 5});       // Settings (icon only)
 
     // --- Events ---
     Bind(wxEVT_PAINT, &Toolbar::OnPaint, this);
@@ -140,6 +140,31 @@ auto Toolbar::GetActiveViewMode() const -> core::events::ViewMode
 void Toolbar::SetOnThemeGalleryClick(ThemeGalleryCallback callback)
 {
     on_theme_gallery_click_ = std::move(callback);
+}
+
+void Toolbar::SetButtonEnabled(int icon_type, bool enabled)
+{
+    bool changed = false;
+    for (auto& btn : left_buttons_)
+    {
+        if (btn.icon_type == icon_type && btn.is_enabled != enabled)
+        {
+            btn.is_enabled = enabled;
+            changed = true;
+        }
+    }
+    for (auto& btn : right_buttons_)
+    {
+        if (btn.icon_type == icon_type && btn.is_enabled != enabled)
+        {
+            btn.is_enabled = enabled;
+            changed = true;
+        }
+    }
+    if (changed)
+    {
+        Refresh();
+    }
 }
 
 // ═══════════════════════════════════════════════════════
@@ -609,7 +634,13 @@ void Toolbar::DrawButton(wxGraphicsContext& gc, const ButtonInfo& btn, const cor
 
     // Text/icon color
     wxColour text_color;
-    if (btn.is_active)
+    if (!btn.is_enabled)
+    {
+        // Phase 06 Task 49: Visually grayed out disabled tools
+        auto muted = c.text_muted;
+        text_color = wxColour(muted.r, muted.g, muted.b, 60); // Low opacity for disabled state
+    }
+    else if (btn.is_active)
     {
         text_color = wxColour(c.accent_primary.to_rgba_string());
     }
@@ -650,26 +681,30 @@ void Toolbar::DrawButton(wxGraphicsContext& gc, const ButtonInfo& btn, const cor
     switch (btn.icon_type)
     {
         case 0:
-            DrawCodeIcon(gc, icon_x, icon_y, actual_size);
+            DrawCodeIcon(gc, icon_x, icon_y, actual_size, text_color);
             break;
         case 1:
-            DrawColumnsIcon(gc, icon_x, icon_y, actual_size);
+            DrawColumnsIcon(gc, icon_x, icon_y, actual_size, text_color);
             break;
         case 2:
-            DrawEyeIcon(gc, icon_x, icon_y, actual_size);
+            DrawEyeIcon(gc, icon_x, icon_y, actual_size, text_color);
             break;
         case 3:
             // R19 Fix 7: Apply pulse scale to save icon during animation
-            DrawSaveIcon(gc, icon_x, icon_y, actual_size * static_cast<double>(save_pulse_scale_));
+            DrawSaveIcon(gc,
+                         icon_x,
+                         icon_y,
+                         actual_size * static_cast<double>(save_pulse_scale_),
+                         text_color);
             break;
         case 4:
-            DrawPaletteIcon(gc, icon_x, icon_y, actual_size);
+            DrawPaletteIcon(gc, icon_x, icon_y, actual_size, text_color);
             break;
         case 5:
-            DrawGearIcon(gc, icon_x, icon_y, actual_size);
+            DrawGearIcon(gc, icon_x, icon_y, actual_size, text_color);
             break;
         case 6:
-            DrawFocusIcon(gc, icon_x, icon_y, actual_size);
+            DrawFocusIcon(gc, icon_x, icon_y, actual_size, text_color);
             break;
         default:
             break;
@@ -712,9 +747,9 @@ void Toolbar::DrawButton(wxGraphicsContext& gc, const ButtonInfo& btn, const cor
         if (is_focused_btn)
         {
             auto accent = wxColour(c.accent_primary.to_rgba_string());
-            gc.SetPen(
-                gc.CreatePen(wxGraphicsPenInfo(accent).Width(1.0).Style(wxPENSTYLE_SHORT_DASH)));
-            gc.SetBrush(*wxTRANSPARENT_BRUSH);
+            gc.SetPen(gc.CreatePen(wxGraphicsPenInfo(accent).Width(2.0)));
+            gc.SetBrush(
+                gc.CreateBrush(wxBrush(wxColour(accent.Red(), accent.Green(), accent.Blue(), 40))));
             gc.DrawRoundedRectangle(rx - 1, ry - 1, rw + 2, rh + 2, 4.0);
         }
     }
@@ -724,7 +759,8 @@ void Toolbar::DrawButton(wxGraphicsContext& gc, const ButtonInfo& btn, const cor
 // Icon Drawing
 // ═══════════════════════════════════════════════════════
 
-void Toolbar::DrawCodeIcon(wxGraphicsContext& gc, double x, double y, double size) const
+void Toolbar::DrawCodeIcon(
+    wxGraphicsContext& gc, double x, double y, double size, wxColour /*color*/) const
 {
     // </>  brackets
     double mid_y = y + size / 2.0;
@@ -752,38 +788,23 @@ void Toolbar::DrawCodeIcon(wxGraphicsContext& gc, double x, double y, double siz
     gc.StrokePath(path3);
 }
 
-void Toolbar::DrawColumnsIcon(wxGraphicsContext& gc, double x, double y, double size) const
+void Toolbar::DrawColumnsIcon(
+    wxGraphicsContext& gc, double x, double y, double size, wxColour color) const
 {
     // Two vertical rectangles
     double gap = 2;
     double col_w = (size - gap) / 2.0;
 
     gc.SetPen(*wxTRANSPARENT_PEN);
-    auto pen_color = gc.CreatePen(
-        wxGraphicsPenInfo(wxColour(theme().colors.accent_primary.to_rgba_string())).Width(0));
 
-    // Use the current pen color for fill
-    wxColour fill_color;
-    if (left_buttons_.size() > 1 && left_buttons_[1].is_active)
-    {
-        fill_color = wxColour(theme().colors.accent_primary.to_rgba_string());
-    }
-    else if (left_buttons_.size() > 1 && left_buttons_[1].is_hovered)
-    {
-        fill_color = wxColour(theme().colors.text_main.to_rgba_string());
-    }
-    else
-    {
-        fill_color = wxColour(theme().colors.text_muted.to_rgba_string());
-    }
-
-    gc.SetBrush(gc.CreateBrush(wxBrush(fill_color)));
+    gc.SetBrush(gc.CreateBrush(wxBrush(color)));
     gc.DrawRoundedRectangle(x, y + 1, col_w, size - 2, 1.5);
     gc.DrawRoundedRectangle(x + col_w + gap, y + 1, col_w, size - 2, 1.5);
     gc.SetBrush(*wxTRANSPARENT_BRUSH);
 }
 
-void Toolbar::DrawEyeIcon(wxGraphicsContext& gc, double x, double y, double size) const
+void Toolbar::DrawEyeIcon(
+    wxGraphicsContext& gc, double x, double y, double size, wxColour color) const
 {
     // Stylized eye shape
     double mid_x = x + size / 2.0;
@@ -799,25 +820,13 @@ void Toolbar::DrawEyeIcon(wxGraphicsContext& gc, double x, double y, double size
     gc.StrokePath(path);
 
     // Pupil (filled circle)
-    wxColour fill;
-    if (left_buttons_.size() > 2 && left_buttons_[2].is_active)
-    {
-        fill = wxColour(theme().colors.accent_primary.to_rgba_string());
-    }
-    else if (left_buttons_.size() > 2 && left_buttons_[2].is_hovered)
-    {
-        fill = wxColour(theme().colors.text_main.to_rgba_string());
-    }
-    else
-    {
-        fill = wxColour(theme().colors.text_muted.to_rgba_string());
-    }
-    gc.SetBrush(gc.CreateBrush(wxBrush(fill)));
+    gc.SetBrush(gc.CreateBrush(wxBrush(color)));
     gc.DrawEllipse(mid_x - 2.5, mid_y - 2.5, 5, 5);
     gc.SetBrush(*wxTRANSPARENT_BRUSH);
 }
 
-void Toolbar::DrawSaveIcon(wxGraphicsContext& gc, double x, double y, double size) const
+void Toolbar::DrawSaveIcon(
+    wxGraphicsContext& gc, double x, double y, double size, wxColour /*color*/) const
 {
     // Floppy disk shape
     gc.SetBrush(*wxTRANSPARENT_BRUSH);
@@ -841,30 +850,23 @@ void Toolbar::DrawSaveIcon(wxGraphicsContext& gc, double x, double y, double siz
     gc.StrokePath(path2);
 }
 
-void Toolbar::DrawPaletteIcon(wxGraphicsContext& gc, double x, double y, double size) const
+void Toolbar::DrawPaletteIcon(
+    wxGraphicsContext& gc, double x, double y, double size, wxColour color) const
 {
     // Simple palette shape — circle with dots
     gc.SetBrush(*wxTRANSPARENT_BRUSH);
     gc.DrawEllipse(x + 1, y + 1, size - 2, size - 2);
 
     // Color dots
-    wxColour dot_color;
-    if (right_buttons_.size() > 1 && right_buttons_[1].is_hovered)
-    {
-        dot_color = wxColour(theme().colors.accent_primary.to_rgba_string());
-    }
-    else
-    {
-        dot_color = wxColour(theme().colors.text_muted.to_rgba_string());
-    }
-    gc.SetBrush(gc.CreateBrush(wxBrush(dot_color)));
+    gc.SetBrush(gc.CreateBrush(wxBrush(color)));
     gc.DrawEllipse(x + 3, y + 3, 2.5, 2.5);
     gc.DrawEllipse(x + 7, y + 3, 2.5, 2.5);
     gc.DrawEllipse(x + 3, y + 8, 2.5, 2.5);
     gc.SetBrush(*wxTRANSPARENT_BRUSH);
 }
 
-void Toolbar::DrawGearIcon(wxGraphicsContext& gc, double x, double y, double size) const
+void Toolbar::DrawGearIcon(
+    wxGraphicsContext& gc, double x, double y, double size, wxColour /*color*/) const
 {
     // Simplified gear — circle with notches
     double cx = x + size / 2.0;
@@ -895,7 +897,8 @@ void Toolbar::DrawGearIcon(wxGraphicsContext& gc, double x, double y, double siz
     }
 }
 
-void Toolbar::DrawFocusIcon(wxGraphicsContext& gc, double x, double y, double size) const
+void Toolbar::DrawFocusIcon(
+    wxGraphicsContext& gc, double x, double y, double size, wxColour color) const
 {
     // Center-align icon: 3 horizontal lines, center one wider
     double cx = x + size / 2.0;
@@ -903,30 +906,17 @@ void Toolbar::DrawFocusIcon(wxGraphicsContext& gc, double x, double y, double si
     double short_w = size * 0.5;
     double long_w = size * 0.8;
 
-    // Determine fill color based on state
-    wxColour fill_color;
-    if (left_buttons_.size() > 3 && left_buttons_[3].is_active)
-    {
-        fill_color = wxColour(theme().colors.accent_primary.to_rgba_string());
-    }
-    else if (left_buttons_.size() > 3 && left_buttons_[3].is_hovered)
-    {
-        fill_color = wxColour(theme().colors.text_main.to_rgba_string());
-    }
-    else
-    {
-        fill_color = wxColour(theme().colors.text_muted.to_rgba_string());
-    }
-
-    gc.SetBrush(gc.CreateBrush(wxBrush(fill_color)));
     gc.SetPen(*wxTRANSPARENT_PEN);
+    gc.SetBrush(gc.CreateBrush(wxBrush(color)));
 
-    // Top line (short, centered)
-    gc.DrawRoundedRectangle(cx - short_w / 2, y + 2, short_w, line_h, 1.0);
-    // Middle line (longer, centered)
-    gc.DrawRoundedRectangle(cx - long_w / 2, y + size / 2 - line_h / 2, long_w, line_h, 1.0);
-    // Bottom line (short, centered)
-    gc.DrawRoundedRectangle(cx - short_w / 2, y + size - 2 - line_h, short_w, line_h, 1.0);
+    // Top short
+    gc.DrawRoundedRectangle(cx - short_w / 2.0, y + size * 0.25, short_w, line_h, line_h / 2.0);
+    // Mid long
+    gc.DrawRoundedRectangle(
+        cx - long_w / 2.0, y + size * 0.5 - line_h / 2.0, long_w, line_h, line_h / 2.0);
+    // Bottom short
+    gc.DrawRoundedRectangle(
+        cx - short_w / 2.0, y + size * 0.75 - line_h, short_w, line_h, line_h / 2.0);
 
     gc.SetBrush(*wxTRANSPARENT_BRUSH);
 }

@@ -1848,7 +1848,7 @@ void LayoutManager::CreateLayout()
 
     // Spacer content area -> FileTreeCtrl
     file_tree_ = new FileTreeCtrl(explorer_panel_, theme_engine(), event_bus_);
-    explorer_sizer->Add(file_tree_, 1, wxEXPAND);
+    explorer_sizer->Add(file_tree_, 1, wxEXPAND | wxALL, 8);
 
     // Bind search field text changes to filter
     search_field_->Bind(wxEVT_TEXT,
@@ -2495,7 +2495,10 @@ void LayoutManager::RegisterSidebarPanels()
             sizer->Add(opts, 0, wxEXPAND | wxTOP | wxBOTTOM, 4);
 
             // Results list
-            auto* results_label = new wxStaticText(panel, wxID_ANY, "No results");
+            auto* results_label = new wxStaticText(
+                panel,
+                wxID_ANY,
+                "No search results match your query\nTry changing the filters or keywords.");
             results_label->SetForegroundColour(
                 theme_engine().color(core::ThemeColorToken::TextMuted));
             results_label->SetFont(
@@ -2606,7 +2609,8 @@ void LayoutManager::RegisterSidebarPanels()
                                      "\xF0\x9F\x95\xB8",
                                      {"Global", "Local", "Backlinks", "Search", "Export"},
                                      {},
-                                     "Open a document to see its\nknowledge graph connections.");
+                                     "Select a document to visualize its\nknowledge graph "
+                                     "connections and\nlocal network.");
                              });
 
     // ── AI Assistant panel ──
@@ -3826,6 +3830,17 @@ void LayoutManager::CloseAllTabs()
     for (const auto& path : all_paths)
     {
         CloseTab(path);
+    }
+}
+void LayoutManager::FocusEditor()
+{
+    if (split_view_ != nullptr)
+    {
+        auto* editor = split_view_->GetEditorPanel();
+        if (editor != nullptr)
+        {
+            editor->SetFocus();
+        }
     }
 }
 

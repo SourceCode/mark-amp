@@ -92,6 +92,7 @@ public:
     [[nodiscard]] auto GetTabBar() -> TabBar*;
     [[nodiscard]] auto HasUnsavedFiles() const -> bool;
     [[nodiscard]] auto GetOpenFileCount() const -> size_t;
+    void FocusEditor();
 
     // R2 Fixes 15-17: Save All, Revert, Close All
     void SaveAllFiles();

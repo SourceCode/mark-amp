@@ -249,14 +249,15 @@ MainFrame::MainFrame(const wxString& title,
 
     // Accelerator: Cmd+Shift+P → Command Palette, F1 → Shortcut overlay
     // Phase 06 Task 16: Ctrl+Shift+E/F/G/X → sidebar mode shortcuts
-    wxAcceleratorEntry accel_entries[6];
+    wxAcceleratorEntry accel_entries[7];
     accel_entries[0].Set(wxACCEL_CMD | wxACCEL_SHIFT, 'P', wxID_HIGHEST + 100);
     accel_entries[1].Set(wxACCEL_NORMAL, WXK_F1, wxID_HIGHEST + 101);
     accel_entries[2].Set(wxACCEL_CMD | wxACCEL_SHIFT, 'E', wxID_HIGHEST + 200); // Explorer
     accel_entries[3].Set(wxACCEL_CMD | wxACCEL_SHIFT, 'F', wxID_HIGHEST + 201); // Search
     accel_entries[4].Set(wxACCEL_CMD | wxACCEL_SHIFT, 'G', wxID_HIGHEST + 202); // Graph
     accel_entries[5].Set(wxACCEL_CMD | wxACCEL_SHIFT, 'X', wxID_HIGHEST + 203); // Extensions
-    wxAcceleratorTable accel_table(6, accel_entries);
+    accel_entries[6].Set(wxACCEL_ALT, '0', wxID_HIGHEST + 300);                 // Skip to Editor
+    wxAcceleratorTable accel_table(7, accel_entries);
     SetAcceleratorTable(accel_table);
 
     Bind(
@@ -267,6 +268,14 @@ MainFrame::MainFrame(const wxString& title,
         wxEVT_MENU,
         [this]([[maybe_unused]] wxCommandEvent& evt) { ToggleShortcutOverlay(); },
         wxID_HIGHEST + 101);
+    Bind(
+        wxEVT_MENU,
+        [this]([[maybe_unused]] wxCommandEvent& evt)
+        {
+            if (layout_ != nullptr)
+                layout_->FocusEditor();
+        },
+        wxID_HIGHEST + 300);
 
     // Phase 06 Task 16: Quick switcher bindings
     Bind(

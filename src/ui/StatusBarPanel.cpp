@@ -562,11 +562,13 @@ void StatusBarPanel::OnPaint(wxPaintEvent& /*event*/)
     }
 
     // Font: 10px monospace, uppercase
-    dc.SetFont(theme_engine().font(core::ThemeFontToken::UISmall));
+    auto small_font = theme_engine().font(core::ThemeFontToken::UISmall);
+    small_font.MakeSmaller();
+    dc.SetFont(small_font);
 
     const int padding = 16;                                   // 8E: was 12
     const int text_y = (height - dc.GetCharHeight()) / 2 + 1; // 26. Vertical Centering (+1px)
-    const int separator_gap = 16;
+    const int separator_gap = 24;
 
     // Separator character
     const wxString separator = wxString::FromUTF8("\xE2\x80\xA2"); // • (bullet)
@@ -609,7 +611,7 @@ void StatusBarPanel::OnPaint(wxPaintEvent& /*event*/)
         int text_width = dc.GetTextExtent(item.text).GetWidth();
 
         // Font reset
-        dc.SetFont(theme_engine().font(core::ThemeFontToken::UISmall));
+        dc.SetFont(small_font);
 
         // Draw string with warning dot coloring
         if (item.has_warning_dot && item.text.starts_with("\xE2\x97\x8F "))
@@ -659,7 +661,7 @@ void StatusBarPanel::OnPaint(wxPaintEvent& /*event*/)
         // Reset font if we changed it
         if (item.is_accent)
         {
-            dc.SetFont(theme_engine().font(core::ThemeFontToken::UISmall));
+            dc.SetFont(small_font);
         }
 
         left_x += text_width + separator_gap;
@@ -709,7 +711,7 @@ void StatusBarPanel::OnPaint(wxPaintEvent& /*event*/)
         // Reset font if we changed it
         if (item.is_accent)
         {
-            dc.SetFont(theme_engine().font(core::ThemeFontToken::UISmall));
+            dc.SetFont(small_font);
         }
 
         right_x -= separator_gap;

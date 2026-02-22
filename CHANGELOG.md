@@ -1,5 +1,19 @@
 # MarkAmp Release History
 
+## v2.7.24 — 2026-02-22
+
+### Highlights
+
+UX Batch 6 Polish completing the 60 UX Improvements Implementation Plan. Addressed layout, padding, font settings, empty states, and focus traversal across the application. Finalized dynamic theme color mapping for all toolbar icons and problems definitions.
+
+### Changed
+
+- **Activity Bar** — Fixed key event parsing bounds.
+- **Command Palette** — Fixed monospace font scoping rules for matched-character rendering.
+- **Toolbar** — Replaced hardcoded `wxColour` instances with `wxSystemSettings` dynamic tokens across SVG path rendering algorithms.
+- **Problems Panel** — Replaced `ThemeEngine` dependency with exact semantic RGB values for Error and Warning rows.
+- **Output Panel** — Addressed sign-conversion compliance traversing log content limits.
+
 ## v2.6.23 — 2026-02-21
 
 ### Highlights

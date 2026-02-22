@@ -102,6 +102,18 @@ void EditorPanel::ClearModified()
     editor_->SetSavePoint();
 }
 
+void EditorPanel::SetFocus()
+{
+    if (find_bar_visible_ && find_input_ != nullptr)
+    {
+        find_input_->SetFocus();
+    }
+    else if (editor_ != nullptr)
+    {
+        editor_->SetFocus();
+    }
+}
+
 // ═══════════════════════════════════════════════════════
 // Cursor
 // ═══════════════════════════════════════════════════════
@@ -413,8 +425,8 @@ void EditorPanel::LoadPreferences(core::Config& config)
     glyph_margin_ = config.get_bool("editor.glyph_margin", true);
     overview_ruler_border_ = config.get_bool("editor.overview_ruler_border", true);
     line_numbers_min_chars_ = config.get_int("editor.line_numbers_min_chars", 5);
-    padding_top_ = config.get_int("editor.padding_top", 0);
-    padding_bottom_ = config.get_int("editor.padding_bottom", 0);
+    padding_top_ = config.get_int("editor.padding_top", 8);
+    padding_bottom_ = config.get_int("editor.padding_bottom", 8);
     minimap_max_column_ = config.get_int("editor.minimap_max_column", 120);
     minimap_scale_ = config.get_int("editor.minimap_scale", 1);
     minimap_side_ = config.get_string("editor.minimap_side", "right");
@@ -1137,6 +1149,15 @@ void EditorPanel::CreateFindBar()
 
     find_bar_->SetSizer(sizer);
 
+    // 35. Fix tab ordering to match visual left-to-right flow
+    prev_btn->MoveAfterInTabOrder(find_input_);
+    next_btn->MoveAfterInTabOrder(prev_btn);
+    case_btn->MoveAfterInTabOrder(next_btn);
+    replace_input_->MoveAfterInTabOrder(case_btn);
+    replace_btn->MoveAfterInTabOrder(replace_input_);
+    replace_all_btn->MoveAfterInTabOrder(replace_btn);
+    close_btn->MoveAfterInTabOrder(replace_all_btn);
+
     // Bind find bar events
     find_input_->Bind(wxEVT_TEXT,
                       [this](wxCommandEvent&)
@@ -1192,8 +1213,8 @@ void EditorPanel::ConfigureEditorDefaults()
     editor_->AutoCompCancel();
 
     // Padding inside the editor (QoL Item 4 + UX 32)
-    editor_->SetMarginLeft(20);
-    editor_->SetMarginRight(16); // Balanced padding
+    editor_->SetMarginLeft(24);
+    editor_->SetMarginRight(24); // R22: Balanced padding
 
     // Current line highlight — always visible
     editor_->SetCaretLineVisibleAlways(true);

@@ -106,6 +106,9 @@ public:
     [[nodiscard]] auto IsModified() const -> bool;
     void ClearModified();
 
+    // ── Focus ──
+    void SetFocus() override;
+
     // ── Cursor ──
     [[nodiscard]] auto GetCursorLine() const -> int;
     [[nodiscard]] auto GetCursorColumn() const -> int;

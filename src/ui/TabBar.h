@@ -62,7 +62,7 @@ public:
     }
 
     // Constants
-    static constexpr int kHeight = 32;
+    static constexpr int kHeight = 36;
     static constexpr int kMaxTabWidth = 200;
     static constexpr int kMinTabWidth = 100;
     static constexpr int kTabPaddingH = 12;
@@ -136,6 +136,12 @@ private:
     void OnRightDown(wxMouseEvent& event);
     void OnMiddleDown(wxMouseEvent& event);
     void OnMouseWheel(wxMouseEvent& event);
+
+    // Keyboard & Focus interaction
+    int focused_tab_index_{-1};
+    void OnSetFocus(wxFocusEvent& event);
+    void OnKillFocus(wxFocusEvent& event);
+    void OnKeyDown(wxKeyEvent& event);
 
     // Context menu
     void ShowTabContextMenu(int tab_index);

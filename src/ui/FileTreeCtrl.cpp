@@ -383,15 +383,9 @@ void FileTreeCtrl::DrawNode(wxDC& dc, const core::FileNode& node, int depth, int
         // VS Code uses full row selection
         if (is_selected)
         {
-            dc.SetBrush(wxBrush(theme_engine()
-                                    .color(core::ThemeColorToken::AccentPrimary)
-                                    .ChangeLightness(180))); // Lighter accent
+            dc.SetBrush(wxBrush(theme_engine().color(core::ThemeColorToken::AccentPrimary)));
             dc.SetPen(*wxTRANSPARENT_PEN);
             dc.DrawRectangle(0, row_top, row_w, kRowHeight);
-
-            // R16 Fix 25: 2px accent left border on selected row
-            dc.SetBrush(wxBrush(theme_engine().color(core::ThemeColorToken::AccentPrimary)));
-            dc.DrawRectangle(0, row_top, 2, kRowHeight);
         }
         else if (is_hovered)
         {
@@ -529,7 +523,7 @@ void FileTreeCtrl::DrawNode(wxDC& dc, const core::FileNode& node, int depth, int
 
         if (is_selected)
         {
-            dc.SetTextForeground(theme_engine().color(core::ThemeColorToken::TextMain));
+            dc.SetTextForeground(wxColour(255, 255, 255));
         }
         else if (is_hovered)
         {
@@ -563,6 +557,10 @@ void FileTreeCtrl::DrawNode(wxDC& dc, const core::FileNode& node, int depth, int
             }
         }
         // R20 Fix 24: Bold matched filter characters in file names
+        auto font_normal = dc.GetFont();
+        wxFont font_bold = font_normal;
+        font_bold.SetWeight(wxFONTWEIGHT_BOLD);
+
         if (!filter_text_.empty() && !node.is_folder())
         {
             // Find the match position in display_name (case-insensitive)
@@ -580,9 +578,6 @@ void FileTreeCtrl::DrawNode(wxDC& dc, const core::FileNode& node, int depth, int
             if (match_pos != std::string::npos)
             {
                 // Draw text in segments: before, match (bold), after
-                auto font_normal = dc.GetFont();
-                wxFont font_bold = font_normal;
-                font_bold.SetWeight(wxFONTWEIGHT_BOLD);
 
                 wxString before_text = display_name.Left(match_pos);
                 wxString match_text = display_name.Mid(match_pos, lower_filter.size());
@@ -598,7 +593,7 @@ void FileTreeCtrl::DrawNode(wxDC& dc, const core::FileNode& node, int depth, int
                 dc.SetTextForeground(theme_engine().color(core::ThemeColorToken::AccentPrimary));
                 dc.DrawText(match_text, draw_x, text_y);
                 draw_x += dc.GetTextExtent(match_text).GetWidth();
-                dc.SetFont(font_normal);
+                dc.SetFont(node.is_folder() ? font_bold : font_normal);
                 dc.SetTextForeground(is_selected ? theme_engine()
                                                        .color(core::ThemeColorToken::AccentPrimary)
                                                        .ChangeLightness(80)
@@ -612,11 +607,13 @@ void FileTreeCtrl::DrawNode(wxDC& dc, const core::FileNode& node, int depth, int
             }
             else
             {
+                dc.SetFont(node.is_folder() ? font_bold : font_normal);
                 dc.DrawText(display_name, text_x, text_y);
             }
         }
         else
         {
+            dc.SetFont(node.is_folder() ? font_bold : font_normal);
             dc.DrawText(display_name, text_x, text_y);
         }
 
@@ -696,7 +693,7 @@ void FileTreeCtrl::DrawNode(wxDC& dc, const core::FileNode& node, int depth, int
             int empty_x = kLeftPadding + (depth + 1) * kIndentWidth + kTwistieSize;
             int empty_y = y_offset + (kRowHeight - dc.GetCharHeight()) / 2;
             dc.SetTextForeground(theme_engine().color(core::ThemeColorToken::TextMuted));
-            dc.DrawText("(empty)", empty_x, empty_y);
+            dc.DrawText("No files in folder", empty_x, empty_y);
             y_offset += kRowHeight;
         }
     }

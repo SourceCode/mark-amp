@@ -84,13 +84,37 @@ void ProblemsPanel::RefreshContent()
         list_ctrl_->SetItem(row, 2, wxString::Format("%d", item.line));
         list_ctrl_->SetItem(row, 3, wxString(item.message));
         list_ctrl_->SetItem(row, 4, wxString(item.source));
+
+        wxColour row_col;
+        switch (item.severity)
+        {
+            case core::DiagnosticSeverity::kError:
+                row_col = wxColour(235, 87, 87); // Red
+                break;
+            case core::DiagnosticSeverity::kWarning:
+                row_col = wxColour(242, 201, 76); // Yellow/Orange
+                break;
+            default:
+                row_col = list_ctrl_->GetForegroundColour(); // Default foreground
+                break;
+        }
+        list_ctrl_->SetItemTextColour(row, row_col);
     }
 
     // Update summary
     if (summary_label_ != nullptr)
     {
-        summary_label_->SetLabel(wxString::Format(
-            "%zu Errors, %zu Warnings, %zu Info", error_count(), warning_count(), info_count()));
+        if (error_count() == 0 && warning_count() == 0 && info_count() == 0)
+        {
+            summary_label_->SetLabel("✅ No problems found in workspace");
+        }
+        else
+        {
+            summary_label_->SetLabel(wxString::Format("%zu Errors, %zu Warnings, %zu Info",
+                                                      error_count(),
+                                                      warning_count(),
+                                                      info_count()));
+        }
     }
 }
 

@@ -31,6 +31,8 @@ GraphSidebarPanel::GraphSidebarPanel(wxWindow* parent,
 
     // Document links list
     link_list_ = new wxListBox(this, wxID_ANY);
+    link_list_->SetName("Graph Links List");
+    link_list_->SetHelpText("Contains a list of backwards references to this document.");
     main_sizer->Add(link_list_, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 12);
 
     SetSizer(main_sizer);

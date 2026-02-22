@@ -210,13 +210,19 @@ void NotificationManager::OnPaint(wxPaintEvent& /*event*/)
         // Apply opacity
         auto level_color = GetLevelColor(toast.level);
 
-        // R20 Fix 36: Slide-in offset — toasts slide up into position during fade-in
-        int slide_offset = 0;
+        // R20 Fix 36 & Phase 06 Task 46: Slide-in/slide-out offsets
+        int slide_offset_x = 0;
+        int slide_offset_y = 0;
         if (toast.opacity < 1.0F && !toast.dismissing)
         {
-            slide_offset = static_cast<int>((1.0F - toast.opacity) * 12.0F);
+            slide_offset_y = static_cast<int>((1.0F - toast.opacity) * 12.0F);
         }
-        const int drawn_toast_y = toast_y + slide_offset;
+        else if (toast.dismissing)
+        {
+            slide_offset_x = static_cast<int>((1.0F - toast.opacity) * 20.0F);
+        }
+        const int drawn_toast_x = toast_x + slide_offset_x;
+        const int drawn_toast_y = toast_y + slide_offset_y;
 
         // Background
         paint_dc.SetBrush(wxBrush(wxColour(clr.bg_panel.r,
@@ -224,20 +230,21 @@ void NotificationManager::OnPaint(wxPaintEvent& /*event*/)
                                            clr.bg_panel.b,
                                            static_cast<unsigned char>(toast.opacity * 230.0F))));
         paint_dc.SetPen(*wxTRANSPARENT_PEN);
-        paint_dc.DrawRoundedRectangle(toast_x, drawn_toast_y, kToastWidth, kToastHeight, 6);
+        paint_dc.DrawRoundedRectangle(drawn_toast_x, drawn_toast_y, kToastWidth, kToastHeight, 6);
 
         // Left accent bar
         paint_dc.SetBrush(wxBrush(level_color));
-        paint_dc.DrawRectangle(toast_x, drawn_toast_y, 4, kToastHeight);
+        paint_dc.DrawRectangle(drawn_toast_x, drawn_toast_y, 4, kToastHeight);
 
         // Text
         paint_dc.SetTextForeground(clr.editor_fg.to_wx_colour());
-        paint_dc.DrawText(toast.message, toast_x + 12, drawn_toast_y + (kToastHeight - 16) / 2);
+        paint_dc.DrawText(
+            toast.message, drawn_toast_x + 12, drawn_toast_y + (kToastHeight - 16) / 2);
 
         // R20 Fix 35: Close button (×) in top-right corner of toast
         {
             const int close_size = 16;
-            const int close_x = toast_x + kToastWidth - close_size - 6;
+            const int close_x = drawn_toast_x + kToastWidth - close_size - 6;
             const int close_y = drawn_toast_y + 4;
             paint_dc.SetTextForeground(
                 wxColour(clr.text_muted.r,

@@ -966,7 +966,7 @@ void SettingsPanel::RebuildSettingsList()
 
         auto* header = new wxStaticText(scroll_area_, wxID_ANY, badge_text);
         auto header_font = header->GetFont();
-        header_font.SetPointSize(14);
+        header_font.MakeLarger().MakeLarger();
         header_font.SetWeight(wxFONTWEIGHT_BOLD);
         header->SetFont(header_font);
         header_sizer->Add(header, 1, wxALIGN_CENTER_VERTICAL);

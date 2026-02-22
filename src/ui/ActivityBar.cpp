@@ -12,7 +12,11 @@ namespace markamp::ui
 ActivityBar::ActivityBar(wxWindow* parent,
                          core::ThemeEngine& theme_engine,
                          core::EventBus& event_bus)
-    : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxSize(kBarWidth, -1))
+    : wxPanel(parent,
+              wxID_ANY,
+              wxDefaultPosition,
+              wxSize(kBarWidth, -1),
+              wxTAB_TRAVERSAL | wxNO_BORDER | wxWANTS_CHARS)
     , theme_engine_(theme_engine)
     , event_bus_(event_bus)
 {
@@ -101,8 +105,7 @@ auto ActivityBar::GetActiveItem() const -> core::events::ActivityBarItem
 
 void ActivityBar::ApplyTheme()
 {
-    const auto& theme = theme_engine_.current_theme();
-    SetBackgroundColour(theme.colors.bg_panel.to_wx_colour());
+    SetBackgroundColour(theme_engine_.color(core::ThemeColorToken::ActivityBarBg));
     Refresh();
 }
 
@@ -113,19 +116,19 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
     const auto& clr = theme.colors;
 
     // Background
-    paint_dc.SetBackground(wxBrush(clr.bg_panel.to_wx_colour()));
+    paint_dc.SetBackground(wxBrush(theme_engine_.color(core::ThemeColorToken::ActivityBarBg)));
     paint_dc.Clear();
 
     auto size = GetClientSize();
     int item_y = kIconPadding;
 
-    for (int idx = 0; idx < static_cast<int>(items_.size()); ++idx)
+    for (int item_index = 0; item_index < static_cast<int>(items_.size()); ++item_index)
     {
-        auto& item = items_[static_cast<std::size_t>(idx)];
+        auto& item = items_[static_cast<std::size_t>(item_index)];
         item.bounds = wxRect(0, item_y, kBarWidth, kBarWidth);
 
-        bool is_active = (item.item_id == active_item_);
-        bool is_hover = (idx == hover_index_);
+        const bool is_active = (item.item_id == active_item_);
+        const bool is_hover = (item_index == hover_index_);
 
         // R17 Fix 30: Active item background highlight — subtle accent tint
         if (is_active)
@@ -157,7 +160,7 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
         // R20 Fix 18: press offset — shift icon 1px when pressed
         int press_offset_x = 0;
         int press_offset_y = 0;
-        if (idx == pressed_index_)
+        if (item_index == pressed_index_)
         {
             press_offset_x = 1;
             press_offset_y = 1;
@@ -166,6 +169,11 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
         if (is_active)
         {
             paint_dc.SetTextForeground(clr.editor_fg.to_wx_colour());
+
+            // Phase 06 Task 41: Active state left border indication
+            paint_dc.SetBrush(wxBrush(clr.accent_primary.to_wx_colour()));
+            paint_dc.SetPen(*wxTRANSPARENT_PEN);
+            paint_dc.DrawRectangle(0, item_y, 4, kBarWidth);
         }
         else
         {
@@ -178,9 +186,9 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
         font.SetPointSize(16);
         paint_dc.SetFont(font);
 
-        auto text_extent = paint_dc.GetTextExtent(item.icon_char);
-        int text_x = (kBarWidth - text_extent.GetWidth()) / 2 + press_offset_x;
-        int text_y = item_y + (kBarWidth - text_extent.GetHeight()) / 2 + press_offset_y;
+        const auto text_extent = paint_dc.GetTextExtent(item.icon_char);
+        const int text_x = (kBarWidth - text_extent.GetWidth()) / 2 + press_offset_x;
+        const int text_y = item_y + (kBarWidth - text_extent.GetHeight()) / 2 + press_offset_y;
 
         // 36. Modified Dot: Ensure dirty/modified dot uses warning color
         if (item.icon_char == "\xE2\x97\x8F")
@@ -204,11 +212,11 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
             auto badge_text = wxString::Format("%d", item.badge_count);
             auto badge_extent = paint_dc.GetTextExtent(badge_text);
 
-            int text_w = badge_extent.GetWidth();
-            int badge_h = 16;
-            int badge_w = std::max(16, text_w + 8);
-            int badge_x = kBarWidth - 8 - badge_w / 2;
-            int badge_y_pos = item_y + 4;
+            const int text_w = badge_extent.GetWidth();
+            const int badge_h = 16;
+            const int badge_w = std::max(16, text_w + 8);
+            const int badge_x = kBarWidth - 8 - badge_w / 2;
+            const int badge_y_pos = item_y + 4;
 
             paint_dc.DrawRoundedRectangle(
                 badge_x - badge_w / 2, badge_y_pos, badge_w, badge_h, badge_h / 2.0);
@@ -221,7 +229,7 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
         }
 
         // Phase 06 Task 6: Focus ring around focused item
-        if (idx == focus_index_ && HasFocus())
+        if (item_index == focus_index_ && HasFocus())
         {
             auto focus_col = clr.accent_primary.with_alpha(0.6F);
             paint_dc.SetBrush(*wxTRANSPARENT_BRUSH);
@@ -244,7 +252,7 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
     if (items_.size() > 1)
     {
         const auto& last_item = items_.back();
-        int sep_y = last_item.bounds.GetY() - 2;
+        const int sep_y = last_item.bounds.GetY() - 2;
         auto sep_col = clr.border_light.to_wx_colour();
         paint_dc.SetPen(wxPen(sep_col));
         paint_dc.DrawLine(8, sep_y, kBarWidth - 8, sep_y);
@@ -252,11 +260,11 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
 
     // R20 Fix 17: Drag handle dots — 3 small dots centered in bar
     {
-        int drag_y = size.GetHeight() - 40;
+        const int drag_y = size.GetHeight() - 40;
         auto dot_col = clr.text_muted.to_wx_colour();
         paint_dc.SetBrush(wxBrush(dot_col));
         paint_dc.SetPen(*wxTRANSPARENT_PEN);
-        int dot_x = kBarWidth / 2;
+        const int dot_x = kBarWidth / 2;
         for (int dot_idx = 0; dot_idx < 3; ++dot_idx)
         {
             paint_dc.DrawCircle(dot_x, drag_y + dot_idx * 6, 2);
@@ -273,8 +281,8 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
         pill_font.SetPointSize(9);
         paint_dc.SetFont(pill_font);
         auto tip_extent = paint_dc.GetTextExtent(hov_item.label);
-        int pill_x = kBarWidth + 4;
-        int pill_y =
+        const int pill_x = kBarWidth + 4;
+        const int pill_y =
             hov_item.bounds.GetY() + (hov_item.bounds.GetHeight() - tip_extent.GetHeight() - 8) / 2;
         paint_dc.SetBrush(wxBrush(pill_bg));
         paint_dc.SetPen(wxPen(clr.border_light.to_wx_colour()));
@@ -297,18 +305,18 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
 
 void ActivityBar::OnMouseDown(wxMouseEvent& event)
 {
-    const int idx = HitTest(event.GetPosition());
+    const int item_index = HitTest(event.GetPosition());
     // R20 Fix 18: Track pressed item for visual feedback
-    pressed_index_ = idx;
+    pressed_index_ = item_index;
     // Phase 06 Task 12: Record drag start
     drag_start_pos_ = event.GetPosition();
-    drag_index_ = idx;
+    drag_index_ = item_index;
     is_dragging_ = false;
     Refresh();
 
-    if (idx >= 0 && idx < static_cast<int>(items_.size()))
+    if (item_index >= 0 && item_index < static_cast<int>(items_.size()))
     {
-        auto item = items_[static_cast<std::size_t>(idx)].item_id;
+        auto item = items_[static_cast<std::size_t>(item_index)].item_id;
         SetActiveItem(item);
 
         const core::events::ActivityBarSelectionEvent evt(item);
@@ -333,10 +341,10 @@ void ActivityBar::OnMouseUp(wxMouseEvent& /*event*/)
 // R20 Fix 16: Double-click active item collapses sidebar
 void ActivityBar::OnDoubleClick(wxMouseEvent& event)
 {
-    int idx = HitTest(event.GetPosition());
-    if (idx >= 0 && idx < static_cast<int>(items_.size()))
+    const int item_index = HitTest(event.GetPosition());
+    if (item_index >= 0 && item_index < static_cast<int>(items_.size()))
     {
-        auto item = items_[static_cast<std::size_t>(idx)].item_id;
+        auto item = items_[static_cast<std::size_t>(item_index)].item_id;
         if (item == active_item_)
         {
             core::events::SidebarToggleEvent toggle_evt;
@@ -368,10 +376,10 @@ void ActivityBar::OnMouseMove(wxMouseEvent& event)
         }
     }
 
-    const int idx = HitTest(event.GetPosition());
-    if (idx != hover_index_)
+    const int item_index = HitTest(event.GetPosition());
+    if (item_index != hover_index_)
     {
-        hover_index_ = idx;
+        hover_index_ = item_index;
         tooltip_visible_ = false;
         if (hover_index_ >= 0)
         {
@@ -402,13 +410,13 @@ void ActivityBar::OnMouseLeave(wxMouseEvent& /*event*/)
     }
 }
 
-auto ActivityBar::HitTest(const wxPoint& pos) const -> int
+auto ActivityBar::HitTest(const wxPoint& pt) const -> int
 {
-    for (int idx = 0; idx < static_cast<int>(items_.size()); ++idx)
+    for (int item_index = 0; item_index < static_cast<int>(items_.size()); ++item_index)
     {
-        if (items_[static_cast<std::size_t>(idx)].bounds.Contains(pos))
+        if (items_[static_cast<std::size_t>(item_index)].bounds.Contains(pt))
         {
-            return idx;
+            return item_index;
         }
     }
     return -1;
@@ -431,14 +439,14 @@ void ActivityBar::SetBadge(core::events::ActivityBarItem item, int count)
 // Phase 06 Task 6: Keyboard focus navigation
 void ActivityBar::OnKeyDown(wxKeyEvent& event)
 {
-    const int key_code = event.GetKeyCode();
-    const int item_count = static_cast<int>(items_.size());
-
-    if (item_count == 0)
+    if (items_.empty())
     {
         event.Skip();
         return;
     }
+
+    const int key_code = event.GetKeyCode();
+    const int item_count = static_cast<int>(items_.size());
 
     switch (key_code)
     {

@@ -35,6 +35,9 @@ public:
     using ThemeGalleryCallback = std::function<void()>;
     void SetOnThemeGalleryClick(ThemeGalleryCallback callback);
 
+    /// Set whether a specific action button is enabled.
+    void SetButtonEnabled(int icon_type, bool enabled);
+
 protected:
     void OnThemeChanged(const core::Theme& new_theme) override;
 
@@ -49,7 +52,8 @@ private:
         std::string label;
         bool is_active{false};
         bool is_hovered{false};
-        int icon_type{0}; // 0=code, 1=columns, 2=eye, 3=save, 4=palette, 5=gear, 6=focus
+        bool is_enabled{true}; // Phase 06 Task 49: Disabled state
+        int icon_type{0};      // 0=code, 1=columns, 2=eye, 3=save, 4=palette, 5=gear, 6=focus
     };
 
     std::vector<ButtonInfo> left_buttons_;  // View mode toggles
@@ -58,13 +62,16 @@ private:
     // Painting
     void OnPaint(wxPaintEvent& event);
     void DrawButton(wxGraphicsContext& gc, const ButtonInfo& btn, const core::Theme& t) const;
-    void DrawCodeIcon(wxGraphicsContext& gc, double x, double y, double size) const;
-    void DrawColumnsIcon(wxGraphicsContext& gc, double x, double y, double size) const;
-    void DrawEyeIcon(wxGraphicsContext& gc, double x, double y, double size) const;
-    void DrawSaveIcon(wxGraphicsContext& gc, double x, double y, double size) const;
-    void DrawPaletteIcon(wxGraphicsContext& gc, double x, double y, double size) const;
-    void DrawGearIcon(wxGraphicsContext& gc, double x, double y, double size) const;
-    void DrawFocusIcon(wxGraphicsContext& gc, double x, double y, double size) const;
+    void DrawCodeIcon(wxGraphicsContext& gc, double x, double y, double size, wxColour color) const;
+    void
+    DrawColumnsIcon(wxGraphicsContext& gc, double x, double y, double size, wxColour color) const;
+    void DrawEyeIcon(wxGraphicsContext& gc, double x, double y, double size, wxColour color) const;
+    void DrawSaveIcon(wxGraphicsContext& gc, double x, double y, double size, wxColour color) const;
+    void
+    DrawPaletteIcon(wxGraphicsContext& gc, double x, double y, double size, wxColour color) const;
+    void DrawGearIcon(wxGraphicsContext& gc, double x, double y, double size, wxColour color) const;
+    void
+    DrawFocusIcon(wxGraphicsContext& gc, double x, double y, double size, wxColour color) const;
 
     // Mouse
     void OnMouseMove(wxMouseEvent& event);

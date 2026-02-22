@@ -184,6 +184,24 @@ void ExtensionsBrowserPanel::ClearCards()
 
 void ExtensionsBrowserPanel::PopulateInstalledCards()
 {
+    if (installed_extensions_.empty())
+    {
+        auto* empty_label =
+            new wxStaticText(card_scroll_,
+                             wxID_ANY,
+                             "No extensions installed.\nSearch the gallery to find new features.");
+        empty_label->SetForegroundColour(theme_engine_.color(core::ThemeColorToken::TextMuted));
+        auto font = empty_label->GetFont();
+        font.SetPointSize(font.GetPointSize() - 1);
+        empty_label->SetFont(font);
+        card_sizer_->AddStretchSpacer();
+        card_sizer_->Add(empty_label, 0, wxALIGN_CENTER | wxALL, 32);
+        card_sizer_->AddStretchSpacer();
+        card_scroll_->FitInside();
+        card_scroll_->Layout();
+        return;
+    }
+
     for (const auto& ext : installed_extensions_)
     {
         const auto ext_id = ext.manifest.publisher + "." + ext.manifest.name;
@@ -214,6 +232,22 @@ void ExtensionsBrowserPanel::PopulateSearchCards(const std::vector<core::Gallery
 {
     // Refresh installed list for comparison
     installed_extensions_ = mgmt_service_.get_installed();
+
+    if (results.empty())
+    {
+        auto* empty_label =
+            new wxStaticText(card_scroll_, wxID_ANY, "No extensions found matching your search.");
+        empty_label->SetForegroundColour(theme_engine_.color(core::ThemeColorToken::TextMuted));
+        auto font = empty_label->GetFont();
+        font.SetPointSize(font.GetPointSize() - 1);
+        empty_label->SetFont(font);
+        card_sizer_->AddStretchSpacer();
+        card_sizer_->Add(empty_label, 0, wxALIGN_CENTER | wxALL, 32);
+        card_sizer_->AddStretchSpacer();
+        card_scroll_->FitInside();
+        card_scroll_->Layout();
+        return;
+    }
 
     for (const auto& gallery_ext : results)
     {

@@ -83,6 +83,20 @@ void WalkthroughPanel::RefreshContent()
             }
         }
     }
+    else
+    {
+        auto* empty_label = new wxStaticText(scroll_area_,
+                                             wxID_ANY,
+                                             "No active walkthrough.\n\nSelect a walkthrough from "
+                                             "settings\nor help to learn about MarkAmp.");
+        empty_label->SetForegroundColour(wxColour(150, 150, 150));
+        auto font = empty_label->GetFont();
+        font.SetPointSize(font.GetPointSize() - 1);
+        empty_label->SetFont(font);
+        step_sizer->AddStretchSpacer();
+        step_sizer->Add(empty_label, 0, wxALIGN_CENTER | wxALL, 32);
+        step_sizer->AddStretchSpacer();
+    }
 
     scroll_area_->SetSizer(step_sizer);
     scroll_area_->FitInside();

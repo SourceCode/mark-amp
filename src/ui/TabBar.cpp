@@ -35,13 +35,19 @@ constexpr int kContextDuplicateTab = 14; // R19 Fix 4
 } // namespace
 
 TabBar::TabBar(wxWindow* parent, core::ThemeEngine& theme_engine, core::EventBus& event_bus)
-    : ThemeAwareWindow(
-          parent, theme_engine, wxID_ANY, wxDefaultPosition, wxSize(-1, kHeight), wxNO_BORDER)
+    : ThemeAwareWindow(parent,
+                       theme_engine,
+                       wxID_ANY,
+                       wxDefaultPosition,
+                       wxSize(-1, kHeight),
+                       wxNO_BORDER | wxTAB_TRAVERSAL | wxWANTS_CHARS)
     , event_bus_(event_bus)
 {
     SetBackgroundStyle(wxBG_STYLE_PAINT);
     SetMinSize(wxSize(-1, kHeight));
     SetMaxSize(wxSize(-1, kHeight));
+
+    SetCanFocus(true);
 
     Bind(wxEVT_PAINT, &TabBar::OnPaint, this);
     Bind(wxEVT_MOTION, &TabBar::OnMouseMove, this);
@@ -53,6 +59,9 @@ TabBar::TabBar(wxWindow* parent, core::ThemeEngine& theme_engine, core::EventBus
     Bind(wxEVT_MIDDLE_DOWN, &TabBar::OnMiddleDown, this);
     Bind(wxEVT_MOUSEWHEEL, &TabBar::OnMouseWheel, this);
     Bind(wxEVT_SIZE, &TabBar::OnSize, this);
+    Bind(wxEVT_SET_FOCUS, &TabBar::OnSetFocus, this);
+    Bind(wxEVT_KILL_FOCUS, &TabBar::OnKillFocus, this);
+    Bind(wxEVT_KEY_DOWN, &TabBar::OnKeyDown, this);
 
     // R18 Fix 1: Fade-in animation timer
     fade_timer_.SetOwner(this);
@@ -362,20 +371,37 @@ void TabBar::OnPaint(wxPaintEvent& /*event*/)
     // Draw tabs with scroll offset
     gc->Clip(0, 0, sz.GetWidth(), sz.GetHeight());
 
-    for (const auto& tab : tabs_)
+    for (size_t i = 0; i < tabs_.size(); ++i)
     {
+        const auto& tab = tabs_[i];
         // Only draw if visible in the viewport
         if (tab.rect.GetRight() - scroll_offset_ > 0 &&
             tab.rect.GetLeft() - scroll_offset_ < sz.GetWidth())
         {
             DrawTab(*gc, tab, theme);
+
+            // Phase 06 Task 6: Draw focus ring for keyboard navigation
+            if (HasFocus() && static_cast<int>(i) == focused_tab_index_)
+            {
+                int tab_x = tab.rect.GetLeft() - scroll_offset_;
+                int tab_y = tab.rect.GetTop();
+                int tab_w = tab.rect.GetWidth();
+                int tab_h = tab.rect.GetHeight();
+
+                auto focus_col = theme_engine().color(core::ThemeColorToken::AccentPrimary);
+                wxColour transparent_focus(
+                    focus_col.Red(), focus_col.Green(), focus_col.Blue(), 150);
+                gc->SetPen(gc->CreatePen(wxPen(transparent_focus, 2)));
+                gc->SetBrush(gc->CreateBrush(*wxTRANSPARENT_BRUSH));
+                gc->DrawRoundedRectangle(tab_x + 2, tab_y + 2, tab_w - 4, tab_h - 4, 4);
+            }
         }
     }
 
     // R16 Fix 6: Tab overflow fade gradient at right edge
     if (!tabs_.empty())
     {
-        int last_tab_right = tabs_.back().rect.GetRight() - scroll_offset_;
+        const int last_tab_right = tabs_.back().rect.GetRight() - scroll_offset_;
         if (last_tab_right > sz.GetWidth())
         {
             constexpr int kFadeWidth = 24;
@@ -507,12 +533,13 @@ void TabBar::DrawTab(wxGraphicsContext& gc, const TabInfo& tab, const core::Them
         gc.DrawRectangle(tab_x, tab_y, tab_w, tab_h);
     }
 
-    // 17. Active indicator — 2px accent line at top
+    // 17. Active indicator — Phase 06 Task 50: Prominent top/bottom borders
     if (tab.is_active)
     {
         gc.SetBrush(
             gc.CreateBrush(wxBrush(theme_engine().color(core::ThemeColorToken::AccentPrimary))));
-        gc.DrawRectangle(tab_x, tab_y, tab_w, 2);
+        gc.DrawRectangle(tab_x, tab_y, tab_w, 3);             // Top border
+        gc.DrawRectangle(tab_x, tab_y + tab_h - 3, tab_w, 3); // Bottom border
 
         // R20 Fix 3: Active tab top glow (neon-edge beneath indicator)
         auto accent = theme_engine().color(core::ThemeColorToken::AccentPrimary);
@@ -562,8 +589,8 @@ void TabBar::DrawTab(wxGraphicsContext& gc, const TabInfo& tab, const core::Them
         font.SetStyle(wxFONTSTYLE_ITALIC);
     }
     gc.SetFont(font,
-               tab.is_active ? theme_engine().color(core::ThemeColorToken::TextMain)
-                             : theme_engine().color(core::ThemeColorToken::TextMuted));
+               tab.is_active ? theme_engine().color(core::ThemeColorToken::TabActiveFg)
+                             : theme_engine().color(core::ThemeColorToken::TabInactiveFg));
 
     // Build display text with modified indicator
     std::string display = tab.display_name;
@@ -761,11 +788,16 @@ void TabBar::OnMouseMove(wxMouseEvent& event)
     }
 
     // 18. Show absolute file path tooltip on tab hover
-    if (new_hovered != hovered_tab_index_)
+    if (new_hovered != hovered_tab_index_ || close_state_changed)
     {
         if (new_hovered >= 0)
         {
             std::string tip = tabs_[static_cast<size_t>(new_hovered)].file_path;
+            // Provide specific tooltip if hovering the close button
+            if (tabs_[static_cast<size_t>(new_hovered)].close_hovered)
+            {
+                tip = "Close tab";
+            }
             SetToolTip(tip);
         }
         else
@@ -1186,6 +1218,69 @@ void TabBar::OnThemeChanged(const core::Theme& new_theme)
 }
 
 } // namespace markamp::ui
+
+void markamp::ui::TabBar::OnSetFocus(wxFocusEvent& event)
+{
+    if (focused_tab_index_ < 0 && !tabs_.empty())
+    {
+        focused_tab_index_ = FindTabIndex(GetActiveTabPath());
+        if (focused_tab_index_ < 0)
+        {
+            focused_tab_index_ = 0;
+        }
+    }
+    Refresh();
+    event.Skip();
+}
+
+void markamp::ui::TabBar::OnKillFocus(wxFocusEvent& event)
+{
+    Refresh();
+    event.Skip();
+}
+
+void markamp::ui::TabBar::OnKeyDown(wxKeyEvent& event)
+{
+    if (tabs_.empty())
+    {
+        event.Skip();
+        return;
+    }
+
+    const int key_code = event.GetKeyCode();
+    if (key_code == WXK_LEFT)
+    {
+        if (focused_tab_index_ > 0)
+        {
+            focused_tab_index_--;
+            EnsureTabVisible(focused_tab_index_);
+            Refresh();
+        }
+    }
+    else if (key_code == WXK_RIGHT)
+    {
+        if (focused_tab_index_ < static_cast<int>(tabs_.size()) - 1)
+        {
+            focused_tab_index_++;
+            EnsureTabVisible(focused_tab_index_);
+            Refresh();
+        }
+    }
+    else if (key_code == WXK_SPACE || key_code == WXK_RETURN)
+    {
+        if (focused_tab_index_ >= 0 && focused_tab_index_ < static_cast<int>(tabs_.size()))
+        {
+            std::string selected_path = tabs_[static_cast<size_t>(focused_tab_index_)].file_path;
+            SetActiveTab(selected_path);
+            const core::events::TabSwitchedEvent evt(selected_path);
+            event_bus_.publish(evt);
+        }
+    }
+    else
+    {
+        event.Skip();
+    }
+}
 
 // R3 Fix 7: Pin / Unpin helpers
 void markamp::ui::TabBar::PinTab(const std::string& file_path)
