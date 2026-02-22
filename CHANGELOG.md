@@ -1,5 +1,21 @@
 # MarkAmp Release History
 
+## v2.7.26 — 2026-02-22
+
+### Highlights
+
+V13 Phase 01: Design System Foundation. Implemented a robust token-based Design System, eliminating hard-coded values in favor of dynamic `DesignSystemContext` metrics. Includes fully tested components: `DesignTokenRegistry`, `TypographyScale`, `SpacingGrid`, `ElevationSystem`, `ColorPaletteGenerator`, and `ComponentSizeResolver`.
+
+### Added
+
+- **Design System Metrics** — New density-aware component metric resolution scaling automatically (Compact/Default/Comfortable).
+- **Core Framework Prefs** — Added UI prefs (`ui.density_profile`, fonts, motion) stored securely in `SettingsCatalog`.
+- **Catch2 Validations** — `test_design_system.cpp` verifies precision interpolation across scaling matrices.
+
+### Changed
+
+- **UI Refactoring** — Deprecated hard-coded dimensions across `ThemeGallery`, `Toolbar`, `SettingsPanel`, and `FileTreeCtrl` components.
+
 ## v2.7.25 — 2026-02-22
 
 ### Highlights

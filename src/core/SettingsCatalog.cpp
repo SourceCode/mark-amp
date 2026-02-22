@@ -702,6 +702,62 @@ void SettingsCatalog::register_builtins()
                       100,
                       "builtin"});
 
+    register_setting({"appearance.fontFamilySans",
+                      "Sans-serif Font Family",
+                      "Controls the base sans-serif font family used in the UI (e.g., 'Inter', "
+                      "'Segoe UI', '.AppleSystemUIFont')",
+                      "Appearance",
+                      "Typography",
+                      ConfigScope::kApplication,
+                      SettingType::String,
+                      "Inter",
+                      {},
+                      {"font", "sans", "ui", "typeface"},
+                      false,
+                      false,
+                      false,
+                      0,
+                      0,
+                      100,
+                      "builtin"});
+
+    register_setting(
+        {"appearance.fontFamilyMono",
+         "Monospace Font Family",
+         "Controls the monospace font family used in the UI (e.g., 'JetBrains Mono', 'Menlo')",
+         "Appearance",
+         "Typography",
+         ConfigScope::kApplication,
+         SettingType::String,
+         "JetBrains Mono",
+         {},
+         {"font", "mono", "ui", "typeface"},
+         false,
+         false,
+         false,
+         0,
+         0,
+         100,
+         "builtin"});
+
+    register_setting({"accessibility.reducedMotion",
+                      "Reduced Motion",
+                      "Disable or reduce animations throughout the application",
+                      "Accessibility",
+                      "",
+                      ConfigScope::kApplication,
+                      SettingType::Boolean,
+                      "false",
+                      {},
+                      {"motion", "animation", "reduce", "disable"},
+                      false,
+                      false,
+                      false,
+                      0,
+                      0,
+                      100,
+                      "builtin"});
+
     // ── Advanced settings ──
 
     register_setting({"advanced.autoSave",

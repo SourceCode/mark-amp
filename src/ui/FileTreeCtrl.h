@@ -43,9 +43,11 @@ public:
     void SetWorkspaceRoot(const std::string& root_path);
 
     // Layout constants
-    static constexpr int kRowHeight = 24;
+    [[deprecated(
+        "Use ComponentSizeResolver for tree row height")]] static constexpr int kRowHeight = 24;
     static constexpr int kIndentWidth = 16;
-    static constexpr int kLeftPadding = 6;
+    [[deprecated(
+        "Use SpacingGrid or ComponentSizeResolver padding")]] static constexpr int kLeftPadding = 6;
     static constexpr int kIconSize = 16;
     static constexpr int kTwistieSize = 16; // Width of the twistie/chevron area
     static constexpr int kIconTextGap = 6;

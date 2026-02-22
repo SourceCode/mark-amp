@@ -204,7 +204,7 @@ void Config::apply_defaults()
         std::variant<const char*, int, bool, double> value;
     };
 
-    static constexpr std::array<DefaultEntry, 28> kDefaults = {{
+    static constexpr std::array<DefaultEntry, 31> kDefaults = {{
         {"theme", "midnight-neon"},
         {"view_mode", "split"},
         {"sidebar_visible", true},
@@ -233,6 +233,9 @@ void Config::apply_defaults()
         {"editor.word_wrap_column", 80},
         {"editor.line_height", 0},
         {"editor.letter_spacing", 0.0},
+        {"appearance.fontFamilySans", "Inter"},
+        {"appearance.fontFamilyMono", "JetBrains Mono"},
+        {"accessibility.reducedMotion", false},
     }};
 
     // Additional entries that don't fit in constexpr array due to variant limitations
@@ -533,6 +536,8 @@ void Config::rebuild_cache()
     cached_.density_profile = get_string("appearance.densityProfile", "default");
     cached_.view_mode = get_string("view_mode", "split");
     cached_.font_family = get_string("font_family", "Menlo");
+    cached_.font_family_sans = get_string("appearance.fontFamilySans", "Inter");
+    cached_.font_family_mono = get_string("appearance.fontFamilyMono", "JetBrains Mono");
     cached_.last_workspace = get_string("last_workspace", "");
     cached_.cursor_blinking = get_string("editor.cursor_blinking", "blink");
 
@@ -574,6 +579,7 @@ void Config::rebuild_cache()
     cached_.sidebar_visible = get_bool("sidebar_visible", true);
     cached_.word_wrap = get_bool("word_wrap", true);
     cached_.auto_save = get_bool("auto_save", false);
+    cached_.reduced_motion = get_bool("accessibility.reducedMotion", false);
     cached_.show_line_numbers = get_bool("show_line_numbers", true);
     cached_.highlight_current_line = get_bool("highlight_current_line", true);
     cached_.show_whitespace = get_bool("show_whitespace", false);

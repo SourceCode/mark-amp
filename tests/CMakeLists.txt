@@ -779,6 +779,18 @@ target_link_libraries(test_theme_loader PRIVATE
 )
 add_test(NAME test_theme_loader COMMAND test_theme_loader)
 
+# --- Design System test ---
+add_executable(test_design_system
+    unit/test_design_system.cpp
+)
+target_include_directories(test_design_system PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_design_system PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_design_system COMMAND test_design_system)
+
+
 # --- Editor QoL test ---
 add_executable(test_editor_qol
     unit/test_editor_qol.cpp

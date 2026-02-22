@@ -38,9 +38,15 @@ public:
 
     static constexpr int kDialogWidth = 896;
     static constexpr int kCardGap = 24;
-    static constexpr int kGridPadding = 24;
-    static constexpr int kHeaderHeight = 72;
-    static constexpr int kToolbarHeight = 48;
+    [[deprecated(
+        "Use DesignSystemContext.spacing to resolve padding")]] static constexpr int kGridPadding =
+        24;
+    [[deprecated(
+        "Use DesignSystemContext.sizes for header heights")]] static constexpr int kHeaderHeight =
+        72;
+    [[deprecated(
+        "Use DesignSystemContext.sizes for toolbar height")]] static constexpr int kToolbarHeight =
+        48;
 
 private:
     core::ThemeEngine& theme_engine_;

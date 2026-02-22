@@ -135,8 +135,12 @@ public:
     void ExportSettings();
     void ImportSettings();
 
-    static constexpr int kCategoryPadding = 12;
-    static constexpr int kSettingRowHeight = 44;
+    [[deprecated(
+        "Use DesignSystemContext.spacing limits instead")]] static constexpr int kCategoryPadding =
+        12;
+    [[deprecated(
+        "Use ComponentSizeResolver for list row heights")]] static constexpr int kSettingRowHeight =
+        44;
     static constexpr int kMaxVisibleSettings = 50;
     static constexpr int kSearchDebounceMs = 300;
 

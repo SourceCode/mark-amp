@@ -90,6 +90,8 @@ public:
         std::string density_profile = "default";
         std::string view_mode = "split";
         std::string font_family = "Menlo";
+        std::string font_family_sans = "Inter";
+        std::string font_family_mono = "JetBrains Mono";
         std::string last_workspace;
         std::string cursor_blinking = "blink";
 
@@ -108,6 +110,7 @@ public:
         bool sidebar_visible = true;
         bool word_wrap = true;
         bool auto_save = false;
+        bool reduced_motion = false;
         bool show_line_numbers = true;
         bool highlight_current_line = true;
         bool show_whitespace = false;

@@ -30,7 +30,8 @@ public:
 
     void UpdateLayoutMetrics();
 
-    static constexpr int kDropShadowHeight = 2;    // R19 Fix 8
+    [[deprecated("Use ElevationSystem for shadow values")]] static constexpr int kDropShadowHeight =
+        2;                                         // R19 Fix 8
     static constexpr float kSavePulseSpeed = 0.1F; // R19 Fix 7: scale step per tick
     static constexpr float kPressScale = 0.9F;     // R20 Fix 6: press scale-down factor
     static constexpr int kHoverUnderlineH = 2;     // R20 Fix 10: hover underline height
