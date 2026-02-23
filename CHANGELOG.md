@@ -1,8 +1,19 @@
 # MarkAmp Release History
 
-## v2.8.35 — 2026-02-23
+## v2.8.38 — 2026-02-23
 
 ### Highlights
+
+V13 Phase 05 Tasks 18-21: Accessibility Finishing Touches. Implemented High Contrast and Reduced Complexity mode toggles, global panel keyboard shortcuts, and a background Screen Reader Live Announcer.
+
+### Added
+
+- **Live Announcer Region** — The `LiveAnnouncer` connects to the central `EventBus` to intercept background asynchronous events (like `FileSavedEvent` and `SearchCompletedEvent`) and broadcasts them to the active native screen reader infrastructure without requiring visual UI focus.
+- **High Contrast Mode** — Added `workbench.action.toggleHighContrast` command to force the high contrast theme preset and trigger UI accessibility repaints.
+- **Reduced Complexity Mode** — Added `workbench.action.toggleReducedComplexity` command.
+- **Global Panel Shortcuts** — Registered standard IDE accelerator keys via `wxAcceleratorTable` for toggling the Primary Sidebar, Secondary Sidebar, Bottom Panel, and Zen Mode.
+
+## v2.8.35 — 2026-02-23
 
 V13 Phase 05 Tasks 11-13: Semantic UI Accessibility. Implemented semantic focus rendering for ActivityBar, TabBar, and FileTreeCtrl via the AccessibilityController singleton.
 
