@@ -3861,10 +3861,6 @@ target_include_directories(test_icon_registry PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_icon_registry PRIVATE Catch2::Catch2WithMain markamp_core)
 add_test(NAME test_icon_registry COMMAND test_icon_registry)
 
-add_executable(test_icon_manager unit/test_icon_manager.cpp)
-target_include_directories(test_icon_manager PRIVATE ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(test_icon_manager PRIVATE Catch2::Catch2WithMain markamp_core)
-add_test(NAME test_icon_manager COMMAND test_icon_manager)
 
 add_executable(test_ui_icon_library unit/test_ui_icon_library.cpp)
 target_include_directories(test_ui_icon_library PRIVATE ${CMAKE_SOURCE_DIR}/src)
@@ -5533,3 +5529,16 @@ target_link_libraries(test_node_editor_tier5 PRIVATE
     markamp_core
 )
 add_test(NAME test_node_editor_tier5 COMMAND test_node_editor_tier5)
+
+# ============================================================================
+# Icon Library test
+# ============================================================================
+add_executable(test_icon_manager
+    unit/test_icon_manager.cpp
+)
+target_include_directories(test_icon_manager PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_icon_manager PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_icon_manager COMMAND test_icon_manager)

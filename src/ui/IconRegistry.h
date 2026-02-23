@@ -6,6 +6,7 @@
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace markamp::ui
 {
@@ -31,6 +32,9 @@ public:
 
     /// Checks if an icon is registered under the given name.
     [[nodiscard]] auto has_icon(const std::string& name) const -> bool;
+
+    /// Returns a sorted list of all registered icon names.
+    [[nodiscard]] auto get_icon_names() const -> std::vector<std::string>;
 
     /// Clears all registered icons.
     auto clear() -> void;

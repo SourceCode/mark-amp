@@ -13,6 +13,8 @@
 #include "core/Logger.h"
 #include "core/ShortcutManager.h"
 #include "core/ThemeEngine.h"
+#include "ui/IconGalleryDialog.h"
+#include "ui/IconManager.h"
 #include "ui/LayoutMetrics.h"
 
 #include <wx/aboutdlg.h>
@@ -196,9 +198,17 @@ MainFrame::MainFrame(const wxString& title,
 
     SetSizer(sizer);
 
-    // Bind events
+    // Bind UI events
     Bind(wxEVT_CLOSE_WINDOW, &MainFrame::onClose, this);
     Bind(wxEVT_SIZE, &MainFrame::onSize, this);
+
+    // Subscribe to Theme changes to invalidate the Icon cache
+    if (event_bus_ != nullptr)
+    {
+        subscriptions_.push_back(event_bus_->subscribe<core::events::ThemeChangedEvent>(
+            [](const core::events::ThemeChangedEvent& /*evt*/)
+            { IconManager::get().cache().clear(); }));
+    }
 
     // Edge-resize mouse events on the frame itself
     Bind(wxEVT_MOTION, &MainFrame::onFrameMouseMove, this);
@@ -2524,6 +2534,17 @@ void MainFrame::RegisterPaletteCommands()
                                                }
                                            }
                                        }});
+
+    // ── Developer commands ──
+    command_palette_->RegisterCommand({"Show Icon Gallery",
+                                       "Developer",
+                                       "",
+                                       [this]()
+                                       {
+                                           IconGalleryDialog dialog(this, *theme_engine_);
+                                           dialog.ShowModal();
+                                       }});
+
     command_palette_->RegisterCommand({"Toggle Minimap",
                                        "View",
                                        "",

@@ -1971,7 +1971,7 @@ void LayoutManager::CreateLayout()
     content_sizer->Add(tab_bar_, 0, wxEXPAND);
 
     // R3 Fix 14: BreadcrumbBar between tab bar and split view
-    breadcrumb_bar_ = new BreadcrumbBar(content_panel_, *ds_context_, event_bus_);
+    breadcrumb_bar_ = new BreadcrumbBar(content_panel_, *ds_context_);
     content_sizer->Add(breadcrumb_bar_, 0, wxEXPAND);
 
     // Phase 9: Respect initial feature toggle state for breadcrumb

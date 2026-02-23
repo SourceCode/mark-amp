@@ -1,6 +1,7 @@
 #include "NotificationManager.h"
 
 #include "core/Logger.h"
+#include "ui/IconManager.h"
 
 #include <wx/dcbuffer.h>
 #include <wx/sizer.h>
@@ -72,24 +73,7 @@ void NotificationManager::ShowNotification(const std::string& message,
 {
     NotificationEntry entry;
 
-    // R17 Fix 31: Prepend level-specific icon emoji
-    std::string icon_prefix;
-    switch (level)
-    {
-        case core::events::NotificationLevel::Info:
-            icon_prefix = "\xE2\x84\xB9\xEF\xB8\x8F "; // ℹ️
-            break;
-        case core::events::NotificationLevel::Warning:
-            icon_prefix = "\xE2\x9A\xA0\xEF\xB8\x8F "; // ⚠️
-            break;
-        case core::events::NotificationLevel::Error:
-            icon_prefix = "\xE2\x9D\x8C "; // ❌
-            break;
-        case core::events::NotificationLevel::Success:
-            icon_prefix = "\xE2\x9C\x85 "; // ✅
-            break;
-    }
-    entry.message = icon_prefix + message;
+    entry.message = message;
 
     entry.level = level;
     entry.duration_ms = duration_ms;
@@ -236,10 +220,48 @@ void NotificationManager::OnPaint(wxPaintEvent& /*event*/)
         paint_dc.SetBrush(wxBrush(level_color));
         paint_dc.DrawRectangle(drawn_toast_x, drawn_toast_y, 4, kToastHeight);
 
+        // Icon
+        std::string icon_name = "info";
+        switch (toast.level)
+        {
+            case core::events::NotificationLevel::Info:
+                icon_name = "info";
+                break;
+            case core::events::NotificationLevel::Warning:
+                icon_name = "warning";
+                break;
+            case core::events::NotificationLevel::Error:
+                icon_name = "error";
+                break;
+            case core::events::NotificationLevel::Success:
+                icon_name = "check";
+                break;
+        }
+
+        // Apply opacity to the icon color by modifying alpha
+        wxColour icon_color = level_color;
+        icon_color.Set(icon_color.Red(),
+                       icon_color.Green(),
+                       icon_color.Blue(),
+                       static_cast<unsigned char>(toast.opacity * 255.0F));
+
+        int icon_size = 16;
+        int icon_y = drawn_toast_y + (kToastHeight - icon_size) / 2;
+        IconManager::get().draw_icon(paint_dc,
+                                     icon_name,
+                                     drawn_toast_x + 12,
+                                     icon_y,
+                                     wxSize(icon_size, icon_size),
+                                     icon_color);
+
         // Text
-        paint_dc.SetTextForeground(clr.editor_fg.to_wx_colour());
-        paint_dc.DrawText(
-            toast.message, drawn_toast_x + 12, drawn_toast_y + (kToastHeight - 16) / 2);
+        paint_dc.SetTextForeground(wxColour(clr.editor_fg.r,
+                                            clr.editor_fg.g,
+                                            clr.editor_fg.b,
+                                            static_cast<unsigned char>(toast.opacity * 255.0F)));
+        paint_dc.DrawText(wxString::FromUTF8(toast.message),
+                          drawn_toast_x + 36,
+                          drawn_toast_y + (kToastHeight - 16) / 2);
 
         // R20 Fix 35: Close button (×) in top-right corner of toast
         {

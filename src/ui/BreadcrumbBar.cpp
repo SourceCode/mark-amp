@@ -2,39 +2,57 @@
 
 #include "TypographyScale.h"
 #include "core/Events.h"
+#include "ui/FileTypeIconResolver.h"
+#include "ui/IconManager.h"
 
+#include <wx/dcbuffer.h>
+#include <wx/graphics.h>
+#include <wx/settings.h>
 #include <wx/sizer.h>
 
 namespace markamp::ui
 {
 
-BreadcrumbBar::BreadcrumbBar(wxWindow* parent, DesignSystemContext& ds, core::EventBus& event_bus)
+BreadcrumbBar::BreadcrumbBar(wxWindow* parent, DesignSystemContext& ds)
     : ThemeAwareWindow(parent,
                        ds.theme,
                        wxID_ANY,
                        wxDefaultPosition,
                        wxSize(-1, ds.metrics.row_height()),
-                       wxTAB_TRAVERSAL | wxNO_BORDER | wxWANTS_CHARS)
+                       wxTAB_TRAVERSAL | wxNO_BORDER | wxWANTS_CHARS | wxFULL_REPAINT_ON_RESIZE)
     , ds_(ds)
-    , event_bus_(event_bus)
 {
-    auto* sizer = new wxBoxSizer(wxHORIZONTAL);
-
-    label_ = new wxStaticText(this, wxID_ANY, wxEmptyString);
-    sizer->Add(label_, 1, wxALIGN_CENTER_VERTICAL | wxLEFT, ds_.spacing.scaled(SpacingToken::kMd));
-
-    SetSizer(sizer);
+    SetBackgroundStyle(wxBG_STYLE_PAINT);
     OnThemeChanged(ds_.theme.current_theme());
 
     SetCanFocus(true);
+
+    Bind(wxEVT_PAINT, &BreadcrumbBar::OnPaint, this);
+    Bind(wxEVT_MOTION, &BreadcrumbBar::OnMouseMove, this);
+    Bind(wxEVT_LEFT_DOWN, &BreadcrumbBar::OnMouseDown, this);
+    Bind(wxEVT_LEAVE_WINDOW, &BreadcrumbBar::OnLeaveWindow, this);
 
     Bind(wxEVT_KEY_DOWN,
          [this](wxKeyEvent& event)
          {
              if (event.GetKeyCode() == WXK_RETURN || event.GetKeyCode() == WXK_SPACE)
              {
-                 wxMouseEvent fake_evt(wxEVT_LEFT_DOWN);
-                 OnLabelClick(fake_evt);
+                 if (is_focused_ && !file_segments_.empty())
+                 {
+                     if (segment_click_callback_)
+                     {
+                         // Since we don't have fine-grained keyboard nav yet, just invoke on full
+                         // path
+                         std::string full_path;
+                         for (size_t idx = 0; idx < file_segments_.size(); ++idx)
+                         {
+                             if (idx > 0)
+                                 full_path += "/";
+                             full_path += file_segments_[idx];
+                         }
+                         segment_click_callback_(full_path);
+                     }
+                 }
              }
              event.Skip();
          });
@@ -42,41 +60,18 @@ BreadcrumbBar::BreadcrumbBar(wxWindow* parent, DesignSystemContext& ds, core::Ev
     Bind(wxEVT_SET_FOCUS,
          [this](wxFocusEvent& event)
          {
-             auto focus_col =
-                 wxColour(ds_.theme.current_theme().colors.accent_primary.to_rgba_string());
-             label_->SetForegroundColour(focus_col);
-             label_->Refresh();
+             is_focused_ = true;
+             Refresh();
              event.Skip();
          });
 
     Bind(wxEVT_KILL_FOCUS,
          [this](wxFocusEvent& event)
          {
-             OnThemeChanged(ds_.theme.current_theme());
-             label_->Refresh();
+             is_focused_ = false;
+             Refresh();
              event.Skip();
          });
-
-    label_->SetCursor(wxCursor(wxCURSOR_HAND));
-    label_->Bind(wxEVT_LEFT_DOWN, &BreadcrumbBar::OnLabelClick, this);
-
-    label_->Bind(wxEVT_ENTER_WINDOW,
-                 [this](wxMouseEvent& evt)
-                 {
-                     label_->SetForegroundColour(
-                         wxColour(ds_.theme.current_theme().colors.text_main.to_rgba_string()));
-                     label_->Refresh();
-                     evt.Skip();
-                 });
-
-    label_->Bind(wxEVT_LEAVE_WINDOW,
-                 [this](wxMouseEvent& evt)
-                 {
-                     label_->SetForegroundColour(
-                         wxColour(ds_.theme.current_theme().colors.text_muted.to_rgba_string()));
-                     label_->Refresh();
-                     evt.Skip();
-                 });
 }
 
 void BreadcrumbBar::SetSegmentClickCallback(SegmentClickCallback callback)
@@ -88,123 +83,247 @@ void BreadcrumbBar::SetFilePath(const std::vector<std::string>& segments)
 {
     file_segments_ = segments;
     Rebuild();
+    Refresh();
 }
 
 void BreadcrumbBar::SetHeadingPath(const std::vector<std::string>& headings)
 {
     heading_segments_ = headings;
     Rebuild();
+    Refresh();
+}
+
+void BreadcrumbBar::SetTraversalSegments(const std::vector<TraversalSegment>& segments)
+{
+    traversal_segments_ = segments;
+    Rebuild();
+    Refresh();
+}
+
+auto BreadcrumbBar::GetTraversalSegments() const -> const std::vector<TraversalSegment>&
+{
+    return traversal_segments_;
 }
 
 void BreadcrumbBar::OnThemeChanged(const core::Theme& new_theme)
 {
     ThemeAwareWindow::OnThemeChanged(new_theme);
-
-    auto bg_color = wxColour(new_theme.colors.bg_panel.to_rgba_string());
-    auto text_color = wxColour(new_theme.colors.text_muted.to_rgba_string());
-
-    SetBackgroundColour(bg_color);
-    if (label_ != nullptr)
-    {
-        // R17 Fix 26: Use AccentSecondary for separator color —
-        // Since we're using a single wxStaticText, apply accent tint to text
-        label_->SetForegroundColour(text_color);
-
-        auto font = ds_.typography.font(TypeSlot::kCaption);
-        label_->SetFont(font);
-    }
+    Refresh();
 }
 
 void BreadcrumbBar::Rebuild()
 {
-    std::string display;
+    drawn_segments_.clear();
+    hovered_segment_ = -1;
+}
 
-    // File path segments: folder ▸ folder ▸ 📄 file.md
+void BreadcrumbBar::OnPaint(wxPaintEvent& /*event*/)
+{
+    wxAutoBufferedPaintDC dc(this);
+
+    auto client_size = GetClientSize();
+    int width = client_size.GetWidth();
+    int height = client_size.GetHeight();
+
+    auto bg_color = theme_engine().color(core::ThemeColorToken::BgPanel);
+    dc.SetBrush(wxBrush(bg_color));
+    dc.SetPen(*wxTRANSPARENT_PEN);
+    dc.DrawRectangle(0, 0, width, height);
+
+    if (file_segments_.empty() && heading_segments_.empty() && traversal_segments_.empty())
+    {
+        return;
+    }
+
+    auto font = ds_.typography.font(TypeSlot::kCaption);
+    auto bold_font = font;
+    bold_font.SetWeight(wxFONTWEIGHT_SEMIBOLD);
+
+    int current_x = ds_.spacing.scaled(SpacingToken::kMd);
+    const int text_y = (height - dc.GetCharHeight()) / 2 + 1;
+    const int icon_size = 14;
+    const int icon_y = (height - icon_size) / 2;
+
+    auto text_color_normal = theme_engine().color(core::ThemeColorToken::TextMuted);
+    auto text_color_hover = theme_engine().color(core::ThemeColorToken::TextMain);
+    auto separator_color = theme_engine().color(core::ThemeColorToken::BorderLight);
+
+    bool rebuild_bounds = drawn_segments_.empty();
+    int segment_index = 0;
+    std::string full_path = "";
+
+    auto draw_separator = [&]()
+    {
+        IconManager::get().draw_icon(dc,
+                                     "chevron-right",
+                                     current_x + 2,
+                                     icon_y,
+                                     wxSize(icon_size, icon_size),
+                                     separator_color);
+        current_x += icon_size + 4;
+    };
+
+    auto draw_segment = [&](const std::string& text,
+                            const std::string& icon_name,
+                            bool is_last_file,
+                            const std::string& segment_path)
+    {
+        int start_x = current_x;
+
+        wxColour fg_color = text_color_normal;
+        if (hovered_segment_ == segment_index)
+        {
+            fg_color = text_color_hover;
+        }
+
+        if (!icon_name.empty())
+        {
+            IconManager::get().draw_icon(
+                dc, icon_name, current_x, icon_y, wxSize(icon_size, icon_size), fg_color, GetDPIScaleFactor());
+            current_x += icon_size + 4;
+        }
+
+        dc.SetFont(is_last_file ? bold_font : font);
+        dc.SetTextForeground(fg_color);
+        wxString wx_text = wxString::FromUTF8(text);
+        dc.DrawText(wx_text, current_x, text_y);
+        current_x += dc.GetTextExtent(wx_text).GetWidth();
+
+        if (rebuild_bounds)
+        {
+            DrawnSegment ds;
+            ds.bounds = wxRect(start_x, 0, current_x - start_x, height);
+            ds.full_path = segment_path;
+            drawn_segments_.push_back(ds);
+        }
+
+        segment_index++;
+    };
+
+    // 1. File Segments
     for (size_t idx = 0; idx < file_segments_.size(); ++idx)
     {
         if (idx > 0)
         {
-            // R21 Fix 6: Styled ▸ chevron separator instead of plain ›
-            display += " \xE2\x96\xB8 "; // ▸ separator (UTF-8)
+            draw_separator();
+            full_path += "/";
         }
-        // R18 Fix 28: File icon prefix before filename (last segment)
+        full_path += file_segments_[idx];
+
+        std::string icon = "";
         if (idx == file_segments_.size() - 1)
         {
-            display += "\xF0\x9F\x93\x84 "; // 📄 file icon
+            icon = FileTypeIconResolver::GetFileIcon(file_segments_[idx]);
         }
-        display += file_segments_[idx];
+
+        draw_segment(file_segments_[idx], icon, idx == file_segments_.size() - 1, full_path);
     }
 
-    // Heading path: separated by ▸
-    if (!heading_segments_.empty())
+    // 2. Heading Segments
+    for (size_t idx = 0; idx < heading_segments_.size(); ++idx)
     {
-        if (!display.empty())
+        if (!file_segments_.empty() || idx > 0)
         {
-            display += "  \xE2\x80\x94  "; // — separator (UTF-8)
+            draw_separator();
         }
-        for (size_t idx = 0; idx < heading_segments_.size(); ++idx)
-        {
-            if (idx > 0)
-            {
-                // R21 Fix 6: Styled ▸ chevron separator for headings too
-                display += " \xE2\x96\xB8 "; // ▸ separator
-            }
-            // R21 Fix 8: § glyph prefix before heading segments
-            display += "\xC2\xA7 "; // § (UTF-8)
-            display += heading_segments_[idx];
-        }
+
+        std::string heading_path = full_path;
+        if (!heading_path.empty())
+            heading_path += " -> ";
+        heading_path += heading_segments_[idx];
+
+        draw_segment(heading_segments_[idx], "symbol-misc", false, heading_path);
     }
 
-    if (label_ != nullptr)
+    // 3. Traversal Segments (V8 Phase 12)
+    for (size_t idx = 0; idx < traversal_segments_.size(); ++idx)
     {
-        label_->SetLabel(wxString::FromUTF8(display));
-
-        // Display full path tooltip for breadcrumb
-        std::string full_path;
-        for (size_t idx = 0; idx < file_segments_.size(); ++idx)
+        if (!file_segments_.empty() || !heading_segments_.empty() || idx > 0)
         {
-            if (idx > 0)
-                full_path += "/";
-            full_path += file_segments_[idx];
-        }
-        for (const auto& heading : heading_segments_)
-        {
-            if (!full_path.empty())
-                full_path += " -> ";
-            full_path += heading;
-        }
-        if (!full_path.empty())
-        {
-            label_->SetToolTip(wxString::FromUTF8(full_path));
+            draw_separator();
         }
 
-        // R17 Fix 28: Bold the last (filename) segment
-        if (!file_segments_.empty())
-        {
-            auto font = label_->GetFont();
-            font.SetWeight(wxFONTWEIGHT_SEMIBOLD);
-            label_->SetFont(font);
-        }
+        std::string label =
+            traversal_segments_[idx].surface_label + ": " + traversal_segments_[idx].anchor_label;
+        draw_segment(label, "link", false, label);
     }
 }
 
-// R3 Fix 20: Click handler for clickable breadcrumb label
-void BreadcrumbBar::OnLabelClick(wxMouseEvent& event)
+void BreadcrumbBar::OnMouseMove(wxMouseEvent& event)
 {
-    if (segment_click_callback_ && !file_segments_.empty())
+    if (drawn_segments_.empty())
     {
-        // Reconstruct full path from segments
+        event.Skip();
+        return;
+    }
+
+    int previous_hover = hovered_segment_;
+    hovered_segment_ = -1;
+
+    wxPoint pos = event.GetPosition();
+    for (size_t i = 0; i < drawn_segments_.size(); ++i)
+    {
+        if (drawn_segments_[i].bounds.Contains(pos))
+        {
+            hovered_segment_ = static_cast<int>(i);
+            break;
+        }
+    }
+
+    if (hovered_segment_ != previous_hover)
+    {
+        if (hovered_segment_ >= 0)
+        {
+            SetCursor(wxCursor(wxCURSOR_HAND));
+            SetToolTip(wxString::FromUTF8(
+                drawn_segments_[static_cast<size_t>(hovered_segment_)].full_path));
+        }
+        else
+        {
+            SetCursor(wxNullCursor);
+            SetToolTip("");
+        }
+        Refresh();
+    }
+
+    event.Skip();
+}
+
+void BreadcrumbBar::OnLeaveWindow(wxMouseEvent& event)
+{
+    if (hovered_segment_ != -1)
+    {
+        hovered_segment_ = -1;
+        SetCursor(wxNullCursor);
+        SetToolTip("");
+        Refresh();
+    }
+    event.Skip();
+}
+
+void BreadcrumbBar::OnMouseDown(wxMouseEvent& event)
+{
+    if (hovered_segment_ >= 0 && hovered_segment_ < static_cast<int>(drawn_segments_.size()))
+    {
+        if (segment_click_callback_)
+        {
+            segment_click_callback_(
+                drawn_segments_[static_cast<size_t>(hovered_segment_)].full_path);
+        }
+    }
+    else if (segment_click_callback_ && !file_segments_.empty())
+    {
+        // Fallback: click empty area -> navigate to full path
         std::string full_path;
         for (size_t idx = 0; idx < file_segments_.size(); ++idx)
         {
             if (idx > 0)
-            {
                 full_path += "/";
-            }
             full_path += file_segments_[idx];
         }
         segment_click_callback_(full_path);
     }
+    SetFocus();
     event.Skip();
 }
 

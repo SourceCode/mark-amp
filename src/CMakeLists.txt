@@ -142,6 +142,7 @@ add_executable(markamp
     ui/IconManager.cpp
     ui/FileTypeIconResolver.cpp
     ui/IconCache.cpp
+    ui/IconGalleryDialog.cpp
     ui/IconLibrary.cpp
     ui/IconRegistry.cpp
     ui/IconRenderer.cpp
@@ -743,6 +744,7 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "Src" FILES
     ui/IconManager.h
     ui/IconManager.cpp
     ui/IconLibrary.h
+    ui/IconGalleryDialog.cpp
     ui/IconLibrary.cpp
     ui/FileTypeIconResolver.h
     ui/FileTypeIconResolver.cpp

@@ -1,5 +1,6 @@
 #include "ui/IconRegistry.h"
 
+#include <algorithm>
 #include <fstream>
 #include <sstream>
 
@@ -54,6 +55,18 @@ auto IconRegistry::clear() -> void
 auto IconRegistry::size() const -> size_t
 {
     return icons_.size();
+}
+
+auto IconRegistry::get_icon_names() const -> std::vector<std::string>
+{
+    std::vector<std::string> names;
+    names.reserve(icons_.size());
+    for (const auto& [name, _] : icons_)
+    {
+        names.push_back(name);
+    }
+    std::sort(names.begin(), names.end());
+    return names;
 }
 
 } // namespace markamp::ui

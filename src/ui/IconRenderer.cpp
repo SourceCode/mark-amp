@@ -42,21 +42,21 @@ auto IconRenderer::RenderIcon(const SvgDocument& doc,
     gc->SetAntialiasMode(wxANTIALIAS_DEFAULT);
 
     // Calculate scaling to map the viewBox to the output pixel size
-    float scaleX = static_cast<float>(pixelSize.GetWidth());
-    float scaleY = static_cast<float>(pixelSize.GetHeight());
+    double scaleX = static_cast<double>(pixelSize.GetWidth());
+    double scaleY = static_cast<double>(pixelSize.GetHeight());
 
     if (doc.viewBox().is_valid())
     {
-        scaleX /= doc.viewBox().width;
-        scaleY /= doc.viewBox().height;
+        scaleX /= static_cast<double>(doc.viewBox().width);
+        scaleY /= static_cast<double>(doc.viewBox().height);
         // Translate to viewBox origin
-        gc->Translate(-doc.viewBox().x * scaleX, -doc.viewBox().y * scaleY);
+        gc->Translate(static_cast<double>(-doc.viewBox().x) * scaleX, static_cast<double>(-doc.viewBox().y) * scaleY);
     }
     else
     {
         // Guess a default viewBox if missing (most icons are 24x24)
-        scaleX /= 24.0f;
-        scaleY /= 24.0f;
+        scaleX /= 24.0;
+        scaleY /= 24.0;
     }
 
     gc->Scale(scaleX, scaleY);
@@ -67,15 +67,15 @@ auto IconRenderer::RenderIcon(const SvgDocument& doc,
         {
             wxGraphicsPath path = gc->CreatePath();
 
-            float currentX = 0.0f;
-            float currentY = 0.0f;
-            float lastControlX = 0.0f;
-            float lastControlY = 0.0f;
+            double currentX = 0.0;
+            double currentY = 0.0;
+            double lastControlX = 0.0;
+            double lastControlY = 0.0;
 
             for (const auto& cmd : p->commands)
             {
-                int argc = static_cast<int>(cmd.args.size());
-                int argIndex = 0;
+                size_t argc = cmd.args.size();
+                size_t argIndex = 0;
 
                 while (argIndex < argc ||
                        argc == 0) // Executes at least once for Z/z and arg-less calls
@@ -85,8 +85,8 @@ auto IconRenderer::RenderIcon(const SvgDocument& doc,
                         case 'M':
                             if (argIndex + 1 < argc)
                             {
-                                currentX = cmd.args[argIndex];
-                                currentY = cmd.args[argIndex + 1];
+                                currentX = static_cast<double>(cmd.args[argIndex]);
+                                currentY = static_cast<double>(cmd.args[argIndex + 1]);
                                 path.MoveToPoint(currentX, currentY);
                                 argIndex += 2;
                             }
@@ -94,8 +94,8 @@ auto IconRenderer::RenderIcon(const SvgDocument& doc,
                         case 'm':
                             if (argIndex + 1 < argc)
                             {
-                                currentX += cmd.args[argIndex];
-                                currentY += cmd.args[argIndex + 1];
+                                currentX += static_cast<double>(cmd.args[argIndex]);
+                                currentY += static_cast<double>(cmd.args[argIndex + 1]);
                                 path.MoveToPoint(currentX, currentY);
                                 argIndex += 2;
                             }
@@ -103,8 +103,8 @@ auto IconRenderer::RenderIcon(const SvgDocument& doc,
                         case 'L':
                             if (argIndex + 1 < argc)
                             {
-                                currentX = cmd.args[argIndex];
-                                currentY = cmd.args[argIndex + 1];
+                                currentX = static_cast<double>(cmd.args[argIndex]);
+                                currentY = static_cast<double>(cmd.args[argIndex + 1]);
                                 path.AddLineToPoint(currentX, currentY);
                                 argIndex += 2;
                             }
@@ -112,8 +112,8 @@ auto IconRenderer::RenderIcon(const SvgDocument& doc,
                         case 'l':
                             if (argIndex + 1 < argc)
                             {
-                                currentX += cmd.args[argIndex];
-                                currentY += cmd.args[argIndex + 1];
+                                currentX += static_cast<double>(cmd.args[argIndex]);
+                                currentY += static_cast<double>(cmd.args[argIndex + 1]);
                                 path.AddLineToPoint(currentX, currentY);
                                 argIndex += 2;
                             }
@@ -121,7 +121,7 @@ auto IconRenderer::RenderIcon(const SvgDocument& doc,
                         case 'H':
                             if (argIndex < argc)
                             {
-                                currentX = cmd.args[argIndex];
+                                currentX = static_cast<double>(cmd.args[argIndex]);
                                 path.AddLineToPoint(currentX, currentY);
                                 argIndex += 1;
                             }
@@ -129,7 +129,7 @@ auto IconRenderer::RenderIcon(const SvgDocument& doc,
                         case 'h':
                             if (argIndex < argc)
                             {
-                                currentX += cmd.args[argIndex];
+                                currentX += static_cast<double>(cmd.args[argIndex]);
                                 path.AddLineToPoint(currentX, currentY);
                                 argIndex += 1;
                             }
@@ -137,7 +137,7 @@ auto IconRenderer::RenderIcon(const SvgDocument& doc,
                         case 'V':
                             if (argIndex < argc)
                             {
-                                currentY = cmd.args[argIndex];
+                                currentY = static_cast<double>(cmd.args[argIndex]);
                                 path.AddLineToPoint(currentX, currentY);
                                 argIndex += 1;
                             }
@@ -145,7 +145,7 @@ auto IconRenderer::RenderIcon(const SvgDocument& doc,
                         case 'v':
                             if (argIndex < argc)
                             {
-                                currentY += cmd.args[argIndex];
+                                currentY += static_cast<double>(cmd.args[argIndex]);
                                 path.AddLineToPoint(currentX, currentY);
                                 argIndex += 1;
                             }
@@ -153,12 +153,12 @@ auto IconRenderer::RenderIcon(const SvgDocument& doc,
                         case 'C':
                             if (argIndex + 5 < argc)
                             {
-                                float cx1 = cmd.args[argIndex];
-                                float cy1 = cmd.args[argIndex + 1];
-                                float cx2 = cmd.args[argIndex + 2];
-                                float cy2 = cmd.args[argIndex + 3];
-                                currentX = cmd.args[argIndex + 4];
-                                currentY = cmd.args[argIndex + 5];
+                                double cx1 = static_cast<double>(cmd.args[argIndex]);
+                                double cy1 = static_cast<double>(cmd.args[argIndex + 1]);
+                                double cx2 = static_cast<double>(cmd.args[argIndex + 2]);
+                                double cy2 = static_cast<double>(cmd.args[argIndex + 3]);
+                                currentX = static_cast<double>(cmd.args[argIndex + 4]);
+                                currentY = static_cast<double>(cmd.args[argIndex + 5]);
                                 path.AddCurveToPoint(cx1, cy1, cx2, cy2, currentX, currentY);
                                 lastControlX = cx2;
                                 lastControlY = cy2;
@@ -168,12 +168,12 @@ auto IconRenderer::RenderIcon(const SvgDocument& doc,
                         case 'c':
                             if (argIndex + 5 < argc)
                             {
-                                float cx1 = currentX + cmd.args[argIndex];
-                                float cy1 = currentY + cmd.args[argIndex + 1];
-                                float cx2 = currentX + cmd.args[argIndex + 2];
-                                float cy2 = currentY + cmd.args[argIndex + 3];
-                                currentX += cmd.args[argIndex + 4];
-                                currentY += cmd.args[argIndex + 5];
+                                double cx1 = currentX + static_cast<double>(cmd.args[argIndex]);
+                                double cy1 = currentY + static_cast<double>(cmd.args[argIndex + 1]);
+                                double cx2 = currentX + static_cast<double>(cmd.args[argIndex + 2]);
+                                double cy2 = currentY + static_cast<double>(cmd.args[argIndex + 3]);
+                                currentX += static_cast<double>(cmd.args[argIndex + 4]);
+                                currentY += static_cast<double>(cmd.args[argIndex + 5]);
                                 path.AddCurveToPoint(cx1, cy1, cx2, cy2, currentX, currentY);
                                 lastControlX = cx2;
                                 lastControlY = cy2;
@@ -183,12 +183,12 @@ auto IconRenderer::RenderIcon(const SvgDocument& doc,
                         case 'S':
                             if (argIndex + 3 < argc)
                             {
-                                float cx1 = currentX * 2.0f - lastControlX;
-                                float cy1 = currentY * 2.0f - lastControlY;
-                                float cx2 = cmd.args[argIndex];
-                                float cy2 = cmd.args[argIndex + 1];
-                                currentX = cmd.args[argIndex + 2];
-                                currentY = cmd.args[argIndex + 3];
+                                double cx1 = currentX * 2.0 - lastControlX;
+                                double cy1 = currentY * 2.0 - lastControlY;
+                                double cx2 = static_cast<double>(cmd.args[argIndex]);
+                                double cy2 = static_cast<double>(cmd.args[argIndex + 1]);
+                                currentX = static_cast<double>(cmd.args[argIndex + 2]);
+                                currentY = static_cast<double>(cmd.args[argIndex + 3]);
                                 path.AddCurveToPoint(cx1, cy1, cx2, cy2, currentX, currentY);
                                 lastControlX = cx2;
                                 lastControlY = cy2;
@@ -198,12 +198,12 @@ auto IconRenderer::RenderIcon(const SvgDocument& doc,
                         case 's':
                             if (argIndex + 3 < argc)
                             {
-                                float cx1 = currentX * 2.0f - lastControlX;
-                                float cy1 = currentY * 2.0f - lastControlY;
-                                float cx2 = currentX + cmd.args[argIndex];
-                                float cy2 = currentY + cmd.args[argIndex + 1];
-                                currentX += cmd.args[argIndex + 2];
-                                currentY += cmd.args[argIndex + 3];
+                                double cx1 = currentX * 2.0 - lastControlX;
+                                double cy1 = currentY * 2.0 - lastControlY;
+                                double cx2 = currentX + static_cast<double>(cmd.args[argIndex]);
+                                double cy2 = currentY + static_cast<double>(cmd.args[argIndex + 1]);
+                                currentX += static_cast<double>(cmd.args[argIndex + 2]);
+                                currentY += static_cast<double>(cmd.args[argIndex + 3]);
                                 path.AddCurveToPoint(cx1, cy1, cx2, cy2, currentX, currentY);
                                 lastControlX = cx2;
                                 lastControlY = cy2;
@@ -213,10 +213,10 @@ auto IconRenderer::RenderIcon(const SvgDocument& doc,
                         case 'Q':
                             if (argIndex + 3 < argc)
                             {
-                                float cx = cmd.args[argIndex];
-                                float cy = cmd.args[argIndex + 1];
-                                currentX = cmd.args[argIndex + 2];
-                                currentY = cmd.args[argIndex + 3];
+                                double cx = static_cast<double>(cmd.args[argIndex]);
+                                double cy = static_cast<double>(cmd.args[argIndex + 1]);
+                                currentX = static_cast<double>(cmd.args[argIndex + 2]);
+                                currentY = static_cast<double>(cmd.args[argIndex + 3]);
                                 path.AddQuadCurveToPoint(cx, cy, currentX, currentY);
                                 lastControlX = cx;
                                 lastControlY = cy;
@@ -226,10 +226,10 @@ auto IconRenderer::RenderIcon(const SvgDocument& doc,
                         case 'q':
                             if (argIndex + 3 < argc)
                             {
-                                float cx = currentX + cmd.args[argIndex];
-                                float cy = currentY + cmd.args[argIndex + 1];
-                                currentX += cmd.args[argIndex + 2];
-                                currentY += cmd.args[argIndex + 3];
+                                double cx = currentX + static_cast<double>(cmd.args[argIndex]);
+                                double cy = currentY + static_cast<double>(cmd.args[argIndex + 1]);
+                                currentX += static_cast<double>(cmd.args[argIndex + 2]);
+                                currentY += static_cast<double>(cmd.args[argIndex + 3]);
                                 path.AddQuadCurveToPoint(cx, cy, currentX, currentY);
                                 lastControlX = cx;
                                 lastControlY = cy;
@@ -239,10 +239,10 @@ auto IconRenderer::RenderIcon(const SvgDocument& doc,
                         case 'T':
                             if (argIndex + 1 < argc)
                             {
-                                float cx = currentX * 2.0f - lastControlX;
-                                float cy = currentY * 2.0f - lastControlY;
-                                currentX = cmd.args[argIndex];
-                                currentY = cmd.args[argIndex + 1];
+                                double cx = currentX * 2.0 - lastControlX;
+                                double cy = currentY * 2.0 - lastControlY;
+                                currentX = static_cast<double>(cmd.args[argIndex]);
+                                currentY = static_cast<double>(cmd.args[argIndex + 1]);
                                 path.AddQuadCurveToPoint(cx, cy, currentX, currentY);
                                 lastControlX = cx;
                                 lastControlY = cy;
@@ -252,10 +252,10 @@ auto IconRenderer::RenderIcon(const SvgDocument& doc,
                         case 't':
                             if (argIndex + 1 < argc)
                             {
-                                float cx = currentX * 2.0f - lastControlX;
-                                float cy = currentY * 2.0f - lastControlY;
-                                currentX += cmd.args[argIndex];
-                                currentY += cmd.args[argIndex + 1];
+                                double cx = currentX * 2.0 - lastControlX;
+                                double cy = currentY * 2.0 - lastControlY;
+                                currentX += static_cast<double>(cmd.args[argIndex]);
+                                currentY += static_cast<double>(cmd.args[argIndex + 1]);
                                 path.AddQuadCurveToPoint(cx, cy, currentX, currentY);
                                 lastControlX = cx;
                                 lastControlY = cy;
@@ -274,13 +274,13 @@ auto IconRenderer::RenderIcon(const SvgDocument& doc,
                             {
                                 if (cmd.type == 'A')
                                 {
-                                    currentX = cmd.args[argIndex + 5];
-                                    currentY = cmd.args[argIndex + 6];
+                                    currentX = static_cast<double>(cmd.args[argIndex + 5]);
+                                    currentY = static_cast<double>(cmd.args[argIndex + 6]);
                                 }
                                 else
                                 {
-                                    currentX += cmd.args[argIndex + 5];
-                                    currentY += cmd.args[argIndex + 6];
+                                    currentX += static_cast<double>(cmd.args[argIndex + 5]);
+                                    currentY += static_cast<double>(cmd.args[argIndex + 6]);
                                 }
                                 path.AddLineToPoint(currentX, currentY);
                                 argIndex += 7;
@@ -309,14 +309,14 @@ auto IconRenderer::RenderIcon(const SvgDocument& doc,
                 // Adjust stroke width by our scaled pixels?
                 // In wxGraphicsContext, if we scaled the context, pen width is scaled
                 // automatically!
-                gc->SetPen(wxPen(color, std::max(1.0f, p->stroke_width)));
+                gc->SetPen(wxPen(color, std::max(1, static_cast<int>(p->stroke_width))));
                 gc->StrokePath(path);
             }
         }
         else if (const auto* c = std::get_if<SvgCircle>(&shape_variant))
         {
             wxGraphicsPath path = gc->CreatePath();
-            path.AddCircle(c->cx, c->cy, c->r);
+            path.AddCircle(static_cast<double>(c->cx), static_cast<double>(c->cy), static_cast<double>(c->r));
             if (c->fill != "none")
             {
                 gc->SetBrush(wxBrush(color));
@@ -324,7 +324,7 @@ auto IconRenderer::RenderIcon(const SvgDocument& doc,
             }
             if (c->stroke != "none" && !c->stroke.empty())
             {
-                gc->SetPen(wxPen(color, std::max(1.0f, c->stroke_width)));
+                gc->SetPen(wxPen(color, std::max(1, static_cast<int>(c->stroke_width))));
                 gc->StrokePath(path);
             }
         }
@@ -333,11 +333,11 @@ auto IconRenderer::RenderIcon(const SvgDocument& doc,
             wxGraphicsPath path = gc->CreatePath();
             if (r->rx > 0.0f || r->ry > 0.0f)
             {
-                path.AddRoundedRectangle(r->x, r->y, r->width, r->height, r->rx);
+                path.AddRoundedRectangle(static_cast<double>(r->x), static_cast<double>(r->y), static_cast<double>(r->width), static_cast<double>(r->height), static_cast<double>(r->rx));
             }
             else
             {
-                path.AddRectangle(r->x, r->y, r->width, r->height);
+                path.AddRectangle(static_cast<double>(r->x), static_cast<double>(r->y), static_cast<double>(r->width), static_cast<double>(r->height));
             }
             if (r->fill != "none")
             {
@@ -346,18 +346,18 @@ auto IconRenderer::RenderIcon(const SvgDocument& doc,
             }
             if (r->stroke != "none" && !r->stroke.empty())
             {
-                gc->SetPen(wxPen(color, std::max(1.0f, r->stroke_width)));
+                gc->SetPen(wxPen(color, std::max(1, static_cast<int>(r->stroke_width))));
                 gc->StrokePath(path);
             }
         }
         else if (const auto* l = std::get_if<SvgLine>(&shape_variant))
         {
             wxGraphicsPath path = gc->CreatePath();
-            path.MoveToPoint(l->x1, l->y1);
-            path.AddLineToPoint(l->x2, l->y2);
+            path.MoveToPoint(static_cast<double>(l->x1), static_cast<double>(l->y1));
+            path.AddLineToPoint(static_cast<double>(l->x2), static_cast<double>(l->y2));
             if (l->stroke != "none" && !l->stroke.empty())
             {
-                gc->SetPen(wxPen(color, std::max(1.0f, l->stroke_width)));
+                gc->SetPen(wxPen(color, std::max(1, static_cast<int>(l->stroke_width))));
                 gc->StrokePath(path);
             }
         }
@@ -366,10 +366,10 @@ auto IconRenderer::RenderIcon(const SvgDocument& doc,
             if (pl->points.size() >= 2)
             {
                 wxGraphicsPath path = gc->CreatePath();
-                path.MoveToPoint(pl->points[0], pl->points[1]);
+                path.MoveToPoint(static_cast<double>(pl->points[0]), static_cast<double>(pl->points[1]));
                 for (size_t i = 2; i + 1 < pl->points.size(); i += 2)
                 {
-                    path.AddLineToPoint(pl->points[i], pl->points[i + 1]);
+                    path.AddLineToPoint(static_cast<double>(pl->points[i]), static_cast<double>(pl->points[i + 1]));
                 }
                 if (pl->fill != "none")
                 {
@@ -378,7 +378,7 @@ auto IconRenderer::RenderIcon(const SvgDocument& doc,
                 }
                 if (pl->stroke != "none" && !pl->stroke.empty())
                 {
-                    gc->SetPen(wxPen(color, std::max(1.0f, pl->stroke_width)));
+                    gc->SetPen(wxPen(color, std::max(1, static_cast<int>(pl->stroke_width))));
                     gc->StrokePath(path);
                 }
             }
