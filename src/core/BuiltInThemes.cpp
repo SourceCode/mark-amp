@@ -21,16 +21,22 @@ auto make_builtin_themes() -> std::vector<Theme>
                 .bg_header = Color(0x0f, 0x0f, 0x2d),
                 .bg_input = Color(0x05, 0x05, 0x10),
                 .text_main = Color(0x00, 0xff, 0xea),
-                .text_muted = Color(0x5e, 0x6a, 0xd2),
+                .text_muted = Color(0xa0, 0xaa, 0xff), // Lightened for AA contrast
                 .accent_primary = Color(0xff, 0x00, 0x55),
                 .accent_secondary = Color(0x00, 0xff, 0xea),
-                .border_light = Color(255, 0, 85, 51), // rgba(255, 0, 85, 0.2)
-                .border_dark = Color(0x00, 0x00, 0x00),
+                .border_light = Color(255, 0, 85, 51),  // rgba(255, 0, 85, 0.2)
+                .border_dark = Color(0xff, 0xff, 0xff), // Lightened for contrast
+
+                // Exts
+                .sidebar_fg = Color(0xff, 0xff, 0xff),
+                .activity_bar_badge_bg = Color(0x00, 0x00, 0x00),
+                .activity_bar_badge_fg = Color(0xff, 0xff, 0xff),
+
                 // Editor
                 .editor_bg = Color(0x05, 0x05, 0x10),
                 .editor_fg = Color(0x00, 0xff, 0xea),
                 .editor_selection = Color(255, 0, 85, 51),
-                .editor_line_number = Color(0x5e, 0x6a, 0xd2),
+                .editor_line_number = Color(0xa0, 0xaa, 0xff),
                 .editor_cursor = Color(0xff, 0x00, 0x55),
                 .editor_gutter = Color(0x05, 0x05, 0x10),
                 // UI
@@ -39,6 +45,12 @@ auto make_builtin_themes() -> std::vector<Theme>
                 .scrollbar_thumb = Color(0x00, 0xff, 0xea),
                 .scrollbar_track = Color(0x0a, 0x0a, 0x1f),
             },
+        .syntax =
+            {
+                .comment = Color(0xa0, 0xaa, 0xff), // AA Contrast comment
+            },
+        .control_bg_disabled = Color(0x05, 0x05, 0x10),
+        .control_fg_disabled = Color(0xaa, 0xaa, 0xcc) // Valid contrast
     });
 
     // 2. Cyber Night
@@ -145,11 +157,17 @@ auto make_builtin_themes() -> std::vector<Theme>
                 .bg_header = Color(0x00, 0x00, 0x80),
                 .bg_input = Color(0x00, 0x00, 0x00),
                 .text_main = Color(0xff, 0xff, 0xff),
-                .text_muted = Color(0x00, 0xff, 0xff),
+                .text_muted = Color(0xaa, 0xff, 0xff), // Lighten text_muted
                 .accent_primary = Color(0xff, 0xff, 0x00),
                 .accent_secondary = Color(0x00, 0xff, 0x00),
                 .border_light = Color(0xff, 0xff, 0xff),
-                .border_dark = Color(0x00, 0x00, 0x40),
+                .border_dark = Color(0xff, 0xff, 0xff), // Force border dark to high contrast white
+
+                // Phase 4 / V9 Exts
+                .sidebar_fg =
+                    Color(0xff, 0xff, 0xff), // Lightened for contrast against activity badge
+                .activity_bar_badge_bg = Color(0x00, 0x00, 0x00), // Contrasts with SidebarFg
+                .activity_bar_badge_fg = Color(0xff, 0xff, 0xff),
                 // Editor
                 .editor_bg = Color(0x00, 0x00, 0x00),
                 .editor_fg = Color(0xff, 0xff, 0xff),
@@ -163,6 +181,12 @@ auto make_builtin_themes() -> std::vector<Theme>
                 .scrollbar_thumb = Color(0x00, 0xff, 0xff),
                 .scrollbar_track = Color(0x00, 0x00, 0x80),
             },
+        .syntax =
+            {
+                .comment = Color(0xff, 0xff, 0xff), // High contrast comment
+            },
+        .control_bg_disabled = Color(0x00, 0x00, 0x00),
+        .control_fg_disabled = Color(0xff, 0xff, 0xff),
     });
 
     // 6. Matrix Core

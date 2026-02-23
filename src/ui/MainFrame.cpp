@@ -6,6 +6,7 @@
 #include "StartupPanel.h"
 #include "StatusBarPanel.h"
 #include "TabBar.h"
+#include "accessibility/AccessibilityAuditor.h"
 #include "app/MarkAmpApp.h"
 #include "core/Config.h"
 #include "core/EventBus.h"
@@ -2564,6 +2565,37 @@ void MainFrame::RegisterPaletteCommands()
          }});
 
     // Phase 05: Accessibility Modes
+    command_palette_->RegisterCommand(
+        {"Accessibility Audit",
+         "Developer",
+         "",
+         [this]()
+         {
+             auto report = accessibility::AccessibilityAuditor::run_contrast_audit(*theme_engine_);
+             std::string status = report.is_fully_aa_compliant() ? "Passed" : "Failed";
+             MARKAMP_LOG_INFO(
+                 "Accessibility Audit {}: {} Total token pairs. AAA: {}, AA: {}, Failures: {}",
+                 status,
+                 report.total_pairs,
+                 report.compliant_aaa,
+                 report.compliant_aa,
+                 report.failures);
+
+             if (!report.is_fully_aa_compliant())
+             {
+                 for (const auto& f : report.failure_details)
+                 {
+                     MARKAMP_LOG_WARN("Audit Failure: {} vs {} (Ratio: {:.2f})",
+                                      f.foreground_token,
+                                      f.background_token,
+                                      f.ratio);
+                 }
+             }
+
+             accessibility::AccessibilityController::get().announce(
+                 "Accessibility Audit " + status + ". See logs for details.", true);
+         }});
+
     command_palette_->RegisterCommand(
         {"Toggle High Contrast Mode",
          "View",

@@ -2,6 +2,7 @@
 
 #include "DensityProfile.h"
 
+#include <algorithm>
 #include <array>
 
 namespace markamp::ui

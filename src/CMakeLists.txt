@@ -286,6 +286,8 @@ add_executable(markamp
     core/ColorBlindnessSupport.cpp
     core/AccessibilityAudit.cpp
     core/AccessibilityCommandProvider.cpp
+    ui/accessibility/AccessibilityTokenMapper.cpp
+    ui/accessibility/AccessibilityAuditor.cpp
     # V9 Phase 32: Platform-Specific Optimization
     core/PlatformServices.cpp
     core/PlatformKeyboard.cpp

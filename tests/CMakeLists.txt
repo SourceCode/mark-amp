@@ -108,6 +108,8 @@ add_library(markamp_core STATIC
     ${CMAKE_SOURCE_DIR}/src/ui/ControlState.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/FocusManager.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/accessibility/AccessibilityController.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/accessibility/AccessibilityAuditor.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/accessibility/AccessibilityTokenMapper.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/accessibility/SkipToContentButton.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/LayoutMetrics.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/ColorPaletteGenerator.cpp
@@ -4975,6 +4977,17 @@ target_link_libraries(test_control_accessibility_semantics PRIVATE
     markamp_core
 )
 add_test(NAME test_control_accessibility_semantics COMMAND test_control_accessibility_semantics)
+
+# Phase 05: Accessibility Tasks 22-25
+add_executable(test_phase05_accessibility_audit
+    unit/test_phase05_accessibility_audit.cpp
+)
+target_include_directories(test_phase05_accessibility_audit PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_phase05_accessibility_audit PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_phase05_accessibility_audit COMMAND test_phase05_accessibility_audit)
 
 # V10 Phase 36: Responsive, DPI, and Platform-Adaptive Controls
 add_executable(test_control_responsiveness

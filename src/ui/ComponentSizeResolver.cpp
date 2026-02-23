@@ -28,7 +28,19 @@ auto ComponentSizeResolver::resolve(ComponentKind kind) const -> ComponentMetric
         d_idx = 2;
 
     size_t k_idx = static_cast<size_t>(kind);
-    return metrics_table_[d_idx][k_idx];
+    ComponentMetrics metrics = metrics_table_[d_idx][k_idx];
+
+    // Phase 05 Task 22: Enforce WCAG 2.5.5 Level AAA minimum target size (24x24px)
+    if (metrics.height > 0)
+    {
+        metrics.height = std::max(metrics.height, 24);
+    }
+    if (metrics.min_width > 0)
+    {
+        metrics.min_width = std::max(metrics.min_width, 24);
+    }
+
+    return metrics;
 }
 
 void ComponentSizeResolver::InitializeTable()
