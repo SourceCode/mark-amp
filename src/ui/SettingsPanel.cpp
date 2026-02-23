@@ -1,5 +1,10 @@
 #include "SettingsPanel.h"
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 #include "core/Config.h"
 #include "core/Events.h"
 #include "core/Logger.h"

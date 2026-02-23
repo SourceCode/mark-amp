@@ -38,7 +38,7 @@ private:
     {
         core::events::ActivityBarItem item_id;
         std::string label;     // Tooltip text
-        std::string icon_char; // Unicode/emoji fallback icon
+        std::string icon_name; // SVG icon identifier
         wxRect bounds;         // Hit-test rectangle
         int badge_count{0};    // R18 Fix 25: Badge count indicator
     };

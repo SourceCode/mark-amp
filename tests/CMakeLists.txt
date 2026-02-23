@@ -111,6 +111,13 @@ add_library(markamp_core STATIC
     ${CMAKE_SOURCE_DIR}/src/ui/ElevationSystem.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/SpacingGrid.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/TypographyScale.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/SvgDocument.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/IconRenderer.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/IconCache.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/IconRegistry.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/IconManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/IconLibrary.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/FileTypeIconResolver.cpp
     # V3 Phases 1–3: Block Data Model, ID Generation, Notebook
     ${CMAKE_SOURCE_DIR}/src/core/Block.cpp
     ${CMAKE_SOURCE_DIR}/src/core/BlockID.cpp
@@ -3833,6 +3840,41 @@ add_executable(test_split_view unit/test_split_view.cpp)
 target_include_directories(test_split_view PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_split_view PRIVATE Catch2::Catch2WithMain markamp_core)
 add_test(NAME test_split_view COMMAND test_split_view)
+
+add_executable(test_svg_document unit/test_svg_document.cpp)
+target_include_directories(test_svg_document PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_svg_document PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_svg_document COMMAND test_svg_document)
+
+add_executable(test_icon_renderer unit/test_icon_renderer.cpp)
+target_include_directories(test_icon_renderer PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_icon_renderer PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_icon_renderer COMMAND test_icon_renderer)
+
+add_executable(test_icon_cache unit/test_icon_cache.cpp)
+target_include_directories(test_icon_cache PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_icon_cache PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_icon_cache COMMAND test_icon_cache)
+
+add_executable(test_icon_registry unit/test_icon_registry.cpp)
+target_include_directories(test_icon_registry PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_icon_registry PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_icon_registry COMMAND test_icon_registry)
+
+add_executable(test_icon_manager unit/test_icon_manager.cpp)
+target_include_directories(test_icon_manager PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_icon_manager PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_icon_manager COMMAND test_icon_manager)
+
+add_executable(test_ui_icon_library unit/test_ui_icon_library.cpp)
+target_include_directories(test_ui_icon_library PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_ui_icon_library PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_ui_icon_library COMMAND test_ui_icon_library)
+
+add_executable(test_file_type_resolver unit/test_file_type_resolver.cpp)
+target_include_directories(test_file_type_resolver PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_file_type_resolver PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_file_type_resolver COMMAND test_file_type_resolver)
 
 add_executable(test_split_view_sync unit/test_split_view_sync.cpp)
 target_include_directories(test_split_view_sync PRIVATE ${CMAKE_SOURCE_DIR}/src)

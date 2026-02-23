@@ -100,6 +100,7 @@ public:
         std::string tooltip;         // R6 Fix 9: hover tooltip
         bool is_success{false};      // 24. Success Color
         bool has_warning_dot{false}; // 36. Modified Dot
+        std::string icon_name;       // SVG icon identifier
     };
 
     /// Rebuild left/right items from current state. Public for testing.

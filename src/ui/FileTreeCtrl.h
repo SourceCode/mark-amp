@@ -62,12 +62,6 @@ private:
 
     // Icons
     void LoadIcons();
-    wxBitmapBundle icon_folder_;
-    wxBitmapBundle icon_folder_open_;
-    wxBitmapBundle icon_file_;
-    wxBitmapBundle icon_file_text_;
-    wxBitmapBundle icon_chevron_right_;
-    wxBitmapBundle icon_chevron_down_;
 
     // Interaction
     void OnMouseMove(wxMouseEvent& event);

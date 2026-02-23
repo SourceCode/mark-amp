@@ -6,6 +6,7 @@
 #include "TypographyScale.h"
 #include "core/Logger.h"
 #include "core/ThemeEngine.h"
+#include "ui/IconManager.h"
 
 #include <wx/dcbuffer.h>
 #include <wx/menu.h>
@@ -81,20 +82,20 @@ ActivityBar::ActivityBar(wxWindow* parent, DesignSystemContext& ds, core::EventB
 void ActivityBar::CreateItems()
 {
     items_ = {
-        {core::events::ActivityBarItem::FileExplorer, "Explorer", "\xF0\x9F\x93\x81", {}},
-        {core::events::ActivityBarItem::Search, "Search", "\xF0\x9F\x94\x8D", {}},
-        {core::events::ActivityBarItem::kNotebooks, "Notebooks", "\xF0\x9F\x93\x93", {}},
-        {core::events::ActivityBarItem::kCanvas, "Canvas", "\xF0\x9F\x96\xBC", {}},
-        {core::events::ActivityBarItem::kGraph, "Knowledge Graph", "\xF0\x9F\x95\xB8", {}},
-        {core::events::ActivityBarItem::kAI, "AI Assistant", "\xF0\x9F\xA4\x96", {}},
-        {core::events::ActivityBarItem::kFlashcards, "Flashcards", "\xF0\x9F\x83\x8F", {}},
-        {core::events::ActivityBarItem::kGit, "Git", "\xF0\x9F\x94\x80", {}},
-        {core::events::ActivityBarItem::kTasks, "Tasks", "\xE2\x9C\x85", {}},
-        {core::events::ActivityBarItem::kDatabase, "Database", "\xF0\x9F\x97\x84", {}},
-        {core::events::ActivityBarItem::kPresentation, "Presentation", "\xF0\x9F\x93\xBD", {}},
-        {core::events::ActivityBarItem::Extensions, "Extensions", "\xF0\x9F\xA7\xA9", {}},
-        {core::events::ActivityBarItem::Settings, "Settings", "\xE2\x9A\x99", {}},
-        {core::events::ActivityBarItem::Themes, "Themes", "\xF0\x9F\x8E\xA8", {}},
+        {core::events::ActivityBarItem::FileExplorer, "Explorer", "activity-explorer", {}},
+        {core::events::ActivityBarItem::Search, "Search", "activity-search", {}},
+        {core::events::ActivityBarItem::kNotebooks, "Notebooks", "activity-notebooks", {}},
+        {core::events::ActivityBarItem::kCanvas, "Canvas", "activity-canvas", {}},
+        {core::events::ActivityBarItem::kGraph, "Knowledge Graph", "activity-graph", {}},
+        {core::events::ActivityBarItem::kAI, "AI Assistant", "activity-ai", {}},
+        {core::events::ActivityBarItem::kFlashcards, "Flashcards", "activity-flashcards", {}},
+        {core::events::ActivityBarItem::kGit, "Git", "activity-git", {}},
+        {core::events::ActivityBarItem::kTasks, "Tasks", "activity-tasks", {}},
+        {core::events::ActivityBarItem::kDatabase, "Database", "activity-database", {}},
+        {core::events::ActivityBarItem::kPresentation, "Presentation", "activity-presentation", {}},
+        {core::events::ActivityBarItem::Extensions, "Extensions", "activity-extensions", {}},
+        {core::events::ActivityBarItem::Settings, "Settings", "activity-settings", {}},
+        {core::events::ActivityBarItem::Themes, "Themes", "toolbar-themes", {}},
     };
 }
 
@@ -132,6 +133,8 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
     wxAutoBufferedPaintDC paint_dc(this);
     const auto& theme = ds_.theme.current_theme();
     const auto& clr = theme.colors;
+
+    wxFont font = paint_dc.GetFont();
 
     // Background
     paint_dc.SetBackground(wxBrush(ds_.theme.color(core::ThemeColorToken::ActivityBarBg)));
@@ -175,7 +178,7 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
             paint_dc.DrawRectangle(0, item_y, kBarWidth, kBarWidth);
         }
 
-        // Icon text (emoji fallback)
+        // Icon rendering via IconManager
         // R20 Fix 18: press offset — shift icon 1px when pressed
         int press_offset_x = 0;
         int press_offset_y = 0;
@@ -185,9 +188,10 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
             press_offset_y = 1;
         }
 
+        wxColour icon_color;
         if (kIsActive)
         {
-            paint_dc.SetTextForeground(clr.editor_fg.to_wx_colour());
+            icon_color = clr.editor_fg.to_wx_colour();
 
             // Phase 06 Task 41: Active state left border indication
             paint_dc.SetBrush(wxBrush(clr.accent_primary.to_wx_colour()));
@@ -198,23 +202,15 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
         {
             // Dimmed for inactive — blend fg towards bg
             auto dimmed = clr.editor_fg.blend(clr.bg_panel, 0.3F);
-            paint_dc.SetTextForeground(dimmed.to_wx_colour());
+            icon_color = dimmed.to_wx_colour();
         }
 
-        auto font = ds_.typography.font(TypeSlot::kBodyStrong);
-        paint_dc.SetFont(font);
+        const int kIconSize = 24;
+        const int kIconX = (kBarWidth - kIconSize) / 2 + press_offset_x;
+        const int kIconY = item_y + (kBarWidth - kIconSize) / 2 + press_offset_y;
 
-        const auto kTextExtent = paint_dc.GetTextExtent(item.icon_char);
-        const int kTextX = (kBarWidth - kTextExtent.GetWidth()) / 2 + press_offset_x;
-        const int kTextY = item_y + (kBarWidth - kTextExtent.GetHeight()) / 2 + press_offset_y;
-
-        // 36. Modified Dot: Ensure dirty/modified dot uses warning color
-        if (item.icon_char == "\xE2\x97\x8F")
-        {
-            paint_dc.SetTextForeground(clr.editor_gutter_warn.to_wx_colour());
-        }
-
-        paint_dc.DrawText(item.icon_char, kTextX, kTextY);
+        IconManager::get().draw_icon(
+            paint_dc, item.icon_name, kIconX, kIconY, wxSize(kIconSize, kIconSize), icon_color);
 
         // R18 Fix 25: Badge count indicator
         if (item.badge_count > 0)

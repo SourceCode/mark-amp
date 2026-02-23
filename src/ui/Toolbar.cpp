@@ -1,9 +1,15 @@
 #include "Toolbar.h"
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 #include "SpacingGrid.h"
 #include "TypographyScale.h"
 #include "core/Events.h"
 #include "core/Logger.h"
+#include "ui/IconManager.h"
 
 #include <wx/dcbuffer.h>
 #include <wx/graphics.h>
@@ -695,36 +701,48 @@ void Toolbar::DrawButton(wxGraphicsContext& gc, const ButtonInfo& btn, const cor
         icon_y += offset;
     }
 
+    std::string icon_name;
     switch (btn.icon_type)
     {
         case 0:
-            DrawCodeIcon(gc, icon_x, icon_y, actual_size, text_color);
+            icon_name = "toolbar-source";
             break;
         case 1:
-            DrawColumnsIcon(gc, icon_x, icon_y, actual_size, text_color);
+            icon_name = "toolbar-split";
             break;
         case 2:
-            DrawEyeIcon(gc, icon_x, icon_y, actual_size, text_color);
+            icon_name = "toolbar-preview";
             break;
         case 3:
-            // R19 Fix 7: Apply pulse scale to save icon during animation
-            DrawSaveIcon(gc,
-                         icon_x,
-                         icon_y,
-                         actual_size * static_cast<double>(save_pulse_scale_),
-                         text_color);
+            icon_name = "toolbar-save";
             break;
         case 4:
-            DrawPaletteIcon(gc, icon_x, icon_y, actual_size, text_color);
+            icon_name = "toolbar-themes";
             break;
         case 5:
-            DrawGearIcon(gc, icon_x, icon_y, actual_size, text_color);
+            icon_name = "toolbar-settings";
             break;
         case 6:
-            DrawFocusIcon(gc, icon_x, icon_y, actual_size, text_color);
+            icon_name = "toolbar-focus";
             break;
-        default:
-            break;
+    }
+
+    if (!icon_name.empty())
+    {
+        // R19 Fix 7: Apply pulse scale to save icon during animation
+        double final_size = actual_size;
+        if (btn.icon_type == 3)
+        {
+            final_size *= static_cast<double>(save_pulse_scale_);
+        }
+
+        auto size_int = static_cast<int>(final_size);
+        if (size_int > 0)
+        {
+            auto bmp = IconManager::get().get_icon_bitmap(
+                icon_name, wxSize(size_int, size_int), text_color);
+            gc.DrawBitmap(bmp, icon_x, icon_y, final_size, final_size);
+        }
     }
 
     // Draw label (R18 Fix 16: skip in compact mode)
@@ -775,168 +793,6 @@ void Toolbar::DrawButton(wxGraphicsContext& gc, const ButtonInfo& btn, const cor
 // ═══════════════════════════════════════════════════════
 // Icon Drawing
 // ═══════════════════════════════════════════════════════
-
-void Toolbar::DrawCodeIcon(
-    wxGraphicsContext& gc, double x, double y, double size, wxColour /*color*/) const
-{
-    // </>  brackets
-    double mid_y = y + size / 2.0;
-    double left_x = x + 2;
-    double right_x = x + size - 2;
-
-    // Left angle bracket <
-    auto path = gc.CreatePath();
-    path.MoveToPoint(left_x + 4, y + 2);
-    path.AddLineToPoint(left_x, mid_y);
-    path.AddLineToPoint(left_x + 4, y + size - 2);
-    gc.StrokePath(path);
-
-    // Right angle bracket >
-    auto path2 = gc.CreatePath();
-    path2.MoveToPoint(right_x - 4, y + 2);
-    path2.AddLineToPoint(right_x, mid_y);
-    path2.AddLineToPoint(right_x - 4, y + size - 2);
-    gc.StrokePath(path2);
-
-    // Slash /
-    auto path3 = gc.CreatePath();
-    path3.MoveToPoint(x + size * 0.55, y + 2);
-    path3.AddLineToPoint(x + size * 0.45, y + size - 2);
-    gc.StrokePath(path3);
-}
-
-void Toolbar::DrawColumnsIcon(
-    wxGraphicsContext& gc, double x, double y, double size, wxColour color) const
-{
-    // Two vertical rectangles
-    double gap = 2;
-    double col_w = (size - gap) / 2.0;
-
-    gc.SetPen(*wxTRANSPARENT_PEN);
-
-    gc.SetBrush(gc.CreateBrush(wxBrush(color)));
-    gc.DrawRoundedRectangle(x, y + 1, col_w, size - 2, 1.5);
-    gc.DrawRoundedRectangle(x + col_w + gap, y + 1, col_w, size - 2, 1.5);
-    gc.SetBrush(*wxTRANSPARENT_BRUSH);
-}
-
-void Toolbar::DrawEyeIcon(
-    wxGraphicsContext& gc, double x, double y, double size, wxColour color) const
-{
-    // Stylized eye shape
-    double mid_x = x + size / 2.0;
-    double mid_y = y + size / 2.0;
-
-    auto path = gc.CreatePath();
-    // Upper arc
-    path.MoveToPoint(x + 1, mid_y);
-    path.AddCurveToPoint(x + size * 0.25, y + 2, x + size * 0.75, y + 2, x + size - 1, mid_y);
-    // Lower arc
-    path.AddCurveToPoint(
-        x + size * 0.75, y + size - 2, x + size * 0.25, y + size - 2, x + 1, mid_y);
-    gc.StrokePath(path);
-
-    // Pupil (filled circle)
-    gc.SetBrush(gc.CreateBrush(wxBrush(color)));
-    gc.DrawEllipse(mid_x - 2.5, mid_y - 2.5, 5, 5);
-    gc.SetBrush(*wxTRANSPARENT_BRUSH);
-}
-
-void Toolbar::DrawSaveIcon(
-    wxGraphicsContext& gc, double x, double y, double size, wxColour /*color*/) const
-{
-    // Floppy disk shape
-    gc.SetBrush(*wxTRANSPARENT_BRUSH);
-    gc.DrawRoundedRectangle(x + 1, y + 1, size - 2, size - 2, 2.0);
-
-    // Inner rectangle (disk label)
-    auto path = gc.CreatePath();
-    path.MoveToPoint(x + 3, y + size * 0.55);
-    path.AddLineToPoint(x + size - 3, y + size * 0.55);
-    path.AddLineToPoint(x + size - 3, y + size - 3);
-    path.AddLineToPoint(x + 3, y + size - 3);
-    path.CloseSubpath();
-    gc.StrokePath(path);
-
-    // Top notch
-    auto path2 = gc.CreatePath();
-    path2.MoveToPoint(x + 4, y + 1);
-    path2.AddLineToPoint(x + 4, y + 4);
-    path2.AddLineToPoint(x + size - 4, y + 4);
-    path2.AddLineToPoint(x + size - 4, y + 1);
-    gc.StrokePath(path2);
-}
-
-void Toolbar::DrawPaletteIcon(
-    wxGraphicsContext& gc, double x, double y, double size, wxColour color) const
-{
-    // Simple palette shape — circle with dots
-    gc.SetBrush(*wxTRANSPARENT_BRUSH);
-    gc.DrawEllipse(x + 1, y + 1, size - 2, size - 2);
-
-    // Color dots
-    gc.SetBrush(gc.CreateBrush(wxBrush(color)));
-    gc.DrawEllipse(x + 3, y + 3, 2.5, 2.5);
-    gc.DrawEllipse(x + 7, y + 3, 2.5, 2.5);
-    gc.DrawEllipse(x + 3, y + 8, 2.5, 2.5);
-    gc.SetBrush(*wxTRANSPARENT_BRUSH);
-}
-
-void Toolbar::DrawGearIcon(
-    wxGraphicsContext& gc, double x, double y, double size, wxColour /*color*/) const
-{
-    // Simplified gear — circle with notches
-    double cx = x + size / 2.0;
-    double cy = y + size / 2.0;
-    double outer_r = size / 2.0 - 1;
-    double inner_r = outer_r * 0.55;
-
-    // Outer circle
-    gc.SetBrush(*wxTRANSPARENT_BRUSH);
-    gc.DrawEllipse(cx - outer_r, cy - outer_r, outer_r * 2, outer_r * 2);
-
-    // Inner circle
-    gc.DrawEllipse(cx - inner_r, cy - inner_r, inner_r * 2, inner_r * 2);
-
-    // Tick marks (gear teeth) at 0, 60, 120, 180, 240, 300 degrees
-    for (int i = 0; i < 6; ++i)
-    {
-        double angle = static_cast<double>(i) * M_PI / 3.0;
-        double x1 = cx + inner_r * std::cos(angle);
-        double y1 = cy + inner_r * std::sin(angle);
-        double x2 = cx + outer_r * std::cos(angle);
-        double y2 = cy + outer_r * std::sin(angle);
-
-        auto path = gc.CreatePath();
-        path.MoveToPoint(x1, y1);
-        path.AddLineToPoint(x2, y2);
-        gc.StrokePath(path);
-    }
-}
-
-void Toolbar::DrawFocusIcon(
-    wxGraphicsContext& gc, double x, double y, double size, wxColour color) const
-{
-    // Center-align icon: 3 horizontal lines, center one wider
-    double cx = x + size / 2.0;
-    double line_h = size * 0.15;
-    double short_w = size * 0.5;
-    double long_w = size * 0.8;
-
-    gc.SetPen(*wxTRANSPARENT_PEN);
-    gc.SetBrush(gc.CreateBrush(wxBrush(color)));
-
-    // Top short
-    gc.DrawRoundedRectangle(cx - short_w / 2.0, y + size * 0.25, short_w, line_h, line_h / 2.0);
-    // Mid long
-    gc.DrawRoundedRectangle(
-        cx - long_w / 2.0, y + size * 0.5 - line_h / 2.0, long_w, line_h, line_h / 2.0);
-    // Bottom short
-    gc.DrawRoundedRectangle(
-        cx - short_w / 2.0, y + size * 0.75 - line_h, short_w, line_h, line_h / 2.0);
-
-    gc.SetBrush(*wxTRANSPARENT_BRUSH);
-}
 
 // ═══════════════════════════════════════════════════════
 // Theme

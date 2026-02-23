@@ -139,6 +139,13 @@ add_executable(markamp
     core/ExtensionHostRecovery.cpp
     core/ExtensionRecommendations.cpp
     core/ExtensionSandbox.cpp
+    ui/IconManager.cpp
+    ui/FileTypeIconResolver.cpp
+    ui/IconCache.cpp
+    ui/IconLibrary.cpp
+    ui/IconRegistry.cpp
+    ui/IconRenderer.cpp
+    ui/SvgDocument.cpp
     core/EventBus.cpp
     core/AppState.cpp
     core/Command.cpp
@@ -725,6 +732,20 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "Src" FILES
     ui/ThemeAwareWindow.cpp
     ui/ColorPaletteGenerator.h
     ui/ColorPaletteGenerator.cpp
+    ui/SvgDocument.h
+    ui/SvgDocument.cpp
+    ui/IconRenderer.h
+    ui/IconRenderer.cpp
+    ui/IconCache.h
+    ui/IconCache.cpp
+    ui/IconRegistry.h
+    ui/IconRegistry.cpp
+    ui/IconManager.h
+    ui/IconManager.cpp
+    ui/IconLibrary.h
+    ui/IconLibrary.cpp
+    ui/FileTypeIconResolver.h
+    ui/FileTypeIconResolver.cpp
     ui/ColorUtils.h
     ui/ColorUtils.cpp
     ui/ComponentSizeResolver.h

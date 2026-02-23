@@ -2,6 +2,8 @@
 
 #include "LayoutMetrics.h"
 #include "core/Logger.h"
+#include "ui/FileTypeIconResolver.h"
+#include "ui/IconManager.h"
 
 #include <wx/clipbrd.h>
 #include <wx/dcbuffer.h>
@@ -627,6 +629,56 @@ void TabBar::DrawTab(wxGraphicsContext& gc, const TabInfo& tab, const core::Them
         gc.DrawEllipse(text_x, dot_y, kModifiedDotSize, kModifiedDotSize);
         text_x += kModifiedDotSize + 4;
         text_max_w -= kModifiedDotSize + 4;
+    }
+
+    // --- Draw File Type Icon ---
+    std::string icon_name = FileTypeIconResolver::GetFileIcon(tab.file_path);
+    if (!icon_name.empty())
+    {
+        wxColour icon_color = theme_engine().color(core::ThemeColorToken::TextMuted);
+
+        // Match extension tinting logic used in FileTreeCtrl
+        auto ends_with = [&tab](const char* ext) -> bool
+        {
+            return tab.file_path.size() >= std::strlen(ext) &&
+                   tab.file_path.compare(
+                       tab.file_path.size() - std::strlen(ext), std::strlen(ext), ext) == 0;
+        };
+        if (ends_with(".md") || ends_with(".txt"))
+        {
+            icon_color = theme_engine().color(core::ThemeColorToken::AccentPrimary);
+        }
+        else if (ends_with(".json") || ends_with(".yml") || ends_with(".yaml"))
+        {
+            icon_color = theme_engine().color(core::ThemeColorToken::SyntaxNumber);
+        }
+        else if (ends_with(".cpp") || ends_with(".h") || ends_with(".hpp") || ends_with(".c"))
+        {
+            icon_color = theme_engine().color(core::ThemeColorToken::SyntaxKeyword);
+        }
+        else if (ends_with(".js") || ends_with(".ts") || ends_with(".jsx") || ends_with(".tsx"))
+        {
+            icon_color = theme_engine().color(core::ThemeColorToken::SuccessColor);
+        }
+        else if (ends_with(".html") || ends_with(".htm") || ends_with(".css"))
+        {
+            icon_color = theme_engine().color(core::ThemeColorToken::AccentSecondary);
+        }
+        else if (ends_with(".py") || ends_with(".rb") || ends_with(".go") || ends_with(".rs"))
+        {
+            icon_color = theme_engine().color(core::ThemeColorToken::ErrorColor);
+        }
+
+        const int kIconSize = 14; // Slightly smaller than tree size for tabs
+        auto bmp =
+            IconManager::get().get_icon_bitmap(icon_name, wxSize(kIconSize, kIconSize), icon_color);
+        if (bmp.IsOk())
+        {
+            int icon_y = tab_y + (tab_h - kIconSize) / 2;
+            gc.DrawBitmap(bmp, text_x, icon_y, kIconSize, kIconSize);
+            text_x += kIconSize + 6;
+            text_max_w -= kIconSize + 6;
+        }
     }
 
     // Truncate text if necessary

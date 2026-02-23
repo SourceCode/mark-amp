@@ -67,16 +67,6 @@ private:
     // Painting
     void OnPaint(wxPaintEvent& event);
     void DrawButton(wxGraphicsContext& gc, const ButtonInfo& btn, const core::Theme& t) const;
-    void DrawCodeIcon(wxGraphicsContext& gc, double x, double y, double size, wxColour color) const;
-    void
-    DrawColumnsIcon(wxGraphicsContext& gc, double x, double y, double size, wxColour color) const;
-    void DrawEyeIcon(wxGraphicsContext& gc, double x, double y, double size, wxColour color) const;
-    void DrawSaveIcon(wxGraphicsContext& gc, double x, double y, double size, wxColour color) const;
-    void
-    DrawPaletteIcon(wxGraphicsContext& gc, double x, double y, double size, wxColour color) const;
-    void DrawGearIcon(wxGraphicsContext& gc, double x, double y, double size, wxColour color) const;
-    void
-    DrawFocusIcon(wxGraphicsContext& gc, double x, double y, double size, wxColour color) const;
 
     // Mouse
     void OnMouseMove(wxMouseEvent& event);

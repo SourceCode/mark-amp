@@ -1,6 +1,8 @@
 #include "StatusBarPanel.h"
 
 #include "ComponentSizeResolver.h"
+#include "FileTypeIconResolver.h"
+#include "IconManager.h"
 #include "LayoutMetrics.h"
 #include "SpacingGrid.h"
 #include "TypographyScale.h"
@@ -29,17 +31,13 @@ StatusBarPanel::StatusBarPanel(wxWindow* parent,
     , ds_(context)
     , event_bus_(event_bus)
 {
-    const int kHeight = ds_.metrics.status_bar_height();
     SetBackgroundStyle(wxBG_STYLE_PAINT);
-    SetMinSize(wxSize(-1, kHeight));
-    SetMaxSize(wxSize(-1, kHeight));
 
-    // Cache current theme name
-    theme_name_ = ds_.theme.current_theme().name;
+    UpdateLayoutMetrics();
 
-    // --- Event subscriptions ---
+    density_sub_ = event_bus_.subscribe<core::events::DensityProfileChangedEvent>(
+        [this](const core::events::DensityProfileChangedEvent& /*evt*/) { UpdateLayoutMetrics(); });
 
-    // Theme changes → update displayed theme name
     theme_name_sub_ = ds_.theme.subscribe_theme_change(
         [this](const std::string& /*theme_id*/)
         {
@@ -48,34 +46,17 @@ StatusBarPanel::StatusBarPanel(wxWindow* parent,
             Refresh();
         });
 
-    density_sub_ = event_bus_.subscribe<core::events::DensityProfileChangedEvent>(
-        [this](const core::events::DensityProfileChangedEvent& /*evt*/) { UpdateLayoutMetrics(); });
-
-    // Cursor position changes
     cursor_sub_ = event_bus_.subscribe<core::events::CursorPositionChangedEvent>(
         [this](const core::events::CursorPositionChangedEvent& evt)
-        {
-            cursor_line_ = evt.line;
-            cursor_col_ = evt.column;
-            RebuildItems();
-            Refresh();
-        });
+        { set_cursor_position(evt.line, evt.column); });
 
-    // Editor stats changes
     content_sub_ = event_bus_.subscribe<core::events::EditorStatsChangedEvent>(
         [this](const core::events::EditorStatsChangedEvent& evt)
         { set_stats(evt.word_count, evt.char_count, evt.line_count, evt.selection_length); });
 
-    // View mode changes
     view_mode_sub_ = event_bus_.subscribe<core::events::ViewModeChangedEvent>(
-        [this](const core::events::ViewModeChangedEvent& evt)
-        {
-            view_mode_ = evt.mode;
-            RebuildItems();
-            Refresh();
-        });
+        [this](const core::events::ViewModeChangedEvent& evt) { set_view_mode(evt.mode); });
 
-    // File encoding detected
     encoding_sub_ = event_bus_.subscribe<core::events::FileEncodingDetectedEvent>(
         [this](const core::events::FileEncodingDetectedEvent& evt)
         {
@@ -84,7 +65,6 @@ StatusBarPanel::StatusBarPanel(wxWindow* parent,
             Refresh();
         });
 
-    // Mermaid rendering status
     mermaid_sub_ = event_bus_.subscribe<core::events::MermaidRenderStatusEvent>(
         [this](const core::events::MermaidRenderStatusEvent& evt)
         {
@@ -292,6 +272,8 @@ void StatusBarPanel::set_git_branch(const std::string& branch)
     Refresh();
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 void StatusBarPanel::RebuildItems()
 {
     left_items_.clear();
@@ -321,7 +303,10 @@ void StatusBarPanel::RebuildItems()
                                const core::events::GoToLineRequestEvent go_evt;
                                event_bus_.publish(go_evt);
                            },
-                           "Click to go to line"});
+                           "Click to go to line",
+                           false,
+                           false,
+                           ""});
 
     // R5 Fix 15: Encoding is clickable — cycles through encodings
     left_items_.push_back(
@@ -343,7 +328,10 @@ void StatusBarPanel::RebuildItems()
              RebuildItems();
              Refresh();
          },
-         "Click to change encoding"});
+         "Click to change encoding",
+         false,
+         false,
+         ""});
 
     // R4 Fix 9: Line ending mode — R7: clickable, cycles LF/CRLF/CR
     if (!eol_mode_.empty())
@@ -367,7 +355,10 @@ void StatusBarPanel::RebuildItems()
                  RebuildItems();
                  Refresh();
              },
-             "Click to change line ending"});
+             "Click to change line ending",
+             false,
+             false,
+             ""});
     }
 
     // R6 Fix 14: Indent mode indicator — R7: clickable, cycles modes
@@ -390,16 +381,27 @@ void StatusBarPanel::RebuildItems()
              RebuildItems();
              Refresh();
          },
-         "Click to change indentation"});
+         "Click to change indentation",
+         false,
+         false,
+         ""});
 
     // R13: Zoom indicator
     {
         auto zoom_text = fmt::format("Zoom: {}%", 100 + (zoom_level_ * 10));
-        left_items_.push_back({zoom_text, {}, false, false, nullptr, "Current zoom level"});
+        left_items_.push_back(
+            {zoom_text, {}, false, false, nullptr, "Current zoom level", false, false, ""});
     }
 
-    left_items_.push_back(
-        {view_mode_label(view_mode_), {}, false, false, nullptr, "Current view mode"});
+    left_items_.push_back({view_mode_label(view_mode_),
+                           {},
+                           false,
+                           false,
+                           nullptr,
+                           "Current view mode",
+                           false,
+                           false,
+                           ""});
 
     // R18 Fix 12: Progress spinner
     if (progress_active_)
@@ -414,14 +416,24 @@ void StatusBarPanel::RebuildItems()
                                                                   "\xE2\xA3\xB7"};
         auto spin_text =
             kSpinnerFrames[static_cast<size_t>(spinner_frame_)] + " " + progress_label_;
-        left_items_.push_back({spin_text, {}, true, false, nullptr, "Background operation"});
+        left_items_.push_back(
+            {spin_text, {}, true, false, nullptr, "Background operation", false, false, ""});
     }
 
     // R18 Fix 13: Git branch
     if (!git_branch_.empty())
     {
-        auto branch_text = "\xE2\x8E\x87 " + git_branch_;
-        left_items_.push_back({branch_text, {}, false, false, nullptr, "Current git branch"});
+        auto branch_text = git_branch_;
+        // Phase 02 Task 18: git branch icon
+        left_items_.push_back({branch_text,
+                               {},
+                               false,
+                               false,
+                               nullptr,
+                               "Current git branch",
+                               false,
+                               false,
+                               "status-git"});
     }
 
     // Phase 06 Task 15: Sidebar mode indicator
@@ -434,45 +446,66 @@ void StatusBarPanel::RebuildItems()
                                core::events::SidebarToggleEvent toggle_evt;
                                event_bus_.publish(toggle_evt);
                            },
-                           "Active sidebar panel — click to toggle"});
+                           "Active sidebar panel — click to toggle",
+                           false,
+                           false,
+                           ""});
 
     // Right zone: {N} WORDS • {M} CHARS • SEL: {LEN} • MERMAID: {STATUS} • Theme Name
     if (word_count_ > 0)
     {
         auto words_text = fmt::format("{} WORDS", word_count_);
-        right_items_.push_back({words_text, {}, false, false, nullptr, "Total word count"});
+        right_items_.push_back(
+            {words_text, {}, false, false, nullptr, "Total word count", false, false, ""});
 
         // R20 Fix 13: Reading time estimate (~N min read at 200 WPM)
         int reading_minutes = std::max(1, word_count_ / 200);
         auto read_time_text = fmt::format("~{} min read", reading_minutes);
-        right_items_.push_back(
-            {read_time_text, {}, false, false, nullptr, "Estimated reading time"});
+        right_items_.push_back({read_time_text,
+                                {},
+                                false,
+                                false,
+                                nullptr,
+                                "Estimated reading time",
+                                false,
+                                false,
+                                ""});
     }
 
     if (char_count_ > 0)
     {
         auto chars_text = fmt::format("{} CHARS", char_count_);
-        right_items_.push_back({chars_text, {}, false, false, nullptr, "Total character count"});
+        right_items_.push_back(
+            {chars_text, {}, false, false, nullptr, "Total character count", false, false, ""});
     }
 
     if (selection_len_ > 0)
     {
         // R18 Fix 14 + R20 Fix 11: Selection count badge with accent highlight
         auto sel_text = fmt::format("Sel: {} chars", selection_len_);
-        right_items_.push_back({sel_text, {}, true, false, nullptr, "Selected text length"});
+        right_items_.push_back(
+            {sel_text, {}, true, false, nullptr, "Selected text length", false, false, ""});
     }
 
     auto mermaid_text = fmt::format("MERMAID: {}", mermaid_status_);
     bool mermaid_is_accent = mermaid_active_;
-    right_items_.push_back(
-        {mermaid_text, {}, mermaid_is_accent, false, nullptr, "Mermaid diagram status"});
+    right_items_.push_back({mermaid_text,
+                            {},
+                            mermaid_is_accent,
+                            false,
+                            nullptr,
+                            "Mermaid diagram status",
+                            false,
+                            false,
+                            ""});
 
-    right_items_.push_back({theme_name_, {}, false, false, nullptr, "Active theme"});
+    right_items_.push_back(
+        {theme_name_, {}, false, false, nullptr, "Active theme", false, false, ""});
 
     // R2 Fix 13 + R20 Fix 15: Filename with modified dot indicator
     if (!filename_.empty())
     {
-        std::string display_name = "\xF0\x9F\x93\x84 " + filename_; // 25. Document Icon
+        std::string display_name = filename_;
         bool file_has_warning_dot = false;
         if (file_modified_)
         {
@@ -481,6 +514,7 @@ void StatusBarPanel::RebuildItems()
         }
         StatusItem file_item{display_name, {}, file_modified_, false, nullptr, "Active file"};
         file_item.has_warning_dot = file_has_warning_dot;
+        file_item.icon_name = FileTypeIconResolver::GetFileIcon(filename_);
         left_items_.push_back(file_item);
     }
 
@@ -506,7 +540,10 @@ void StatusBarPanel::RebuildItems()
                                     RebuildItems();
                                     Refresh();
                                 },
-                                "Click to change language"});
+                                "Click to change language",
+                                false,
+                                false,
+                                ""});
     }
 
     // R2 Fix 18: Line count
@@ -536,6 +573,7 @@ void StatusBarPanel::RebuildItems()
         right_items_.push_back({size_text, {}, false, false, nullptr, "File size on disk"});
     }
 }
+#pragma GCC diagnostic pop
 
 void StatusBarPanel::UpdateLayoutMetrics()
 {
@@ -632,6 +670,39 @@ void StatusBarPanel::OnPaint(wxPaintEvent& /*event*/)
         }
 
         int text_width = dc.GetTextExtent(item.text).GetWidth();
+        int icon_size = 14;
+        int icon_spacing = (!item.text.empty() && !item.icon_name.empty()) ? 4 : 0;
+        if (item.text.empty() && !item.icon_name.empty())
+        {
+            icon_spacing = 0;
+        }
+        int item_width = text_width;
+        if (!item.icon_name.empty())
+        {
+            item_width += icon_size + icon_spacing;
+        }
+
+        // 23. Label hover highlight (only if clickable)
+        if (item.is_clickable && item.bounds.Contains(ScreenToClient(wxGetMousePosition())))
+        {
+            auto hover_bg =
+                theme_engine().color(core::ThemeColorToken::BgPanel).ChangeLightness(115);
+            dc.SetBrush(wxBrush(hover_bg));
+            dc.SetPen(*wxTRANSPARENT_PEN);
+            dc.DrawRoundedRectangle(left_x - 4, 3, item_width + 8, height - 6, 3);
+        }
+
+        int current_x = left_x;
+        wxColour current_fg = dc.GetTextForeground();
+
+        // Draw icon
+        if (!item.icon_name.empty())
+        {
+            int icon_y = (height - icon_size) / 2;
+            IconManager::get().draw_icon(
+                dc, item.icon_name, current_x, icon_y, wxSize(icon_size, icon_size), current_fg);
+            current_x += icon_size + icon_spacing;
+        }
 
         // Font reset
         dc.SetFont(small_font);
@@ -640,46 +711,30 @@ void StatusBarPanel::OnPaint(wxPaintEvent& /*event*/)
         if (item.has_warning_dot && item.text.starts_with("\xE2\x97\x8F "))
         {
             dc.SetTextForeground(theme_engine().color(core::ThemeColorToken::EditorGutterWarn));
-            dc.DrawText("\xE2\x97\x8F", left_x, text_y);
+            dc.DrawText("\xE2\x97\x8F", current_x, text_y);
             int dot_w = dc.GetTextExtent("\xE2\x97\x8F ").GetWidth();
 
-            if (item.is_success)
-            {
-                dc.SetTextForeground(theme_engine().color(core::ThemeColorToken::SuccessColor));
-            }
-            else
-            {
-                dc.SetTextForeground(
-                    item.is_accent ? theme_engine().color(core::ThemeColorToken::AccentPrimary)
-                                   : theme_engine().color(core::ThemeColorToken::TextMuted));
-            }
-            dc.DrawText(item.text.substr(4), left_x + dot_w, text_y);
+            dc.SetTextForeground(current_fg);
+            dc.DrawText(item.text.substr(4), current_x + dot_w, text_y);
         }
         else if (item.has_warning_dot && item.text.ends_with(" \xE2\x97\x8F"))
         {
             std::string main_text = item.text.substr(0, item.text.length() - 4);
             int main_w = dc.GetTextExtent(main_text).GetWidth();
-            dc.DrawText(main_text, left_x, text_y);
+            dc.DrawText(main_text, current_x, text_y);
 
             dc.SetTextForeground(theme_engine().color(core::ThemeColorToken::EditorGutterWarn));
-            dc.DrawText(" \xE2\x97\x8F", left_x + main_w, text_y);
+            dc.DrawText(" \xE2\x97\x8F", current_x + main_w, text_y);
+
+            // Restore foreground
+            dc.SetTextForeground(current_fg);
         }
-        else
+        else if (!item.text.empty())
         {
-            dc.DrawText(item.text, left_x, text_y);
-        }
-        // 23. Label hover highlight (only if clickable)
-        if (item.is_clickable && item.bounds.Contains(ScreenToClient(wxGetMousePosition())))
-        {
-            auto hover_bg =
-                theme_engine().color(core::ThemeColorToken::BgPanel).ChangeLightness(115);
-            dc.SetBrush(wxBrush(hover_bg));
-            dc.SetPen(*wxTRANSPARENT_PEN);
-            dc.DrawRoundedRectangle(left_x - 4, 3, text_width + 8, height - 6, 3);
+            dc.DrawText(item.text, current_x, text_y);
         }
 
-        item.bounds = wxRect(left_x, 0, text_width, height);
-        dc.DrawText(item.text, left_x, text_y);
+        item.bounds = wxRect(left_x, 0, item_width, height);
 
         // Reset font if we changed it
         if (item.is_accent)
@@ -687,7 +742,7 @@ void StatusBarPanel::OnPaint(wxPaintEvent& /*event*/)
             dc.SetFont(small_font);
         }
 
-        left_x += text_width + kSeparatorGap;
+        left_x += item_width + kSeparatorGap;
     }
 
     // --- Right section ---
@@ -718,6 +773,16 @@ void StatusBarPanel::OnPaint(wxPaintEvent& /*event*/)
                                      : theme_engine().color(core::ThemeColorToken::TextMuted));
         }
 
+        int icon_size = 14;
+        int icon_spacing = (!item.text.empty() && !item.icon_name.empty()) ? 4 : 0;
+        int item_width = text_width;
+        if (!item.icon_name.empty())
+        {
+            item_width += icon_size + icon_spacing;
+        }
+
+        right_x -= item_width;
+
         // 23. Label hover highlight for right side (only if clickable)
         if (item.is_clickable && item.bounds.Contains(ScreenToClient(wxGetMousePosition())))
         {
@@ -725,11 +790,48 @@ void StatusBarPanel::OnPaint(wxPaintEvent& /*event*/)
                 theme_engine().color(core::ThemeColorToken::BgPanel).ChangeLightness(115);
             dc.SetBrush(wxBrush(hover_bg));
             dc.SetPen(*wxTRANSPARENT_PEN);
-            dc.DrawRoundedRectangle(right_x - 4, 3, text_width + 8, height - 6, 3);
+            dc.DrawRoundedRectangle(right_x - 4, 3, item_width + 8, height - 6, 3);
         }
 
-        item.bounds = wxRect(right_x, 0, text_width, height);
-        dc.DrawText(item.text, right_x, text_y);
+        int current_x = right_x;
+        wxColour current_fg = dc.GetTextForeground();
+
+        if (!item.icon_name.empty())
+        {
+            int icon_y = (height - icon_size) / 2;
+            IconManager::get().draw_icon(
+                dc, item.icon_name, current_x, icon_y, wxSize(icon_size, icon_size), current_fg);
+            current_x += icon_size + icon_spacing;
+        }
+
+        // Font reset
+        dc.SetFont(small_font);
+
+        if (item.has_warning_dot && item.text.starts_with("\xE2\x97\x8F "))
+        {
+            dc.SetTextForeground(theme_engine().color(core::ThemeColorToken::EditorGutterWarn));
+            dc.DrawText("\xE2\x97\x8F", current_x, text_y);
+            int dot_w = dc.GetTextExtent("\xE2\x97\x8F ").GetWidth();
+
+            dc.SetTextForeground(current_fg);
+            dc.DrawText(item.text.substr(4), current_x + dot_w, text_y);
+        }
+        else if (item.has_warning_dot && item.text.ends_with(" \xE2\x97\x8F"))
+        {
+            std::string main_text = item.text.substr(0, item.text.length() - 4);
+            int main_w = dc.GetTextExtent(main_text).GetWidth();
+            dc.DrawText(main_text, current_x, text_y);
+
+            dc.SetTextForeground(theme_engine().color(core::ThemeColorToken::EditorGutterWarn));
+            dc.DrawText(" \xE2\x97\x8F", current_x + main_w, text_y);
+            dc.SetTextForeground(current_fg);
+        }
+        else if (!item.text.empty())
+        {
+            dc.DrawText(item.text, current_x, text_y);
+        }
+
+        item.bounds = wxRect(right_x, 0, item_width, height);
 
         // Reset font if we changed it
         if (item.is_accent)

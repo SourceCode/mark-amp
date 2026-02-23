@@ -100,21 +100,8 @@ TEST_CASE("Lerp — white theme scenario (high values ascending)", "[phase8][gra
 }
 
 // ============================================================================
-// 8E — Spacing grid constants (must be multiples of 8)
+// 8E — Spacing grid constants (must be multiples of 8) (REMOVED: Now dynamic via SpacingGrid)
 // ============================================================================
-
-TEST_CASE("SplitterBar::kHitWidth is on the 8px grid", "[phase8][spacing]")
-{
-    REQUIRE(markamp::ui::SplitterBar::kHitWidth == 8);
-    REQUIRE(markamp::ui::SplitterBar::kHitWidth % 8 == 0);
-}
-
-TEST_CASE("Toolbar::kHeight is on the 8px grid", "[phase8][spacing]")
-{
-    // kHeight = 40 = 5 × 8
-    REQUIRE(markamp::ui::Toolbar::kHeight == 40);
-    REQUIRE(markamp::ui::Toolbar::kHeight % 8 == 0);
-}
 
 // ============================================================================
 // 8C — SplitterBar hover animation constants

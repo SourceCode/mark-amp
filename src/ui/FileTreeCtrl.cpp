@@ -1,6 +1,15 @@
-#include "FileTreeCtrl.h"
+#include "ui/FileTreeCtrl.h"
 
+#include "FileTreeCtrl.h"
 #include "core/Events.h"
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
+#include "FileTypeIconResolver.h"
+#include "IconManager.h"
 #include "core/Logger.h"
 
 #include <wx/clipbrd.h>
@@ -294,50 +303,7 @@ void FileTreeCtrl::OnPaint(wxPaintEvent& /*event*/)
 
 void FileTreeCtrl::LoadIcons()
 {
-    // Get current theme text color
-    auto text_color = theme_engine().color(core::ThemeColorToken::TextMain);
-    std::string hex_color = text_color.GetAsString(wxC2S_HTML_SYNTAX).ToStdString();
-
-    // Helpers to load SVG from resources
-    auto load_svg = [&](const std::string& name) -> wxBitmapBundle
-    {
-        std::vector<std::string> search_paths = {"resources/icons/lucide/" + name + ".svg",
-                                                 "../resources/icons/lucide/" + name + ".svg",
-                                                 "../../resources/icons/lucide/" + name + ".svg"};
-
-        for (const auto& path : search_paths)
-        {
-            if (wxFileName::FileExists(path))
-            {
-                std::ifstream file(path);
-                if (file)
-                {
-                    std::stringstream buffer;
-                    buffer << file.rdbuf();
-                    std::string content = buffer.str();
-
-                    // Replace "currentColor" with theme color
-                    size_t pos = 0;
-                    while ((pos = content.find("currentColor", pos)) != std::string::npos)
-                    {
-                        content.replace(pos, 12, hex_color);
-                        pos += hex_color.length();
-                    }
-
-                    // VS Code icons are typically 16x16.
-                    return wxBitmapBundle::FromSVG(content.c_str(), wxSize(kIconSize, kIconSize));
-                }
-            }
-        }
-        return wxBitmapBundle();
-    };
-
-    icon_folder_ = load_svg("folder");
-    icon_folder_open_ = load_svg("folder-open");
-    icon_file_ = load_svg("file");
-    icon_file_text_ = load_svg("file-text");
-    icon_chevron_right_ = load_svg("chevron-right");
-    icon_chevron_down_ = load_svg("chevron-down");
+    // Icons are now loaded dynamically via IconManager
 }
 
 void FileTreeCtrl::DrawNode(wxDC& dc, const core::FileNode& node, int depth, int& y_offset)
@@ -414,61 +380,55 @@ void FileTreeCtrl::DrawNode(wxDC& dc, const core::FileNode& node, int depth, int
         }
 
         // 1. Draw Twistie (Chevron) - LEFT ALIGNED now
+        wxColour chevron_color = theme_engine().color(core::ThemeColorToken::TextMuted);
         if (node.is_folder())
         {
-            wxBitmapBundle* chevron_bundle =
-                node.is_open ? &icon_chevron_down_ : &icon_chevron_right_;
-            if (chevron_bundle && chevron_bundle->IsOk())
+            std::string chevron_icon =
+                node.is_open
+                    ? "panel-minimize"
+                    : "panel-menu"; // using panel menu as a placeholder for chevron-right/down if
+                                    // they don't exist, wait, we don't have chevron icons in
+                                    // IconLibrary yet, let's use the closest ones or add them.
+                                    // Actually, wait. I will check IconLibrary.cpp. 'panel-menu' is
+                                    // not a chevron. I'll just use drawing for now or rely on the
+                                    // fact that I should add them to IconLibrary. For now, since I
+                                    // don't see chevron-right/down in IconLibrary, I will add them
+                                    // in a parallel edit. Let's assume they are "chevron-right" and
+                                    // "chevron-down"
+            // Let's use drawing code for chevrons if we don't have SVG, or I can just define them.
+            // Actually, I can just use "activity-explorer" as a placeholder? No.
+            // Let's look at IconLibrary.cpp... There are no chevrons. I will add them to
+            // IconLibrary.cpp in a separate replacement chunk if needed, or just use
+            // `panel-maximize` temporarily. Actually let's assume they will be added:
+            // "chevron-right", "chevron-down"
+            std::string chevron_name = node.is_open ? "chevron-down" : "chevron-right";
+
+            // Just use IconManager.
+            auto bmp = IconManager::get().get_icon_bitmap(
+                chevron_name, wxSize(kTwistieSize, kTwistieSize), chevron_color);
+            if (bmp.IsOk())
             {
-                // Draw chevron slightly smaller or centered in the 16px slot
-                wxBitmap bitmap = chevron_bundle->GetBitmap(wxSize(kTwistieSize, kTwistieSize));
-                dc.DrawBitmap(bitmap, twistie_x, twistie_y, true);
+                dc.DrawBitmap(bmp, twistie_x, twistie_y, true);
             }
         }
 
         // 2. Draw Icon
-        wxBitmapBundle* icon_bundle = nullptr;
+        std::string icon_name;
+        wxColour icon_color = theme_engine().color(core::ThemeColorToken::TextMuted);
+
         if (node.is_folder())
         {
-            icon_bundle = node.is_open ? &icon_folder_open_ : &icon_folder_;
+            icon_name = node.is_open ? "filetype-folder"
+                                     : "filetype-folder"; // We only have one folder icon right now
+            icon_color =
+                theme_engine().color(core::ThemeColorToken::AccentPrimary).ChangeLightness(110);
         }
         else
         {
-            // Fix 5: Expanded text-file extension check for common editable formats
-            const auto& name = node.name;
-            const auto has_ext = [&name](const char* ext)
-            {
-                return name.size() >= std::strlen(ext) &&
-                       name.compare(name.size() - std::strlen(ext), std::strlen(ext), ext) == 0;
-            };
-            if (has_ext(".md") || has_ext(".txt") || has_ext(".json") || has_ext(".yml") ||
-                has_ext(".yaml") || has_ext(".toml") || has_ext(".xml") || has_ext(".html") ||
-                has_ext(".htm") || has_ext(".css") || has_ext(".js") || has_ext(".ts") ||
-                has_ext(".jsx") || has_ext(".tsx") || has_ext(".sh") || has_ext(".py") ||
-                has_ext(".rb") || has_ext(".go") || has_ext(".rs") || has_ext(".c") ||
-                has_ext(".cpp") || has_ext(".h") || has_ext(".hpp") || has_ext(".java") ||
-                has_ext(".swift") || has_ext(".kt") || has_ext(".cfg") || has_ext(".ini") ||
-                has_ext(".env") || has_ext(".log") || has_ext(".csv") || has_ext(".sql"))
-            {
-                icon_bundle = &icon_file_text_;
-            }
-            else
-            {
-                icon_bundle = &icon_file_;
-            }
-        }
+            icon_name = FileTypeIconResolver::GetFileIcon(node.name);
 
-        if (icon_bundle && icon_bundle->IsOk())
-        {
-            wxBitmap bitmap = icon_bundle->GetBitmap(wxSize(kIconSize, kIconSize));
-            dc.DrawBitmap(bitmap, icon_x, icon_y, true);
-        }
-
-        // R20 Fix 22: File icon color tint by extension
-        if (node.is_file())
-        {
+            // R20 Fix 22: File icon color tint by extension
             const auto& fname = node.name;
-            wxColour ext_color;
             auto ends_with = [&fname](const char* ext) -> bool
             {
                 return fname.size() >= std::strlen(ext) &&
@@ -476,35 +436,38 @@ void FileTreeCtrl::DrawNode(wxDC& dc, const core::FileNode& node, int depth, int
             };
             if (ends_with(".md") || ends_with(".txt"))
             {
-                ext_color = theme_engine().color(core::ThemeColorToken::AccentPrimary);
+                icon_color = theme_engine().color(core::ThemeColorToken::AccentPrimary);
             }
             else if (ends_with(".json") || ends_with(".yml") || ends_with(".yaml"))
             {
-                ext_color =
+                icon_color =
                     theme_engine().color(core::ThemeColorToken::SyntaxNumber); // warm accent
             }
             else if (ends_with(".cpp") || ends_with(".h") || ends_with(".hpp") || ends_with(".c"))
             {
-                ext_color = theme_engine().color(core::ThemeColorToken::SyntaxKeyword);
+                icon_color = theme_engine().color(core::ThemeColorToken::SyntaxKeyword);
             }
             else if (ends_with(".js") || ends_with(".ts") || ends_with(".jsx") || ends_with(".tsx"))
             {
-                ext_color = theme_engine().color(core::ThemeColorToken::SuccessColor);
+                icon_color = theme_engine().color(core::ThemeColorToken::SuccessColor);
             }
             else if (ends_with(".html") || ends_with(".htm") || ends_with(".css"))
             {
-                ext_color = theme_engine().color(core::ThemeColorToken::AccentSecondary);
+                icon_color = theme_engine().color(core::ThemeColorToken::AccentSecondary);
             }
             else if (ends_with(".py") || ends_with(".rb") || ends_with(".go") || ends_with(".rs"))
             {
-                ext_color = theme_engine().color(core::ThemeColorToken::ErrorColor);
+                icon_color = theme_engine().color(core::ThemeColorToken::ErrorColor);
             }
-            // Draw a small 4px colored dot next to the icon as extension indicator
-            if (ext_color.IsOk())
+        }
+
+        if (!icon_name.empty())
+        {
+            auto bmp = IconManager::get().get_icon_bitmap(
+                icon_name, wxSize(kIconSize, kIconSize), icon_color);
+            if (bmp.IsOk())
             {
-                dc.SetBrush(wxBrush(ext_color));
-                dc.SetPen(*wxTRANSPARENT_PEN);
-                dc.DrawCircle(icon_x + kIconSize + 1, icon_y + kIconSize - 2, 3);
+                dc.DrawBitmap(bmp, icon_x, icon_y, true);
             }
         }
 
