@@ -1,12 +1,15 @@
 #pragma once
 
 #include "Color.h"
+#include "ThemeTokens.h"
 
 #include <nlohmann/json_fwd.hpp>
+#include <wx/colour.h>
 
 #include <expected>
 #include <optional>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace markamp::core
@@ -385,6 +388,20 @@ struct Theme
     int format_version{1};       ///< V9: Persistence format version
     std::string parent_theme_id; ///< V9: Inheritance chain (empty = no parent)
     ThemeColors colors;
+
+    // V2 Phase 3: Arbitrary scoped semantic tokens
+    std::unordered_map<std::string, wxColour> semantic_tokens;
+
+    // V2 Phase 3: TextMate scope customizations (from tokenColors)
+    struct TokenColorRule
+    {
+        std::string scope;
+        std::optional<Color> foreground;
+        std::optional<std::string> font_style;
+
+        auto operator==(const TokenColorRule&) const -> bool = default;
+    };
+    std::vector<TokenColorRule> token_colors;
 
     // Phase 4: Layered token system (optional — populated from ThemeColors if empty)
     ThemeChromeColors chrome;

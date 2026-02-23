@@ -2,6 +2,7 @@
 
 #include "EventBus.h"
 #include "IThemeEngine.h"
+#include "ScopedTokenMap.h"
 #include "Theme.h"
 #include "ThemeRegistry.h"
 #include "ThemeScopeMapper.h"
@@ -21,106 +22,7 @@ class wxWindow;
 namespace markamp::core
 {
 
-/// Color tokens for themed drawing (10 base + 7 derived).
-enum class ThemeColorToken
-{
-    BgApp,
-    BgPanel,
-    BgHeader,
-    BgInput,
-    TextMain,
-    TextMuted,
-    AccentPrimary,
-    AccentSecondary,
-    BorderLight,
-    BorderDark,
-    // Derived
-    SelectionBg,
-    HoverBg,
-    ErrorColor,
-    SuccessColor,
-    ScrollbarTrack,
-    ScrollbarThumb,
-    ScrollbarHover,
-
-    // Phase 4: Syntax tokens
-    SyntaxKeyword,
-    SyntaxString,
-    SyntaxComment,
-    SyntaxNumber,
-    SyntaxType,
-    SyntaxFunction,
-    SyntaxOperator,
-    SyntaxPreprocessor,
-
-    // Phase 4: Render/preview tokens
-    RenderHeading,
-    RenderLink,
-    RenderCodeBg,
-    RenderCodeFg,
-    RenderBlockquoteBorder,
-    RenderBlockquoteBg,
-    RenderTableBorder,
-    RenderTableHeaderBg,
-
-    // V8 Phase 9: Semantic editor tokens
-    EditorActiveLine,
-    EditorGutterError,
-    EditorGutterWarn,
-    EditorGutterInfo,
-    EditorMatchHighlight,
-    EditorFindHit,
-    EditorQuickFix,
-
-    // V9 Phase 3: Extended semantic tokens
-    SidebarBg,
-    SidebarFg,
-    ActivityBarBg,
-    ActivityBarFg,
-    ActivityBarBadgeBg,
-    ActivityBarBadgeFg,
-    BreadcrumbFg,
-    BreadcrumbFocusFg,
-    TabActiveBg,
-    TabInactiveBg,
-    TabActiveFg,
-    TabInactiveFg,
-    DiffInsertedBg,
-    DiffRemovedBg,
-    MinimapBg,
-    PeekViewBorderColor,
-    NotebookCellBg,
-
-    // V10 Phase 02: Control state tokens
-    ControlBgNormal,
-    ControlBgHover,
-    ControlBgPressed,
-    ControlBgFocus,
-    ControlBgDisabled,
-    ControlBgSelected,
-    ControlFgNormal,
-    ControlFgDisabled,
-    ControlBorderNormal,
-    ControlBorderFocus,
-    FocusRingColor,
-};
-
-/// Font tokens for themed text rendering.
-enum class ThemeFontToken
-{
-    SansRegular,
-    SansSemiBold,
-    SansBold,
-    MonoRegular,
-    MonoBold,
-    UISmall,
-    UILabel,
-    UIHeading,
-};
-
-/// Total number of ThemeColorToken values.
-static constexpr std::size_t kColorTokenCount =
-    static_cast<std::size_t>(ThemeColorToken::FocusRingColor) + 1;
+#include "ThemeTokens.h"
 
 /// Runtime theme engine — applies colors to wxWidgets components and
 /// enables instant theme hot-swapping via EventBus notifications.
@@ -132,6 +34,7 @@ public:
     // IThemeEngine interface
     [[nodiscard]] auto current_theme() const -> const Theme& override;
     void apply_theme(const std::string& theme_id) override;
+    void apply_theme(const Theme& theme) override;
     [[nodiscard]] auto available_themes() const -> std::vector<ThemeInfo> override;
     void import_theme(const std::filesystem::path& path) override;
     void export_theme(const std::string& theme_id, const std::filesystem::path& path) override;
@@ -139,6 +42,17 @@ public:
     /// Access the underlying registry.
     [[nodiscard]] auto registry() -> ThemeRegistry&;
     [[nodiscard]] auto registry() const -> const ThemeRegistry&;
+
+    // V2 Phase 03: Scoped Token Architecture APIs
+    /// Resolve a specific scoped token name (e.g. "editor.background") to its current color.
+    [[nodiscard]] auto resolve_token(const std::string& token_name) const
+        -> std::optional<wxColour>;
+
+    /// Check if a scoped token is explicitly defined in the current theme.
+    [[nodiscard]] auto is_token_explicit(const std::string& token_name) const -> bool;
+
+    /// Allow an extension to register a new themeable token and its default fallback string.
+    void register_scoped_token(const std::string& token_name, const std::string& fallback_token);
 
     /// Apply current theme to a window and all its children.
     void apply_to_window(wxWindow* window);
@@ -196,6 +110,8 @@ public:
 
     /// V9: Preview a theme without committing (pushes undo first).
     void preview_theme(const std::string& theme_id);
+    void preview_theme(const Theme& theme);
+
     /// V9: Cancel preview and revert to previous theme.
     void cancel_preview();
 
@@ -218,6 +134,9 @@ private:
 
     /// V9 Phase 3: ThemeScopeMapper populated from current theme.
     ThemeScopeMapper scope_mapper_;
+
+    /// V2 Phase 03: The core token mapping dictionary for semantic colors.
+    ScopedTokenMap token_map_;
 
     /// V9 Phase 3: Reduced-motion flag.
     bool reduced_motion_{false};

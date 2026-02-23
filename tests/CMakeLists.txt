@@ -21,6 +21,10 @@ add_library(markamp_core STATIC
     ${CMAKE_SOURCE_DIR}/src/core/ThemeRegistry.cpp
     ${CMAKE_SOURCE_DIR}/src/core/ThemeValidator.cpp
     ${CMAKE_SOURCE_DIR}/src/core/ThemeEngine.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/TokenInheritanceResolver.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/ScopedTokenMap.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/ContrastRatioValidator.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/ColorBlindnessSimulator.cpp
     ${CMAKE_SOURCE_DIR}/src/core/ThemeCompatibility.cpp
     ${CMAKE_SOURCE_DIR}/src/core/ThemeAutoRepair.cpp
     ${CMAKE_SOURCE_DIR}/src/core/ThemeExporter.cpp
@@ -3922,6 +3926,26 @@ add_executable(test_theme_import_export unit/test_theme_import_export.cpp)
 target_include_directories(test_theme_import_export PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_theme_import_export PRIVATE Catch2::Catch2WithMain markamp_core)
 add_test(NAME test_theme_import_export COMMAND test_theme_import_export)
+
+add_executable(test_scoped_token_map unit/test_scoped_token_map.cpp)
+target_include_directories(test_scoped_token_map PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_scoped_token_map PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_scoped_token_map COMMAND test_scoped_token_map)
+
+add_executable(test_contrast_validator unit/test_contrast_validator.cpp)
+target_include_directories(test_contrast_validator PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_contrast_validator PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_contrast_validator COMMAND test_contrast_validator)
+
+add_executable(test_color_blindness_simulator unit/test_color_blindness_simulator.cpp)
+target_include_directories(test_color_blindness_simulator PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_color_blindness_simulator PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_color_blindness_simulator COMMAND test_color_blindness_simulator)
+
+add_executable(test_theme_loader_v2 unit/test_theme_loader_v2.cpp)
+target_include_directories(test_theme_loader_v2 PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_theme_loader_v2 PRIVATE Catch2::Catch2WithMain markamp_core yaml-cpp)
+add_test(NAME test_theme_loader_v2 COMMAND test_theme_loader_v2)
 
 add_executable(test_tile_cache unit/test_tile_cache.cpp)
 target_include_directories(test_tile_cache PRIVATE ${CMAKE_SOURCE_DIR}/src)

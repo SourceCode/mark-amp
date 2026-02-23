@@ -34,7 +34,8 @@ auto CustomChrome::chromeBg() const -> wxColour
 {
     if (theme_engine_ != nullptr)
     {
-        return theme_engine_->color(core::ThemeColorToken::BgHeader);
+        return theme_engine_->resolve_token("titleBar.bg")
+            .value_or(theme_engine_->color(core::ThemeColorToken::BgHeader));
     }
     return colours::kChromeBg;
 }
@@ -43,7 +44,8 @@ auto CustomChrome::textMain() const -> wxColour
 {
     if (theme_engine_ != nullptr)
     {
-        return theme_engine_->color(core::ThemeColorToken::TextMain);
+        return theme_engine_->resolve_token("titleBar.fg")
+            .value_or(theme_engine_->color(core::ThemeColorToken::TextMain));
     }
     return colours::kTextMain;
 }
@@ -79,7 +81,8 @@ auto CustomChrome::borderLight() const -> wxColour
 {
     if (theme_engine_ != nullptr)
     {
-        return theme_engine_->color(core::ThemeColorToken::BorderLight);
+        return theme_engine_->resolve_token("titleBar.border")
+            .value_or(theme_engine_->color(core::ThemeColorToken::BorderLight));
     }
     return colours::kBevelLight;
 }

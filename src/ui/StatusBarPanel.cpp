@@ -598,7 +598,9 @@ void StatusBarPanel::OnPaint(wxPaintEvent& /*event*/)
 
     // Background with 8D gradient: slightly darker at bottom
     {
-        auto base_col = theme_engine().color(core::ThemeColorToken::BgPanel);
+        auto base_col = theme_engine()
+                            .resolve_token("statusBar.bg")
+                            .value_or(theme_engine().color(core::ThemeColorToken::BgPanel));
         auto darker = base_col.ChangeLightness(97);
         for (int row = 0; row < height; ++row)
         {
@@ -619,7 +621,9 @@ void StatusBarPanel::OnPaint(wxPaintEvent& /*event*/)
 
     // 8B: Soft top border — BorderLight at 60% alpha
     {
-        auto border_col = theme_engine().color(core::ThemeColorToken::BorderLight);
+        auto border_col = theme_engine()
+                              .resolve_token("statusBar.border")
+                              .value_or(theme_engine().color(core::ThemeColorToken::BorderLight));
         dc.SetPen(wxPen(wxColour(border_col.Red(), border_col.Green(), border_col.Blue(), 153), 1));
         dc.DrawLine(0, 0, width, 0);
     }
@@ -645,7 +649,10 @@ void StatusBarPanel::OnPaint(wxPaintEvent& /*event*/)
         // Draw separator before item (except the first)
         if (idx > 0)
         {
-            dc.SetTextForeground(theme_engine().color(core::ThemeColorToken::TextMuted));
+            dc.SetTextForeground(
+                theme_engine()
+                    .resolve_token("statusBar.fg")
+                    .value_or(theme_engine().color(core::ThemeColorToken::TextMuted)));
             dc.DrawText(separator, left_x, text_y);
             left_x += separator_width + kSeparatorGap;
         }
@@ -664,9 +671,12 @@ void StatusBarPanel::OnPaint(wxPaintEvent& /*event*/)
         }
         else
         {
-            dc.SetTextForeground(item.is_accent
-                                     ? theme_engine().color(core::ThemeColorToken::AccentPrimary)
-                                     : theme_engine().color(core::ThemeColorToken::TextMuted));
+            dc.SetTextForeground(
+                item.is_accent
+                    ? theme_engine().color(core::ThemeColorToken::AccentPrimary)
+                    : theme_engine()
+                          .resolve_token("statusBar.fg")
+                          .value_or(theme_engine().color(core::ThemeColorToken::TextMuted)));
         }
 
         int text_width = dc.GetTextExtent(item.text).GetWidth();
@@ -768,9 +778,12 @@ void StatusBarPanel::OnPaint(wxPaintEvent& /*event*/)
         }
         else
         {
-            dc.SetTextForeground(item.is_accent
-                                     ? theme_engine().color(core::ThemeColorToken::AccentPrimary)
-                                     : theme_engine().color(core::ThemeColorToken::TextMuted));
+            dc.SetTextForeground(
+                item.is_accent
+                    ? theme_engine().color(core::ThemeColorToken::AccentPrimary)
+                    : theme_engine()
+                          .resolve_token("statusBar.fg")
+                          .value_or(theme_engine().color(core::ThemeColorToken::TextMuted)));
         }
 
         int icon_size = 14;
@@ -844,7 +857,10 @@ void StatusBarPanel::OnPaint(wxPaintEvent& /*event*/)
         // Draw separator after each right item (except the last one, which is first in reverse)
         if (std::next(it) != right_items_.rend())
         {
-            dc.SetTextForeground(theme_engine().color(core::ThemeColorToken::TextMuted));
+            dc.SetTextForeground(
+                theme_engine()
+                    .resolve_token("statusBar.fg")
+                    .value_or(theme_engine().color(core::ThemeColorToken::TextMuted)));
             right_x -= separator_width;
             dc.DrawText(separator, right_x, text_y);
             right_x -= kSeparatorGap;

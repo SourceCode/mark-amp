@@ -1,0 +1,120 @@
+name: "MarkAmp Dark Base"
+type: "dark"
+author: "MarkAmp"
+description: "The canonical V2 base template for dark themes."
+semantic_contrast: "AA"
+
+colors:
+  # Base App Colors
+  bg.app: "#18181A"
+  bg.panel: "#1E1E21"
+  bg.header: "#232326"
+  bg.input: "#2A2A2E"
+  text.main: "#E1E1E5"
+  text.muted: "#A1A1AA"
+  accent.primary: "#6366F1"
+  accent.secondary: "#8B5CF6"
+  border.light: "#3F3F46"
+  border.dark: "#27272A"
+
+  # Editor
+  editor.bg: "#18181A"
+  editor.fg: "#E1E1E5"
+  editor.selection: "#264F78"
+  editor.line_number: "#4B4B52"
+  editor.cursor: "#A6ACEE"
+  editor.gutter: "#18181A"
+  editor.active_line: "#1F1F24"
+  editor.gutter_error: "#F85149"
+  editor.gutter_warn: "#D29922"
+  editor.gutter_info: "#58A6FF"
+  editor.match_highlight: "#4F4128"
+  editor.find_hit: "#87661E"
+
+  # Sidebar
+  sidebar.bg: "#18181A"
+  sidebar.fg: "#E1E1E5"
+  sidebar.border: "#27272A"
+
+  # Activity Bar
+  activityBar.bg: "#18181A"
+  activityBar.fg: "#A1A1AA"
+  activityBar.active_fg: "#E1E1E5"
+  activityBar.badge.bg: "#6366F1"
+  activityBar.badge.fg: "#FFFFFF"
+
+  # Status Bar
+  statusBar.bg: "#1E1E21"
+  statusBar.fg: "#E1E1E5"
+  statusBar.border: "#27272A"
+
+  # Title Bar / Header
+  titleBar.bg: "#1E1E21"
+  titleBar.fg: "#E1E1E5"
+  titleBar.border: "#27272A"
+
+  # Tabs
+  tab.active_bg: "#18181A"
+  tab.active_fg: "#E1E1E5"
+  tab.inactive_bg: "#1E1E21"
+  tab.inactive_fg: "#A1A1AA"
+  tab.border: "#27272A"
+  tab.active_border_top: "#6366F1"
+
+  # Lists & Trees
+  list.hover: "#2A2A2E"
+  list.selected: "#313136"
+  list.active_selected: "#3F3F46"
+  list.focus_outline: "#6366F1"
+
+  # Inputs & Controls
+  input.bg: "#1A1A1D"
+  input.fg: "#E1E1E5"
+  input.border: "#3F3F46"
+  input.placeholder: "#A1A1AA"
+  button.bg: "#6366F1"
+  button.fg: "#FFFFFF"
+  button.hover: "#4F46E5"
+  button.secondary_bg: "#3F3F46"
+  button.secondary_fg: "#E1E1E5"
+
+  # Scrollbar
+  scrollbar.thumb: "#4B4B5280"
+  scrollbar.track: "#00000000"
+  scrollbar.hover: "#4B4B52CC"
+
+  # Notifications
+  notification.bg: "#1E1E21"
+  notification.fg: "#E1E1E5"
+  notification.border: "#3F3F46"
+  notification.error: "#F85149"
+  notification.warning: "#D29922"
+  notification.info: "#58A6FF"
+  notification.success: "#2EA043"
+
+  # Badges
+  badge.bg: "#3F3F46"
+  badge.fg: "#E1E1E5"
+
+  # Search
+  search.match_bg: "#87661E80"
+  search.match_border: "#D29922"
+
+  # Diff & Git
+  diff.inserted_bg: "#2EA04326"
+  diff.removed_bg: "#F8514933"
+  git.modified: "#D29922"
+  git.added: "#2EA043"
+  git.deleted: "#F85149"
+  git.untracked: "#58A6FF"
+
+  # Peek View
+  peekView.border: "#6366F1"
+  peekView.editor_bg: "#1A1A1D"
+  peekView.result_bg: "#1E1E21"
+  peekView.result_selection: "#313136"
+
+  # Tooltips / Popovers
+  tooltip.bg: "#2A2A2E"
+  tooltip.fg: "#E1E1E5"
+  tooltip.border: "#3F3F46"

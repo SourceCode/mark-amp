@@ -1,5 +1,20 @@
 # MarkAmp Release History
 
+## v2.7.29 — 2026-02-22
+
+### Highlights
+
+V13 Phase 03: Theme Engine V2 Semantic Token Architecture. Replaced the old flat token architecture with a robust, hierarchical semantic token map mirroring VS Code's `workbench.colorCustomizations` and TextMate syntax rules. Implemented real-time dynamic UI application, contrast ratio validation (WCAG), color blindness simulation overlays, and comprehensive Catch2 testing.
+
+### Added
+
+- **Scoped Token Map** — `ScopedTokenMap` and `TokenInheritanceResolver` introduced to support recursive fallback color definitions (e.g. `tab.activeBackground` falling back to `editor.background`).
+- **Accessibility Tools** — Integrated active contrast ratio validation and a `ColorBlindnessSimulator` overlay supporting Protanopia, Deuteranopia, Tritanopia, and Achromatopsia simulations.
+- **Theme Editing UI** — `ThemeEditorPanel` added via Command Palette to live-preview layout changes and export tailored theme token configurations seamlessly.
+- **Surface Adoption** — Upgraded `LayoutManager`, `ActivityBar`, `TabBar`, `StatusBarPanel`, `CustomChrome`, and Bottom panels to subscribe directly to dynamically resolving string tokens via `ScopedTokenMap`.
+- **TextMate Syntax Rules** — Expanded `ThemeScopeMapper` to apply `tokenColors` settings including individual `foreground` and `fontStyle` overrides parsed from V2 YAML documents.
+- **Catch2 Test Validations** — `test_scoped_token_map`, `test_contrast_validator`, `test_color_blindness_simulator`, and `test_theme_loader_v2` with robust algorithmic assertion strategies targeting 100% path coverage.
+
 ## v2.7.28 — 2026-02-22
 
 ### Highlights

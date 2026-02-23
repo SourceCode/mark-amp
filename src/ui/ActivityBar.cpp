@@ -112,7 +112,8 @@ auto ActivityBar::GetActiveItem() const -> core::events::ActivityBarItem
 
 void ActivityBar::ApplyTheme()
 {
-    SetBackgroundColour(ds_.theme.color(core::ThemeColorToken::ActivityBarBg));
+    SetBackgroundColour(ds_.theme.resolve_token("activityBar.bg")
+                            .value_or(ds_.theme.color(core::ThemeColorToken::ActivityBarBg)));
     Refresh();
 }
 
@@ -137,7 +138,9 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
     wxFont font = paint_dc.GetFont();
 
     // Background
-    paint_dc.SetBackground(wxBrush(ds_.theme.color(core::ThemeColorToken::ActivityBarBg)));
+    paint_dc.SetBackground(
+        wxBrush(ds_.theme.resolve_token("activityBar.bg")
+                    .value_or(ds_.theme.color(core::ThemeColorToken::ActivityBarBg))));
     paint_dc.Clear();
 
     auto size = GetClientSize();

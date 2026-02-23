@@ -140,15 +140,68 @@ auto ThemeLoader::parse_yaml_content(const std::string& yaml_content)
                 resolve_color("--editor-cursor", theme.colors.accent_primary);
             theme.colors.editor_gutter = resolve_color("--editor-gutter", theme.colors.bg_input);
 
-            // UI
-            theme.colors.list_hover =
-                resolve_color("--list-hover", theme.colors.accent_primary.with_alpha(0.1f));
-            theme.colors.list_selected =
-                resolve_color("--list-selected", theme.colors.accent_primary.with_alpha(0.2f));
-            theme.colors.scrollbar_thumb =
-                resolve_color("--scrollbar-thumb", theme.colors.accent_secondary);
-            theme.colors.scrollbar_track =
-                resolve_color("--scrollbar-track", theme.colors.bg_panel);
+            // V2 Semantic Tokens: Load EVERYTHING in the colors block as a token string -> wxColour
+            // mapping
+            for (const auto& it : colors)
+            {
+                auto key_str = it.first.as<std::string>();
+                auto val_str = it.second.as<std::string>();
+                auto parsed = Color::from_string(val_str);
+                if (parsed)
+                {
+                    theme.semantic_tokens[key_str] = parsed->to_wx_colour();
+                }
+                else
+                {
+                    MARKAMP_LOG_WARN("Invalid color format in semantic tokens for key '{}': {}",
+                                     key_str,
+                                     parsed.error());
+                }
+            }
+        }
+
+        // Parse V2 tokenColors array for specific syntax rules (TextMate)
+        if (root["tokenColors"] && root["tokenColors"].IsSequence())
+        {
+            for (const auto& rule : root["tokenColors"])
+            {
+                if (!rule["scope"] || !rule["settings"])
+                    continue;
+
+                const auto& settings = rule["settings"];
+                std::optional<Color> fg;
+                std::optional<std::string> fs;
+
+                if (settings["foreground"])
+                {
+                    if (auto c = Color::from_string(settings["foreground"].as<std::string>()))
+                        fg = *c;
+                }
+                if (settings["fontStyle"])
+                {
+                    fs = settings["fontStyle"].as<std::string>();
+                }
+
+                if (rule["scope"].IsSequence())
+                {
+                    for (const auto& s : rule["scope"])
+                    {
+                        Theme::TokenColorRule token_rule;
+                        token_rule.scope = s.as<std::string>();
+                        token_rule.foreground = fg;
+                        token_rule.font_style = fs;
+                        theme.token_colors.push_back(token_rule);
+                    }
+                }
+                else if (rule["scope"].IsScalar())
+                {
+                    Theme::TokenColorRule token_rule;
+                    token_rule.scope = rule["scope"].as<std::string>();
+                    token_rule.foreground = fg;
+                    token_rule.font_style = fs;
+                    theme.token_colors.push_back(token_rule);
+                }
+            }
         }
 
         if (!theme.is_valid())

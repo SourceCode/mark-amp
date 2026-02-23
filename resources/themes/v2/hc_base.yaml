@@ -1,0 +1,120 @@
+name: "MarkAmp High Contrast"
+type: "high-contrast"
+author: "MarkAmp"
+description: "The canonical V2 base template for high contrast themes (AAA compliant)."
+semantic_contrast: "AAA"
+
+colors:
+  # Base App Colors
+  bg.app: "#000000"
+  bg.panel: "#000000"
+  bg.header: "#000000"
+  bg.input: "#000000"
+  text.main: "#FFFFFF"
+  text.muted: "#FFFFFF"
+  accent.primary: "#FFFF00"
+  accent.secondary: "#00FFFF"
+  border.light: "#FFFFFF"
+  border.dark: "#FFFFFF"
+
+  # Editor
+  editor.bg: "#000000"
+  editor.fg: "#FFFFFF"
+  editor.selection: "#FFFFFF33"
+  editor.line_number: "#FFFFFF"
+  editor.cursor: "#FFFFFF"
+  editor.gutter: "#000000"
+  editor.active_line: "#000000"
+  editor.gutter_error: "#FF0000"
+  editor.gutter_warn: "#FF8800"
+  editor.gutter_info: "#0088FF"
+  editor.match_highlight: "#FFFF0080"
+  editor.find_hit: "#FF880080"
+
+  # Sidebar
+  sidebar.bg: "#000000"
+  sidebar.fg: "#FFFFFF"
+  sidebar.border: "#FFFFFF"
+
+  # Activity Bar
+  activityBar.bg: "#000000"
+  activityBar.fg: "#FFFFFF"
+  activityBar.active_fg: "#FFFF00"
+  activityBar.badge.bg: "#FFFFFF"
+  activityBar.badge.fg: "#000000"
+
+  # Status Bar
+  statusBar.bg: "#000000"
+  statusBar.fg: "#FFFFFF"
+  statusBar.border: "#FFFFFF"
+
+  # Title Bar / Header
+  titleBar.bg: "#000000"
+  titleBar.fg: "#FFFFFF"
+  titleBar.border: "#FFFFFF"
+
+  # Tabs
+  tab.active_bg: "#000000"
+  tab.active_fg: "#FFFFFF"
+  tab.inactive_bg: "#000000"
+  tab.inactive_fg: "#FFFFFF"
+  tab.border: "#FFFFFF"
+  tab.active_border_top: "#FFFF00"
+
+  # Lists & Trees
+  list.hover: "#FFFFFF33"
+  list.selected: "#FFFFFF4D"
+  list.active_selected: "#FFFFFF66"
+  list.focus_outline: "#FFFF00"
+
+  # Inputs & Controls
+  input.bg: "#000000"
+  input.fg: "#FFFFFF"
+  input.border: "#FFFFFF"
+  input.placeholder: "#FFFFFF"
+  button.bg: "#000000"
+  button.fg: "#FFFFFF"
+  button.hover: "#000000"
+  button.secondary_bg: "#000000"
+  button.secondary_fg: "#FFFFFF"
+
+  # Scrollbar
+  scrollbar.thumb: "#FFFFFF"
+  scrollbar.track: "#00000000"
+  scrollbar.hover: "#FFFFFF"
+
+  # Notifications
+  notification.bg: "#000000"
+  notification.fg: "#FFFFFF"
+  notification.border: "#FFFFFF"
+  notification.error: "#FF0000"
+  notification.warning: "#FF8800"
+  notification.info: "#0088FF"
+  notification.success: "#00FF00"
+
+  # Badges
+  badge.bg: "#000000"
+  badge.fg: "#FFFFFF"
+
+  # Search
+  search.match_bg: "#FFFF0080"
+  search.match_border: "#FFFF00"
+
+  # Diff & Git
+  diff.inserted_bg: "#00FF0033"
+  diff.removed_bg: "#FF000033"
+  git.modified: "#FF8800"
+  git.added: "#00FF00"
+  git.deleted: "#FF0000"
+  git.untracked: "#0088FF"
+
+  # Peek View
+  peekView.border: "#FFFF00"
+  peekView.editor_bg: "#000000"
+  peekView.result_bg: "#000000"
+  peekView.result_selection: "#FFFFFF33"
+
+  # Tooltips / Popovers
+  tooltip.bg: "#000000"
+  tooltip.fg: "#FFFFFF"
+  tooltip.border: "#FFFFFF"

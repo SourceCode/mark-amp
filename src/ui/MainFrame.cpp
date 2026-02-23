@@ -16,6 +16,7 @@
 #include "ui/IconGalleryDialog.h"
 #include "ui/IconManager.h"
 #include "ui/LayoutMetrics.h"
+#include "ui/ThemeEditorPanel.h"
 
 #include <wx/aboutdlg.h>
 #include <wx/display.h>
@@ -2568,6 +2569,22 @@ void MainFrame::RegisterPaletteCommands()
                                                event_bus_->publish(evt);
                                            }
                                        }});
+
+    command_palette_->RegisterCommand(
+        {"Theme Editor...",
+         "Theme",
+         "",
+         [this]()
+         {
+             auto* frame =
+                 new wxFrame(this, wxID_ANY, "Theme Editor", wxDefaultPosition, wxSize(800, 600));
+             auto* panel = new ThemeEditorPanel(frame, *theme_engine_);
+             auto* sizer = new wxBoxSizer(wxVERTICAL);
+             sizer->Add(panel, 1, wxEXPAND | wxALL, 0);
+             frame->SetSizer(sizer);
+             frame->Layout();
+             frame->Show();
+         }});
 
     // ── Tools commands ──
     command_palette_->RegisterCommand({"Keyboard Shortcuts",

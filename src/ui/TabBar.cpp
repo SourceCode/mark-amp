@@ -349,12 +349,19 @@ void TabBar::OnPaint(wxPaintEvent& /*event*/)
     const auto& theme = theme_engine().current_theme();
 
     // Background
-    gc->SetBrush(gc->CreateBrush(wxBrush(theme_engine().color(core::ThemeColorToken::BgPanel))));
+    gc->SetBrush(gc->CreateBrush(
+        wxBrush(theme_engine()
+                    .resolve_token("tab.inactive_bg")
+                    .value_or(theme_engine().color(core::ThemeColorToken::BgPanel)))));
     gc->SetPen(wxNullPen);
     gc->DrawRectangle(0, 0, sz.GetWidth(), sz.GetHeight());
 
     // Bottom border — R16 Fix 40: subtle light border
-    gc->SetPen(gc->CreatePen(wxPen(theme_engine().color(core::ThemeColorToken::BorderLight), 1)));
+    gc->SetPen(
+        gc->CreatePen(wxPen(theme_engine()
+                                .resolve_token("tab.border")
+                                .value_or(theme_engine().color(core::ThemeColorToken::BorderLight)),
+                            1)));
     gc->StrokeLine(0, sz.GetHeight() - 1, sz.GetWidth(), sz.GetHeight() - 1);
 
     // Fix 10: Empty state hint when no tabs are open
@@ -393,7 +400,10 @@ void TabBar::OnPaint(wxPaintEvent& /*event*/)
                 int tab_w = tab.rect.GetWidth();
                 int tab_h = tab.rect.GetHeight();
 
-                auto focus_col = theme_engine().color(core::ThemeColorToken::AccentPrimary);
+                auto focus_col =
+                    theme_engine()
+                        .resolve_token("list.focus_outline")
+                        .value_or(theme_engine().color(core::ThemeColorToken::AccentPrimary));
                 wxColour transparent_focus(
                     focus_col.Red(), focus_col.Green(), focus_col.Blue(), 150);
                 gc->SetPen(gc->CreatePen(wxPen(transparent_focus, 2)));
@@ -499,17 +509,25 @@ void TabBar::DrawTab(wxGraphicsContext& gc, const TabInfo& tab, const core::Them
     wxColour bg_color;
     if (tab.is_active)
     {
-        bg_color = theme_engine().color(core::ThemeColorToken::BgApp);
+        bg_color = theme_engine()
+                       .resolve_token("tab.active_bg")
+                       .value_or(theme_engine().color(core::ThemeColorToken::BgApp));
     }
     else if (tab.close_hovered ||
              (hovered_tab_index_ >= 0 &&
               tabs_[static_cast<size_t>(hovered_tab_index_)].file_path == tab.file_path))
     {
-        bg_color = theme_engine().color(core::ThemeColorToken::BgPanel).ChangeLightness(115);
+        bg_color =
+            theme_engine()
+                .resolve_token("tab.hover_bg")
+                .value_or(
+                    theme_engine().color(core::ThemeColorToken::BgPanel).ChangeLightness(115));
     }
     else
     {
-        bg_color = theme_engine().color(core::ThemeColorToken::BgPanel);
+        bg_color = theme_engine()
+                       .resolve_token("tab.inactive_bg")
+                       .value_or(theme_engine().color(core::ThemeColorToken::BgPanel));
     }
 
     // R20 Fix 5: Tint tab background by directory group color
@@ -543,13 +561,17 @@ void TabBar::DrawTab(wxGraphicsContext& gc, const TabInfo& tab, const core::Them
     // 17. Active indicator — Phase 06 Task 50: Prominent top/bottom borders
     if (tab.is_active)
     {
-        gc.SetBrush(
-            gc.CreateBrush(wxBrush(theme_engine().color(core::ThemeColorToken::AccentPrimary))));
+        gc.SetBrush(gc.CreateBrush(
+            wxBrush(theme_engine()
+                        .resolve_token("tab.active_border_top")
+                        .value_or(theme_engine().color(core::ThemeColorToken::AccentPrimary)))));
         gc.DrawRectangle(tab_x, tab_y, tab_w, 3);             // Top border
         gc.DrawRectangle(tab_x, tab_y + tab_h - 3, tab_w, 3); // Bottom border
 
         // R20 Fix 3: Active tab top glow (neon-edge beneath indicator)
-        auto accent = theme_engine().color(core::ThemeColorToken::AccentPrimary);
+        auto accent = theme_engine()
+                          .resolve_token("tab.active_border_top")
+                          .value_or(theme_engine().color(core::ThemeColorToken::AccentPrimary));
         for (int glow_row = 0; glow_row < kGlowLineHeight; ++glow_row)
         {
             int glow_alpha = 80 - (glow_row * 40);
@@ -578,8 +600,12 @@ void TabBar::DrawTab(wxGraphicsContext& gc, const TabInfo& tab, const core::Them
     // 21. Right separator
     if (!tab.is_active)
     {
-        gc.SetPen(gc.CreatePen(
-            wxPen(theme_engine().color(core::ThemeColorToken::BgPanel).ChangeLightness(120), 1)));
+        gc.SetPen(gc.CreatePen(wxPen(
+            theme_engine()
+                .resolve_token("tab.border")
+                .value_or(
+                    theme_engine().color(core::ThemeColorToken::BgPanel).ChangeLightness(120)),
+            1)));
         gc.StrokeLine(tab_x + tab_w, tab_y + 8, tab_x + tab_w, tab_y + tab_h - 8);
     }
 
@@ -596,8 +622,13 @@ void TabBar::DrawTab(wxGraphicsContext& gc, const TabInfo& tab, const core::Them
         font.SetStyle(wxFONTSTYLE_ITALIC);
     }
     gc.SetFont(font,
-               tab.is_active ? theme_engine().color(core::ThemeColorToken::TabActiveFg)
-                             : theme_engine().color(core::ThemeColorToken::TabInactiveFg));
+               tab.is_active
+                   ? theme_engine()
+                         .resolve_token("tab.active_fg")
+                         .value_or(theme_engine().color(core::ThemeColorToken::TabActiveFg))
+                   : theme_engine()
+                         .resolve_token("tab.inactive_fg")
+                         .value_or(theme_engine().color(core::ThemeColorToken::TabInactiveFg)));
 
     // Build display text with modified indicator
     std::string display = tab.display_name;

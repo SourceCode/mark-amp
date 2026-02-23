@@ -71,6 +71,8 @@ add_executable(markamp
     ui/Toolbar.cpp
     ui/ThemeGallery.cpp
     ui/ThemeTokenEditor.cpp
+    ui/ThemeEditorPanel.cpp
+    ui/ColorBlindnessPreviewOverlay.cpp
     ui/ThemePreviewCard.cpp
     ui/ShortcutOverlay.cpp
     ui/CommandPalette.cpp
@@ -163,6 +165,10 @@ add_executable(markamp
     core/ThemeRegistry.cpp
     core/ThemeValidator.cpp
     core/ThemeEngine.cpp
+    core/TokenInheritanceResolver.cpp
+    core/ScopedTokenMap.cpp
+    core/ContrastRatioValidator.cpp
+    core/ColorBlindnessSimulator.cpp
     core/ThemeCompatibility.cpp
     core/ThemeAutoRepair.cpp
     core/ThemeExporter.cpp
@@ -731,8 +737,9 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "Src" FILES
     ui/BevelPanel.cpp
     ui/ThemeAwareWindow.h
     ui/ThemeAwareWindow.cpp
-    ui/ColorPaletteGenerator.h
     ui/ColorPaletteGenerator.cpp
+    ui/ThemeEditorPanel.cpp
+    ui/ColorBlindnessPreviewOverlay.cpp
     ui/SvgDocument.h
     ui/SvgDocument.cpp
     ui/IconRenderer.h

@@ -60,6 +60,19 @@ void ThemeEngine::apply_theme(const std::string& theme_id)
     MARKAMP_LOG_INFO("Theme applied: {} ({})", current_theme_.name, current_theme_.id);
 }
 
+void ThemeEngine::apply_theme(const Theme& theme)
+{
+    current_theme_ = theme;
+    rebuild_cache();
+
+    // Publish theme changed event
+    events::ThemeChangedEvent event;
+    event.theme_id = theme.id;
+    event_bus_.publish(event);
+
+    MARKAMP_LOG_INFO("Theme applied directly: {} ({})", current_theme_.name, current_theme_.id);
+}
+
 auto ThemeEngine::available_themes() const -> std::vector<ThemeInfo>
 {
     return registry_.list_themes();
@@ -175,9 +188,16 @@ void ThemeEngine::rebuild_cache()
     cache_.colours.clear();
 
     // Helper to cache a color token (writes to both map and flat array)
-    auto cache_color = [this](ThemeColorToken token, const Color& clr)
+    auto cache_color =
+        [this](ThemeColorToken token, const std::string& scoped_name, const Color& clr)
     {
-        wxColour wx_clr = clr.to_wx_colour();
+        // 1. Set the color in the new scoped token map
+        token_map_.set(scoped_name, clr.to_wx_colour());
+
+        // 2. Resolve the color and cache it in the legacy V1 structures for backward compatibility
+        auto resolved = token_map_.resolve(scoped_name);
+        wxColour wx_clr = resolved ? *resolved : clr.to_wx_colour();
+
         cache_.colours[token] = wx_clr;
         cache_.brushes[token] = wxBrush(wx_clr);
         auto idx = static_cast<std::size_t>(token);
@@ -191,85 +211,155 @@ void ThemeEngine::rebuild_cache()
     current_theme_.sync_layers_from_colors();
 
     // 10 base tokens
-    cache_color(ThemeColorToken::BgApp, current_theme_.colors.bg_app);
-    cache_color(ThemeColorToken::BgPanel, current_theme_.colors.bg_panel);
-    cache_color(ThemeColorToken::BgHeader, current_theme_.colors.bg_header);
-    cache_color(ThemeColorToken::BgInput, current_theme_.colors.bg_input);
-    cache_color(ThemeColorToken::TextMain, current_theme_.colors.text_main);
-    cache_color(ThemeColorToken::TextMuted, current_theme_.colors.text_muted);
-    cache_color(ThemeColorToken::AccentPrimary, current_theme_.colors.accent_primary);
-    cache_color(ThemeColorToken::AccentSecondary, current_theme_.colors.accent_secondary);
-    cache_color(ThemeColorToken::BorderLight, current_theme_.colors.border_light);
-    cache_color(ThemeColorToken::BorderDark, current_theme_.colors.border_dark);
+    cache_color(ThemeColorToken::BgApp, "workbench.background", current_theme_.colors.bg_app);
+    cache_color(ThemeColorToken::BgPanel, "panel.background", current_theme_.colors.bg_panel);
+    cache_color(
+        ThemeColorToken::BgHeader, "titleBar.activeBackground", current_theme_.colors.bg_header);
+    cache_color(ThemeColorToken::BgInput, "input.background", current_theme_.colors.bg_input);
+    cache_color(ThemeColorToken::TextMain, "foreground", current_theme_.colors.text_main);
+    cache_color(
+        ThemeColorToken::TextMuted, "descriptionForeground", current_theme_.colors.text_muted);
+    cache_color(
+        ThemeColorToken::AccentPrimary, "focusBorder", current_theme_.colors.accent_primary);
+    cache_color(ThemeColorToken::AccentSecondary,
+                "textLink.foreground",
+                current_theme_.colors.accent_secondary);
+    cache_color(ThemeColorToken::BorderLight, "panel.border", current_theme_.colors.border_light);
+    cache_color(ThemeColorToken::BorderDark, "widget.shadow", current_theme_.colors.border_dark);
 
     // 7 derived tokens
-    cache_color(ThemeColorToken::SelectionBg, current_theme_.selection_bg());
-    cache_color(ThemeColorToken::HoverBg, current_theme_.hover_bg());
-    cache_color(ThemeColorToken::ErrorColor, current_theme_.error_color());
-    cache_color(ThemeColorToken::SuccessColor, current_theme_.success_color());
-    cache_color(ThemeColorToken::ScrollbarTrack, current_theme_.scrollbar_track());
-    cache_color(ThemeColorToken::ScrollbarThumb, current_theme_.scrollbar_thumb());
-    cache_color(ThemeColorToken::ScrollbarHover, current_theme_.scrollbar_hover());
+    cache_color(
+        ThemeColorToken::SelectionBg, "editor.selectionBackground", current_theme_.selection_bg());
+    cache_color(ThemeColorToken::HoverBg, "list.hoverBackground", current_theme_.hover_bg());
+    cache_color(ThemeColorToken::ErrorColor, "errorForeground", current_theme_.error_color());
+    cache_color(ThemeColorToken::SuccessColor, "successForeground", current_theme_.success_color());
+    cache_color(ThemeColorToken::ScrollbarTrack,
+                "scrollbarSlider.background",
+                current_theme_.scrollbar_track());
+    cache_color(ThemeColorToken::ScrollbarThumb,
+                "scrollbarSlider.hoverBackground",
+                current_theme_.scrollbar_thumb());
+    cache_color(ThemeColorToken::ScrollbarHover,
+                "scrollbarSlider.activeBackground",
+                current_theme_.scrollbar_hover());
 
     // Phase 4: Syntax tokens
-    cache_color(ThemeColorToken::SyntaxKeyword, current_theme_.syntax.keyword);
-    cache_color(ThemeColorToken::SyntaxString, current_theme_.syntax.string_literal);
-    cache_color(ThemeColorToken::SyntaxComment, current_theme_.syntax.comment);
-    cache_color(ThemeColorToken::SyntaxNumber, current_theme_.syntax.number);
-    cache_color(ThemeColorToken::SyntaxType, current_theme_.syntax.type_name);
-    cache_color(ThemeColorToken::SyntaxFunction, current_theme_.syntax.function_name);
-    cache_color(ThemeColorToken::SyntaxOperator, current_theme_.syntax.operator_tok);
-    cache_color(ThemeColorToken::SyntaxPreprocessor, current_theme_.syntax.preprocessor);
+    cache_color(
+        ThemeColorToken::SyntaxKeyword, "editor.token.keyword", current_theme_.syntax.keyword);
+    cache_color(
+        ThemeColorToken::SyntaxString, "editor.token.string", current_theme_.syntax.string_literal);
+    cache_color(
+        ThemeColorToken::SyntaxComment, "editor.token.comment", current_theme_.syntax.comment);
+    cache_color(ThemeColorToken::SyntaxNumber, "editor.token.number", current_theme_.syntax.number);
+    cache_color(ThemeColorToken::SyntaxType, "editor.token.type", current_theme_.syntax.type_name);
+    cache_color(ThemeColorToken::SyntaxFunction,
+                "editor.token.function",
+                current_theme_.syntax.function_name);
+    cache_color(ThemeColorToken::SyntaxOperator,
+                "editor.token.operator",
+                current_theme_.syntax.operator_tok);
+    cache_color(ThemeColorToken::SyntaxPreprocessor,
+                "editor.token.preprocessor",
+                current_theme_.syntax.preprocessor);
 
     // Phase 4: Render tokens
-    cache_color(ThemeColorToken::RenderHeading, current_theme_.render.heading);
-    cache_color(ThemeColorToken::RenderLink, current_theme_.render.link);
-    cache_color(ThemeColorToken::RenderCodeBg, current_theme_.render.code_bg);
-    cache_color(ThemeColorToken::RenderCodeFg, current_theme_.render.code_fg);
-    cache_color(ThemeColorToken::RenderBlockquoteBorder, current_theme_.render.blockquote_border);
-    cache_color(ThemeColorToken::RenderBlockquoteBg, current_theme_.render.blockquote_bg);
-    cache_color(ThemeColorToken::RenderTableBorder, current_theme_.render.table_border);
-    cache_color(ThemeColorToken::RenderTableHeaderBg, current_theme_.render.table_header_bg);
+    cache_color(ThemeColorToken::RenderHeading,
+                "markdown.headingForeground",
+                current_theme_.render.heading);
+    cache_color(ThemeColorToken::RenderLink, "markdown.linkForeground", current_theme_.render.link);
+    cache_color(
+        ThemeColorToken::RenderCodeBg, "markdown.codeBackground", current_theme_.render.code_bg);
+    cache_color(
+        ThemeColorToken::RenderCodeFg, "markdown.codeForeground", current_theme_.render.code_fg);
+    cache_color(ThemeColorToken::RenderBlockquoteBorder,
+                "markdown.blockquoteBorder",
+                current_theme_.render.blockquote_border);
+    cache_color(ThemeColorToken::RenderBlockquoteBg,
+                "markdown.blockquoteBackground",
+                current_theme_.render.blockquote_bg);
+    cache_color(ThemeColorToken::RenderTableBorder,
+                "markdown.tableBorder",
+                current_theme_.render.table_border);
+    cache_color(ThemeColorToken::RenderTableHeaderBg,
+                "markdown.tableHeaderBackground",
+                current_theme_.render.table_header_bg);
 
     // V8 Phase 9: Semantic editor tokens
-    cache_color(ThemeColorToken::EditorActiveLine, current_theme_.colors.editor_active_line);
-    cache_color(ThemeColorToken::EditorGutterError, current_theme_.colors.editor_gutter_error);
-    cache_color(ThemeColorToken::EditorGutterWarn, current_theme_.colors.editor_gutter_warn);
-    cache_color(ThemeColorToken::EditorGutterInfo, current_theme_.colors.editor_gutter_info);
+    cache_color(ThemeColorToken::EditorActiveLine,
+                "editor.lineHighlightBackground",
+                current_theme_.colors.editor_active_line);
+    cache_color(ThemeColorToken::EditorGutterError,
+                "editorGutter.deletedBackground",
+                current_theme_.colors.editor_gutter_error);
+    cache_color(ThemeColorToken::EditorGutterWarn,
+                "editorGutter.modifiedBackground",
+                current_theme_.colors.editor_gutter_warn);
+    cache_color(ThemeColorToken::EditorGutterInfo,
+                "editorGutter.addedBackground",
+                current_theme_.colors.editor_gutter_info);
     cache_color(ThemeColorToken::EditorMatchHighlight,
+                "editor.findMatchHighlightBackground",
                 current_theme_.colors.editor_match_highlight);
-    cache_color(ThemeColorToken::EditorFindHit, current_theme_.colors.editor_find_hit);
-    cache_color(ThemeColorToken::EditorQuickFix, current_theme_.colors.editor_quick_fix);
+    cache_color(ThemeColorToken::EditorFindHit,
+                "editor.findMatchBackground",
+                current_theme_.colors.editor_find_hit);
+    cache_color(ThemeColorToken::EditorQuickFix,
+                "editorLightBulb.foreground",
+                current_theme_.colors.editor_quick_fix);
 
     // V9 Phase 3: Extended semantic tokens
-    cache_color(ThemeColorToken::SidebarBg, current_theme_.colors.sidebar_bg);
-    cache_color(ThemeColorToken::SidebarFg, current_theme_.colors.sidebar_fg);
-    cache_color(ThemeColorToken::ActivityBarBg, current_theme_.colors.activity_bar_bg);
-    cache_color(ThemeColorToken::ActivityBarFg, current_theme_.colors.activity_bar_fg);
-    cache_color(ThemeColorToken::ActivityBarBadgeBg, current_theme_.colors.activity_bar_badge_bg);
-    cache_color(ThemeColorToken::ActivityBarBadgeFg, current_theme_.colors.activity_bar_badge_fg);
-    cache_color(ThemeColorToken::BreadcrumbFg, current_theme_.colors.breadcrumb_fg);
-    cache_color(ThemeColorToken::BreadcrumbFocusFg, current_theme_.colors.breadcrumb_focus_fg);
-    cache_color(ThemeColorToken::TabActiveBg, current_theme_.colors.tab_active_bg);
-    cache_color(ThemeColorToken::TabInactiveBg, current_theme_.colors.tab_inactive_bg);
-    cache_color(ThemeColorToken::TabActiveFg, current_theme_.colors.tab_active_fg);
-    cache_color(ThemeColorToken::TabInactiveFg, current_theme_.colors.tab_inactive_fg);
-    cache_color(ThemeColorToken::DiffInsertedBg, current_theme_.colors.diff_inserted_bg);
-    cache_color(ThemeColorToken::DiffRemovedBg, current_theme_.colors.diff_removed_bg);
-    cache_color(ThemeColorToken::MinimapBg, current_theme_.colors.minimap_bg);
-    cache_color(ThemeColorToken::PeekViewBorderColor, current_theme_.colors.peek_view_border);
-    cache_color(ThemeColorToken::NotebookCellBg, current_theme_.colors.notebook_cell_bg);
+    cache_color(ThemeColorToken::SidebarBg, "sideBar.background", current_theme_.colors.sidebar_bg);
+    cache_color(ThemeColorToken::SidebarFg, "sideBar.foreground", current_theme_.colors.sidebar_fg);
+    cache_color(ThemeColorToken::ActivityBarBg,
+                "activityBar.background",
+                current_theme_.colors.activity_bar_bg);
+    cache_color(ThemeColorToken::ActivityBarFg,
+                "activityBar.foreground",
+                current_theme_.colors.activity_bar_fg);
+    cache_color(ThemeColorToken::ActivityBarBadgeBg,
+                "activityBarBadge.background",
+                current_theme_.colors.activity_bar_badge_bg);
+    cache_color(ThemeColorToken::ActivityBarBadgeFg,
+                "activityBarBadge.foreground",
+                current_theme_.colors.activity_bar_badge_fg);
+    cache_color(ThemeColorToken::BreadcrumbFg,
+                "breadcrumb.foreground",
+                current_theme_.colors.breadcrumb_fg);
+    cache_color(ThemeColorToken::BreadcrumbFocusFg,
+                "breadcrumb.focusForeground",
+                current_theme_.colors.breadcrumb_focus_fg);
+    cache_color(
+        ThemeColorToken::TabActiveBg, "tab.activeBackground", current_theme_.colors.tab_active_bg);
+    cache_color(ThemeColorToken::TabInactiveBg,
+                "tab.inactiveBackground",
+                current_theme_.colors.tab_inactive_bg);
+    cache_color(
+        ThemeColorToken::TabActiveFg, "tab.activeForeground", current_theme_.colors.tab_active_fg);
+    cache_color(ThemeColorToken::TabInactiveFg,
+                "tab.inactiveForeground",
+                current_theme_.colors.tab_inactive_fg);
+    cache_color(ThemeColorToken::DiffInsertedBg,
+                "diffEditor.insertedTextBackground",
+                current_theme_.colors.diff_inserted_bg);
+    cache_color(ThemeColorToken::DiffRemovedBg,
+                "diffEditor.removedTextBackground",
+                current_theme_.colors.diff_removed_bg);
+    cache_color(ThemeColorToken::MinimapBg, "minimap.background", current_theme_.colors.minimap_bg);
+    cache_color(ThemeColorToken::PeekViewBorderColor,
+                "peekView.border",
+                current_theme_.colors.peek_view_border);
+    cache_color(ThemeColorToken::NotebookCellBg,
+                "notebook.cellEditorBackground",
+                current_theme_.colors.notebook_cell_bg);
 
     // V10 Phase 02: Control state tokens
     ui::ColorPaletteGenerator palette_gen;
     auto extended = palette_gen.generate_extended_palette(current_theme_);
     for (const auto& [tok, clr] : extended)
     {
-        // Only overwrite if it wasn't explicitly defined in the theme,
-        // or just let generator override for consistency.
-        // For V13, we want the generator to drive these unless explicitly set.
-        // To keep it simple, rely on generator.
-        cache_color(tok, Color(clr.Red(), clr.Green(), clr.Blue(), clr.Alpha()));
+        // Simple mapping for extended control tokens
+        std::string name = "control." + std::to_string(static_cast<int>(tok));
+        cache_color(tok, name, Color(clr.Red(), clr.Green(), clr.Blue(), clr.Alpha()));
     }
 
     // Rebuild fonts
@@ -400,6 +490,31 @@ auto ThemeEngine::missing_tokens() const -> std::vector<ThemeColorToken>
     return missing;
 }
 
+// --- V2 Phase 03: Scoped Token Architecture APIs ---
+
+auto ThemeEngine::resolve_token(const std::string& token_name) const -> std::optional<wxColour>
+{
+    auto result = token_map_.resolve(token_name);
+    if (!result)
+    {
+        return std::nullopt;
+    }
+    return *result;
+}
+
+auto ThemeEngine::is_token_explicit(const std::string& token_name) const -> bool
+{
+    return token_map_.is_explicit(token_name);
+}
+
+void ThemeEngine::register_scoped_token(const std::string& token_name,
+                                        const std::string& fallback_token)
+{
+    token_map_.resolver().register_fallback(token_name, fallback_token);
+}
+
+// ----------------------------------------------------
+
 auto ThemeEngine::scope_mapper() const -> const ThemeScopeMapper&
 {
     return scope_mapper_;
@@ -496,6 +611,32 @@ void ThemeEngine::populate_scope_mapper(const Theme& theme)
     scope_mapper_.add_rule(make_rule("keyword.operator", theme.syntax.operator_tok.to_hex()));
     scope_mapper_.add_rule(make_rule("meta.preprocessor", theme.syntax.preprocessor.to_hex()));
 
+    // Phase 12 (Task 23): Load custom token rules from tokenColors block
+    for (const auto& token_rule : theme.token_colors)
+    {
+        ThemeScopeMapper::ScopeRule mapper_rule;
+        mapper_rule.selector = token_rule.scope;
+
+        // If foreground is missing, we use empty string (ScopeMapper handles it, or depends on
+        // fallback)
+        if (token_rule.foreground)
+        {
+            mapper_rule.foreground = token_rule.foreground->to_hex();
+        }
+
+        if (token_rule.font_style)
+        {
+            mapper_rule.font_style = ThemeScopeMapper::parse_font_style(*token_rule.font_style);
+        }
+        else
+        {
+            mapper_rule.font_style = FontStyleFlag::kNone;
+        }
+
+        mapper_rule.is_semantic = false;
+        scope_mapper_.add_rule(mapper_rule);
+    }
+
     MARKAMP_LOG_INFO("Scope mapper populated with {} rules", scope_mapper_.rule_count());
 }
 
@@ -528,6 +669,21 @@ void ThemeEngine::preview_theme(const std::string& theme_id)
     event.theme_id = theme_id;
     event_bus_.publish(event);
     MARKAMP_LOG_INFO("Theme preview: previewing {}", theme_id);
+}
+
+void ThemeEngine::preview_theme(const Theme& theme)
+{
+    // Push current state so we can revert
+    push_undo();
+    previewing_ = true;
+
+    // Apply the preview theme directly
+    apply_theme(theme);
+
+    events::ThemePreviewRequestEvent event;
+    event.theme_id = theme.id;
+    event_bus_.publish(event);
+    MARKAMP_LOG_INFO("Theme preview: previewing custom theme object {}", theme.id);
 }
 
 void ThemeEngine::cancel_preview()
