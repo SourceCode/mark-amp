@@ -58,7 +58,8 @@ protected:
 private:
     // Rendering
     void OnPaint(wxPaintEvent& event);
-    void DrawNode(wxDC& dc, const core::FileNode& node, int depth, int& y_offset);
+    void
+    DrawNode(wxDC& dc, const core::FileNode& node, int depth, int& y_offset, int& current_index);
 
     // Icons
     void LoadIcons();
@@ -66,6 +67,8 @@ private:
     // Interaction
     void OnMouseMove(wxMouseEvent& event);
     void OnMouseDown(wxMouseEvent& event);
+    void OnSetFocus(wxFocusEvent& event);
+    void OnKillFocus(wxFocusEvent& event);
     void OnMouseLeave(wxMouseEvent& event);
     void OnDoubleClick(wxMouseEvent& event);
     void OnRightClick(wxMouseEvent& event);

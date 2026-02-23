@@ -1,5 +1,17 @@
 # MarkAmp Release History
 
+## v2.7.31 — 2026-02-23
+
+### Highlights
+
+V13 Phase 05: Accessibility and Keyboard Navigation Foundation. Implemented a robust `FocusManager` mapping individual items within focus zones, and globally styled accessible controls via the `FocusRingRenderer`.
+
+### Added
+
+- **Item-Level Focus Tracking** — Extended `FocusManager` to track granular focus state for complex widgets like the `ActivityBar`, `TabBar`, `FileTreeCtrl`, and `BreadcrumbBar`.
+- **Global Focus Ring Renderer** — Unified dynamic, animated focus rings globally, centralizing UI metrics to ensure consistent visual indicators for keyboard users.
+- **Auto-Registration Bounds** — Interactive components now actively capture and register bounding box geometries when drawing UI elements for external visual overlays.
+
 ## v2.7.30 — 2026-02-23
 
 ### Highlights

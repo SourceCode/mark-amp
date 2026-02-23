@@ -318,6 +318,11 @@ int info_count{0};
 bool passed{true};
 MARKAMP_DECLARE_EVENT_END;
 
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ChromeFocusChangedEvent)
+int zone_id{0}; // Cast from FocusZoneId
+int item_index{-1};
+MARKAMP_DECLARE_EVENT_END;
+
 MARKAMP_DECLARE_EVENT_WITH_FIELDS(A11yFocusChangedEvent)
 std::string element_id;
 std::string element_label;

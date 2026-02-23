@@ -11,6 +11,8 @@
 #include "FileTypeIconResolver.h"
 #include "IconManager.h"
 #include "core/Logger.h"
+#include "ui/FocusManager.h"
+#include "ui/FocusRingRenderer.h"
 
 #include <wx/clipbrd.h>
 #include <wx/dcbuffer.h>
@@ -42,6 +44,8 @@ FileTreeCtrl::FileTreeCtrl(wxWindow* parent,
     Bind(wxEVT_PAINT, &FileTreeCtrl::OnPaint, this);
     Bind(wxEVT_MOTION, &FileTreeCtrl::OnMouseMove, this);
     Bind(wxEVT_LEFT_DOWN, &FileTreeCtrl::OnMouseDown, this);
+    Bind(wxEVT_SET_FOCUS, &FileTreeCtrl::OnSetFocus, this);
+    Bind(wxEVT_KILL_FOCUS, &FileTreeCtrl::OnKillFocus, this);
     Bind(wxEVT_LEFT_DCLICK, &FileTreeCtrl::OnDoubleClick, this);
     Bind(wxEVT_RIGHT_DOWN, &FileTreeCtrl::OnRightClick, this);
     Bind(wxEVT_LEAVE_WINDOW, &FileTreeCtrl::OnMouseLeave, this);
@@ -291,14 +295,18 @@ void FileTreeCtrl::OnPaint(wxPaintEvent& /*event*/)
     // Font
     dc.SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular));
 
+    int current_index = 0;
     int y_offset = -scroll_offset_;
     for (const auto& node : roots_)
     {
         if (node.filter_visible)
         {
-            DrawNode(dc, node, 0, y_offset);
+            DrawNode(dc, node, 0, y_offset, current_index);
         }
     }
+
+    // Draw animated focus ring
+    FocusRingRenderer::get().draw(dc, this, theme_engine());
 }
 
 void FileTreeCtrl::LoadIcons()
@@ -306,7 +314,8 @@ void FileTreeCtrl::LoadIcons()
     // Icons are now loaded dynamically via IconManager
 }
 
-void FileTreeCtrl::DrawNode(wxDC& dc, const core::FileNode& node, int depth, int& y_offset)
+void FileTreeCtrl::DrawNode(
+    wxDC& dc, const core::FileNode& node, int depth, int& y_offset, int& current_index)
 {
     auto sz = GetClientSize();
     int row_top = y_offset;
@@ -368,16 +377,10 @@ void FileTreeCtrl::DrawNode(wxDC& dc, const core::FileNode& node, int depth, int
             wxPen(theme_engine().color(core::ThemeColorToken::BorderLight).ChangeLightness(95), 1));
         dc.DrawLine(content_x, row_top + kRowHeight - 1, row_w, row_top + kRowHeight - 1);
 
-        // R3 Fix 3: Focus ring for keyboard navigation
-        if (node.id == GetFocusedNodeId())
-        {
-            dc.SetBrush(*wxTRANSPARENT_BRUSH);
-            wxPen focus_pen(theme_engine().color(core::ThemeColorToken::AccentPrimary),
-                            1,
-                            wxPENSTYLE_SHORT_DASH);
-            dc.SetPen(focus_pen);
-            dc.DrawRectangle(1, row_top + 1, row_w - 2, kRowHeight - 2);
-        }
+        // R3 Fix 3: Phase 06 Task 6: Register focus ring bounds
+        wxRect rect(1, row_top + 1, row_w - 2, kRowHeight - 2);
+        FocusRingRenderer::get().register_item_bounds(
+            FocusZoneId::kSidebar, current_index, this, rect);
 
         // 1. Draw Twistie (Chevron) - LEFT ALIGNED now
         wxColour chevron_color = theme_engine().color(core::ThemeColorToken::TextMuted);
@@ -636,6 +639,7 @@ void FileTreeCtrl::DrawNode(wxDC& dc, const core::FileNode& node, int depth, int
     }
 
     y_offset += kRowHeight;
+    current_index++;
 
     // Draw children if folder is open
     if (node.is_folder() && node.is_open)
@@ -646,7 +650,7 @@ void FileTreeCtrl::DrawNode(wxDC& dc, const core::FileNode& node, int depth, int
             if (child.filter_visible)
             {
                 has_visible_children = true;
-                DrawNode(dc, child, depth + 1, y_offset);
+                DrawNode(dc, child, depth + 1, y_offset, current_index);
             }
         }
 
@@ -1678,6 +1682,27 @@ void FileTreeCtrl::ShowEmptyAreaContextMenu()
         });
 
     PopupMenu(&menu);
+}
+
+void FileTreeCtrl::OnSetFocus(wxFocusEvent& event)
+{
+    if (focused_node_index_ < 0 && !roots_.empty())
+    {
+        focused_node_index_ = 0;
+    }
+    FocusManager::get().set_focus(FocusZoneId::kSidebar, focused_node_index_);
+    Refresh();
+    event.Skip();
+}
+
+void FileTreeCtrl::OnKillFocus(wxFocusEvent& event)
+{
+    if (FocusManager::get().current_zone() == FocusZoneId::kSidebar)
+    {
+        FocusManager::get().set_item(-1);
+    }
+    Refresh();
+    event.Skip();
 }
 
 } // namespace markamp::ui

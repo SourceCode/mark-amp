@@ -18,19 +18,68 @@ auto FocusManager::get() -> FocusManager&
     return instance;
 }
 
+auto FocusManager::on_focus_changed(FocusChangeCallback callback) -> std::size_t
+{
+    auto id = ++next_listener_id_;
+    listeners_.emplace_back(id, std::move(callback));
+    return id;
+}
+
+void FocusManager::remove_focus_listener(std::size_t listener_id)
+{
+    std::erase_if(listeners_,
+                  [listener_id](const auto& pair) { return pair.first == listener_id; });
+}
+
+void FocusManager::publish_focus_change()
+{
+    for (const auto& [id, cb] : listeners_)
+    {
+        if (cb)
+        {
+            cb(current_zone_, current_item_);
+        }
+    }
+}
+
 void FocusManager::set_zone(FocusZoneId zone)
 {
-    current_zone_ = zone;
+    set_focus(zone, -1);
+}
+
+void FocusManager::set_focus(FocusZoneId zone, int item_index)
+{
+    if (current_zone_ != zone || current_item_ != item_index)
+    {
+        current_zone_ = zone;
+        current_item_ = item_index;
+        publish_focus_change();
+    }
+}
+
+void FocusManager::set_item(int item_index)
+{
+    if (current_item_ != item_index)
+    {
+        current_item_ = item_index;
+        publish_focus_change();
+    }
 }
 
 void FocusManager::advance(FocusDirection direction)
 {
-    current_zone_ = next_enabled_zone(current_zone_, direction);
+    auto new_zone = next_enabled_zone(current_zone_, direction);
+    if (new_zone != current_zone_ || current_item_ != -1)
+    {
+        current_zone_ = new_zone;
+        current_item_ = -1;
+        publish_focus_change();
+    }
 }
 
 void FocusManager::push_snapshot()
 {
-    snapshot_stack_.push_back(FocusSnapshot{current_zone_, -1});
+    snapshot_stack_.push_back(FocusSnapshot{current_zone_, current_item_});
 }
 
 void FocusManager::restore()
@@ -40,7 +89,7 @@ void FocusManager::restore()
         return;
     }
     const auto& snap = snapshot_stack_.back();
-    current_zone_ = snap.zone;
+    set_focus(snap.zone, snap.item_index);
     snapshot_stack_.pop_back();
 }
 

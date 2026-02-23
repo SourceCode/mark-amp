@@ -162,4 +162,38 @@ TEST_CASE("Restore with empty stack is a no-op", "[focus][keyboard]")
     fm.restore(); // No snapshot pushed — should not crash
     REQUIRE(fm.current_zone() == FocusZoneId::kActivityBar);
 }
+// ── Task 4: Item-level focus tracking ─────────────────────────────────
+
+TEST_CASE("FocusManager tracks item-level focus", "[focus][keyboard]")
+{
+    auto& fm = FocusManager::get();
+
+    fm.set_focus(FocusZoneId::kActivityBar, 3);
+    REQUIRE(fm.current_zone() == FocusZoneId::kActivityBar);
+    REQUIRE(fm.current_item() == 3);
+
+    // Changing zone should reset item to -1
+    fm.set_zone_enabled(FocusZoneId::kSidebar, true);
+    fm.advance(FocusDirection::kForward);
+    REQUIRE(fm.current_zone() != FocusZoneId::kActivityBar);
+    REQUIRE(fm.current_item() == -1);
+
+    // set_item updates just the item index
+    fm.set_item(5);
+    REQUIRE(fm.current_item() == 5);
+}
+
+TEST_CASE("FocusManager item-level focus snapshots", "[focus][keyboard]")
+{
+    auto& fm = FocusManager::get();
+
+    fm.set_focus(FocusZoneId::kSidebar, 12);
+    fm.push_snapshot();
+
+    fm.set_focus(FocusZoneId::kEditorArea, 1);
+
+    fm.restore();
+    REQUIRE(fm.current_zone() == FocusZoneId::kSidebar);
+    REQUIRE(fm.current_item() == 12);
+}
 // NOLINTEND(cppcoreguidelines-avoid-do-while,cert-err58-cpp,cppcoreguidelines-avoid-non-const-global-variables,misc-use-anonymous-namespace,readability-function-cognitive-complexity)

@@ -39,6 +39,7 @@
 #include "core/WebviewService.h"
 #include "core/WorkspaceService.h"
 #include "platform/PlatformAbstraction.h"
+#include "ui/FocusRingRenderer.h"
 #include "ui/MainFrame.h"
 
 #include <spdlog/spdlog.h>
@@ -230,6 +231,9 @@ bool MarkAmpApp::OnInit()
                                     feature_registry_.get(),
                                     mermaid_renderer_.get(),
                                     math_renderer_.get());
+
+    // Phase 05 Task 2: Initialize global focus ring tracking
+    ui::FocusRingRenderer::get().initialize();
 
     frame->Show(true);
     SetTopWindow(frame);

@@ -3,6 +3,8 @@
 #include "TypographyScale.h"
 #include "core/Events.h"
 #include "ui/FileTypeIconResolver.h"
+#include "ui/FocusManager.h"
+#include "ui/FocusRingRenderer.h"
 #include "ui/IconManager.h"
 
 #include <wx/dcbuffer.h>
@@ -61,6 +63,7 @@ BreadcrumbBar::BreadcrumbBar(wxWindow* parent, DesignSystemContext& ds)
          [this](wxFocusEvent& event)
          {
              is_focused_ = true;
+             FocusManager::get().set_focus(FocusZoneId::kBreadcrumb, 0);
              Refresh();
              event.Skip();
          });
@@ -69,6 +72,10 @@ BreadcrumbBar::BreadcrumbBar(wxWindow* parent, DesignSystemContext& ds)
          [this](wxFocusEvent& event)
          {
              is_focused_ = false;
+             if (FocusManager::get().current_zone() == FocusZoneId::kBreadcrumb)
+             {
+                 FocusManager::get().set_item(-1);
+             }
              Refresh();
              event.Skip();
          });
@@ -178,8 +185,13 @@ void BreadcrumbBar::OnPaint(wxPaintEvent& /*event*/)
 
         if (!icon_name.empty())
         {
-            IconManager::get().draw_icon(
-                dc, icon_name, current_x, icon_y, wxSize(icon_size, icon_size), fg_color, GetDPIScaleFactor());
+            IconManager::get().draw_icon(dc,
+                                         icon_name,
+                                         current_x,
+                                         icon_y,
+                                         wxSize(icon_size, icon_size),
+                                         fg_color,
+                                         GetDPIScaleFactor());
             current_x += icon_size + 4;
         }
 
@@ -247,6 +259,11 @@ void BreadcrumbBar::OnPaint(wxPaintEvent& /*event*/)
             traversal_segments_[idx].surface_label + ": " + traversal_segments_[idx].anchor_label;
         draw_segment(label, "link", false, label);
     }
+
+    // Phase 06 Task 6: Register bounds and draw animated focus ring
+    FocusRingRenderer::get().register_item_bounds(
+        FocusZoneId::kBreadcrumb, 0, this, GetClientRect());
+    FocusRingRenderer::get().draw(dc, this, theme_engine());
 }
 
 void BreadcrumbBar::OnMouseMove(wxMouseEvent& event)

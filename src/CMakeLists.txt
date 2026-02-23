@@ -26,6 +26,7 @@ add_executable(markamp
     ui/TypographyScale.cpp
     ui/InputModel.cpp
     ui/FocusManager.cpp
+    ui/FocusRingRenderer.cpp
     ui/ActivityBarModel.cpp
     ui/FileTreeModel.cpp
     ui/TabStripModel.cpp

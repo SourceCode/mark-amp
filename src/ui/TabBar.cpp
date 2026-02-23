@@ -3,6 +3,8 @@
 #include "LayoutMetrics.h"
 #include "core/Logger.h"
 #include "ui/FileTypeIconResolver.h"
+#include "ui/FocusManager.h"
+#include "ui/FocusRingRenderer.h"
 #include "ui/IconManager.h"
 
 #include <wx/clipbrd.h>
@@ -401,24 +403,11 @@ void TabBar::OnPaint(wxPaintEvent& /*event*/)
         {
             DrawTab(*gc, tab, theme);
 
-            // Phase 06 Task 6: Draw focus ring for keyboard navigation
-            if (HasFocus() && static_cast<int>(i) == focused_tab_index_)
-            {
-                int tab_x = tab.rect.GetLeft() - scroll_offset_;
-                int tab_y = tab.rect.GetTop();
-                int tab_w = tab.rect.GetWidth();
-                int tab_h = tab.rect.GetHeight();
-
-                auto focus_col =
-                    theme_engine()
-                        .resolve_token("list.focus_outline")
-                        .value_or(theme_engine().color(core::ThemeColorToken::AccentPrimary));
-                wxColour transparent_focus(
-                    focus_col.Red(), focus_col.Green(), focus_col.Blue(), 150);
-                gc->SetPen(gc->CreatePen(wxPen(transparent_focus, 2)));
-                gc->SetBrush(gc->CreateBrush(*wxTRANSPARENT_BRUSH));
-                gc->DrawRoundedRectangle(tab_x + 2, tab_y + 2, tab_w - 4, tab_h - 4, 4);
-            }
+            // Phase 06 Task 6: Register bounds for global focus ring
+            wxRect adjusted_rect = tab.rect;
+            adjusted_rect.SetLeft(adjusted_rect.GetLeft() - scroll_offset_);
+            FocusRingRenderer::get().register_item_bounds(
+                FocusZoneId::kEditorArea, static_cast<int>(i), this, adjusted_rect);
         }
     }
 
@@ -497,6 +486,9 @@ void TabBar::OnPaint(wxPaintEvent& /*event*/)
             gc->DrawRoundedRectangle(ghost_x, ghost_y, ghost_w, ghost_h, 4);
         }
     }
+
+    // Draw the global animated focus ring over the top
+    FocusRingRenderer::get().draw(dc, this, theme_engine());
 }
 
 void TabBar::DrawTab(wxGraphicsContext& gc, const TabInfo& tab, const core::Theme& /*theme*/) const
@@ -922,6 +914,10 @@ void TabBar::OnMouseDown(wxMouseEvent& event)
         return;
     }
 
+    focused_tab_index_ = tab_index;
+    FocusManager::get().set_focus(FocusZoneId::kEditorArea, tab_index);
+    Refresh();
+
     // Check if close button was clicked
     if (HitTestCloseButton(pos, tab_index))
     {
@@ -1345,12 +1341,17 @@ void markamp::ui::TabBar::OnSetFocus(wxFocusEvent& event)
             focused_tab_index_ = 0;
         }
     }
+    FocusManager::get().set_focus(FocusZoneId::kEditorArea, focused_tab_index_);
     Refresh();
     event.Skip();
 }
 
 void markamp::ui::TabBar::OnKillFocus(wxFocusEvent& event)
 {
+    if (FocusManager::get().current_zone() == FocusZoneId::kEditorArea)
+    {
+        FocusManager::get().set_item(-1);
+    }
     Refresh();
     event.Skip();
 }
@@ -1370,6 +1371,7 @@ void markamp::ui::TabBar::OnKeyDown(wxKeyEvent& event)
         {
             focused_tab_index_--;
             EnsureTabVisible(focused_tab_index_);
+            FocusManager::get().set_item(focused_tab_index_);
             Refresh();
         }
     }
@@ -1379,6 +1381,7 @@ void markamp::ui::TabBar::OnKeyDown(wxKeyEvent& event)
         {
             focused_tab_index_++;
             EnsureTabVisible(focused_tab_index_);
+            FocusManager::get().set_item(focused_tab_index_);
             Refresh();
         }
     }

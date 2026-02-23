@@ -1,6 +1,8 @@
 #include "ActivityBar.h"
 
 #include "ComponentSizeResolver.h"
+#include "FocusManager.h"
+#include "FocusRingRenderer.h"
 #include "LayoutMetrics.h"
 #include "SpacingGrid.h"
 #include "TooltipWindow.h"
@@ -252,14 +254,9 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
             paint_dc.SetFont(font);
         }
 
-        // Phase 06 Task 6: Focus ring around focused item
-        if (item_index == focus_index_ && HasFocus())
-        {
-            auto focus_col = clr.accent_primary.with_alpha(0.6F);
-            paint_dc.SetBrush(*wxTRANSPARENT_BRUSH);
-            paint_dc.SetPen(wxPen(focus_col.to_wx_colour(), 2));
-            paint_dc.DrawRoundedRectangle(3, item_y + 2, kBarWidth - 6, kBarWidth - 4, 4);
-        }
+        // Register item bounds with global FocusRingRenderer
+        FocusRingRenderer::get().register_item_bounds(
+            FocusZoneId::kActivityBar, item_index, this, item.bounds);
 
         item_y += kBarWidth;
     }
@@ -306,6 +303,9 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
     auto shadow_col = clr.bg_panel.to_wx_colour().ChangeLightness(90);
     paint_dc.SetPen(wxPen(shadow_col));
     paint_dc.DrawLine(size.GetWidth() - 2, 0, size.GetWidth() - 2, size.GetHeight());
+
+    // Draw the global animated focus ring over the top
+    FocusRingRenderer::get().draw(paint_dc, this, ds_.theme);
 }
 
 void ActivityBar::OnMouseDown(wxMouseEvent& event)
@@ -313,6 +313,14 @@ void ActivityBar::OnMouseDown(wxMouseEvent& event)
     const int item_index = HitTest(event.GetPosition());
     // R20 Fix 18: Track pressed item for visual feedback
     pressed_index_ = item_index;
+
+    // Set global focus when interacting with mouse
+    if (item_index >= 0)
+    {
+        focus_index_ = item_index;
+        FocusManager::get().set_focus(FocusZoneId::kActivityBar, item_index);
+    }
+
     // Phase 06 Task 12: Record drag start
     drag_start_pos_ = event.GetPosition();
     drag_index_ = item_index;
@@ -473,6 +481,7 @@ void ActivityBar::OnKeyDown(wxKeyEvent& event)
             {
                 --focus_index_;
             }
+            FocusManager::get().set_focus(FocusZoneId::kActivityBar, focus_index_);
             Refresh();
             break;
         }
@@ -486,6 +495,7 @@ void ActivityBar::OnKeyDown(wxKeyEvent& event)
             {
                 ++focus_index_;
             }
+            FocusManager::get().set_focus(FocusZoneId::kActivityBar, focus_index_);
             Refresh();
             break;
         }
@@ -504,12 +514,14 @@ void ActivityBar::OnKeyDown(wxKeyEvent& event)
         case WXK_HOME:
         {
             focus_index_ = 0;
+            FocusManager::get().set_focus(FocusZoneId::kActivityBar, focus_index_);
             Refresh();
             break;
         }
         case WXK_END:
         {
             focus_index_ = item_count - 1;
+            FocusManager::get().set_focus(FocusZoneId::kActivityBar, focus_index_);
             Refresh();
             break;
         }
@@ -537,11 +549,17 @@ void ActivityBar::OnSetFocus(wxFocusEvent& /*event*/)
             focus_index_ = 0;
         }
     }
+    FocusManager::get().set_focus(FocusZoneId::kActivityBar, focus_index_);
     Refresh();
 }
 
 void ActivityBar::OnKillFocus(wxFocusEvent& /*event*/)
 {
+    // Clear global focus indicator from ActivityBar
+    if (FocusManager::get().current_zone() == FocusZoneId::kActivityBar)
+    {
+        FocusManager::get().set_item(-1);
+    }
     Refresh();
 }
 
@@ -552,6 +570,7 @@ void ActivityBar::FocusItem(int index)
     {
         focus_index_ = index;
         SetFocus();
+        FocusManager::get().set_focus(FocusZoneId::kActivityBar, focus_index_);
         Refresh();
     }
 }

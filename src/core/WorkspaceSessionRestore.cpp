@@ -43,18 +43,16 @@ auto WorkspaceSessionRestore::restore_snapshot(const std::string& snapshot_id) -
 auto WorkspaceSessionRestore::latest_snapshot(const std::string& workspace_name) const
     -> const SessionSnapshot*
 {
-    const SessionSnapshot* latest = nullptr;
-    for (const auto& snap : snapshots_)
+    auto it =
+        std::find_if(snapshots_.rbegin(),
+                     snapshots_.rend(),
+                     [&](const SessionSnapshot& snap)
+                     { return workspace_name.empty() || snap.workspace_name == workspace_name; });
+    if (it != snapshots_.rend())
     {
-        if (workspace_name.empty() || snap.workspace_name == workspace_name)
-        {
-            if (latest == nullptr || snap.created_at > latest->created_at)
-            {
-                latest = &snap;
-            }
-        }
+        return &(*it);
     }
-    return latest;
+    return nullptr;
 }
 
 auto WorkspaceSessionRestore::list_snapshots() const -> std::vector<const SessionSnapshot*>
