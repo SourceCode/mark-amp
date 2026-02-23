@@ -1,5 +1,18 @@
 # MarkAmp Release History
 
+## v2.7.34 — 2026-02-23
+
+### Highlights
+
+V13 Phase 05 Tasks 4-10: Accessibility Features. Implemented native Screen Reader Bridges, Accessibility Controller, Tab Traversal definitions, modal focus trapping, and a skip-to-content landmark.
+
+### Added
+
+- **Platform-Native Screen Readers** — Added `MacScreenReaderBridge` (using NSAccessibility) alongside base stubs for Linux/Windows to translate app state into spoken word.
+- **Accessibility Coordinator** — Added `AccessibilityController` to tie the bridge seamlessly with `FocusManager` and UI changes.
+- **Focus Controls** — Upgraded `FocusManager` to support explicit focus trapping within overlays and registered global tab ordering for logical keyboard navigation.
+- **Skip-to-Content** — Included an invisible navigational button (`SkipToContentButton`) designed for accessibility that allows bypassing the application's top-level chrome directly to the editor payload.
+
 ## v2.7.32 — 2026-02-23
 
 ### Highlights

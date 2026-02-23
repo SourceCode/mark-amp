@@ -26,6 +26,8 @@ add_executable(markamp
     ui/TypographyScale.cpp
     ui/InputModel.cpp
     ui/FocusManager.cpp
+    ui/accessibility/AccessibilityController.cpp
+    ui/accessibility/SkipToContentButton.cpp
     ui/FocusRingRenderer.cpp
     ui/ActivityBarModel.cpp
     ui/FileTreeModel.cpp
@@ -718,16 +720,18 @@ add_executable(markamp
 
 # Platform-specific sources
 if(APPLE)
-    target_sources(markamp PRIVATE platform/MacPlatform.mm)
+    target_sources(markamp PRIVATE platform/MacPlatform.mm platform/MacScreenReaderBridge.mm)
     # Enable Objective-C++ for .mm files
-    set_source_files_properties(platform/MacPlatform.mm PROPERTIES
+    set_source_files_properties(platform/MacPlatform.mm platform/MacScreenReaderBridge.mm PROPERTIES
         COMPILE_FLAGS "-x objective-c++"
     )
 elseif(WIN32)
-    target_sources(markamp PRIVATE platform/WinPlatform.cpp)
+    target_sources(markamp PRIVATE platform/WinPlatform.cpp platform/WinScreenReaderBridge.cpp)
 elseif(UNIX)
-    target_sources(markamp PRIVATE platform/LinuxPlatform.cpp)
+    target_sources(markamp PRIVATE platform/LinuxPlatform.cpp platform/LinuxScreenReaderBridge.cpp)
 endif()
+
+project(MarkAmp VERSION 2.7.34 LANGUAGES CXX)
 
 # Include paths -- src/ is the root for includes like "app/MarkAmpApp.h"
 target_include_directories(markamp PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

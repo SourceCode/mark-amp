@@ -107,6 +107,8 @@ add_library(markamp_core STATIC
     # V10 Phase 01: Unified control state tracking
     ${CMAKE_SOURCE_DIR}/src/ui/ControlState.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/FocusManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/accessibility/AccessibilityController.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/accessibility/SkipToContentButton.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/LayoutMetrics.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/ColorPaletteGenerator.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/animation/EasingFunctions.cpp

@@ -10,7 +10,7 @@
 | Field           | Value                                                                                                                      |
 | --------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | Name            | **MarkAmp**                                                                                                                |
-| Version         | **2.7.32**                                                                                                                 |
+| Version         | **2.7.34**                                                                                                                 |
 | Language        | C++23 (C++26-ready patterns)                                                                                               |
 | UI Toolkit      | wxWidgets 3.2.9                                                                                                            |
 | Build System    | CMake 3.30+ with presets                                                                                                   |
@@ -857,16 +857,27 @@ Mermaid, Table Editor, Format Bar, Theme Gallery, Link Preview, Image Preview, B
 | `ImagePreviewPopover`          | Image hover preview                               |
 | `LinkPreviewPopover`           | Link hover preview                                |
 
+### 6.9 Accessibility Features (`src/ui/accessibility/`)
+
+| Component                 | Purpose                                                      |
+| ------------------------- | ------------------------------------------------------------ |
+| `AccessibilityController` | Broad coordinator for focus events and screen reader updates |
+| `SkipToContentButton`     | Hidden keyboard-navigable landmark to skip to editor         |
+
 ---
 
 ## 7 · Platform Layer (`src/platform/`)
 
-| Component             | Purpose                               |
-| --------------------- | ------------------------------------- |
-| `PlatformAbstraction` | Platform detection and dispatch       |
-| `MacPlatform`         | macOS-specific (Objective-C++ bridge) |
-| `WinPlatform`         | Windows-specific (Win32 API)          |
-| `LinuxPlatform`       | Linux-specific (GTK/GDK)              |
+| Component                 | Purpose                               |
+| ------------------------- | ------------------------------------- |
+| `PlatformAbstraction`     | Platform detection and dispatch       |
+| `MacPlatform`             | macOS-specific (Objective-C++ bridge) |
+| `WinPlatform`             | Windows-specific (Win32 API)          |
+| `LinuxPlatform`           | Linux-specific (GTK/GDK)              |
+| `ScreenReaderBridge`      | Base screen reader integration        |
+| `MacScreenReaderBridge`   | NSAccessibility-based screen reader   |
+| `LinuxScreenReaderBridge` | Linux screen reader stub              |
+| `WinScreenReaderBridge`   | Windows screen reader stub            |
 
 Platform services implemented in `PlatformServices.h/.cpp`: `FileWatcher` (polling-based), clipboard, shell operations.
 

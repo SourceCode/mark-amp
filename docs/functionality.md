@@ -286,3 +286,12 @@ HTML, Markdown, Pandoc-supported formats, PDF annotation import
 - Multi-language support via LocaleManager
 - RTL/LTR text direction
 - Translation catalogs
+
+---
+
+## 18. Accessibility
+
+- **Screen Reader Support** — VoiceOver integration (macOS) and native stubs for Windows/Linux via `ScreenReaderBridge`
+- **Focus Management** — `FocusManager` provides global item-level tracking and modal focus trapping
+- **Keyboard Navigation** — Dynamic focus rings globally rendered for keyboard users only (mouse input disables them)
+- **Skip-to-Content** — Invisible tab-navigable landmark to bypass UI chrome straight to the editor

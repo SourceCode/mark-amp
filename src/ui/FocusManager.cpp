@@ -8,6 +8,17 @@ namespace markamp::ui
 
 FocusManager::FocusManager()
 {
+    // Default canonical traversal order
+    base_traversal_order_ = {
+        FocusZoneId::kMenuBar,
+        FocusZoneId::kActivityBar,
+        FocusZoneId::kSidebar,
+        FocusZoneId::kBreadcrumb,
+        FocusZoneId::kEditorArea,
+        FocusZoneId::kBottomPanel,
+        FocusZoneId::kStatusBar,
+    };
+
     // All zones enabled by default
     zone_enabled_.fill(true);
 }
@@ -93,6 +104,26 @@ void FocusManager::restore()
     snapshot_stack_.pop_back();
 }
 
+void FocusManager::set_traversal_order(std::vector<FocusZoneId> order)
+{
+    base_traversal_order_ = std::move(order);
+}
+
+void FocusManager::push_focus_trap(std::vector<FocusZoneId> trap_zones)
+{
+    trap_stack_.push_back(std::move(trap_zones));
+    // When a trap is pushed, typically we'd also force focus into the trap.
+    // We leave that to the caller.
+}
+
+void FocusManager::pop_focus_trap()
+{
+    if (!trap_stack_.empty())
+    {
+        trap_stack_.pop_back();
+    }
+}
+
 void FocusManager::set_keyboard_mode_active(bool active)
 {
     if (keyboard_mode_active_ != active)
@@ -116,6 +147,7 @@ auto FocusManager::arrow_behavior(FocusZoneId zone) -> ArrowKeyBehavior
         case FocusZoneId::kBottomPanel:
             return ArrowKeyBehavior::kVerticalList;
         case FocusZoneId::kEditorArea:
+        case FocusZoneId::kModalOverlay:
             return ArrowKeyBehavior::kGrid;
         case FocusZoneId::kCount:
             return ArrowKeyBehavior::kNone;
@@ -144,19 +176,10 @@ void FocusManager::set_zone_enabled(FocusZoneId zone, bool enabled)
 
 auto FocusManager::zone_order() const -> std::vector<FocusZoneId>
 {
-    // Canonical traversal order
-    static constexpr std::array<FocusZoneId, 7> kTraversalOrder = {{
-        FocusZoneId::kMenuBar,
-        FocusZoneId::kActivityBar,
-        FocusZoneId::kSidebar,
-        FocusZoneId::kBreadcrumb,
-        FocusZoneId::kEditorArea,
-        FocusZoneId::kBottomPanel,
-        FocusZoneId::kStatusBar,
-    }};
+    const auto& order = trap_stack_.empty() ? base_traversal_order_ : trap_stack_.back();
 
     std::vector<FocusZoneId> result;
-    for (auto zone : kTraversalOrder)
+    for (auto zone : order)
     {
         if (is_zone_enabled(zone))
         {

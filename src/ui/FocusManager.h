@@ -21,6 +21,7 @@ enum class FocusZoneId : uint8_t
     kBottomPanel,
     kStatusBar,
     kBreadcrumb,
+    kModalOverlay,
 
     kCount ///< Sentinel — must be last
 };
@@ -95,6 +96,15 @@ public:
     /// Restore focus from the most recent snapshot.
     void restore();
 
+    /// Set the canonical base traversal order for the application chrome.
+    void set_traversal_order(std::vector<FocusZoneId> order);
+
+    /// Push a focus trap restricting traversal to a specific set of zones.
+    void push_focus_trap(std::vector<FocusZoneId> trap_zones);
+
+    /// Pop the most recent focus trap.
+    void pop_focus_trap();
+
     /// Is keyboard-only navigation mode active?
     [[nodiscard]] auto is_keyboard_mode_active() const -> bool
     {
@@ -137,6 +147,9 @@ private:
     std::vector<std::pair<std::size_t, FocusChangeCallback>> listeners_;
     std::size_t next_listener_id_{0};
     bool keyboard_mode_active_{false};
+
+    std::vector<FocusZoneId> base_traversal_order_;
+    std::vector<std::vector<FocusZoneId>> trap_stack_;
 
     // Visibility flags per zone
     static constexpr auto kZoneCount = static_cast<std::size_t>(FocusZoneId::kCount);

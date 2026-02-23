@@ -17,6 +17,7 @@
 #include "ui/IconManager.h"
 #include "ui/LayoutMetrics.h"
 #include "ui/ThemeEditorPanel.h"
+#include "ui/accessibility/SkipToContentButton.h"
 
 #include <wx/aboutdlg.h>
 #include <wx/display.h>
@@ -152,6 +153,14 @@ MainFrame::MainFrame(const wxString& title,
 
     // Create the layout manager (sidebar + content + status bar)
     auto* sizer = new wxBoxSizer(wxVERTICAL);
+
+    // Accessibility: Skip to Content button (top-most element in DOM/Sizer)
+    if (theme_engine_ != nullptr)
+    {
+        auto* skip_button = new accessibility::SkipToContentButton(this, *theme_engine_);
+        sizer->Add(skip_button, 0, wxEXPAND);
+    }
+
     sizer->Add(chrome_, 0, wxEXPAND);
 
     // Default to Startup Screen unless arguments are parsed (logic to be added via MarkAmpApp)
