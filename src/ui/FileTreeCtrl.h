@@ -123,6 +123,7 @@ private:
     FileSelectCallback on_file_select_;
     FileOpenCallback on_file_open_;
     core::EventBus& event_bus_;
+    core::Subscription keyboard_mode_sub_; // Phase 05 Task 3
 
     int scroll_offset_{0};
     int virtual_height_{0};

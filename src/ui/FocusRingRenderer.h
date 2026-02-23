@@ -42,6 +42,9 @@ public:
     template <typename DC>
     void draw(DC& dc, wxWindow* window, core::ThemeEngine& theme_engine)
     {
+        if (!FocusManager::get().is_keyboard_mode_active())
+            return;
+
         if (!window || !animator_.is_active())
             return;
 

@@ -62,6 +62,7 @@ class MarkAmpApp : public wxApp
 public:
     bool OnInit() override;
     int OnExit() override;
+    int FilterEvent(wxEvent& event) override;
 
     /// Idle handler — drains queued and fast-path EventBus events.
     void OnIdle(wxIdleEvent& event);

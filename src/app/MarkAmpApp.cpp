@@ -39,6 +39,7 @@
 #include "core/WebviewService.h"
 #include "core/WorkspaceService.h"
 #include "platform/PlatformAbstraction.h"
+#include "ui/FocusManager.h"
 #include "ui/FocusRingRenderer.h"
 #include "ui/MainFrame.h"
 
@@ -46,6 +47,43 @@
 
 namespace markamp::app
 {
+
+int MarkAmpApp::FilterEvent(wxEvent& event)
+{
+    const wxEventType type = event.GetEventType();
+
+    if (type == wxEVT_KEY_DOWN)
+    {
+        auto* keyEvent = static_cast<wxKeyEvent*>(&event);
+        int keycode = keyEvent->GetKeyCode();
+
+        bool isModifier = (keycode == WXK_SHIFT || keycode == WXK_CONTROL || keycode == WXK_ALT ||
+                           keycode == WXK_RAW_CONTROL || keycode == WXK_COMMAND);
+
+        if (!isModifier && !ui::FocusManager::get().is_keyboard_mode_active())
+        {
+            ui::FocusManager::get().set_keyboard_mode_active(true);
+            if (event_bus_)
+            {
+                event_bus_->publish(core::events::KeyboardModeChangedEvent(true));
+            }
+        }
+    }
+    else if (type == wxEVT_LEFT_DOWN || type == wxEVT_RIGHT_DOWN || type == wxEVT_MIDDLE_DOWN ||
+             type == wxEVT_LEFT_DCLICK || type == wxEVT_RIGHT_DCLICK)
+    {
+        if (ui::FocusManager::get().is_keyboard_mode_active())
+        {
+            ui::FocusManager::get().set_keyboard_mode_active(false);
+            if (event_bus_)
+            {
+                event_bus_->publish(core::events::KeyboardModeChangedEvent(false));
+            }
+        }
+    }
+
+    return wxApp::FilterEvent(event);
+}
 
 // Destructor defined here where all forward-declared types are complete
 MarkAmpApp::~MarkAmpApp() = default;

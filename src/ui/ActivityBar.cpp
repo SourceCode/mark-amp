@@ -87,6 +87,9 @@ ActivityBar::ActivityBar(wxWindow* parent, DesignSystemContext& ds, core::EventB
     extension_updates_sub_ = event_bus_.subscribe<core::events::ExtensionUpdatesAvailableEvent>(
         [this](const core::events::ExtensionUpdatesAvailableEvent& evt)
         { SetBadge(core::events::ActivityBarItem::Extensions, evt.update_count); });
+
+    keyboard_mode_sub_ = event_bus_.subscribe<core::events::KeyboardModeChangedEvent>(
+        [this](const core::events::KeyboardModeChangedEvent& /*evt*/) { Refresh(); });
 }
 
 void ActivityBar::CreateItems()

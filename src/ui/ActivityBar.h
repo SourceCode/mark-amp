@@ -65,6 +65,7 @@ private:
     core::Subscription search_count_sub_;      // Phase 06 Task 7
     core::Subscription diagnostics_sub_;       // Phase 06 Task 7
     core::Subscription extension_updates_sub_; // Phase 06 Task 7
+    core::Subscription keyboard_mode_sub_;     // Phase 05 Task 3
 
     core::Subscription density_sub_;
 

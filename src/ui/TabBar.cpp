@@ -69,6 +69,9 @@ TabBar::TabBar(wxWindow* parent, DesignSystemContext& ds, core::EventBus& event_
     Bind(wxEVT_SET_FOCUS, &TabBar::OnSetFocus, this);
     Bind(wxEVT_KILL_FOCUS, &TabBar::OnKillFocus, this);
     Bind(wxEVT_KEY_DOWN, &TabBar::OnKeyDown, this);
+
+    keyboard_mode_sub_ = event_bus_.subscribe<core::events::KeyboardModeChangedEvent>(
+        [this](const core::events::KeyboardModeChangedEvent& /*evt*/) { Refresh(); });
 }
 
 // --- Tab management ---

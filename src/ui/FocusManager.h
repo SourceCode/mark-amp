@@ -95,6 +95,15 @@ public:
     /// Restore focus from the most recent snapshot.
     void restore();
 
+    /// Is keyboard-only navigation mode active?
+    [[nodiscard]] auto is_keyboard_mode_active() const -> bool
+    {
+        return keyboard_mode_active_;
+    }
+
+    /// Set keyboard-only navigation mode.
+    void set_keyboard_mode_active(bool active);
+
     /// Query arrow key behavior for a given zone.
     [[nodiscard]] static auto arrow_behavior(FocusZoneId zone) -> ArrowKeyBehavior;
 
@@ -127,6 +136,7 @@ private:
 
     std::vector<std::pair<std::size_t, FocusChangeCallback>> listeners_;
     std::size_t next_listener_id_{0};
+    bool keyboard_mode_active_{false};
 
     // Visibility flags per zone
     static constexpr auto kZoneCount = static_cast<std::size_t>(FocusZoneId::kCount);

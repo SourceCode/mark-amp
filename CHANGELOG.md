@@ -1,5 +1,17 @@
 # MarkAmp Release History
 
+## v2.7.32 — 2026-02-23
+
+### Highlights
+
+V13 Phase 05 Task 3: Keyboard-Only Mode Detector. Implemented global input event filtering to detect whether the user is using a keyboard or a mouse, dynamically hiding or showing focus rings based on input method.
+
+### Added
+
+- **Keyboard-Only Mode Detector** — `MarkAmpApp::FilterEvent` intercepts global input to detect mouse vs. keyboard interaction, setting the active mode in `FocusManager`.
+- **Dynamic Focus Rings** — `FocusRingRenderer` bypasses drawing when mouse input is detected, maintaining a clean UI without sacrificing accessibility.
+- **UI Control Reactivity** — `ActivityBar`, `TabBar`, and `FileTreeCtrl` instantly redraw focused states upon receiving `KeyboardModeChangedEvent` for immediate feedback.
+
 ## v2.7.31 — 2026-02-23
 
 ### Highlights

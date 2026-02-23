@@ -59,6 +59,9 @@ FileTreeCtrl::FileTreeCtrl(wxWindow* parent,
     type_ahead_timer_.SetOwner(this);
     Bind(wxEVT_TIMER, &FileTreeCtrl::OnTypeAheadTimerExpired, this);
 
+    keyboard_mode_sub_ = event_bus_.subscribe<core::events::KeyboardModeChangedEvent>(
+        [this](const core::events::KeyboardModeChangedEvent& /*evt*/) { Refresh(); });
+
     LoadIcons();
 }
 

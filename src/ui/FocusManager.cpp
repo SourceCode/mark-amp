@@ -93,6 +93,16 @@ void FocusManager::restore()
     snapshot_stack_.pop_back();
 }
 
+void FocusManager::set_keyboard_mode_active(bool active)
+{
+    if (keyboard_mode_active_ != active)
+    {
+        keyboard_mode_active_ = active;
+        // Broadcast focus change to immediately refresh focus ring visibility
+        publish_focus_change();
+    }
+}
+
 auto FocusManager::arrow_behavior(FocusZoneId zone) -> ArrowKeyBehavior
 {
     switch (zone)

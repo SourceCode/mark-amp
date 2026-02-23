@@ -186,6 +186,16 @@ explicit ViewModeChangedEvent(ViewMode m)
 }
 MARKAMP_DECLARE_EVENT_END;
 
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(KeyboardModeChangedEvent)
+bool is_keyboard_only{false};
+
+KeyboardModeChangedEvent() = default;
+explicit KeyboardModeChangedEvent(bool keyboard_only)
+    : is_keyboard_only(keyboard_only)
+{
+}
+MARKAMP_DECLARE_EVENT_END;
+
 MARKAMP_DECLARE_EVENT_WITH_FIELDS(SidebarToggleEvent)
 bool visible;
 MARKAMP_DECLARE_EVENT_END;

@@ -111,6 +111,8 @@ private:
     // Interaction state
     int hovered_tab_index_{-1};
 
+    core::Subscription keyboard_mode_sub_; // Phase 05 Task 3
+
     // R18 Fix 1: Fade-in transition manager
     animation::TransitionManager transition_manager_{this};
 

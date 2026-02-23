@@ -106,6 +106,7 @@ add_library(markamp_core STATIC
     ${CMAKE_SOURCE_DIR}/src/ui/WalkthroughPanel.cpp
     # V10 Phase 01: Unified control state tracking
     ${CMAKE_SOURCE_DIR}/src/ui/ControlState.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/FocusManager.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/LayoutMetrics.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/ColorPaletteGenerator.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/animation/EasingFunctions.cpp
@@ -5589,3 +5590,6 @@ target_link_libraries(test_icon_manager PRIVATE
     markamp_core
 )
 add_test(NAME test_icon_manager COMMAND test_icon_manager)
+add_executable(test_phase05_keyboard_mode unit/test_phase05_keyboard_mode.cpp)
+target_link_libraries(test_phase05_keyboard_mode PRIVATE markamp_core Catch2::Catch2WithMain)
+add_test(NAME test_phase05_keyboard_mode COMMAND test_phase05_keyboard_mode)
