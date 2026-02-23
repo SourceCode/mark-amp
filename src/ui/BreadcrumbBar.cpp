@@ -1,7 +1,9 @@
 #include "BreadcrumbBar.h"
 
+#include "LayoutMetrics.h"
 #include "TypographyScale.h"
-#include "core/Events.h"
+#include "accessibility/AccessibilityController.h"
+#include "core/Logger.h"
 #include "ui/FileTypeIconResolver.h"
 #include "ui/FocusManager.h"
 #include "ui/FocusRingRenderer.h"
@@ -15,14 +17,14 @@
 namespace markamp::ui
 {
 
-BreadcrumbBar::BreadcrumbBar(wxWindow* parent, DesignSystemContext& ds)
+BreadcrumbBar::BreadcrumbBar(wxWindow* parent, DesignSystemContext& design_system)
     : ThemeAwareWindow(parent,
-                       ds.theme,
+                       design_system.theme,
                        wxID_ANY,
                        wxDefaultPosition,
-                       wxSize(-1, ds.metrics.row_height()),
+                       wxSize(-1, design_system.metrics.row_height()),
                        wxTAB_TRAVERSAL | wxNO_BORDER | wxWANTS_CHARS | wxFULL_REPAINT_ON_RESIZE)
-    , ds_(ds)
+    , ds_(design_system)
 {
     SetBackgroundStyle(wxBG_STYLE_PAINT);
     OnThemeChanged(ds_.theme.current_theme());
@@ -49,7 +51,9 @@ BreadcrumbBar::BreadcrumbBar(wxWindow* parent, DesignSystemContext& ds)
                          for (size_t idx = 0; idx < file_segments_.size(); ++idx)
                          {
                              if (idx > 0)
+                             {
                                  full_path += "/";
+                             }
                              full_path += file_segments_[idx];
                          }
                          segment_click_callback_(full_path);
@@ -126,16 +130,16 @@ void BreadcrumbBar::Rebuild()
 
 void BreadcrumbBar::OnPaint(wxPaintEvent& /*event*/)
 {
-    wxAutoBufferedPaintDC dc(this);
+    wxAutoBufferedPaintDC paint_dc(this);
 
-    auto client_size = GetClientSize();
-    int width = client_size.GetWidth();
-    int height = client_size.GetHeight();
+    const auto kClientSize = GetClientSize();
+    const int kWidth = kClientSize.GetWidth();
+    const int kHeight = kClientSize.GetHeight();
 
-    auto bg_color = theme_engine().color(core::ThemeColorToken::BgPanel);
-    dc.SetBrush(wxBrush(bg_color));
-    dc.SetPen(*wxTRANSPARENT_PEN);
-    dc.DrawRectangle(0, 0, width, height);
+    const auto kBgColor = theme_engine().color(core::ThemeColorToken::BgPanel);
+    paint_dc.SetBrush(wxBrush(kBgColor));
+    paint_dc.SetPen(*wxTRANSPARENT_PEN);
+    paint_dc.DrawRectangle(0, 0, kWidth, kHeight);
 
     if (file_segments_.empty() && heading_segments_.empty() && traversal_segments_.empty())
     {
@@ -147,27 +151,27 @@ void BreadcrumbBar::OnPaint(wxPaintEvent& /*event*/)
     bold_font.SetWeight(wxFONTWEIGHT_SEMIBOLD);
 
     int current_x = ds_.spacing.scaled(SpacingToken::kMd);
-    const int text_y = (height - dc.GetCharHeight()) / 2 + 1;
-    const int icon_size = 14;
-    const int icon_y = (height - icon_size) / 2;
+    const int kTextY = (kHeight - paint_dc.GetCharHeight()) / 2 + 1;
+    const int kIconSize = 14;
+    const int kIconY = (kHeight - kIconSize) / 2;
 
-    auto text_color_normal = theme_engine().color(core::ThemeColorToken::TextMuted);
-    auto text_color_hover = theme_engine().color(core::ThemeColorToken::TextMain);
-    auto separator_color = theme_engine().color(core::ThemeColorToken::BorderLight);
+    const auto kTextColorNormal = theme_engine().color(core::ThemeColorToken::TextMuted);
+    const auto kTextColorHover = theme_engine().color(core::ThemeColorToken::TextMain);
+    const auto kSeparatorColor = theme_engine().color(core::ThemeColorToken::BorderLight);
 
-    bool rebuild_bounds = drawn_segments_.empty();
+    const bool kRebuildBounds = drawn_segments_.empty();
     int segment_index = 0;
-    std::string full_path = "";
+    std::string full_path;
 
     auto draw_separator = [&]()
     {
-        IconManager::get().draw_icon(dc,
+        IconManager::get().draw_icon(paint_dc,
                                      "chevron-right",
                                      current_x + 2,
-                                     icon_y,
-                                     wxSize(icon_size, icon_size),
-                                     separator_color);
-        current_x += icon_size + 4;
+                                     kIconY,
+                                     wxSize(kIconSize, kIconSize),
+                                     kSeparatorColor);
+        current_x += kIconSize + 4;
     };
 
     auto draw_segment = [&](const std::string& text,
@@ -175,38 +179,38 @@ void BreadcrumbBar::OnPaint(wxPaintEvent& /*event*/)
                             bool is_last_file,
                             const std::string& segment_path)
     {
-        int start_x = current_x;
+        const int kStartX = current_x;
 
-        wxColour fg_color = text_color_normal;
+        wxColour fg_color = kTextColorNormal;
         if (hovered_segment_ == segment_index)
         {
-            fg_color = text_color_hover;
+            fg_color = kTextColorHover;
         }
 
         if (!icon_name.empty())
         {
-            IconManager::get().draw_icon(dc,
+            IconManager::get().draw_icon(paint_dc,
                                          icon_name,
                                          current_x,
-                                         icon_y,
-                                         wxSize(icon_size, icon_size),
+                                         kIconY,
+                                         wxSize(kIconSize, kIconSize),
                                          fg_color,
                                          GetDPIScaleFactor());
-            current_x += icon_size + 4;
+            current_x += kIconSize + 4;
         }
 
-        dc.SetFont(is_last_file ? bold_font : font);
-        dc.SetTextForeground(fg_color);
-        wxString wx_text = wxString::FromUTF8(text);
-        dc.DrawText(wx_text, current_x, text_y);
-        current_x += dc.GetTextExtent(wx_text).GetWidth();
+        paint_dc.SetFont(is_last_file ? bold_font : font);
+        paint_dc.SetTextForeground(fg_color);
+        const wxString kWxText = wxString::FromUTF8(text);
+        paint_dc.DrawText(kWxText, current_x, kTextY);
+        current_x += paint_dc.GetTextExtent(kWxText).GetWidth();
 
-        if (rebuild_bounds)
+        if (kRebuildBounds)
         {
-            DrawnSegment ds;
-            ds.bounds = wxRect(start_x, 0, current_x - start_x, height);
-            ds.full_path = segment_path;
-            drawn_segments_.push_back(ds);
+            DrawnSegment segment_info;
+            segment_info.bounds = wxRect(kStartX, 0, current_x - kStartX, kHeight);
+            segment_info.full_path = segment_path;
+            drawn_segments_.push_back(segment_info);
         }
 
         segment_index++;
@@ -222,7 +226,7 @@ void BreadcrumbBar::OnPaint(wxPaintEvent& /*event*/)
         }
         full_path += file_segments_[idx];
 
-        std::string icon = "";
+        std::string icon;
         if (idx == file_segments_.size() - 1)
         {
             icon = FileTypeIconResolver::GetFileIcon(file_segments_[idx]);
@@ -241,7 +245,9 @@ void BreadcrumbBar::OnPaint(wxPaintEvent& /*event*/)
 
         std::string heading_path = full_path;
         if (!heading_path.empty())
+        {
             heading_path += " -> ";
+        }
         heading_path += heading_segments_[idx];
 
         draw_segment(heading_segments_[idx], "symbol-misc", false, heading_path);
@@ -255,15 +261,18 @@ void BreadcrumbBar::OnPaint(wxPaintEvent& /*event*/)
             draw_separator();
         }
 
-        std::string label =
+        const std::string kLabel =
             traversal_segments_[idx].surface_label + ": " + traversal_segments_[idx].anchor_label;
-        draw_segment(label, "link", false, label);
+        draw_segment(kLabel, "link", false, kLabel);
     }
 
-    // Phase 06 Task 6: Register bounds and draw animated focus ring
-    FocusRingRenderer::get().register_item_bounds(
-        FocusZoneId::kBreadcrumb, 0, this, GetClientRect());
-    FocusRingRenderer::get().draw(dc, this, theme_engine());
+    for (size_t i = 0; i < drawn_segments_.size(); ++i)
+    {
+        FocusRingRenderer::get().register_item_bounds(
+            FocusZoneId::kBreadcrumb, static_cast<int>(i), this, drawn_segments_[i].bounds);
+    }
+
+    FocusRingRenderer::get().draw(paint_dc, this, theme_engine());
 }
 
 void BreadcrumbBar::OnMouseMove(wxMouseEvent& event)
@@ -274,20 +283,20 @@ void BreadcrumbBar::OnMouseMove(wxMouseEvent& event)
         return;
     }
 
-    int previous_hover = hovered_segment_;
+    const int kPreviousHover = hovered_segment_;
     hovered_segment_ = -1;
 
-    wxPoint pos = event.GetPosition();
+    const wxPoint kPos = event.GetPosition();
     for (size_t i = 0; i < drawn_segments_.size(); ++i)
     {
-        if (drawn_segments_[i].bounds.Contains(pos))
+        if (drawn_segments_[i].bounds.Contains(kPos))
         {
             hovered_segment_ = static_cast<int>(i);
             break;
         }
     }
 
-    if (hovered_segment_ != previous_hover)
+    if (hovered_segment_ != kPreviousHover)
     {
         if (hovered_segment_ >= 0)
         {
@@ -318,6 +327,98 @@ void BreadcrumbBar::OnLeaveWindow(wxMouseEvent& event)
     event.Skip();
 }
 
+void BreadcrumbBar::OnSetFocus(wxFocusEvent& event)
+{
+    is_focused_ = true;
+    if (focused_segment_index_ < 0 && !drawn_segments_.empty())
+    {
+        focused_segment_index_ =
+            static_cast<int>(drawn_segments_.size() - 1); // default to last item (file name)
+    }
+
+    if (focused_segment_index_ >= 0 &&
+        focused_segment_index_ < static_cast<int>(drawn_segments_.size()))
+    {
+        accessibility::AccessibilityController::get().announce_focus(
+            drawn_segments_[static_cast<std::size_t>(focused_segment_index_)].full_path,
+            "Breadcrumb Segment",
+            "Selected");
+    }
+
+    Refresh();
+    event.Skip();
+}
+
+void BreadcrumbBar::OnKillFocus(wxFocusEvent& event)
+{
+    is_focused_ = false;
+    Refresh();
+    event.Skip();
+}
+
+void BreadcrumbBar::OnKeyDown(wxKeyEvent& event)
+{
+    if (!is_focused_ || drawn_segments_.empty())
+    {
+        event.Skip();
+        return;
+    }
+
+    const int kKeyCode = event.GetKeyCode();
+    const int kCount = static_cast<int>(drawn_segments_.size());
+
+    bool handled = false;
+
+    if (kKeyCode == WXK_LEFT)
+    {
+        focused_segment_index_--;
+        if (focused_segment_index_ < 0)
+        {
+            focused_segment_index_ = kCount - 1;
+        }
+        handled = true;
+    }
+    else if (kKeyCode == WXK_RIGHT)
+    {
+        focused_segment_index_++;
+        if (focused_segment_index_ >= kCount)
+        {
+            focused_segment_index_ = 0;
+        }
+        handled = true;
+    }
+    else if (kKeyCode == WXK_RETURN || kKeyCode == WXK_SPACE)
+    {
+        if (focused_segment_index_ >= 0 && focused_segment_index_ < kCount)
+        {
+            const auto& seg = drawn_segments_[static_cast<std::size_t>(focused_segment_index_)];
+            MARKAMP_LOG_DEBUG("Breadcrumb keyboard activated: {}", seg.full_path);
+
+            if (segment_click_callback_)
+            {
+                segment_click_callback_(seg.full_path);
+            }
+        }
+        handled = true;
+    }
+
+    if (handled)
+    {
+        if (kKeyCode == WXK_LEFT || kKeyCode == WXK_RIGHT)
+        {
+            accessibility::AccessibilityController::get().announce_focus(
+                drawn_segments_[static_cast<std::size_t>(focused_segment_index_)].full_path,
+                "Breadcrumb Segment",
+                "Selected");
+        }
+        Refresh();
+    }
+    else
+    {
+        event.Skip();
+    }
+}
+
 void BreadcrumbBar::OnMouseDown(wxMouseEvent& event)
 {
     if (hovered_segment_ >= 0 && hovered_segment_ < static_cast<int>(drawn_segments_.size()))
@@ -335,7 +436,9 @@ void BreadcrumbBar::OnMouseDown(wxMouseEvent& event)
         for (size_t idx = 0; idx < file_segments_.size(); ++idx)
         {
             if (idx > 0)
+            {
                 full_path += "/";
+            }
             full_path += file_segments_[idx];
         }
         segment_click_callback_(full_path);

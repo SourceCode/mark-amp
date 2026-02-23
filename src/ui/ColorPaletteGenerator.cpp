@@ -5,73 +5,65 @@
 namespace markamp::ui
 {
 
-auto ColorPaletteGenerator::hover_variant(const wxColour& base, bool is_dark_mode) const -> wxColour
+auto ColorPaletteGenerator::hover_variant(const wxColour& base, bool is_dark_mode) -> wxColour
 {
     if (is_dark_mode)
     {
-        return lighten(base, 0.10f);
+        return lighten(base, 0.10F);
     }
-    else
-    {
-        return darken(base, 0.10f);
-    }
+    return darken(base, 0.10F);
 }
 
-auto ColorPaletteGenerator::pressed_variant(const wxColour& base, bool is_dark_mode) const
-    -> wxColour
+auto ColorPaletteGenerator::pressed_variant(const wxColour& base, bool is_dark_mode) -> wxColour
 {
     if (is_dark_mode)
     {
-        return lighten(base, 0.20f);
+        return lighten(base, 0.20F);
     }
-    else
-    {
-        return darken(base, 0.20f);
-    }
+    return darken(base, 0.20F);
 }
 
-auto ColorPaletteGenerator::disabled_variant(const wxColour& base) const -> wxColour
+auto ColorPaletteGenerator::disabled_variant(const wxColour& base) -> wxColour
 {
-    wxColour desat = desaturate(base, 0.50f);
-    return with_alpha(desat, 0.50f);
+    const wxColour kDesat = desaturate(base, 0.50F);
+    return with_alpha(kDesat, 0.50F);
 }
 
-auto ColorPaletteGenerator::focus_ring(const wxColour& accent) const -> wxColour
+auto ColorPaletteGenerator::focus_ring(const wxColour& accent) -> wxColour
 {
-    return with_alpha(accent, 0.40f);
+    return with_alpha(accent, 0.40F);
 }
 
-auto ColorPaletteGenerator::generate_extended_palette(const core::Theme& base_theme) const
+auto ColorPaletteGenerator::generate_extended_palette(const core::Theme& base_theme)
     -> ExtendedPalette
 {
     ExtendedPalette ext;
 
     // Determine if theme is dark mode based on background vs text luminosity
-    bool is_dark_mode = true;
-    HSLColor bg_hsl = rgb_to_hsl(base_theme.colors.bg_app.to_wx_colour());
-    HSLColor fg_hsl = rgb_to_hsl(base_theme.colors.text_main.to_wx_colour());
-    is_dark_mode = (bg_hsl.l < fg_hsl.l);
+    const HSLColor kBgHsl = rgb_to_hsl(base_theme.colors.bg_app.to_wx_colour());
+    const HSLColor kFgHsl = rgb_to_hsl(base_theme.colors.text_main.to_wx_colour());
+    const bool kIsDarkMode = (kBgHsl.l < kFgHsl.l);
 
-    wxColour bg_panel = base_theme.colors.bg_panel.to_wx_colour();
-    wxColour text_main = base_theme.colors.text_main.to_wx_colour();
-    const wxColour accent1 = base_theme.colors.accent_primary.to_wx_colour();
-    const wxColour border_light = base_theme.colors.border_light.to_wx_colour();
+    const wxColour kBgPanel = base_theme.colors.bg_panel.to_wx_colour();
+    const wxColour kTextMain = base_theme.colors.text_main.to_wx_colour();
+    const wxColour kAccent1 = base_theme.colors.accent_primary.to_wx_colour();
+    const wxColour kBorderLight = base_theme.colors.border_light.to_wx_colour();
 
     // Control States
-    ext[core::ThemeColorToken::ControlBgNormal] = bg_panel;
-    ext[core::ThemeColorToken::ControlBgHover] = hover_variant(bg_panel, is_dark_mode);
-    ext[core::ThemeColorToken::ControlBgPressed] = pressed_variant(bg_panel, is_dark_mode);
+    ext[core::ThemeColorToken::ControlBgNormal] = kBgPanel;
+    ext[core::ThemeColorToken::ControlBgHover] = hover_variant(kBgPanel, kIsDarkMode);
+    ext[core::ThemeColorToken::ControlBgPressed] = pressed_variant(kBgPanel, kIsDarkMode);
     ext[core::ThemeColorToken::ControlBgFocus] = ext[core::ThemeColorToken::ControlBgHover];
-    ext[core::ThemeColorToken::ControlBgDisabled] = disabled_variant(bg_panel);
-    ext[core::ThemeColorToken::ControlBgSelected] = with_alpha(accent1, 0.20f);
+    ext[core::ThemeColorToken::ControlBgDisabled] = disabled_variant(kBgPanel);
+    ext[core::ThemeColorToken::ControlBgSelected] = with_alpha(kAccent1, 0.20F);
 
-    ext[core::ThemeColorToken::ControlFgNormal] = text_main;
-    ext[core::ThemeColorToken::ControlFgDisabled] = disabled_variant(text_main);
+    ext[core::ThemeColorToken::ControlFgNormal] = kTextMain;
+    ext[core::ThemeColorToken::ControlFgDisabled] = disabled_variant(kTextMain);
 
-    ext[core::ThemeColorToken::ControlBorderNormal] = border_light;
-    ext[core::ThemeColorToken::ControlBorderFocus] = accent1;
+    ext[core::ThemeColorToken::ControlBorderNormal] = kBorderLight;
+    ext[core::ThemeColorToken::ControlBorderFocus] = kAccent1;
 
-    ext[core::ThemeColorToken::FocusRingColor] = focus_ring(accent1);
+    ext[core::ThemeColorToken::FocusRingColor] = focus_ring(kAccent1);
 
     // Some missing V9 phase 3 tokens
     ext[core::ThemeColorToken::SidebarBg] = base_theme.colors.bg_app.to_wx_colour();
@@ -79,22 +71,22 @@ auto ColorPaletteGenerator::generate_extended_palette(const core::Theme& base_th
 
     ext[core::ThemeColorToken::ActivityBarBg] = base_theme.colors.bg_app.to_wx_colour();
     ext[core::ThemeColorToken::ActivityBarFg] = base_theme.colors.text_muted.to_wx_colour();
-    ext[core::ThemeColorToken::ActivityBarBadgeBg] = accent1;
-    const wxColour acc_fg = meets_wcag_aa(wxColour(255, 255, 255), accent1)
+    ext[core::ThemeColorToken::ActivityBarBadgeBg] = kAccent1;
+    const wxColour kAccFg = meets_wcag_aa(wxColour(255, 255, 255), kAccent1)
                                 ? wxColour(255, 255, 255)
                                 : wxColour(0, 0, 0);
-    ext[core::ThemeColorToken::ActivityBarBadgeFg] = acc_fg;
+    ext[core::ThemeColorToken::ActivityBarBadgeFg] = kAccFg;
 
     ext[core::ThemeColorToken::BreadcrumbFg] = base_theme.colors.text_muted.to_wx_colour();
-    ext[core::ThemeColorToken::BreadcrumbFocusFg] = text_main;
+    ext[core::ThemeColorToken::BreadcrumbFocusFg] = kTextMain;
 
-    ext[core::ThemeColorToken::HoverBg] = with_alpha(text_main, 0.10f);
+    ext[core::ThemeColorToken::HoverBg] = with_alpha(kTextMain, 0.10F);
     ext[core::ThemeColorToken::SelectionBg] = ext[core::ThemeColorToken::ControlBgSelected];
 
     // Defaults for tabs
     ext[core::ThemeColorToken::TabActiveBg] = base_theme.colors.bg_panel.to_wx_colour();
-    ext[core::ThemeColorToken::TabInactiveBg] = darken(bg_panel, 0.05f);
-    ext[core::ThemeColorToken::TabActiveFg] = text_main;
+    ext[core::ThemeColorToken::TabInactiveBg] = darken(kBgPanel, 0.05F);
+    ext[core::ThemeColorToken::TabActiveFg] = kTextMain;
     ext[core::ThemeColorToken::TabInactiveFg] = base_theme.colors.text_muted.to_wx_colour();
 
     return ext;

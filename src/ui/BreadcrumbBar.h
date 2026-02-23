@@ -17,7 +17,7 @@ namespace markamp::ui
 class BreadcrumbBar : public ThemeAwareWindow
 {
 public:
-    BreadcrumbBar(wxWindow* parent, DesignSystemContext& ds);
+    BreadcrumbBar(wxWindow* parent, DesignSystemContext& design_system);
 
     /// Set the file path segments (e.g. ["src", "ui", "EditorPanel.cpp"])
     void SetFilePath(const std::vector<std::string>& segments);
@@ -48,6 +48,9 @@ private:
     void OnMouseDown(wxMouseEvent& event);
     void OnMouseMove(wxMouseEvent& event);
     void OnLeaveWindow(wxMouseEvent& event);
+    void OnSetFocus(wxFocusEvent& event);
+    void OnKillFocus(wxFocusEvent& event);
+    void OnKeyDown(wxKeyEvent& event);
 
     DesignSystemContext& ds_;
 
@@ -64,6 +67,7 @@ private:
     };
     std::vector<DrawnSegment> drawn_segments_;
     int hovered_segment_{-1};
+    int focused_segment_index_{-1};
     bool is_focused_{false};
 };
 

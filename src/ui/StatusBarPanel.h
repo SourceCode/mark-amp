@@ -152,6 +152,10 @@ private:
     std::string indent_mode_{"Spaces: 4"}; // R6 Fix 14
     std::size_t file_size_bytes_{0};
 
+    // Accessibility focus tracking
+    int focused_item_index_{-1};
+    bool is_focused_{false};
+
     // R18 Fix 12: Progress spinner
     bool progress_active_{false};
     std::string progress_label_;
@@ -188,6 +192,9 @@ private:
     void OnMouseDown(wxMouseEvent& event);
     void OnMouseMove(wxMouseEvent& event);
     void OnMouseLeave(wxMouseEvent& event);
+    void OnSetFocus(wxFocusEvent& event);
+    void OnKillFocus(wxFocusEvent& event);
+    void OnKeyDown(wxKeyEvent& event);
 
     /// Convert ViewMode to display string.
     static auto view_mode_label(core::events::ViewMode mode) -> std::string;

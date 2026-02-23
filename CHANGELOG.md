@@ -23,6 +23,18 @@ V13 Phase 05 Tasks 4-10: Accessibility Features. Implemented native Screen Reade
 - **Focus Controls** — Upgraded `FocusManager` to support explicit focus trapping within overlays and registered global tab ordering for logical keyboard navigation.
 - **Skip-to-Content** — Included an invisible navigational button (`SkipToContentButton`) designed for accessibility that allows bypassing the application's top-level chrome directly to the editor payload.
 
+## v2.7.33 — 2026-02-23
+
+### Highlights
+
+V13 Phase 05 Tasks 14-17: Semantic UI Accessibility for Remaining Components. Implemented semantic focus rendering and keyboard navigation for `BreadcrumbBar`, `CommandPalette`, and `StatusBarPanel`.
+
+### Added
+
+- **Breadcrumb Bar Accessibility** — Implemented semantic arrow-key navigation within file paths and directory structures, fully integrating with screen readers and focus rings.
+- **Status Bar Accessibility** — Enabled keyboard access to all status elements with accompanying ARIA-equivalent roles.
+- **Command Palette Announcements** — Added auto-announcements for newly selected search results and commands.
+
 ## v2.7.32 — 2026-02-23
 
 ### Highlights

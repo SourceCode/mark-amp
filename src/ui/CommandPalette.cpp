@@ -1,5 +1,6 @@
 #include "CommandPalette.h"
 
+#include "accessibility/AccessibilityController.h"
 #include "core/Events.h"
 
 #include <wx/dcbuffer.h>
@@ -221,6 +222,10 @@ void CommandPalette::OnKeyDown(wxKeyEvent& event)
             {
                 list_->SetSelection(i);
                 list_->Refresh();
+
+                const size_t cmd_idx = display_items_[static_cast<std::size_t>(i)].cmd_index;
+                accessibility::AccessibilityController::get().announce_focus(
+                    all_commands_[cmd_idx].label, "Command", "Selected");
                 break;
             }
         }
@@ -236,6 +241,10 @@ void CommandPalette::OnKeyDown(wxKeyEvent& event)
             {
                 list_->SetSelection(i);
                 list_->Refresh();
+
+                const size_t cmd_idx = display_items_[static_cast<std::size_t>(i)].cmd_index;
+                accessibility::AccessibilityController::get().announce_focus(
+                    all_commands_[cmd_idx].label, "Command", "Selected");
                 break;
             }
         }
@@ -327,6 +336,9 @@ void CommandPalette::ApplyFilter()
         if (display_items_[i].type == ItemType::Command)
         {
             list_->SetSelection(static_cast<int>(i));
+            const size_t cmd_idx = display_items_[i].cmd_index;
+            accessibility::AccessibilityController::get().announce_focus(
+                all_commands_[cmd_idx].label, "Command", "Selected");
             break;
         }
     }

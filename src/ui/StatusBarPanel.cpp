@@ -7,8 +7,11 @@
 #include "SpacingGrid.h"
 #include "TooltipWindow.h"
 #include "TypographyScale.h"
+#include "accessibility/AccessibilityController.h"
 #include "core/Events.h"
 #include "core/Logger.h"
+#include "ui/FocusManager.h"
+#include "ui/FocusRingRenderer.h"
 
 #include <wx/app.h>
 #include <wx/dcbuffer.h>
@@ -83,6 +86,9 @@ StatusBarPanel::StatusBarPanel(wxWindow* parent,
     Bind(wxEVT_LEFT_DOWN, &StatusBarPanel::OnMouseDown, this);
     Bind(wxEVT_MOTION, &StatusBarPanel::OnMouseMove, this);
     Bind(wxEVT_LEAVE_WINDOW, &StatusBarPanel::OnMouseLeave, this);
+    Bind(wxEVT_SET_FOCUS, &StatusBarPanel::OnSetFocus, this);
+    Bind(wxEVT_KILL_FOCUS, &StatusBarPanel::OnKillFocus, this);
+    Bind(wxEVT_KEY_DOWN, &StatusBarPanel::OnKeyDown, this);
 
     tooltip_delay_timer_.SetOwner(this);
     tooltip_delay_timer_.Bind(
@@ -933,6 +939,31 @@ void StatusBarPanel::OnPaint(wxPaintEvent& /*event*/)
             right_x -= kSeparatorGap;
         }
     }
+
+    // Draw focus ring if focused
+    if (is_focused_ && focused_item_index_ >= 0)
+    {
+        wxRect focus_rect;
+        const int left_count = static_cast<int>(left_items_.size());
+        if (focused_item_index_ < left_count)
+        {
+            focus_rect = left_items_[static_cast<std::size_t>(focused_item_index_)].bounds;
+        }
+        else
+        {
+            const int right_idx = focused_item_index_ - left_count;
+            if (right_idx < static_cast<int>(right_items_.size()))
+            {
+                focus_rect = right_items_[static_cast<std::size_t>(right_idx)].bounds;
+            }
+        }
+        if (!focus_rect.IsEmpty())
+        {
+            FocusRingRenderer::get().register_item_bounds(
+                FocusZoneId::kStatusBar, focused_item_index_, this, focus_rect);
+            FocusRingRenderer::get().draw(dc, this, theme_engine());
+        }
+    }
 }
 
 // --- Mouse interaction ---
@@ -1044,6 +1075,141 @@ void StatusBarPanel::OnMouseLeave(wxMouseEvent& /*event*/)
     tooltip_delay_timer_.Stop();
     pending_tooltip_index_ = -1;
     SetCursor(wxCursor(wxCURSOR_DEFAULT));
+}
+
+// --- Keyboard and Focus interaction ---
+
+void StatusBarPanel::OnSetFocus(wxFocusEvent& event)
+{
+    is_focused_ = true;
+    if (focused_item_index_ < 0)
+    {
+        focused_item_index_ = 0;
+    }
+
+    const int left_count = static_cast<int>(left_items_.size());
+    const int right_count = static_cast<int>(right_items_.size());
+
+    if (left_count + right_count > 0 && focused_item_index_ < left_count + right_count)
+    {
+        std::string item_text;
+        if (focused_item_index_ < left_count)
+        {
+            item_text = left_items_[static_cast<std::size_t>(focused_item_index_)].text;
+        }
+        else
+        {
+            item_text =
+                right_items_[static_cast<std::size_t>(focused_item_index_ - left_count)].text;
+        }
+
+        if (item_text.empty())
+        {
+            item_text = "Icon";
+        }
+
+        accessibility::AccessibilityController::get().announce_focus(
+            item_text, "Status Bar Item", "Selected");
+    }
+
+    Refresh();
+    event.Skip();
+}
+
+void StatusBarPanel::OnKillFocus(wxFocusEvent& event)
+{
+    is_focused_ = false;
+    Refresh();
+    event.Skip();
+}
+
+void StatusBarPanel::OnKeyDown(wxKeyEvent& event)
+{
+    if (!is_focused_)
+    {
+        event.Skip();
+        return;
+    }
+
+    const int key_code = event.GetKeyCode();
+    const int left_count = static_cast<int>(left_items_.size());
+    const int right_count = static_cast<int>(right_items_.size());
+    const int total_items = left_count + right_count;
+
+    if (total_items == 0)
+    {
+        event.Skip();
+        return;
+    }
+
+    bool handled = false;
+
+    if (key_code == WXK_LEFT)
+    {
+        focused_item_index_--;
+        if (focused_item_index_ < 0)
+        {
+            focused_item_index_ = total_items - 1;
+        }
+        handled = true;
+    }
+    else if (key_code == WXK_RIGHT)
+    {
+        focused_item_index_++;
+        if (focused_item_index_ >= total_items)
+        {
+            focused_item_index_ = 0;
+        }
+        handled = true;
+    }
+    else if (key_code == WXK_RETURN || key_code == WXK_SPACE)
+    {
+        if (focused_item_index_ < left_count)
+        {
+            const auto& item = left_items_[static_cast<std::size_t>(focused_item_index_)];
+            if (item.is_clickable && item.on_click)
+            {
+                item.on_click();
+            }
+        }
+        else
+        {
+            const int right_idx = focused_item_index_ - left_count;
+            const auto& item = right_items_[static_cast<std::size_t>(right_idx)];
+            if (item.is_clickable && item.on_click)
+            {
+                item.on_click();
+            }
+        }
+        handled = true;
+    }
+
+    if (handled)
+    {
+        std::string item_text;
+        if (focused_item_index_ < left_count)
+        {
+            item_text = left_items_[static_cast<std::size_t>(focused_item_index_)].text;
+        }
+        else
+        {
+            item_text =
+                right_items_[static_cast<std::size_t>(focused_item_index_ - left_count)].text;
+        }
+
+        if (item_text.empty())
+        {
+            item_text = "Icon";
+        }
+
+        accessibility::AccessibilityController::get().announce_focus(
+            item_text, "Status Bar Item", "Selected");
+        Refresh();
+    }
+    else
+    {
+        event.Skip();
+    }
 }
 
 // --- Helpers ---
