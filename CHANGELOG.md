@@ -1,5 +1,17 @@
 # MarkAmp Release History
 
+## v2.7.28 — 2026-02-22
+
+### Highlights
+
+V13 Phase 02: SVG icon rendering pipeline and Catch2 test suite. Implemented a comprehensive SVG caching and fallback system, alongside high-DPI rendering support, integration across all activity bar, status bar, and toolbar components, and 25 rigorous test assertions covering fallback behaviors.
+
+### Added
+
+- **Catch2 Test Suite** — `test_icon_manager.cpp` verifying core cache interactions, fallback retrieval behaviors, and edge cases.
+- **Icon Rendering Integration** — Activity bar, status bar, breadcrumb bar, and toolbar components now render 100% SVG-powered icons via central configuration.
+- **High-DPI Support** — Automatic resolution translation for complex, custom SVG icon rendering on Retina displays.
+
 ## v2.7.26 — 2026-02-22
 
 ### Highlights
