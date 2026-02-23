@@ -42,6 +42,7 @@
 #include "ui/FocusManager.h"
 #include "ui/FocusRingRenderer.h"
 #include "ui/MainFrame.h"
+#include "ui/accessibility/AccessibilityController.h"
 
 #include <spdlog/spdlog.h>
 
@@ -162,6 +163,10 @@ bool MarkAmpApp::OnInit()
     MARKAMP_LOG_DEBUG("ThemeEngine initialized with theme: {}",
                       theme_engine_->current_theme().name);
     startup_timer.checkpoint("theme_system_initialized");
+
+    // Phase 05 Task 7: Initialize global Accessibility Controller
+    ui::accessibility::AccessibilityController::get().initialize();
+    MARKAMP_LOG_DEBUG("AccessibilityController initialized");
 
     // 8. Initialize extension API services
     context_key_service_ = std::make_unique<core::ContextKeyService>();

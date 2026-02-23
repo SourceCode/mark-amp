@@ -1,8 +1,18 @@
 # MarkAmp Release History
 
-## v2.7.34 — 2026-02-23
+## v2.8.35 — 2026-02-23
 
 ### Highlights
+
+V13 Phase 05 Tasks 11-13: Semantic UI Accessibility. Implemented semantic focus rendering for ActivityBar, TabBar, and FileTreeCtrl via the AccessibilityController singleton.
+
+### Added
+
+- **Activity Bar Accessibility** — Implemented keyboard-driven Tab and Arrow Key navigation across the `ActivityBar` using ARIA-equivalent semantics that dynamically announce to the host OS screen reader.
+- **Tab Bar Semantics** — Wired the `TabBar` to broadcast `Tab` role and `Selected` state natively to `accessibility::AccessibilityController::get().announce_focus`.
+- **File System Tree Traversal** — The `FileTreeCtrl` now semantically announces "Tree Item" elements recursively, conveying `Expanded` and `Collapsed` structural states during keyboard navigation.
+
+## v2.7.34 — 2026-02-23
 
 V13 Phase 05 Tasks 4-10: Accessibility Features. Implemented native Screen Reader Bridges, Accessibility Controller, Tab Traversal definitions, modal focus trapping, and a skip-to-content landmark.
 

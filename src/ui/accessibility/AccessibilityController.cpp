@@ -4,9 +4,6 @@
 #include "../../core/Events.h"
 #include "../FocusManager.h"
 
-// Note: Ensure core::events::FocusChangedEvent and StateChangedEvent exist,
-// or subscribe to whatever events are appropriate if added later.
-
 namespace markamp::ui::accessibility
 {
 
@@ -14,16 +11,15 @@ AccessibilityController::AccessibilityController() = default;
 
 AccessibilityController::~AccessibilityController() = default;
 
+auto AccessibilityController::get() -> AccessibilityController&
+{
+    static AccessibilityController instance;
+    return instance;
+}
+
 void AccessibilityController::initialize()
 {
     bridge_ = ScreenReaderBridge::create();
-
-    // In a full implementation, we would subscribe to EventBus events here:
-    // auto& bus = core::EventBus::get();
-    // bus.subscribe<core::events::FocusChangedEvent>([this](const auto& ev) {
-    //     // map zone/item to an accessible name and role
-    //     // bridge_->announce_focus(name, role, state);
-    // });
 }
 
 void AccessibilityController::announce(const std::string& message, bool assertive)
@@ -31,6 +27,25 @@ void AccessibilityController::announce(const std::string& message, bool assertiv
     if (bridge_)
     {
         bridge_->announce(message, assertive);
+    }
+}
+
+void AccessibilityController::announce_focus(const std::string& control_name,
+                                             const std::string& role,
+                                             const std::string& state)
+{
+    if (bridge_)
+    {
+        bridge_->announce_focus(control_name, role, state);
+    }
+}
+
+void AccessibilityController::notify_state_change(const std::string& control_name,
+                                                  const std::string& state)
+{
+    if (bridge_)
+    {
+        bridge_->notify_state_change(control_name, state);
     }
 }
 

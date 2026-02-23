@@ -10,6 +10,7 @@
 #include "core/Logger.h"
 #include "core/ThemeEngine.h"
 #include "ui/IconManager.h"
+#include "ui/accessibility/AccessibilityController.h"
 
 #include <wx/app.h>
 #include <wx/dcbuffer.h>
@@ -460,6 +461,18 @@ void ActivityBar::SetBadge(core::events::ActivityBarItem item, int count)
     }
 }
 
+// Helper to announce selection
+void ActivityBar::AnnounceCurrentItem()
+{
+    if (focus_index_ >= 0 && focus_index_ < static_cast<int>(items_.size()))
+    {
+        const auto& item = items_[static_cast<std::size_t>(focus_index_)];
+        bool is_active = (item.item_id == active_item_);
+        accessibility::AccessibilityController::get().announce_focus(
+            item.label, "Tab", is_active ? "Selected" : "");
+    }
+}
+
 // Phase 06 Task 6: Keyboard focus navigation
 void ActivityBar::OnKeyDown(wxKeyEvent& event)
 {
@@ -471,6 +484,7 @@ void ActivityBar::OnKeyDown(wxKeyEvent& event)
 
     const int key_code = event.GetKeyCode();
     const int item_count = static_cast<int>(items_.size());
+    bool focus_moved = false;
 
     switch (key_code)
     {
@@ -484,8 +498,7 @@ void ActivityBar::OnKeyDown(wxKeyEvent& event)
             {
                 --focus_index_;
             }
-            FocusManager::get().set_focus(FocusZoneId::kActivityBar, focus_index_);
-            Refresh();
+            focus_moved = true;
             break;
         }
         case WXK_DOWN:
@@ -498,8 +511,7 @@ void ActivityBar::OnKeyDown(wxKeyEvent& event)
             {
                 ++focus_index_;
             }
-            FocusManager::get().set_focus(FocusZoneId::kActivityBar, focus_index_);
-            Refresh();
+            focus_moved = true;
             break;
         }
         case WXK_RETURN:
@@ -511,26 +523,33 @@ void ActivityBar::OnKeyDown(wxKeyEvent& event)
                 SetActiveItem(item);
                 core::events::ActivityBarSelectionEvent evt(item);
                 event_bus_.publish(evt);
+                // Announce newly active state
+                AnnounceCurrentItem();
             }
             break;
         }
         case WXK_HOME:
         {
             focus_index_ = 0;
-            FocusManager::get().set_focus(FocusZoneId::kActivityBar, focus_index_);
-            Refresh();
+            focus_moved = true;
             break;
         }
         case WXK_END:
         {
             focus_index_ = item_count - 1;
-            FocusManager::get().set_focus(FocusZoneId::kActivityBar, focus_index_);
-            Refresh();
+            focus_moved = true;
             break;
         }
         default:
             event.Skip();
             break;
+    }
+
+    if (focus_moved)
+    {
+        FocusManager::get().set_focus(FocusZoneId::kActivityBar, focus_index_);
+        Refresh();
+        AnnounceCurrentItem(); // Phase 05 Task 11: Announce new focus
     }
 }
 
@@ -554,6 +573,7 @@ void ActivityBar::OnSetFocus(wxFocusEvent& /*event*/)
     }
     FocusManager::get().set_focus(FocusZoneId::kActivityBar, focus_index_);
     Refresh();
+    AnnounceCurrentItem(); // Phase 05 Task 11: Announce when control receives global tab focus
 }
 
 void ActivityBar::OnKillFocus(wxFocusEvent& /*event*/)
@@ -575,6 +595,7 @@ void ActivityBar::FocusItem(int index)
         SetFocus();
         FocusManager::get().set_focus(FocusZoneId::kActivityBar, focus_index_);
         Refresh();
+        AnnounceCurrentItem();
     }
 }
 

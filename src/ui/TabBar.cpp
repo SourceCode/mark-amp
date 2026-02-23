@@ -6,6 +6,7 @@
 #include "ui/FocusManager.h"
 #include "ui/FocusRingRenderer.h"
 #include "ui/IconManager.h"
+#include "ui/accessibility/AccessibilityController.h"
 
 #include <wx/clipbrd.h>
 #include <wx/dcbuffer.h>
@@ -1346,6 +1347,15 @@ void markamp::ui::TabBar::OnSetFocus(wxFocusEvent& event)
     }
     FocusManager::get().set_focus(FocusZoneId::kEditorArea, focused_tab_index_);
     Refresh();
+
+    // Announce initially focused tab
+    if (focused_tab_index_ >= 0 && focused_tab_index_ < static_cast<int>(tabs_.size()))
+    {
+        const auto& tab = tabs_[static_cast<size_t>(focused_tab_index_)];
+        accessibility::AccessibilityController::get().announce_focus(
+            tab.display_name, "Tab", tab.is_active ? "Selected" : "");
+    }
+
     event.Skip();
 }
 
@@ -1368,14 +1378,14 @@ void markamp::ui::TabBar::OnKeyDown(wxKeyEvent& event)
     }
 
     const int key_code = event.GetKeyCode();
+    bool focus_moved = false;
+
     if (key_code == WXK_LEFT)
     {
         if (focused_tab_index_ > 0)
         {
             focused_tab_index_--;
-            EnsureTabVisible(focused_tab_index_);
-            FocusManager::get().set_item(focused_tab_index_);
-            Refresh();
+            focus_moved = true;
         }
     }
     else if (key_code == WXK_RIGHT)
@@ -1383,9 +1393,7 @@ void markamp::ui::TabBar::OnKeyDown(wxKeyEvent& event)
         if (focused_tab_index_ < static_cast<int>(tabs_.size()) - 1)
         {
             focused_tab_index_++;
-            EnsureTabVisible(focused_tab_index_);
-            FocusManager::get().set_item(focused_tab_index_);
-            Refresh();
+            focus_moved = true;
         }
     }
     else if (key_code == WXK_SPACE || key_code == WXK_RETURN)
@@ -1396,11 +1404,27 @@ void markamp::ui::TabBar::OnKeyDown(wxKeyEvent& event)
             SetActiveTab(selected_path);
             const core::events::TabSwitchedEvent evt(selected_path);
             event_bus_.publish(evt);
+
+            // Announce selection
+            const auto& tab = tabs_[static_cast<size_t>(focused_tab_index_)];
+            accessibility::AccessibilityController::get().announce_focus(
+                tab.display_name, "Tab", "Selected");
         }
     }
     else
     {
         event.Skip();
+    }
+
+    if (focus_moved)
+    {
+        EnsureTabVisible(focused_tab_index_);
+        FocusManager::get().set_item(focused_tab_index_);
+        Refresh();
+
+        const auto& tab = tabs_[static_cast<size_t>(focused_tab_index_)];
+        accessibility::AccessibilityController::get().announce_focus(
+            tab.display_name, "Tab", tab.is_active ? "Selected" : "");
     }
 }
 

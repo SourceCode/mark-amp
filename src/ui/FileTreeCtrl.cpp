@@ -13,6 +13,7 @@
 #include "core/Logger.h"
 #include "ui/FocusManager.h"
 #include "ui/FocusRingRenderer.h"
+#include "ui/accessibility/AccessibilityController.h"
 
 #include <wx/clipbrd.h>
 #include <wx/dcbuffer.h>
@@ -1308,6 +1309,13 @@ void FileTreeCtrl::OnKeyDown(wxKeyEvent& event)
                 active_file_id_ = up_node->id;
                 EnsureNodeVisible(active_file_id_);
                 Refresh();
+
+                // Announce new focus
+                accessibility::AccessibilityController::get().announce_focus(
+                    up_node->name,
+                    "Tree Item",
+                    up_node->is_folder() ? (up_node->is_open ? "Expanded" : "Collapsed") : "");
+
                 // Fix 2: Fire select callback so keyboard nav opens files
                 if (up_node->is_file() && on_file_select_)
                 {
@@ -1324,6 +1332,13 @@ void FileTreeCtrl::OnKeyDown(wxKeyEvent& event)
                 active_file_id_ = down_node->id;
                 EnsureNodeVisible(active_file_id_);
                 Refresh();
+
+                // Announce new focus
+                accessibility::AccessibilityController::get().announce_focus(
+                    down_node->name,
+                    "Tree Item",
+                    down_node->is_folder() ? (down_node->is_open ? "Expanded" : "Collapsed") : "");
+
                 // Fix 2: Fire select callback so keyboard nav opens files
                 if (down_node->is_file() && on_file_select_)
                 {
@@ -1339,6 +1354,11 @@ void FileTreeCtrl::OnKeyDown(wxKeyEvent& event)
             if (node->is_folder())
             {
                 node->is_open = !node->is_open;
+
+                // Announce state change
+                accessibility::AccessibilityController::get().notify_state_change(
+                    node->name, node->is_open ? "Expanded" : "Collapsed");
+
                 UpdateVirtualHeight();
                 Refresh();
             }
@@ -1355,6 +1375,8 @@ void FileTreeCtrl::OnKeyDown(wxKeyEvent& event)
             if (node->is_folder())
             {
                 node->is_open = !node->is_open;
+                accessibility::AccessibilityController::get().notify_state_change(
+                    node->name, node->is_open ? "Expanded" : "Collapsed");
                 UpdateVirtualHeight();
                 Refresh();
             }
@@ -1367,6 +1389,8 @@ void FileTreeCtrl::OnKeyDown(wxKeyEvent& event)
             if (node->is_folder() && !node->is_open)
             {
                 node->is_open = true;
+                accessibility::AccessibilityController::get().notify_state_change(node->name,
+                                                                                  "Expanded");
                 UpdateVirtualHeight();
                 Refresh();
             }
@@ -1380,6 +1404,8 @@ void FileTreeCtrl::OnKeyDown(wxKeyEvent& event)
             {
                 // Collapse open folder
                 node->is_open = false;
+                accessibility::AccessibilityController::get().notify_state_change(node->name,
+                                                                                  "Collapsed");
                 UpdateVirtualHeight();
                 Refresh();
             }
@@ -1393,6 +1419,11 @@ void FileTreeCtrl::OnKeyDown(wxKeyEvent& event)
                     active_file_id_ = visible_nodes[static_cast<size_t>(parent_idx)]->id;
                     EnsureNodeVisible(active_file_id_);
                     Refresh();
+
+                    accessibility::AccessibilityController::get().announce_focus(
+                        visible_nodes[static_cast<size_t>(parent_idx)]->name,
+                        "Tree Item",
+                        "Expanded");
                 }
             }
             break;
@@ -1407,6 +1438,12 @@ void FileTreeCtrl::OnKeyDown(wxKeyEvent& event)
                 active_file_id_ = visible_nodes[0]->id;
                 EnsureNodeVisible(active_file_id_);
                 Refresh();
+
+                auto* node = visible_nodes[0];
+                accessibility::AccessibilityController::get().announce_focus(
+                    node->name,
+                    "Tree Item",
+                    node->is_folder() ? (node->is_open ? "Expanded" : "Collapsed") : "");
             }
             break;
         }
@@ -1419,6 +1456,12 @@ void FileTreeCtrl::OnKeyDown(wxKeyEvent& event)
                 active_file_id_ = visible_nodes[static_cast<size_t>(focused_node_index_)]->id;
                 EnsureNodeVisible(active_file_id_);
                 Refresh();
+
+                auto* node = visible_nodes[static_cast<size_t>(focused_node_index_)];
+                accessibility::AccessibilityController::get().announce_focus(
+                    node->name,
+                    "Tree Item",
+                    node->is_folder() ? (node->is_open ? "Expanded" : "Collapsed") : "");
             }
             break;
         }
@@ -1695,6 +1738,18 @@ void FileTreeCtrl::OnSetFocus(wxFocusEvent& event)
     }
     FocusManager::get().set_focus(FocusZoneId::kSidebar, focused_node_index_);
     Refresh();
+
+    // Announce initially focused item
+    auto visible_nodes = GetVisibleNodes();
+    if (focused_node_index_ >= 0 && focused_node_index_ < static_cast<int>(visible_nodes.size()))
+    {
+        auto* node = visible_nodes[static_cast<size_t>(focused_node_index_)];
+        accessibility::AccessibilityController::get().announce_focus(
+            node->name,
+            "Tree Item",
+            node->is_folder() ? (node->is_open ? "Expanded" : "Collapsed") : "");
+    }
+
     event.Skip();
 }
 

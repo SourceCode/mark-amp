@@ -7,15 +7,11 @@
 namespace markamp::ui::accessibility
 {
 
-/// Central controller that wires application events to the Screen Reader Bridge.
-///
-/// It listens for global FocusChanged and StateChanged events (if any)
-/// and delegates announcements.
+/// Central singleton controller that wires application events to the Screen Reader Bridge.
 class AccessibilityController
 {
 public:
-    AccessibilityController();
-    ~AccessibilityController();
+    static auto get() -> AccessibilityController&;
 
     /// Instantiates the accessibility bridge and registers event listeners.
     void initialize();
@@ -23,7 +19,21 @@ public:
     /// Announces a general message.
     void announce(const std::string& message, bool assertive = false);
 
+    /// Announces that focus has moved to a new control.
+    void announce_focus(const std::string& control_name,
+                        const std::string& role,
+                        const std::string& state = "");
+
+    /// Notifies the screen reader that the state of a control has changed.
+    void notify_state_change(const std::string& control_name, const std::string& state);
+
 private:
+    AccessibilityController();
+    ~AccessibilityController();
+
+    AccessibilityController(const AccessibilityController&) = delete;
+    auto operator=(const AccessibilityController&) -> AccessibilityController& = delete;
+
     std::unique_ptr<ScreenReaderBridge> bridge_;
 };
 

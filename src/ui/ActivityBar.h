@@ -72,6 +72,7 @@ private:
     void CreateItems();
     void ApplyTheme();
     void UpdateLayoutMetrics();
+    void AnnounceCurrentItem(); // Helper to announce selection
 
     void OnPaint(wxPaintEvent& event);
     void OnMouseDown(wxMouseEvent& event);
