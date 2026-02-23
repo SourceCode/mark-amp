@@ -13,10 +13,13 @@
 #include "core/Logger.h"
 #include "core/ShortcutManager.h"
 #include "core/ThemeEngine.h"
+#include "ui/AccessibilityModel.h"
 #include "ui/IconGalleryDialog.h"
 #include "ui/IconManager.h"
 #include "ui/LayoutMetrics.h"
 #include "ui/ThemeEditorPanel.h"
+#include "ui/accessibility/AccessibilityController.h"
+#include "ui/accessibility/LiveAnnouncer.h"
 #include "ui/accessibility/SkipToContentButton.h"
 
 #include <wx/aboutdlg.h>
@@ -148,6 +151,9 @@ MainFrame::MainFrame(const wxString& title,
     // Create the application menu bar (required on macOS, useful on all platforms)
     createMenuBar();
 
+    // Initialize Phase 05 Accessibility Model
+    accessibility_model_ = std::make_shared<ui::AccessibilityModel>();
+
     // Create the custom chrome title bar (with optional theme engine)
     chrome_ = new CustomChrome(this, event_bus_, platform_, theme_engine_);
 
@@ -212,12 +218,15 @@ MainFrame::MainFrame(const wxString& title,
     Bind(wxEVT_CLOSE_WINDOW, &MainFrame::onClose, this);
     Bind(wxEVT_SIZE, &MainFrame::onSize, this);
 
-    // Subscribe to Theme changes to invalidate the Icon cache
     if (event_bus_ != nullptr)
     {
+        // Subscribe to Theme changes to invalidate the Icon cache
         subscriptions_.push_back(event_bus_->subscribe<core::events::ThemeChangedEvent>(
             [](const core::events::ThemeChangedEvent& /*evt*/)
             { IconManager::get().cache().clear(); }));
+
+        // Phase 05 Task 21: Initialize the Live Announcer background service
+        live_announcer_ = std::make_unique<accessibility::LiveAnnouncer>(*event_bus_);
     }
 
     // Edge-resize mouse events on the frame itself
@@ -2259,8 +2268,45 @@ void MainFrame::RegisterDefaultShortcuts()
         {"view.split", "Split Mode", '2', kCmd, "global", "View", {}});
     shortcut_manager_.register_shortcut(
         {"view.preview", "Preview Mode", '3', kCmd, "global", "View", {}});
+    shortcut_manager_.register_shortcut({"view.sidebar",
+                                         "Toggle Sidebar",
+                                         'B',
+                                         kCmd,
+                                         "global",
+                                         "View",
+                                         [this]()
+                                         {
+                                             if (event_bus_)
+                                             {
+                                                 core::events::SidebarToggleEvent evt;
+                                                 evt.visible = true; // Maps to toggle
+                                                 event_bus_->publish(evt);
+                                             }
+                                         }});
+    shortcut_manager_.register_shortcut({"view.secondary_sidebar",
+                                         "Toggle Secondary Sidebar",
+                                         'B',
+                                         kCmd | wxMOD_ALT,
+                                         "global",
+                                         "View",
+                                         [this]()
+                                         {
+                                             layout_->ToggleSecondarySidebar();
+                                             accessibility::AccessibilityController::get().announce(
+                                                 "Toggled Secondary Sidebar");
+                                         }});
     shortcut_manager_.register_shortcut(
-        {"view.sidebar", "Toggle Sidebar", 'B', kCmd, "global", "View", {}});
+        {"view.bottom_panel",
+         "Toggle Bottom Panel",
+         'J',
+         kCmd,
+         "global",
+         "View",
+         [this]()
+         {
+             layout_->ShowBottomPanel(!layout_->is_bottom_panel_visible());
+             accessibility::AccessibilityController::get().announce("Toggled Bottom Panel");
+         }});
     shortcut_manager_.register_shortcut(
         {"view.zen", "Toggle Zen Mode", 'K', kCmd, "global", "View", {}});
     shortcut_manager_.register_shortcut(
@@ -2516,6 +2562,54 @@ void MainFrame::RegisterPaletteCommands()
         {"Toggle Zen Mode", "View", shortcut_manager_.get_shortcut_text("view.zen"), [this]() {
              toggleZenMode();
          }});
+
+    // Phase 05: Accessibility Modes
+    command_palette_->RegisterCommand(
+        {"Toggle High Contrast Mode",
+         "View",
+         "", // No default shortcut yet, can bind later
+         [this]()
+         {
+             if (event_bus_)
+             {
+                 bool current = accessibility_model_->high_contrast();
+                 accessibility_model_->set_high_contrast(!current);
+                 // Publish a generic theme change or specific accessibility event
+                 // to notify the UI to refresh. For now, forcing a theme reload
+                 // if true, or just letting the system know.
+                 MARKAMP_LOG_INFO("High Contrast Mode toggled: {}",
+                                  !current ? "Enabled" : "Disabled");
+                 accessibility::AccessibilityController::get().announce(
+                     !current ? "High Contrast Mode Enabled" : "High Contrast Mode Disabled", true);
+
+                 // V8 Phase 1: Fire Theme Hot-Swap Event
+                 core::events::ThemeChangedEvent evt;
+                 evt.theme_id = !current ? "High Contrast Dark" : "MarkAmp Dark";
+                 event_bus_->publish(evt);
+             }
+         }});
+
+    command_palette_->RegisterCommand(
+        {"Toggle Reduced Complexity Mode",
+         "View",
+         "",
+         [this]()
+         {
+             if (event_bus_)
+             {
+                 bool current = accessibility_model_->reduced_complexity();
+                 accessibility_model_->set_reduced_complexity(!current);
+                 MARKAMP_LOG_INFO("Reduced Complexity Mode toggled: {}",
+                                  !current ? "Enabled" : "Disabled");
+                 accessibility::AccessibilityController::get().announce(
+                     !current ? "Reduced Complexity Mode Enabled"
+                              : "Reduced Complexity Mode Disabled",
+                     true);
+                 // Trigger UI refresh
+                 Refresh();
+             }
+         }});
+
     command_palette_->RegisterCommand({"Toggle Fullscreen",
                                        "View",
                                        shortcut_manager_.get_shortcut_text("view.fullscreen"),

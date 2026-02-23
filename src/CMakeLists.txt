@@ -28,6 +28,7 @@ add_executable(markamp
     ui/FocusManager.cpp
     ui/accessibility/AccessibilityController.cpp
     ui/accessibility/SkipToContentButton.cpp
+    ui/accessibility/LiveAnnouncer.cpp
     ui/FocusRingRenderer.cpp
     ui/ActivityBarModel.cpp
     ui/FileTreeModel.cpp

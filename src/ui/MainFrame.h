@@ -22,8 +22,14 @@ class RecentWorkspaces;
 class FeatureRegistry;
 } // namespace markamp::core
 
+namespace markamp::ui::accessibility
+{
+class LiveAnnouncer;
+}
+
 namespace markamp::ui
 {
+class AccessibilityModel;
 
 class LayoutManager;
 class StartupPanel;
@@ -121,6 +127,12 @@ private:
     CommandPalette* command_palette_{nullptr};
     ShortcutOverlay* shortcut_overlay_{nullptr};
     core::ShortcutManager shortcut_manager_;
+
+    // ── Phase 05 Task 21: Live Announcer ──
+    std::unique_ptr<accessibility::LiveAnnouncer> live_announcer_;
+
+    // ── Phase 05 Task 18/19: Accessibility Model ──
+    std::shared_ptr<ui::AccessibilityModel> accessibility_model_;
 
     void RegisterPaletteCommands();
     void RegisterDefaultShortcuts();
