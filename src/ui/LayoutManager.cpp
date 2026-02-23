@@ -49,7 +49,7 @@ LayoutManager::LayoutManager(wxWindow* parent,
     , feature_registry_(feature_registry)
     , mermaid_renderer_(mermaid_renderer)
     , math_renderer_(math_renderer)
-    , sidebar_anim_timer_(this)
+    , transition_manager_(this)
 {
     design_registry_ = std::make_unique<DesignTokenRegistry>(theme_engine, event_bus_);
     typography_scale_ = std::make_unique<TypographyScale>();
@@ -104,9 +104,6 @@ LayoutManager::LayoutManager(wxWindow* parent,
 
     // Auto-save timer
     Bind(wxEVT_TIMER, &LayoutManager::OnAutoSaveTimer, this, auto_save_timer_.GetId());
-
-    // Bind animation timer
-    Bind(wxEVT_TIMER, &LayoutManager::OnSidebarAnimTimer, this, sidebar_anim_timer_.GetId());
 
     // Start auto-save
     StartAutoSave();
@@ -1805,14 +1802,20 @@ void LayoutManager::CreateLayout()
 
     // Header: "EXPLORER"
     header_panel_ = new wxPanel(sidebar_panel_, wxID_ANY, wxDefaultPosition, wxSize(-1, 40));
-    header_panel_->SetBackgroundColour(theme_engine().resolve_token("sidebar.border").value_or(theme_engine().color(core::ThemeColorToken::BgHeader)));
+    header_panel_->SetBackgroundColour(
+        theme_engine()
+            .resolve_token("sidebar.border")
+            .value_or(theme_engine().color(core::ThemeColorToken::BgHeader)));
 
     // Fix 11: Render "EXPLORER" label in header
     auto* header_sizer = new wxBoxSizer(wxHORIZONTAL);
     header_label_ = new wxStaticText(header_panel_, wxID_ANY, "EXPLORER");
     header_label_->SetFont(
         theme_engine().font(core::ThemeFontToken::MonoRegular).Bold().Scaled(0.85f));
-    header_label_->SetForegroundColour(theme_engine().resolve_token("text.muted").value_or(theme_engine().color(core::ThemeColorToken::TextMuted)));
+    header_label_->SetForegroundColour(
+        theme_engine()
+            .resolve_token("text.muted")
+            .value_or(theme_engine().color(core::ThemeColorToken::TextMuted)));
     header_sizer->AddSpacer(12);
     header_sizer->Add(header_label_, 0, wxALIGN_CENTER_VERTICAL);
     header_sizer->AddStretchSpacer();
@@ -1822,8 +1825,14 @@ void LayoutManager::CreateLayout()
         header_panel_, wxID_ANY, "\xE2\x96\xBE", wxDefaultPosition, wxSize(28, 28), wxBORDER_NONE);
     collapse_btn_->SetToolTip("Collapse All");
     collapse_btn_->SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular).Scaled(0.85f));
-    collapse_btn_->SetForegroundColour(theme_engine().resolve_token("text.muted").value_or(theme_engine().color(core::ThemeColorToken::TextMuted)));
-    collapse_btn_->SetBackgroundColour(theme_engine().resolve_token("sidebar.border").value_or(theme_engine().color(core::ThemeColorToken::BgHeader)));
+    collapse_btn_->SetForegroundColour(
+        theme_engine()
+            .resolve_token("text.muted")
+            .value_or(theme_engine().color(core::ThemeColorToken::TextMuted)));
+    collapse_btn_->SetBackgroundColour(
+        theme_engine()
+            .resolve_token("sidebar.border")
+            .value_or(theme_engine().color(core::ThemeColorToken::BgHeader)));
     collapse_btn_->Bind(wxEVT_BUTTON,
                         [this](wxCommandEvent& /*evt*/)
                         {
@@ -1850,8 +1859,14 @@ void LayoutManager::CreateLayout()
     search_field_->SetDescriptiveText("Filter files\u2026");
     search_field_->ShowCancelButton(true);
     search_field_->SetBackgroundColour(
-        theme_engine().resolve_token("sidebar.bg").value_or(theme_engine().color(core::ThemeColorToken::BgPanel)).ChangeLightness(110));
-    search_field_->SetForegroundColour(theme_engine().resolve_token("text.main").value_or(theme_engine().color(core::ThemeColorToken::TextMain)));
+        theme_engine()
+            .resolve_token("sidebar.bg")
+            .value_or(theme_engine().color(core::ThemeColorToken::BgPanel))
+            .ChangeLightness(110));
+    search_field_->SetForegroundColour(
+        theme_engine()
+            .resolve_token("text.main")
+            .value_or(theme_engine().color(core::ThemeColorToken::TextMain)));
     search_field_->SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular));
 
     search_sizer->AddSpacer(8);
@@ -1926,11 +1941,15 @@ void LayoutManager::CreateLayout()
 
     // Footer — Fix 13: show file count
     footer_panel_ = new wxPanel(explorer_panel_, wxID_ANY, wxDefaultPosition, wxSize(-1, 28));
-    footer_panel_->SetBackgroundColour(theme_engine().resolve_token("bg.app").value_or(theme_engine().color(core::ThemeColorToken::BgApp)));
+    footer_panel_->SetBackgroundColour(theme_engine().resolve_token("bg.app").value_or(
+        theme_engine().color(core::ThemeColorToken::BgApp)));
     auto* footer_sizer = new wxBoxSizer(wxHORIZONTAL);
     file_count_label_ = new wxStaticText(footer_panel_, wxID_ANY, "");
     file_count_label_->SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular).Scaled(0.8f));
-    file_count_label_->SetForegroundColour(theme_engine().resolve_token("text.muted").value_or(theme_engine().color(core::ThemeColorToken::TextMuted)));
+    file_count_label_->SetForegroundColour(
+        theme_engine()
+            .resolve_token("text.muted")
+            .value_or(theme_engine().color(core::ThemeColorToken::TextMuted)));
     footer_sizer->AddSpacer(12);
     footer_sizer->Add(file_count_label_, 1, wxALIGN_CENTER_VERTICAL);
     footer_panel_->SetSizer(footer_sizer);
@@ -1946,7 +1965,8 @@ void LayoutManager::CreateLayout()
 
     // --- Content panel ---
     content_panel_ = new wxPanel(this, wxID_ANY);
-    content_panel_->SetBackgroundColour(theme_engine().resolve_token("bg.app").value_or(theme_engine().color(core::ThemeColorToken::BgApp)));
+    content_panel_->SetBackgroundColour(theme_engine().resolve_token("bg.app").value_or(
+        theme_engine().color(core::ThemeColorToken::BgApp)));
 
     // Content internal: toolbar + split view
     auto* content_sizer = new wxBoxSizer(wxVERTICAL);
@@ -2096,21 +2116,29 @@ void LayoutManager::toggle_sidebar()
 
 void LayoutManager::set_sidebar_visible(bool visible)
 {
-    if (visible == sidebar_visible_ && !sidebar_anim_timer_.IsRunning())
+    if (visible == sidebar_visible_)
     {
         return;
     }
 
     sidebar_visible_ = visible;
-    sidebar_anim_showing_ = visible;
-    sidebar_anim_start_width_ = sidebar_current_width_;
-    sidebar_anim_target_width_ = visible ? sidebar_width_ : 0;
-    sidebar_anim_progress_ = 0.0;
+    int start_width = sidebar_current_width_;
+    int target_width = visible ? sidebar_width_ : 0;
 
-    sidebar_anim_timer_.Start(kAnimFrameMs);
-    MARKAMP_LOG_DEBUG("Sidebar animation started: {} -> {}",
-                      sidebar_anim_start_width_,
-                      sidebar_anim_target_width_);
+    animation::AnimationConfig config;
+    config.duration = std::chrono::milliseconds(visible ? 300 : 200);
+    config.easing_type =
+        visible ? animation::EasingType::EaseOutCubic : animation::EasingType::EaseInCubic;
+
+    transition_manager_.register_transition("sidebar_width", config);
+    transition_manager_.start<int>(
+        "sidebar_width",
+        start_width,
+        target_width,
+        [this](int w) { UpdateSidebarSize(w); },
+        [this]() { SaveLayoutState(); });
+
+    MARKAMP_LOG_DEBUG("Sidebar animation started: {} -> {}", start_width, target_width);
 }
 
 auto LayoutManager::is_sidebar_visible() const -> bool
@@ -2121,42 +2149,71 @@ auto LayoutManager::is_sidebar_visible() const -> bool
 void LayoutManager::set_sidebar_width(int width)
 {
     sidebar_width_ = std::clamp(width, kMinSidebarWidth, kMaxSidebarWidth);
-    if (sidebar_visible_ && !sidebar_anim_timer_.IsRunning())
+    if (sidebar_visible_)
     {
         UpdateSidebarSize(sidebar_width_);
     }
     SaveLayoutState();
 }
-
 auto LayoutManager::sidebar_width() const -> int
 {
     return sidebar_width_;
 }
 
-// --- Animation ---
-
-void LayoutManager::OnSidebarAnimTimer(wxTimerEvent& /*event*/)
+void LayoutManager::ShowBottomPanel(bool show)
 {
-    double duration = sidebar_anim_showing_ ? kShowDurationMs : kHideDurationMs;
-    sidebar_anim_progress_ += static_cast<double>(kAnimFrameMs) / duration;
-
-    if (sidebar_anim_progress_ >= 1.0)
+    if (show == bottom_panel_visible_)
     {
-        sidebar_anim_progress_ = 1.0;
-        sidebar_anim_timer_.Stop();
-        SaveLayoutState();
+        return;
     }
 
-    // Easing: ease-out for show (1 - (1-t)^3), ease-in for hide (t^3)
-    double t = sidebar_anim_progress_;
-    double eased = sidebar_anim_showing_ ? 1.0 - std::pow(1.0 - t, 3.0) // ease-out
-                                         : std::pow(t, 3.0);            // ease-in
+    bottom_panel_visible_ = show;
+    if (bottom_panel_notebook_ == nullptr)
+    {
+        return; // Target widget not created yet
+    }
 
-    int new_width = sidebar_anim_start_width_ +
-                    static_cast<int>(eased * static_cast<double>(sidebar_anim_target_width_ -
-                                                                 sidebar_anim_start_width_));
+    int start_height = bottom_panel_notebook_->GetSize().GetHeight();
+    int target_height = show ? kBottomPanelHeight : 0;
 
-    UpdateSidebarSize(new_width);
+    animation::AnimationConfig config;
+    config.duration = std::chrono::milliseconds(show ? 300 : 200);
+    config.easing_type =
+        show ? animation::EasingType::EaseOutCubic : animation::EasingType::EaseInCubic;
+
+    transition_manager_.register_transition("bottom_panel_height", config);
+    transition_manager_.start<int>(
+        "bottom_panel_height",
+        start_height,
+        target_height,
+        [this, show](int h)
+        {
+            if (bottom_panel_notebook_ != nullptr)
+            {
+                if (h > 0 && !bottom_panel_notebook_->IsShown())
+                {
+                    bottom_panel_notebook_->Show(true);
+                }
+                else if (h == 0 && !show)
+                {
+                    bottom_panel_notebook_->Show(false);
+                }
+
+                // Smoothly update the height to give a sliding effect
+                bottom_panel_notebook_->SetMinSize(wxSize(-1, h));
+                bottom_panel_notebook_->SetMaxSize(wxSize(-1, h));
+                body_sizer_->Layout();
+                main_sizer_->Layout();
+            }
+        },
+        [this]() { SaveLayoutState(); });
+
+    MARKAMP_LOG_DEBUG("Bottom panel animation started: {} -> {}", start_height, target_height);
+}
+
+auto LayoutManager::is_bottom_panel_visible() const -> bool
+{
+    return bottom_panel_visible_;
 }
 
 void LayoutManager::UpdateSidebarSize(int width)
@@ -2184,43 +2241,65 @@ void LayoutManager::OnThemeChanged(const core::Theme& new_theme)
 {
     ThemeAwareWindow::OnThemeChanged(new_theme);
 
-    content_panel_->SetBackgroundColour(theme_engine().resolve_token("bg.app").value_or(theme_engine().color(core::ThemeColorToken::BgApp)));
+    content_panel_->SetBackgroundColour(theme_engine().resolve_token("bg.app").value_or(
+        theme_engine().color(core::ThemeColorToken::BgApp)));
     content_panel_->Refresh();
 
     if (search_field_ != nullptr)
     {
         search_field_->SetBackgroundColour(
-            theme_engine().resolve_token("sidebar.bg").value_or(theme_engine().color(core::ThemeColorToken::BgPanel)).ChangeLightness(110));
-        search_field_->SetForegroundColour(theme_engine().resolve_token("text.main").value_or(theme_engine().color(core::ThemeColorToken::TextMain)));
+            theme_engine()
+                .resolve_token("sidebar.bg")
+                .value_or(theme_engine().color(core::ThemeColorToken::BgPanel))
+                .ChangeLightness(110));
+        search_field_->SetForegroundColour(
+            theme_engine()
+                .resolve_token("text.main")
+                .value_or(theme_engine().color(core::ThemeColorToken::TextMain)));
         search_field_->Refresh();
     }
 
     // V8 Phase 1: Re-apply theme tokens to sidebar header/footer/collapse button
     if (header_panel_ != nullptr)
     {
-        header_panel_->SetBackgroundColour(theme_engine().resolve_token("sidebar.border").value_or(theme_engine().color(core::ThemeColorToken::BgHeader)));
+        header_panel_->SetBackgroundColour(
+            theme_engine()
+                .resolve_token("sidebar.border")
+                .value_or(theme_engine().color(core::ThemeColorToken::BgHeader)));
         header_panel_->Refresh();
     }
     if (header_label_ != nullptr)
     {
-        header_label_->SetForegroundColour(theme_engine().resolve_token("text.muted").value_or(theme_engine().color(core::ThemeColorToken::TextMuted)));
+        header_label_->SetForegroundColour(
+            theme_engine()
+                .resolve_token("text.muted")
+                .value_or(theme_engine().color(core::ThemeColorToken::TextMuted)));
         header_label_->Refresh();
     }
     if (collapse_btn_ != nullptr)
     {
-        collapse_btn_->SetForegroundColour(theme_engine().resolve_token("text.muted").value_or(theme_engine().color(core::ThemeColorToken::TextMuted)));
-        collapse_btn_->SetBackgroundColour(theme_engine().resolve_token("sidebar.border").value_or(theme_engine().color(core::ThemeColorToken::BgHeader)));
+        collapse_btn_->SetForegroundColour(
+            theme_engine()
+                .resolve_token("text.muted")
+                .value_or(theme_engine().color(core::ThemeColorToken::TextMuted)));
+        collapse_btn_->SetBackgroundColour(
+            theme_engine()
+                .resolve_token("sidebar.border")
+                .value_or(theme_engine().color(core::ThemeColorToken::BgHeader)));
         collapse_btn_->Refresh();
     }
     if (footer_panel_ != nullptr)
     {
-        footer_panel_->SetBackgroundColour(theme_engine().resolve_token("bg.app").value_or(theme_engine().color(core::ThemeColorToken::BgApp)));
+        footer_panel_->SetBackgroundColour(theme_engine().resolve_token("bg.app").value_or(
+            theme_engine().color(core::ThemeColorToken::BgApp)));
         footer_panel_->Refresh();
     }
     if (file_count_label_ != nullptr)
     {
         file_count_label_->SetForegroundColour(
-            theme_engine().resolve_token("text.muted").value_or(theme_engine().color(core::ThemeColorToken::TextMuted)));
+            theme_engine()
+                .resolve_token("text.muted")
+                .value_or(theme_engine().color(core::ThemeColorToken::TextMuted)));
         file_count_label_->Refresh();
     }
 
@@ -2236,7 +2315,9 @@ void LayoutManager::OnSidebarPaint(wxPaintEvent& /*event*/)
 
     // 8D: Subtle top-to-bottom gradient (BgPanel → 3% darker)
     {
-        auto base_col = theme_engine().resolve_token("sidebar.bg").value_or(theme_engine().color(core::ThemeColorToken::BgPanel));
+        auto base_col = theme_engine()
+                            .resolve_token("sidebar.bg")
+                            .value_or(theme_engine().color(core::ThemeColorToken::BgPanel));
         auto darker = base_col.ChangeLightness(97);
         for (int row = 0; row < panel_height; ++row)
         {
@@ -2269,7 +2350,10 @@ void LayoutManager::OnSidebarPaint(wxPaintEvent& /*event*/)
 
     // 8B: Soft left highlight — 1px BgPanel lighter
     {
-        auto highlight = theme_engine().resolve_token("sidebar.bg").value_or(theme_engine().color(core::ThemeColorToken::BgPanel)).ChangeLightness(108);
+        auto highlight = theme_engine()
+                             .resolve_token("sidebar.bg")
+                             .value_or(theme_engine().color(core::ThemeColorToken::BgPanel))
+                             .ChangeLightness(108);
         paint_dc.SetPen(wxPen(highlight, 1));
         paint_dc.DrawLine(0, 0, 0, panel_height);
     }
@@ -2363,24 +2447,35 @@ void LayoutManager::RegisterSidebarPanels()
                                      const wxString& empty_msg) -> wxPanel*
     {
         auto* panel = new wxPanel(parent, wxID_ANY);
-        panel->SetBackgroundColour(theme_engine().resolve_token("sidebar.bg").value_or(theme_engine().color(core::ThemeColorToken::BgPanel)));
+        panel->SetBackgroundColour(
+            theme_engine()
+                .resolve_token("sidebar.bg")
+                .value_or(theme_engine().color(core::ThemeColorToken::BgPanel)));
         auto* sizer = new wxBoxSizer(wxVERTICAL);
 
         // ── Header ──
         auto* hdr = new wxPanel(panel, wxID_ANY, wxDefaultPosition, wxSize(-1, 36));
-        hdr->SetBackgroundColour(
-            theme_engine().resolve_token("sidebar.bg").value_or(theme_engine().color(core::ThemeColorToken::BgPanel)).ChangeLightness(108));
+        hdr->SetBackgroundColour(theme_engine()
+                                     .resolve_token("sidebar.bg")
+                                     .value_or(theme_engine().color(core::ThemeColorToken::BgPanel))
+                                     .ChangeLightness(108));
         auto* hdr_sizer = new wxBoxSizer(wxHORIZONTAL);
         hdr_sizer->AddSpacer(8);
         auto* icon_lbl = new wxStaticText(hdr, wxID_ANY, icon);
         icon_lbl->SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular).Scaled(1.1f));
-        icon_lbl->SetForegroundColour(theme_engine().resolve_token("accent.primary").value_or(theme_engine().color(core::ThemeColorToken::AccentPrimary)));
+        icon_lbl->SetForegroundColour(
+            theme_engine()
+                .resolve_token("accent.primary")
+                .value_or(theme_engine().color(core::ThemeColorToken::AccentPrimary)));
         hdr_sizer->Add(icon_lbl, 0, wxALIGN_CENTER_VERTICAL);
         hdr_sizer->AddSpacer(6);
         auto* title_lbl = new wxStaticText(hdr, wxID_ANY, title);
         title_lbl->SetFont(
             theme_engine().font(core::ThemeFontToken::MonoRegular).Bold().Scaled(0.85f));
-        title_lbl->SetForegroundColour(theme_engine().resolve_token("text.main").value_or(theme_engine().color(core::ThemeColorToken::TextMain)));
+        title_lbl->SetForegroundColour(
+            theme_engine()
+                .resolve_token("text.main")
+                .value_or(theme_engine().color(core::ThemeColorToken::TextMain)));
         hdr_sizer->Add(title_lbl, 1, wxALIGN_CENTER_VERTICAL);
         hdr->SetSizer(hdr_sizer);
         sizer->Add(hdr, 0, wxEXPAND);
@@ -2389,7 +2484,10 @@ void LayoutManager::RegisterSidebarPanels()
         if (!toolbar_labels.empty())
         {
             auto* tb_panel = new wxPanel(panel, wxID_ANY, wxDefaultPosition, wxSize(-1, 32));
-            tb_panel->SetBackgroundColour(theme_engine().resolve_token("sidebar.bg").value_or(theme_engine().color(core::ThemeColorToken::BgPanel)));
+            tb_panel->SetBackgroundColour(
+                theme_engine()
+                    .resolve_token("sidebar.bg")
+                    .value_or(theme_engine().color(core::ThemeColorToken::BgPanel)));
             auto* tb_sizer = new wxBoxSizer(wxHORIZONTAL);
             tb_sizer->AddSpacer(8);
             for (const auto& btn_label : toolbar_labels)
@@ -2402,8 +2500,13 @@ void LayoutManager::RegisterSidebarPanels()
                                          wxBORDER_NONE);
                 btn->SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular).Scaled(0.75f));
                 btn->SetForegroundColour(
-                    theme_engine().resolve_token("accent.primary").value_or(theme_engine().color(core::ThemeColorToken::AccentPrimary)));
-                btn->SetBackgroundColour(theme_engine().resolve_token("sidebar.bg").value_or(theme_engine().color(core::ThemeColorToken::BgPanel)));
+                    theme_engine()
+                        .resolve_token("accent.primary")
+                        .value_or(theme_engine().color(core::ThemeColorToken::AccentPrimary)));
+                btn->SetBackgroundColour(
+                    theme_engine()
+                        .resolve_token("sidebar.bg")
+                        .value_or(theme_engine().color(core::ThemeColorToken::BgPanel)));
                 tb_sizer->Add(btn, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
             }
             tb_panel->SetSizer(tb_sizer);
@@ -2414,8 +2517,14 @@ void LayoutManager::RegisterSidebarPanels()
         if (!list_items.empty())
         {
             auto* list = new wxListBox(panel, wxID_ANY);
-            list->SetBackgroundColour(theme_engine().resolve_token("sidebar.bg").value_or(theme_engine().color(core::ThemeColorToken::BgPanel)));
-            list->SetForegroundColour(theme_engine().resolve_token("text.main").value_or(theme_engine().color(core::ThemeColorToken::TextMain)));
+            list->SetBackgroundColour(
+                theme_engine()
+                    .resolve_token("sidebar.bg")
+                    .value_or(theme_engine().color(core::ThemeColorToken::BgPanel)));
+            list->SetForegroundColour(
+                theme_engine()
+                    .resolve_token("text.main")
+                    .value_or(theme_engine().color(core::ThemeColorToken::TextMain)));
             list->SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular).Scaled(0.85f));
             for (const auto& item : list_items)
             {
@@ -2426,7 +2535,10 @@ void LayoutManager::RegisterSidebarPanels()
         else
         {
             auto* empty_lbl = new wxStaticText(panel, wxID_ANY, empty_msg);
-            empty_lbl->SetForegroundColour(theme_engine().resolve_token("text.muted").value_or(theme_engine().color(core::ThemeColorToken::TextMuted)));
+            empty_lbl->SetForegroundColour(
+                theme_engine()
+                    .resolve_token("text.muted")
+                    .value_or(theme_engine().color(core::ThemeColorToken::TextMuted)));
             empty_lbl->SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular).Scaled(0.8f));
             sizer->AddStretchSpacer();
             sizer->Add(empty_lbl, 0, wxALIGN_CENTER | wxALL, 16);
@@ -2450,19 +2562,28 @@ void LayoutManager::RegisterSidebarPanels()
         [this](wxWindow* parent) -> wxPanel*
         {
             auto* panel = new wxPanel(parent, wxID_ANY);
-            panel->SetBackgroundColour(theme_engine().resolve_token("sidebar.bg").value_or(theme_engine().color(core::ThemeColorToken::BgPanel)));
+            panel->SetBackgroundColour(
+                theme_engine()
+                    .resolve_token("sidebar.bg")
+                    .value_or(theme_engine().color(core::ThemeColorToken::BgPanel)));
             auto* sizer = new wxBoxSizer(wxVERTICAL);
 
             // Header
             auto* hdr = new wxPanel(panel, wxID_ANY, wxDefaultPosition, wxSize(-1, 36));
             hdr->SetBackgroundColour(
-                theme_engine().resolve_token("sidebar.bg").value_or(theme_engine().color(core::ThemeColorToken::BgPanel)).ChangeLightness(108));
+                theme_engine()
+                    .resolve_token("sidebar.bg")
+                    .value_or(theme_engine().color(core::ThemeColorToken::BgPanel))
+                    .ChangeLightness(108));
             auto* hdr_sizer = new wxBoxSizer(wxHORIZONTAL);
             hdr_sizer->AddSpacer(8);
             auto* title = new wxStaticText(hdr, wxID_ANY, "SEARCH");
             title->SetFont(
                 theme_engine().font(core::ThemeFontToken::MonoRegular).Bold().Scaled(0.85f));
-            title->SetForegroundColour(theme_engine().resolve_token("text.main").value_or(theme_engine().color(core::ThemeColorToken::TextMain)));
+            title->SetForegroundColour(
+                theme_engine()
+                    .resolve_token("text.main")
+                    .value_or(theme_engine().color(core::ThemeColorToken::TextMain)));
             hdr_sizer->Add(title, 1, wxALIGN_CENTER_VERTICAL);
             hdr->SetSizer(hdr_sizer);
             sizer->Add(hdr, 0, wxEXPAND);
@@ -2473,9 +2594,14 @@ void LayoutManager::RegisterSidebarPanels()
             search_input->SetDescriptiveText("Search files\u2026");
             search_input->ShowCancelButton(true);
             search_input->SetBackgroundColour(
-                theme_engine().resolve_token("sidebar.bg").value_or(theme_engine().color(core::ThemeColorToken::BgPanel)).ChangeLightness(115));
+                theme_engine()
+                    .resolve_token("sidebar.bg")
+                    .value_or(theme_engine().color(core::ThemeColorToken::BgPanel))
+                    .ChangeLightness(115));
             search_input->SetForegroundColour(
-                theme_engine().resolve_token("text.main").value_or(theme_engine().color(core::ThemeColorToken::TextMain)));
+                theme_engine()
+                    .resolve_token("text.main")
+                    .value_or(theme_engine().color(core::ThemeColorToken::TextMain)));
             search_input->SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular));
             sizer->Add(search_input, 0, wxEXPAND | wxALL, 8);
 
@@ -2484,9 +2610,14 @@ void LayoutManager::RegisterSidebarPanels()
                 new wxTextCtrl(panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(-1, 28));
             replace_input->SetHint("Replace\u2026");
             replace_input->SetBackgroundColour(
-                theme_engine().resolve_token("sidebar.bg").value_or(theme_engine().color(core::ThemeColorToken::BgPanel)).ChangeLightness(115));
+                theme_engine()
+                    .resolve_token("sidebar.bg")
+                    .value_or(theme_engine().color(core::ThemeColorToken::BgPanel))
+                    .ChangeLightness(115));
             replace_input->SetForegroundColour(
-                theme_engine().resolve_token("text.main").value_or(theme_engine().color(core::ThemeColorToken::TextMain)));
+                theme_engine()
+                    .resolve_token("text.main")
+                    .value_or(theme_engine().color(core::ThemeColorToken::TextMain)));
             replace_input->SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular));
             sizer->Add(replace_input, 0, wxEXPAND | wxLEFT | wxRIGHT, 8);
 
@@ -2494,15 +2625,24 @@ void LayoutManager::RegisterSidebarPanels()
             auto* opts = new wxBoxSizer(wxHORIZONTAL);
             opts->AddSpacer(8);
             auto* regex_cb = new wxCheckBox(panel, wxID_ANY, "Regex");
-            regex_cb->SetForegroundColour(theme_engine().resolve_token("text.muted").value_or(theme_engine().color(core::ThemeColorToken::TextMuted)));
+            regex_cb->SetForegroundColour(
+                theme_engine()
+                    .resolve_token("text.muted")
+                    .value_or(theme_engine().color(core::ThemeColorToken::TextMuted)));
             regex_cb->SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular).Scaled(0.75f));
             opts->Add(regex_cb, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
             auto* case_cb = new wxCheckBox(panel, wxID_ANY, "Case");
-            case_cb->SetForegroundColour(theme_engine().resolve_token("text.muted").value_or(theme_engine().color(core::ThemeColorToken::TextMuted)));
+            case_cb->SetForegroundColour(
+                theme_engine()
+                    .resolve_token("text.muted")
+                    .value_or(theme_engine().color(core::ThemeColorToken::TextMuted)));
             case_cb->SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular).Scaled(0.75f));
             opts->Add(case_cb, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
             auto* word_cb = new wxCheckBox(panel, wxID_ANY, "Word");
-            word_cb->SetForegroundColour(theme_engine().resolve_token("text.muted").value_or(theme_engine().color(core::ThemeColorToken::TextMuted)));
+            word_cb->SetForegroundColour(
+                theme_engine()
+                    .resolve_token("text.muted")
+                    .value_or(theme_engine().color(core::ThemeColorToken::TextMuted)));
             word_cb->SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular).Scaled(0.75f));
             opts->Add(word_cb, 0, wxALIGN_CENTER_VERTICAL);
             sizer->Add(opts, 0, wxEXPAND | wxTOP | wxBOTTOM, 4);
@@ -2513,7 +2653,9 @@ void LayoutManager::RegisterSidebarPanels()
                 wxID_ANY,
                 "No search results match your query\nTry changing the filters or keywords.");
             results_label->SetForegroundColour(
-                theme_engine().resolve_token("text.muted").value_or(theme_engine().color(core::ThemeColorToken::TextMuted)));
+                theme_engine()
+                    .resolve_token("text.muted")
+                    .value_or(theme_engine().color(core::ThemeColorToken::TextMuted)));
             results_label->SetFont(
                 theme_engine().font(core::ThemeFontToken::MonoRegular).Scaled(0.8f));
             sizer->AddStretchSpacer();
@@ -2634,32 +2776,46 @@ void LayoutManager::RegisterSidebarPanels()
         [this](wxWindow* parent) -> wxPanel*
         {
             auto* panel = new wxPanel(parent, wxID_ANY);
-            panel->SetBackgroundColour(theme_engine().resolve_token("sidebar.bg").value_or(theme_engine().color(core::ThemeColorToken::BgPanel)));
+            panel->SetBackgroundColour(
+                theme_engine()
+                    .resolve_token("sidebar.bg")
+                    .value_or(theme_engine().color(core::ThemeColorToken::BgPanel)));
             auto* sizer = new wxBoxSizer(wxVERTICAL);
 
             // Header
             auto* hdr = new wxPanel(panel, wxID_ANY, wxDefaultPosition, wxSize(-1, 36));
             hdr->SetBackgroundColour(
-                theme_engine().resolve_token("sidebar.bg").value_or(theme_engine().color(core::ThemeColorToken::BgPanel)).ChangeLightness(108));
+                theme_engine()
+                    .resolve_token("sidebar.bg")
+                    .value_or(theme_engine().color(core::ThemeColorToken::BgPanel))
+                    .ChangeLightness(108));
             auto* hdr_sizer = new wxBoxSizer(wxHORIZONTAL);
             hdr_sizer->AddSpacer(8);
             auto* icon_lbl = new wxStaticText(hdr, wxID_ANY, "\xF0\x9F\xA4\x96");
             icon_lbl->SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular).Scaled(1.1f));
             icon_lbl->SetForegroundColour(
-                theme_engine().resolve_token("accent.primary").value_or(theme_engine().color(core::ThemeColorToken::AccentPrimary)));
+                theme_engine()
+                    .resolve_token("accent.primary")
+                    .value_or(theme_engine().color(core::ThemeColorToken::AccentPrimary)));
             hdr_sizer->Add(icon_lbl, 0, wxALIGN_CENTER_VERTICAL);
             hdr_sizer->AddSpacer(6);
             auto* title_lbl = new wxStaticText(hdr, wxID_ANY, "AI ASSISTANT");
             title_lbl->SetFont(
                 theme_engine().font(core::ThemeFontToken::MonoRegular).Bold().Scaled(0.85f));
-            title_lbl->SetForegroundColour(theme_engine().resolve_token("text.main").value_or(theme_engine().color(core::ThemeColorToken::TextMain)));
+            title_lbl->SetForegroundColour(
+                theme_engine()
+                    .resolve_token("text.main")
+                    .value_or(theme_engine().color(core::ThemeColorToken::TextMain)));
             hdr_sizer->Add(title_lbl, 1, wxALIGN_CENTER_VERTICAL);
             hdr->SetSizer(hdr_sizer);
             sizer->Add(hdr, 0, wxEXPAND);
 
             // Action buttons
             auto* actions = new wxPanel(panel, wxID_ANY, wxDefaultPosition, wxSize(-1, 34));
-            actions->SetBackgroundColour(theme_engine().resolve_token("sidebar.bg").value_or(theme_engine().color(core::ThemeColorToken::BgPanel)));
+            actions->SetBackgroundColour(
+                theme_engine()
+                    .resolve_token("sidebar.bg")
+                    .value_or(theme_engine().color(core::ThemeColorToken::BgPanel)));
             auto* act_sizer = new wxBoxSizer(wxHORIZONTAL);
             act_sizer->AddSpacer(8);
             for (const auto& lbl_text : {"Summarize", "Translate", "Expand", "Simplify", "Grammar"})
@@ -2668,8 +2824,13 @@ void LayoutManager::RegisterSidebarPanels()
                     actions, wxID_ANY, lbl_text, wxDefaultPosition, wxSize(-1, 26), wxBORDER_NONE);
                 btn->SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular).Scaled(0.7f));
                 btn->SetForegroundColour(
-                    theme_engine().resolve_token("accent.primary").value_or(theme_engine().color(core::ThemeColorToken::AccentPrimary)));
-                btn->SetBackgroundColour(theme_engine().resolve_token("sidebar.bg").value_or(theme_engine().color(core::ThemeColorToken::BgPanel)));
+                    theme_engine()
+                        .resolve_token("accent.primary")
+                        .value_or(theme_engine().color(core::ThemeColorToken::AccentPrimary)));
+                btn->SetBackgroundColour(
+                    theme_engine()
+                        .resolve_token("sidebar.bg")
+                        .value_or(theme_engine().color(core::ThemeColorToken::BgPanel)));
                 act_sizer->Add(btn, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 2);
             }
             actions->SetSizer(act_sizer);
@@ -2682,8 +2843,14 @@ void LayoutManager::RegisterSidebarPanels()
                                              wxDefaultPosition,
                                              wxDefaultSize,
                                              wxTE_MULTILINE | wxTE_READONLY | wxBORDER_NONE);
-            chat_area->SetBackgroundColour(theme_engine().resolve_token("sidebar.bg").value_or(theme_engine().color(core::ThemeColorToken::BgPanel)));
-            chat_area->SetForegroundColour(theme_engine().resolve_token("text.main").value_or(theme_engine().color(core::ThemeColorToken::TextMain)));
+            chat_area->SetBackgroundColour(
+                theme_engine()
+                    .resolve_token("sidebar.bg")
+                    .value_or(theme_engine().color(core::ThemeColorToken::BgPanel)));
+            chat_area->SetForegroundColour(
+                theme_engine()
+                    .resolve_token("text.main")
+                    .value_or(theme_engine().color(core::ThemeColorToken::TextMain)));
             chat_area->SetFont(
                 theme_engine().font(core::ThemeFontToken::MonoRegular).Scaled(0.85f));
             chat_area->SetValue("Welcome to MarkAmp AI Assistant.\n\n"
@@ -2696,17 +2863,28 @@ void LayoutManager::RegisterSidebarPanels()
             auto* input = new wxTextCtrl(panel, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 28));
             input->SetHint("Ask AI\u2026");
             input->SetBackgroundColour(
-                theme_engine().resolve_token("sidebar.bg").value_or(theme_engine().color(core::ThemeColorToken::BgPanel)).ChangeLightness(115));
-            input->SetForegroundColour(theme_engine().resolve_token("text.main").value_or(theme_engine().color(core::ThemeColorToken::TextMain)));
+                theme_engine()
+                    .resolve_token("sidebar.bg")
+                    .value_or(theme_engine().color(core::ThemeColorToken::BgPanel))
+                    .ChangeLightness(115));
+            input->SetForegroundColour(
+                theme_engine()
+                    .resolve_token("text.main")
+                    .value_or(theme_engine().color(core::ThemeColorToken::TextMain)));
             input->SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular));
             input_sizer->Add(input, 1, wxALIGN_CENTER_VERTICAL | wxLEFT, 4);
             auto* send_btn = new wxButton(
                 panel, wxID_ANY, "\xE2\x96\xB6", wxDefaultPosition, wxSize(32, 28), wxBORDER_NONE);
             send_btn->SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular));
             send_btn->SetForegroundColour(
-                theme_engine().resolve_token("accent.primary").value_or(theme_engine().color(core::ThemeColorToken::AccentPrimary)));
+                theme_engine()
+                    .resolve_token("accent.primary")
+                    .value_or(theme_engine().color(core::ThemeColorToken::AccentPrimary)));
             send_btn->SetBackgroundColour(
-                theme_engine().resolve_token("sidebar.bg").value_or(theme_engine().color(core::ThemeColorToken::BgPanel)).ChangeLightness(115));
+                theme_engine()
+                    .resolve_token("sidebar.bg")
+                    .value_or(theme_engine().color(core::ThemeColorToken::BgPanel))
+                    .ChangeLightness(115));
             input_sizer->Add(send_btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, 4);
             sizer->Add(input_sizer, 0, wxEXPAND | wxBOTTOM, 4);
 
@@ -2743,19 +2921,28 @@ void LayoutManager::RegisterSidebarPanels()
         [this](wxWindow* parent) -> wxPanel*
         {
             auto* panel = new wxPanel(parent, wxID_ANY);
-            panel->SetBackgroundColour(theme_engine().resolve_token("sidebar.bg").value_or(theme_engine().color(core::ThemeColorToken::BgPanel)));
+            panel->SetBackgroundColour(
+                theme_engine()
+                    .resolve_token("sidebar.bg")
+                    .value_or(theme_engine().color(core::ThemeColorToken::BgPanel)));
             auto* sizer = new wxBoxSizer(wxVERTICAL);
 
             // Header
             auto* hdr = new wxPanel(panel, wxID_ANY, wxDefaultPosition, wxSize(-1, 36));
             hdr->SetBackgroundColour(
-                theme_engine().resolve_token("sidebar.bg").value_or(theme_engine().color(core::ThemeColorToken::BgPanel)).ChangeLightness(108));
+                theme_engine()
+                    .resolve_token("sidebar.bg")
+                    .value_or(theme_engine().color(core::ThemeColorToken::BgPanel))
+                    .ChangeLightness(108));
             auto* hdr_sizer = new wxBoxSizer(wxHORIZONTAL);
             hdr_sizer->AddSpacer(8);
             auto* title_lbl = new wxStaticText(hdr, wxID_ANY, "SOURCE CONTROL");
             title_lbl->SetFont(
                 theme_engine().font(core::ThemeFontToken::MonoRegular).Bold().Scaled(0.85f));
-            title_lbl->SetForegroundColour(theme_engine().resolve_token("text.main").value_or(theme_engine().color(core::ThemeColorToken::TextMain)));
+            title_lbl->SetForegroundColour(
+                theme_engine()
+                    .resolve_token("text.main")
+                    .value_or(theme_engine().color(core::ThemeColorToken::TextMain)));
             hdr_sizer->Add(title_lbl, 1, wxALIGN_CENTER_VERTICAL);
             hdr->SetSizer(hdr_sizer);
             sizer->Add(hdr, 0, wxEXPAND);
@@ -2765,9 +2952,14 @@ void LayoutManager::RegisterSidebarPanels()
                 panel, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 60), wxTE_MULTILINE);
             commit_input->SetHint("Commit message\u2026");
             commit_input->SetBackgroundColour(
-                theme_engine().resolve_token("sidebar.bg").value_or(theme_engine().color(core::ThemeColorToken::BgPanel)).ChangeLightness(115));
+                theme_engine()
+                    .resolve_token("sidebar.bg")
+                    .value_or(theme_engine().color(core::ThemeColorToken::BgPanel))
+                    .ChangeLightness(115));
             commit_input->SetForegroundColour(
-                theme_engine().resolve_token("text.main").value_or(theme_engine().color(core::ThemeColorToken::TextMain)));
+                theme_engine()
+                    .resolve_token("text.main")
+                    .value_or(theme_engine().color(core::ThemeColorToken::TextMain)));
             commit_input->SetFont(
                 theme_engine().font(core::ThemeFontToken::MonoRegular).Scaled(0.85f));
             sizer->Add(commit_input, 0, wxEXPAND | wxALL, 8);
@@ -2781,8 +2973,13 @@ void LayoutManager::RegisterSidebarPanels()
                     panel, wxID_ANY, label, wxDefaultPosition, wxSize(-1, 26), wxBORDER_NONE);
                 btn->SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular).Scaled(0.75f));
                 btn->SetForegroundColour(
-                    theme_engine().resolve_token("accent.primary").value_or(theme_engine().color(core::ThemeColorToken::AccentPrimary)));
-                btn->SetBackgroundColour(theme_engine().resolve_token("sidebar.bg").value_or(theme_engine().color(core::ThemeColorToken::BgPanel)));
+                    theme_engine()
+                        .resolve_token("accent.primary")
+                        .value_or(theme_engine().color(core::ThemeColorToken::AccentPrimary)));
+                btn->SetBackgroundColour(
+                    theme_engine()
+                        .resolve_token("sidebar.bg")
+                        .value_or(theme_engine().color(core::ThemeColorToken::BgPanel)));
                 btn_sizer->Add(btn, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
             }
             sizer->Add(btn_sizer, 0, wxEXPAND);
@@ -2793,23 +2990,37 @@ void LayoutManager::RegisterSidebarPanels()
                 auto* lbl = new wxStaticText(panel, wxID_ANY, text);
                 lbl->SetFont(
                     theme_engine().font(core::ThemeFontToken::MonoRegular).Bold().Scaled(0.8f));
-                lbl->SetForegroundColour(theme_engine().resolve_token("text.muted").value_or(theme_engine().color(core::ThemeColorToken::TextMuted)));
+                lbl->SetForegroundColour(
+                    theme_engine()
+                        .resolve_token("text.muted")
+                        .value_or(theme_engine().color(core::ThemeColorToken::TextMuted)));
                 sizer->Add(lbl, 0, wxLEFT | wxTOP, 8);
             };
 
             add_section_label("STAGED CHANGES");
             auto* staged_list = new wxListBox(panel, wxID_ANY, wxDefaultPosition, wxSize(-1, 60));
-            staged_list->SetBackgroundColour(theme_engine().resolve_token("sidebar.bg").value_or(theme_engine().color(core::ThemeColorToken::BgPanel)));
-            staged_list->SetForegroundColour(theme_engine().resolve_token("text.main").value_or(theme_engine().color(core::ThemeColorToken::TextMain)));
+            staged_list->SetBackgroundColour(
+                theme_engine()
+                    .resolve_token("sidebar.bg")
+                    .value_or(theme_engine().color(core::ThemeColorToken::BgPanel)));
+            staged_list->SetForegroundColour(
+                theme_engine()
+                    .resolve_token("text.main")
+                    .value_or(theme_engine().color(core::ThemeColorToken::TextMain)));
             staged_list->SetFont(
                 theme_engine().font(core::ThemeFontToken::MonoRegular).Scaled(0.8f));
             sizer->Add(staged_list, 0, wxEXPAND | wxALL, 4);
 
             add_section_label("CHANGES");
             auto* changes_list = new wxListBox(panel, wxID_ANY);
-            changes_list->SetBackgroundColour(theme_engine().resolve_token("sidebar.bg").value_or(theme_engine().color(core::ThemeColorToken::BgPanel)));
+            changes_list->SetBackgroundColour(
+                theme_engine()
+                    .resolve_token("sidebar.bg")
+                    .value_or(theme_engine().color(core::ThemeColorToken::BgPanel)));
             changes_list->SetForegroundColour(
-                theme_engine().resolve_token("text.main").value_or(theme_engine().color(core::ThemeColorToken::TextMain)));
+                theme_engine()
+                    .resolve_token("text.main")
+                    .value_or(theme_engine().color(core::ThemeColorToken::TextMain)));
             changes_list->SetFont(
                 theme_engine().font(core::ThemeFontToken::MonoRegular).Scaled(0.8f));
             sizer->Add(changes_list, 1, wxEXPAND | wxALL, 4);
@@ -2924,27 +3135,22 @@ void LayoutManager::SetSidebarMode(SidebarMode mode)
 
     // Phase 06 Task 17: Start transition animation
     sidebar_transition_alpha_ = 0.0F;
-    sidebar_transition_active_ = true;
-    if (!sidebar_transition_timer_.IsRunning())
-    {
-        sidebar_transition_timer_.SetOwner(sidebar_panel_);
-        sidebar_transition_timer_.Bind(wxEVT_TIMER,
-                                       [this](wxTimerEvent& /*evt*/)
-                                       {
-                                           sidebar_transition_alpha_ += 0.2F; // ~5 steps = 150ms
-                                           if (sidebar_transition_alpha_ >= 1.0F)
-                                           {
-                                               sidebar_transition_alpha_ = 1.0F;
-                                               sidebar_transition_active_ = false;
-                                               sidebar_transition_timer_.Stop();
-                                           }
-                                           if (sidebar_panel_ != nullptr)
-                                           {
-                                               sidebar_panel_->Refresh();
-                                           }
-                                       });
-        sidebar_transition_timer_.Start(30);
-    }
+    animation::AnimationConfig alpha_config;
+    alpha_config.duration = std::chrono::milliseconds(150);
+    alpha_config.easing_type = animation::EasingType::Linear;
+
+    transition_manager_.register_transition("sidebar_alpha", alpha_config);
+    transition_manager_.start<float>("sidebar_alpha",
+                                     0.0F,
+                                     1.0F,
+                                     [this](float alpha)
+                                     {
+                                         sidebar_transition_alpha_ = alpha;
+                                         if (sidebar_panel_ != nullptr)
+                                         {
+                                             sidebar_panel_->Refresh();
+                                         }
+                                     });
 
     // Phase 06 Task 8: Broadcast SidebarModeChangedEvent
     core::events::SidebarModeChangedEvent changed_evt;
@@ -2974,11 +3180,16 @@ void LayoutManager::ToggleSecondarySidebar()
         secondary_sidebar_panel_ = new wxPanel(content_container(), wxID_ANY);
         secondary_sidebar_panel_->SetMinSize(wxSize(kDefaultSidebarWidth, -1));
         secondary_sidebar_panel_->SetBackgroundColour(
-            theme_engine().resolve_token("sidebar.bg").value_or(theme_engine().color(core::ThemeColorToken::BgPanel)));
+            theme_engine()
+                .resolve_token("sidebar.bg")
+                .value_or(theme_engine().color(core::ThemeColorToken::BgPanel)));
 
         auto* sizer = new wxBoxSizer(wxVERTICAL);
         auto* label = new wxStaticText(secondary_sidebar_panel_, wxID_ANY, "Secondary Sidebar");
-        label->SetForegroundColour(theme_engine().resolve_token("text.muted").value_or(theme_engine().color(core::ThemeColorToken::TextMuted)));
+        label->SetForegroundColour(
+            theme_engine()
+                .resolve_token("text.muted")
+                .value_or(theme_engine().color(core::ThemeColorToken::TextMuted)));
         sizer->AddStretchSpacer();
         sizer->Add(label, 0, wxALIGN_CENTER);
         sizer->AddStretchSpacer();

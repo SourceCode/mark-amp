@@ -3,11 +3,13 @@
 #include "ComponentSizeResolver.h"
 #include "LayoutMetrics.h"
 #include "SpacingGrid.h"
+#include "TooltipWindow.h"
 #include "TypographyScale.h"
 #include "core/Logger.h"
 #include "core/ThemeEngine.h"
 #include "ui/IconManager.h"
 
+#include <wx/app.h>
 #include <wx/dcbuffer.h>
 #include <wx/menu.h>
 
@@ -51,8 +53,14 @@ ActivityBar::ActivityBar(wxWindow* parent, DesignSystemContext& ds, core::EventB
     Bind(wxEVT_TIMER,
          [this](wxTimerEvent& /*evt*/)
          {
-             tooltip_visible_ = true;
-             Refresh();
+             if (hover_index_ >= 0 && hover_index_ < static_cast<int>(items_.size()))
+             {
+                 auto* tooltip = TooltipWindow::GetOrCreate(wxTheApp->GetTopWindow(), ds_);
+                 const auto& item = items_[static_cast<std::size_t>(hover_index_)];
+                 int tooltip_y = item.bounds.GetY() + (item.bounds.GetHeight() - 24) / 2;
+                 wxPoint screen_pos = ClientToScreen(wxPoint(GetSize().GetWidth() + 4, tooltip_y));
+                 tooltip->ShowTooltip(item.label, screen_pos);
+             }
          });
 
     // Make the activity bar focusable for keyboard navigation
@@ -287,25 +295,7 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
         }
     }
 
-    // R20 Fix 19: Themed tooltip pill for hovered item (with delay)
-    if (hover_index_ >= 0 && hover_index_ < static_cast<int>(items_.size()) && tooltip_visible_)
-    {
-        const auto& hov_item = items_[static_cast<std::size_t>(hover_index_)];
-        auto pill_bg = clr.bg_header.to_wx_colour();
-        auto pill_fg = clr.editor_fg.to_wx_colour();
-        auto pill_font = ds_.typography.font(TypeSlot::kBody);
-        paint_dc.SetFont(pill_font);
-        auto tip_extent = paint_dc.GetTextExtent(hov_item.label);
-        const int kPillX = kBarWidth + 4;
-        const int kPillY =
-            hov_item.bounds.GetY() + (hov_item.bounds.GetHeight() - tip_extent.GetHeight() - 8) / 2;
-        paint_dc.SetBrush(wxBrush(pill_bg));
-        paint_dc.SetPen(wxPen(clr.border_light.to_wx_colour()));
-        paint_dc.DrawRoundedRectangle(
-            kPillX, kPillY, tip_extent.GetWidth() + 16, tip_extent.GetHeight() + 8, 6);
-        paint_dc.SetTextForeground(pill_fg);
-        paint_dc.DrawText(hov_item.label, kPillX + 8, kPillY + 4);
-    }
+    // R18 Fix 19: Removed custom drawn tooltip pill here in favor of TooltipWindow
 
     // Separator line on the right edge
     auto border = clr.border_light.to_wx_colour();
@@ -395,6 +385,10 @@ void ActivityBar::OnMouseMove(wxMouseEvent& event)
     if (item_index != hover_index_)
     {
         hover_index_ = item_index;
+        if (auto* tooltip = TooltipWindow::GetOrCreate(wxTheApp->GetTopWindow(), ds_))
+        {
+            tooltip->HideTooltip();
+        }
         tooltip_visible_ = false;
         if (hover_index_ >= 0)
         {
@@ -418,6 +412,10 @@ void ActivityBar::OnMouseLeave(wxMouseEvent& /*event*/)
     if (hover_index_ != -1)
     {
         hover_index_ = -1;
+        if (auto* tooltip = TooltipWindow::GetOrCreate(wxTheApp->GetTopWindow(), ds_))
+        {
+            tooltip->HideTooltip();
+        }
         tooltip_visible_ = false;
         tooltip_timer_.Stop();
         UnsetToolTip();

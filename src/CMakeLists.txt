@@ -9,6 +9,14 @@ add_executable(markamp
     ui/ControlState.cpp
     ui/LayoutMetrics.cpp
     ui/ColorPaletteGenerator.cpp
+    ui/animation/EasingFunctions.cpp
+    ui/animation/ValueInterpolator.cpp
+    ui/animation/SpringPhysics.cpp
+    ui/animation/AnimationTimeline.cpp
+    ui/animation/TransitionManager.cpp
+    ui/animation/SkeletonLoader.cpp
+    ui/animation/FocusRingAnimator.cpp
+    ui/animation/ProgressBar.cpp
     ui/ColorUtils.cpp
     ui/ComponentSizeResolver.cpp
     ui/DesignTokenRegistry.cpp
@@ -69,6 +77,7 @@ add_executable(markamp
     ui/PreviewPanel.cpp
     ui/SplitView.cpp
     ui/Toolbar.cpp
+    ui/TooltipWindow.cpp
     ui/ThemeGallery.cpp
     ui/ThemeTokenEditor.cpp
     ui/ThemeEditorPanel.cpp
@@ -738,6 +747,11 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "Src" FILES
     ui/ThemeAwareWindow.h
     ui/ThemeAwareWindow.cpp
     ui/ColorPaletteGenerator.cpp
+    ui/animation/EasingFunctions.cpp
+    ui/animation/ValueInterpolator.cpp
+    ui/animation/SpringPhysics.cpp
+    ui/animation/AnimationTimeline.cpp
+    ui/animation/TransitionManager.cpp
     ui/ThemeEditorPanel.cpp
     ui/ColorBlindnessPreviewOverlay.cpp
     ui/SvgDocument.h
@@ -798,8 +812,9 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "Src" FILES
     ui/PreviewPanel.cpp
     ui/SplitView.h
     ui/SplitView.cpp
-    ui/Toolbar.h
     ui/Toolbar.cpp
+    ui/TooltipWindow.h
+    ui/TooltipWindow.cpp
     ui/ThemeGallery.h
     ui/ThemeGallery.cpp
     ui/ThemePreviewCard.h

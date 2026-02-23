@@ -2,11 +2,10 @@
 
 #include "DesignSystemContext.h"
 #include "ThemeAwareWindow.h"
+#include "animation/TransitionManager.h"
 #include "core/EventBus.h"
 #include "core/Events.h"
 #include "core/ThemeEngine.h"
-
-#include <wx/timer.h>
 
 #include <functional>
 #include <string>
@@ -112,9 +111,8 @@ private:
     // Interaction state
     int hovered_tab_index_{-1};
 
-    // R18 Fix 1: Fade-in animation timer
-    wxTimer fade_timer_;
-    void OnFadeTimer(wxTimerEvent& event);
+    // R18 Fix 1: Fade-in transition manager
+    animation::TransitionManager transition_manager_{this};
 
     // R18 Fix 4: Parent folder disambiguation for duplicate display names
     [[nodiscard]] auto GetDisambiguationSuffix(const TabInfo& tab) const -> std::string;

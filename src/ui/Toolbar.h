@@ -3,10 +3,9 @@
 #include "DesignSystemContext.h"
 #include "LayoutMetrics.h"
 #include "ThemeAwareWindow.h"
+#include "animation/TransitionManager.h"
 #include "core/EventBus.h"
 #include "core/Events.h"
-
-#include <wx/timer.h>
 
 #include <functional>
 #include <vector>
@@ -85,11 +84,11 @@ private:
     core::Subscription focus_mode_sub_;
     ThemeGalleryCallback on_theme_gallery_click_;
 
-    // R5 Fix 20: Save button flash feedback
-    bool save_flash_active_{false};
-    wxTimer save_flash_timer_;
-    float save_pulse_scale_{1.0F}; // R19 Fix 7: save icon scale during pulse
-    wxTimer save_pulse_timer_;     // R19 Fix 7: timer for save icon pulse
+    // R5 Fix 20 & R19 Fix 7: Save button flash and pulse
+    float save_flash_alpha_{0.0F};
+    float save_pulse_scale_{1.0F};
+    animation::TransitionManager transition_manager_{this};
+
     int zoom_level_{0};            // R19 Fix 10: current zoom level (%)
     int focused_button_index_{-1}; // R19 Fix 9: keyboard focus ring index
     bool focus_is_left_{true};     // R19 Fix 9: which button group has focus

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "animation/TransitionManager.h"
 #include "core/EventBus.h"
 #include "core/ThemeEngine.h"
 
@@ -59,6 +60,9 @@ public:
     /// Show the palette and reset the filter
     void ShowPalette();
 
+    /// Hide the palette with animation
+    void HidePalette();
+
     /// Set the current palette mode (Phase 36)
     void SetMode(PaletteMode mode);
 
@@ -112,6 +116,10 @@ private:
 
     PaletteMode current_mode_{PaletteMode::kCommands};
     core::CommandRegistry* registry_{nullptr};
+
+    // Animation components
+    animation::TransitionManager transition_manager_{this};
+    bool is_closing_{false};
 };
 
 } // namespace markamp::ui

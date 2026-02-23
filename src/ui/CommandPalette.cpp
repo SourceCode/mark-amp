@@ -87,6 +87,17 @@ CommandPalette::CommandPalette(wxWindow* parent,
 
     ApplyTheme();
 
+    // Animation configs
+    animation::AnimationConfig open_cfg;
+    open_cfg.duration = std::chrono::milliseconds(150);
+    open_cfg.easing_type = animation::EasingType::EaseOutCubic;
+    transition_manager_.register_transition("palette_open", open_cfg);
+
+    animation::AnimationConfig close_cfg;
+    close_cfg.duration = std::chrono::milliseconds(100);
+    close_cfg.easing_type = animation::EasingType::EaseInQuad;
+    transition_manager_.register_transition("palette_close", close_cfg);
+
     theme_sub_ = event_bus_.subscribe<core::events::ThemeChangedEvent>(
         [this](const core::events::ThemeChangedEvent& /*evt*/) { ApplyTheme(); });
 }
@@ -111,13 +122,18 @@ void CommandPalette::ClearCommands()
 
 void CommandPalette::ShowPalette()
 {
+    is_closing_ = false;
+
     ApplyTheme();
     input_->Clear();
     ApplyFilter();
 
-    // Center on parent
+    SetTransparent(0);
+    SetSize(475, 332);
     CenterOnParent();
+
     Show(true);
+
     CallAfter(
         [this]()
         {
@@ -125,6 +141,48 @@ void CommandPalette::ShowPalette()
             {
                 input_->SetFocus();
             }
+        });
+
+    transition_manager_.start<float>(
+        "palette_open",
+        0.0F,
+        1.0F,
+        [this](float t)
+        {
+            SetTransparent(static_cast<wxByte>(255.0F * t));
+            const float scale = 0.95F + 0.05F * t;
+            SetSize(static_cast<int>(500.0F * scale), static_cast<int>(350.0F * scale));
+            CenterOnParent();
+        },
+        [this]()
+        {
+            SetTransparent(255);
+            SetSize(500, 350);
+            CenterOnParent();
+        });
+}
+
+void CommandPalette::HidePalette()
+{
+    if (is_closing_)
+        return;
+    is_closing_ = true;
+
+    transition_manager_.start<float>(
+        "palette_close",
+        1.0F,
+        0.0F,
+        [this](float t)
+        {
+            SetTransparent(static_cast<wxByte>(255.0F * t));
+            const float scale = 0.95F + 0.05F * t;
+            SetSize(static_cast<int>(500.0F * scale), static_cast<int>(350.0F * scale));
+            CenterOnParent();
+        },
+        [this]()
+        {
+            Hide();
+            is_closing_ = false;
         });
 }
 
@@ -144,7 +202,7 @@ void CommandPalette::OnKeyDown(wxKeyEvent& event)
 
     if (key_code == WXK_ESCAPE)
     {
-        Hide();
+        HidePalette();
         return;
     }
 
@@ -290,7 +348,7 @@ void CommandPalette::ExecuteSelected()
     }
 
     const size_t cmd_index = display_items_[static_cast<std::size_t>(current_sel)].cmd_index;
-    Hide();
+    HidePalette();
 
     // R18 Fix 17: Update MRU history
     const auto& label = all_commands_[cmd_index].label;

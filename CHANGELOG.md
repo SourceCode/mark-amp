@@ -1,5 +1,23 @@
 # MarkAmp Release History
 
+## v2.7.30 — 2026-02-23
+
+### Highlights
+
+V13 Phase 04: Motion And Animation Framework. Transitioned several legacy UI components from ad-hoc manual `wxTimer` loops to the centralized `AnimationTimeline` and `TransitionManager` engines.
+
+### Fixed
+
+- **Contrast Ratio Validation** — Updated `test_contrast_validator` and `test_scoped_token_map` to align with the new semantic and ratio calculation APIs introduced in Phase 03.
+- **ActivityBar and StatusBarPanel Build Issues** — Fixed missing `wxTheApp` includes to properly reference the top-level window when attaching `TooltipWindow` instances.
+- **Animation Callbacks** — Eliminated tautological `if (this != nullptr)` checks from lambda closures triggered by the `TransitionManager`.
+
+### Changed
+
+- **Tooltip Fade Animations** — Migrated tooltip presentation to utilize the `transition_manager_.start()` API for fluid opacity scaling up to 100%.
+- **Toolbar and TabBar** — Converted `Toolbar` save-flash mechanisms to natively calculate alpha via `wxByte` casts dynamically.
+- **Header Files** — Consolidated generic UI animations out of raw `.cpp` files into dedicated definitions targeting accessibility standards efficiently.
+
 ## v2.7.29 — 2026-02-22
 
 ### Highlights

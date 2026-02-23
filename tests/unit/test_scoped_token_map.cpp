@@ -28,11 +28,11 @@ TEST_CASE("ScopedTokenMap can store and retrieve exact tokens", "[theme][v2]")
 TEST_CASE("TokenInheritanceResolver handles fallbacks", "[theme][v2]")
 {
     ScopedTokenMap map;
-    map.set_token("editor.background", wxColour(30, 30, 30));
-    map.set_token("window.background", wxColour(20, 20, 20));
+    map.set("editor.background", wxColour(30, 30, 30));
+    map.set("window.background", wxColour(20, 20, 20));
 
     // Explicit value takes precedence
-    map.set_token("tab.activeBackground", wxColour(40, 40, 40));
+    map.set("tab.activeBackground", wxColour(40, 40, 40));
 
     // Add fallback chain
     map.resolver().register_fallback("tab.activeBackground", "editor.background");

@@ -67,10 +67,6 @@ TabBar::TabBar(wxWindow* parent, DesignSystemContext& ds, core::EventBus& event_
     Bind(wxEVT_SET_FOCUS, &TabBar::OnSetFocus, this);
     Bind(wxEVT_KILL_FOCUS, &TabBar::OnKillFocus, this);
     Bind(wxEVT_KEY_DOWN, &TabBar::OnKeyDown, this);
-
-    // R18 Fix 1: Fade-in animation timer
-    fade_timer_.SetOwner(this);
-    Bind(wxEVT_TIMER, &TabBar::OnFadeTimer, this);
 }
 
 // --- Tab management ---
@@ -97,11 +93,24 @@ void TabBar::AddTab(const std::string& file_path, const std::string& display_nam
     RecalculateTabRects();
     EnsureTabVisible(static_cast<int>(tabs_.size()) - 1);
 
-    // R18 Fix 1: Start fade timer if not already running
-    if (!fade_timer_.IsRunning())
-    {
-        fade_timer_.Start(16); // ~60fps
-    }
+    animation::AnimationConfig config;
+    config.duration = std::chrono::milliseconds(160);
+    config.easing_type = animation::EasingType::Linear;
+
+    std::string anim_name = "tab_fade_" + file_path;
+    transition_manager_.register_transition(anim_name, config);
+    transition_manager_.start<float>(anim_name,
+                                     0.0F,
+                                     1.0F,
+                                     [this, file_path](float op)
+                                     {
+                                         int t_idx = FindTabIndex(file_path);
+                                         if (t_idx >= 0)
+                                         {
+                                             tabs_[static_cast<size_t>(t_idx)].opacity = op;
+                                             Refresh();
+                                         }
+                                     });
 
     Refresh();
 }
@@ -1452,26 +1461,6 @@ void markamp::ui::TabBar::CloseSavedTabs()
         const core::events::TabCloseRequestEvent evt(path);
         event_bus_.publish(evt);
     }
-}
-
-// R18 Fix 1: Fade-in animation timer callback
-void markamp::ui::TabBar::OnFadeTimer(wxTimerEvent& /*event*/)
-{
-    bool any_fading = false;
-    for (auto& tab : tabs_)
-    {
-        if (tab.opacity < 1.0F)
-        {
-            tab.opacity = std::min(1.0F, tab.opacity + 0.1F);
-            any_fading = true;
-        }
-    }
-
-    if (!any_fading)
-    {
-        fade_timer_.Stop();
-    }
-    Refresh();
 }
 
 // R18 Fix 4: Get parent folder name suffix for tabs with duplicate display names

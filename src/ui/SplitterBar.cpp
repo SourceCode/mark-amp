@@ -20,7 +20,6 @@ SplitterBar::SplitterBar(wxWindow* parent,
                        wxNO_BORDER)
     , ds_(ds_ctx)
     , layout_manager_(layout_manager)
-    , hover_timer_(this, kHoverTimerId)
 {
     SetBackgroundStyle(wxBG_STYLE_PAINT);
 
@@ -34,7 +33,6 @@ SplitterBar::SplitterBar(wxWindow* parent,
     Bind(wxEVT_LEFT_DOWN, &SplitterBar::OnMouseDown, this);
     Bind(wxEVT_MOTION, &SplitterBar::OnMouseMove, this);
     Bind(wxEVT_LEFT_UP, &SplitterBar::OnMouseUp, this);
-    Bind(wxEVT_TIMER, &SplitterBar::OnHoverTimer, this, kHoverTimerId);
 }
 
 void SplitterBar::OnThemeChanged(const core::Theme& new_theme)
@@ -86,22 +84,40 @@ void SplitterBar::OnMouseEnter(wxMouseEvent& /*event*/)
 {
     SetCursor(wxCursor(wxCURSOR_SIZEWE));
     is_hovered_ = true;
-    if (!hover_timer_.IsRunning())
-    {
-        hover_timer_.Start(16); // ~60fps
-    }
+
+    animation::AnimationConfig cfg;
+    cfg.duration = std::chrono::milliseconds(150);
+    cfg.easing_type = animation::EasingType::EaseOutCubic;
+    transition_manager_.register_transition("hover", cfg);
+    transition_manager_.start<float>("hover",
+                                     hover_alpha_,
+                                     1.0F,
+                                     [this](float a)
+                                     {
+                                         hover_alpha_ = a;
+                                         Refresh();
+                                     });
 }
 
 void SplitterBar::OnMouseLeave(wxMouseEvent& /*event*/)
 {
+    is_hovered_ = false;
     if (!is_dragging_)
     {
         SetCursor(wxNullCursor);
-        is_hovered_ = false;
-        if (!hover_timer_.IsRunning())
-        {
-            hover_timer_.Start(16);
-        }
+
+        animation::AnimationConfig cfg;
+        cfg.duration = std::chrono::milliseconds(200);
+        cfg.easing_type = animation::EasingType::EaseInCubic;
+        transition_manager_.register_transition("hover", cfg);
+        transition_manager_.start<float>("hover",
+                                         hover_alpha_,
+                                         0.0F,
+                                         [this](float a)
+                                         {
+                                             hover_alpha_ = a;
+                                             Refresh();
+                                         });
     }
 }
 
@@ -132,27 +148,24 @@ void SplitterBar::OnMouseUp(wxMouseEvent& /*event*/)
         {
             ReleaseMouse();
         }
-    }
-}
 
-void SplitterBar::OnHoverTimer(wxTimerEvent& /*event*/)
-{
-    if (is_hovered_ || is_dragging_)
-    {
-        hover_alpha_ = std::min(hover_alpha_ + kHoverFadeStep, 1.0F);
-    }
-    else
-    {
-        hover_alpha_ = std::max(hover_alpha_ - kHoverFadeStep, 0.0F);
-    }
+        if (!is_hovered_)
+        {
+            SetCursor(wxNullCursor);
 
-    Refresh();
-
-    // Stop timer when animation settles
-    if ((!is_hovered_ && !is_dragging_ && hover_alpha_ <= 0.0F) ||
-        ((is_hovered_ || is_dragging_) && hover_alpha_ >= 1.0F))
-    {
-        hover_timer_.Stop();
+            animation::AnimationConfig cfg;
+            cfg.duration = std::chrono::milliseconds(200);
+            cfg.easing_type = animation::EasingType::EaseInCubic;
+            transition_manager_.register_transition("hover", cfg);
+            transition_manager_.start<float>("hover",
+                                             hover_alpha_,
+                                             0.0F,
+                                             [this](float a)
+                                             {
+                                                 hover_alpha_ = a;
+                                                 Refresh();
+                                             });
+        }
     }
 }
 

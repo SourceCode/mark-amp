@@ -10,6 +10,7 @@
 #include "SpacingGrid.h"
 #include "ThemeAwareWindow.h"
 #include "TypographyScale.h"
+#include "animation/TransitionManager.h"
 #include "core/EventBus.h"
 #include "core/Events.h"
 #include "core/FileNode.h"
@@ -225,9 +226,7 @@ private:
     SidebarToolbar* sidebar_toolbar_{nullptr};
 
     // Phase 06 Task 17: Sidebar transition animation
-    wxTimer sidebar_transition_timer_;
     float sidebar_transition_alpha_{1.0F};
-    bool sidebar_transition_active_{false};
 
     // Phase 06 Task 11: Secondary sidebar
     wxPanel* secondary_sidebar_panel_{nullptr};
@@ -247,17 +246,7 @@ private:
     int sidebar_width_{kDefaultSidebarWidth};
     int sidebar_current_width_{kDefaultSidebarWidth};
 
-    // Animation
-    wxTimer sidebar_anim_timer_;
-    int sidebar_anim_start_width_{0};
-    int sidebar_anim_target_width_{0};
-    double sidebar_anim_progress_{0.0};
-    bool sidebar_anim_showing_{false};
-    static constexpr int kAnimFrameMs = 16; // ~60fps
-    static constexpr double kShowDurationMs = 300.0;
-    static constexpr double kHideDurationMs = 200.0;
-
-    void OnSidebarAnimTimer(wxTimerEvent& event);
+    animation::TransitionManager transition_manager_;
 
     // Event subscriptions
     core::Subscription sidebar_toggle_sub_;

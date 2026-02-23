@@ -2,8 +2,7 @@
 
 #include "DesignSystemContext.h"
 #include "ThemeAwareWindow.h"
-
-#include <wx/timer.h>
+#include "animation/TransitionManager.h"
 
 namespace markamp::ui
 {
@@ -34,8 +33,7 @@ private:
     // 8C: Hover animation state
     float hover_alpha_{0.0F};
     bool is_hovered_{false};
-    wxTimer hover_timer_;
-    static constexpr int kHoverTimerId = 9200;
+    animation::TransitionManager transition_manager_{this};
 
     void OnPaint(wxPaintEvent& event);
     void OnMouseEnter(wxMouseEvent& event);
@@ -43,7 +41,6 @@ private:
     void OnMouseDown(wxMouseEvent& event);
     void OnMouseMove(wxMouseEvent& event);
     void OnMouseUp(wxMouseEvent& event);
-    void OnHoverTimer(wxTimerEvent& event);
 };
 
 } // namespace markamp::ui

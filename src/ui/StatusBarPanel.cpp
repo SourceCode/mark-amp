@@ -5,10 +5,12 @@
 #include "IconManager.h"
 #include "LayoutMetrics.h"
 #include "SpacingGrid.h"
+#include "TooltipWindow.h"
 #include "TypographyScale.h"
 #include "core/Events.h"
 #include "core/Logger.h"
 
+#include <wx/app.h>
 #include <wx/dcbuffer.h>
 
 #include <array>
@@ -80,6 +82,48 @@ StatusBarPanel::StatusBarPanel(wxWindow* parent,
     Bind(wxEVT_PAINT, &StatusBarPanel::OnPaint, this);
     Bind(wxEVT_LEFT_DOWN, &StatusBarPanel::OnMouseDown, this);
     Bind(wxEVT_MOTION, &StatusBarPanel::OnMouseMove, this);
+    Bind(wxEVT_LEAVE_WINDOW, &StatusBarPanel::OnMouseLeave, this);
+
+    tooltip_delay_timer_.SetOwner(this);
+    tooltip_delay_timer_.Bind(
+        wxEVT_TIMER,
+        [this](wxTimerEvent& /*evt*/)
+        {
+            tooltip_delay_timer_.Stop();
+            if (pending_tooltip_index_ >= 0)
+            {
+                auto* tooltip = TooltipWindow::GetOrCreate(wxTheApp->GetTopWindow(), ds_);
+                if (pending_tooltip_is_left_ &&
+                    pending_tooltip_index_ < static_cast<int>(left_items_.size()))
+                {
+                    const auto& item =
+                        left_items_[static_cast<std::size_t>(pending_tooltip_index_)];
+                    wxPoint pos =
+                        ClientToScreen(wxPoint(item.bounds.GetX(), item.bounds.GetY() - 28));
+                    tooltip->ShowTooltip(item.tooltip, pos);
+                }
+                else if (!pending_tooltip_is_left_ &&
+                         pending_tooltip_index_ < static_cast<int>(right_items_.size()))
+                {
+                    const auto& item =
+                        right_items_[static_cast<std::size_t>(pending_tooltip_index_)];
+                    wxPoint pos =
+                        ClientToScreen(wxPoint(item.bounds.GetX(), item.bounds.GetY() - 28));
+                    tooltip->ShowTooltip(item.tooltip, pos);
+                }
+            }
+        });
+
+    // Phase 04: Animation configs
+    animation::AnimationConfig flash_cfg;
+    flash_cfg.duration = std::chrono::milliseconds(800);
+    flash_cfg.easing_type = animation::EasingType::Linear;
+    transition_manager_.register_transition("save_flash", flash_cfg);
+
+    animation::AnimationConfig spinner_cfg;
+    spinner_cfg.duration = std::chrono::milliseconds(640);
+    spinner_cfg.easing_type = animation::EasingType::Linear;
+    transition_manager_.register_transition("progress_spinner", spinner_cfg);
 
     // R17 Fix 8: Flash "SAVED" on save event
     save_sub_ = event_bus_.subscribe<core::events::TabSaveRequestEvent>(
@@ -89,26 +133,20 @@ StatusBarPanel::StatusBarPanel(wxWindow* parent,
             ready_state_ = "SAVED \xE2\x9C\x93";
             RebuildItems();
             Refresh();
-            save_flash_timer_.StartOnce(800);
-        });
-    save_flash_timer_.Bind(wxEVT_TIMER,
-                           [this](wxTimerEvent& /*evt*/)
-                           {
-                               save_flash_active_ = false;
-                               ready_state_ = "READY";
-                               RebuildItems();
-                               Refresh();
-                           });
 
-    // R18 Fix 12: Progress spinner timer
-    progress_spinner_timer_.SetOwner(this);
-    progress_spinner_timer_.Bind(wxEVT_TIMER,
-                                 [this](wxTimerEvent& /*evt*/)
-                                 {
-                                     spinner_frame_ = (spinner_frame_ + 1) % 8;
-                                     RebuildItems();
-                                     Refresh();
-                                 });
+            transition_manager_.start<int>(
+                "save_flash",
+                0,
+                1,
+                [](int) {},
+                [this]()
+                {
+                    save_flash_active_ = false;
+                    ready_state_ = "READY";
+                    RebuildItems();
+                    Refresh();
+                });
+        });
 
     // Phase 06 Task 15: Subscribe to sidebar mode changes
     sidebar_mode_sub_ = event_bus_.subscribe<core::events::SidebarModeChangedEvent>(
@@ -247,18 +285,47 @@ void StatusBarPanel::set_zoom_level(int zoom_level)
 }
 
 // R18 Fix 12: Progress spinner
+void StatusBarPanel::StartSpinnerCycle()
+{
+    if (!progress_active_)
+        return;
+
+    transition_manager_.start<int>(
+        "progress_spinner",
+        0,
+        8,
+        [this](int frame)
+        {
+            if (!progress_active_)
+                return;
+            if (frame >= 8)
+                frame = 0;
+            if (spinner_frame_ != frame)
+            {
+                spinner_frame_ = frame;
+                RebuildItems();
+                Refresh();
+            }
+        },
+        [this]()
+        {
+            if (progress_active_)
+            {
+                StartSpinnerCycle();
+            }
+        });
+}
+
 void StatusBarPanel::set_progress(bool active, const std::string& label)
 {
+    bool was_active = progress_active_;
     progress_active_ = active;
     progress_label_ = label;
-    if (active && !progress_spinner_timer_.IsRunning())
+
+    if (active && !was_active)
     {
         spinner_frame_ = 0;
-        progress_spinner_timer_.Start(80);
-    }
-    else if (!active && progress_spinner_timer_.IsRunning())
-    {
-        progress_spinner_timer_.Stop();
+        StartSpinnerCycle();
     }
     RebuildItems();
     Refresh();
@@ -901,13 +968,20 @@ void StatusBarPanel::OnMouseMove(wxMouseEvent& event)
 {
     auto pos = event.GetPosition();
     bool over_clickable = false;
-    std::string hovered_tooltip;
+    bool any_hovered = false;
 
-    for (const auto& item : left_items_)
+    int new_hovered_index = -1;
+    bool new_hovered_is_left = true;
+
+    // Check left items
+    for (size_t idx = 0; idx < left_items_.size(); ++idx)
     {
+        const auto& item = left_items_[idx];
         if (item.bounds.Contains(pos))
         {
-            hovered_tooltip = item.tooltip;
+            any_hovered = true;
+            new_hovered_index = static_cast<int>(idx);
+            new_hovered_is_left = true;
             if (item.is_clickable)
             {
                 over_clickable = true;
@@ -916,13 +990,17 @@ void StatusBarPanel::OnMouseMove(wxMouseEvent& event)
         }
     }
 
-    if (hovered_tooltip.empty())
+    if (!any_hovered)
     {
-        for (const auto& item : right_items_)
+        // Check right items
+        for (size_t idx = 0; idx < right_items_.size(); ++idx)
         {
+            const auto& item = right_items_[idx];
             if (item.bounds.Contains(pos))
             {
-                hovered_tooltip = item.tooltip;
+                any_hovered = true;
+                new_hovered_index = static_cast<int>(idx);
+                new_hovered_is_left = false;
                 if (item.is_clickable)
                 {
                     over_clickable = true;
@@ -932,18 +1010,40 @@ void StatusBarPanel::OnMouseMove(wxMouseEvent& event)
         }
     }
 
-    // R6 Fix 9: Show tooltip on hover
-    if (!hovered_tooltip.empty())
+    if (!any_hovered)
     {
-        SetToolTip(hovered_tooltip);
+        if (auto* tooltip = TooltipWindow::GetOrCreate(wxTheApp->GetTopWindow(), ds_))
+        {
+            tooltip->HideTooltip();
+        }
+        tooltip_delay_timer_.Stop();
+        pending_tooltip_index_ = -1;
     }
-    else
+    else if (pending_tooltip_index_ != new_hovered_index ||
+             pending_tooltip_is_left_ != new_hovered_is_left)
     {
-        UnsetToolTip();
+        if (auto* tooltip = TooltipWindow::GetOrCreate(wxTheApp->GetTopWindow(), ds_))
+        {
+            tooltip->HideTooltip();
+        }
+        pending_tooltip_index_ = new_hovered_index;
+        pending_tooltip_is_left_ = new_hovered_is_left;
+        tooltip_delay_timer_.StartOnce(400);
     }
 
     SetCursor(over_clickable ? wxCursor(wxCURSOR_HAND) : wxCursor(wxCURSOR_DEFAULT));
     event.Skip();
+}
+
+void StatusBarPanel::OnMouseLeave(wxMouseEvent& /*event*/)
+{
+    if (auto* tooltip = TooltipWindow::GetOrCreate(wxTheApp->GetTopWindow(), ds_))
+    {
+        tooltip->HideTooltip();
+    }
+    tooltip_delay_timer_.Stop();
+    pending_tooltip_index_ = -1;
+    SetCursor(wxCursor(wxCURSOR_DEFAULT));
 }
 
 // --- Helpers ---

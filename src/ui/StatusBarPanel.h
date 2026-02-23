@@ -2,11 +2,11 @@
 
 #include "DesignSystemContext.h"
 #include "ThemeAwareWindow.h"
+#include "animation/TransitionManager.h"
 #include "core/EventBus.h"
 #include "core/Events.h"
 
 #include <wx/panel.h>
-#include <wx/timer.h>
 
 #include <functional>
 #include <string>
@@ -156,7 +156,7 @@ private:
     bool progress_active_{false};
     std::string progress_label_;
     int spinner_frame_{0};
-    wxTimer progress_spinner_timer_;
+    void StartSpinnerCycle();
 
     // R18 Fix 13: Git branch
     std::string git_branch_;
@@ -167,12 +167,19 @@ private:
 
     // R17 Fix 8: Save flash
     bool save_flash_active_{false};
-    wxTimer save_flash_timer_;
     core::Subscription save_sub_;
+
+    // Phase 04 motion framework
+    animation::TransitionManager transition_manager_{this};
 
     // Layout items
     std::vector<StatusItem> left_items_;
     std::vector<StatusItem> right_items_;
+
+    // Tooltips
+    wxTimer tooltip_delay_timer_;
+    int pending_tooltip_index_{-1};
+    bool pending_tooltip_is_left_{true};
 
     void UpdateLayoutMetrics();
 
@@ -180,6 +187,7 @@ private:
     void OnPaint(wxPaintEvent& event);
     void OnMouseDown(wxMouseEvent& event);
     void OnMouseMove(wxMouseEvent& event);
+    void OnMouseLeave(wxMouseEvent& event);
 
     /// Convert ViewMode to display string.
     static auto view_mode_label(core::events::ViewMode mode) -> std::string;

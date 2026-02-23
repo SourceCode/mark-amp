@@ -1,12 +1,12 @@
 #pragma once
 
+#include "animation/TransitionManager.h"
 #include "core/EventBus.h"
 #include "core/Events.h"
 #include "core/ThemeEngine.h"
 
 #include <wx/panel.h>
 #include <wx/stattext.h>
-#include <wx/timer.h>
 
 #include <deque>
 #include <string>
@@ -18,6 +18,7 @@ namespace markamp::ui
 struct NotificationEntry
 {
     std::string message;
+    uint64_t id{0};
     core::events::NotificationLevel level{core::events::NotificationLevel::Info};
     int duration_ms{3000};
     int elapsed_ms{0};
@@ -51,6 +52,8 @@ public:
     /// Dismiss all notifications
     void DismissAll();
 
+    void StartDismissAnimation(uint64_t id);
+
     static constexpr int kMaxVisibleToasts = 3;
     static constexpr int kToastWidth = 360;
     static constexpr int kToastHeight = 48;
@@ -64,12 +67,11 @@ private:
     core::EventBus& event_bus_;
 
     std::deque<NotificationEntry> toasts_;
-    wxTimer animation_timer_;
+    animation::TransitionManager transition_manager_{this};
 
     core::Subscription notification_sub_;
     core::Subscription theme_sub_;
 
-    void OnAnimationTimer(wxTimerEvent& event);
     void OnPaint(wxPaintEvent& event);
     void UpdateLayout();
     void ApplyTheme();

@@ -6,11 +6,13 @@
 #endif
 
 #include "SpacingGrid.h"
+#include "TooltipWindow.h"
 #include "TypographyScale.h"
 #include "core/Events.h"
 #include "core/Logger.h"
 #include "ui/IconManager.h"
 
+#include <wx/app.h>
 #include <wx/dcbuffer.h>
 #include <wx/graphics.h>
 
@@ -71,13 +73,18 @@ Toolbar::Toolbar(wxWindow* parent, DesignSystemContext& ds, core::EventBus& even
             Refresh();
         });
 
-    // R5 Fix 20: Save flash timer — resets flash after 400ms
-    save_flash_timer_.Bind(wxEVT_TIMER,
-                           [this](wxTimerEvent& /*evt*/)
-                           {
-                               save_flash_active_ = false;
-                               Refresh();
-                           });
+    // Register Transitions for Save feedback
+    animation::AnimationConfig pulse_cfg;
+    pulse_cfg.duration = std::chrono::milliseconds(150);
+    pulse_cfg.repeat_count = 1; // Forward then backward = 1 repeat (total 2 cycles)
+    pulse_cfg.auto_reverse = true;
+    pulse_cfg.easing_type = animation::EasingType::EaseOutCubic;
+    transition_manager_.register_transition("save_pulse", pulse_cfg);
+
+    animation::AnimationConfig flash_cfg;
+    flash_cfg.duration = std::chrono::milliseconds(400);
+    flash_cfg.easing_type = animation::EasingType::EaseOutCubic;
+    transition_manager_.register_transition("save_flash", flash_cfg);
 
     RecalculateButtonRects();
 
@@ -98,15 +105,27 @@ Toolbar::Toolbar(wxWindow* parent, DesignSystemContext& ds, core::EventBus& even
                 static const std::array<std::string, 3> kRightTips = {
                     "Save (Ctrl+S)", "Themes", "Settings"};
 
+                auto* tooltip = TooltipWindow::GetOrCreate(wxTheApp->GetTopWindow(), ds_);
+
                 if (pending_tooltip_is_left_ &&
                     pending_tooltip_index_ < static_cast<int>(kLeftTips.size()))
                 {
-                    SetToolTip(kLeftTips[static_cast<size_t>(pending_tooltip_index_)]);
+                    const auto& btn = left_buttons_[static_cast<size_t>(pending_tooltip_index_)];
+                    wxPoint pos =
+                        ClientToScreen(wxPoint(btn.rect.GetX(), btn.rect.GetBottom() + 4));
+                    tooltip->ShowTooltip(kLeftTips[static_cast<size_t>(pending_tooltip_index_)],
+                                         pos);
                 }
                 else if (!pending_tooltip_is_left_ &&
                          pending_tooltip_index_ < static_cast<int>(kRightTips.size()))
                 {
-                    SetToolTip(kRightTips[static_cast<size_t>(pending_tooltip_index_)]);
+                    const auto& btn = right_buttons_[static_cast<size_t>(pending_tooltip_index_)];
+                    wxPoint pos = ClientToScreen(
+                        wxPoint(btn.rect.GetX() - 40,
+                                btn.rect.GetBottom() + 4)); // Shift slightly left for right-aligned
+                                                            // items so it doesn't run off screen
+                    tooltip->ShowTooltip(kRightTips[static_cast<size_t>(pending_tooltip_index_)],
+                                         pos);
                 }
             }
         });
@@ -256,13 +275,8 @@ void Toolbar::OnMouseMove(wxMouseEvent& event)
     bool changed = false;
     bool any_hovered = false;
 
-    // R5 Fix 1: Tooltip text per button
-    static const std::array<std::string, 4> kLeftTooltips = {"Editor Only (Ctrl+1)",
-                                                             "Split View (Ctrl+2)",
-                                                             "Preview Only (Ctrl+3)",
-                                                             "Focus Mode (Ctrl+K)"};
-    static const std::array<std::string, 3> kRightTooltips = {
-        "Save (Ctrl+S)", "Themes", "Settings"};
+    int new_hovered_index = -1;
+    bool new_hovered_is_left = true;
 
     for (size_t idx = 0; idx < left_buttons_.size(); ++idx)
     {
@@ -276,10 +290,8 @@ void Toolbar::OnMouseMove(wxMouseEvent& event)
         if (btn.is_hovered)
         {
             any_hovered = true;
-            if (idx < kLeftTooltips.size())
-            {
-                SetToolTip(kLeftTooltips[idx]);
-            }
+            new_hovered_index = static_cast<int>(idx);
+            new_hovered_is_left = true;
         }
     }
     for (size_t idx = 0; idx < right_buttons_.size(); ++idx)
@@ -294,16 +306,29 @@ void Toolbar::OnMouseMove(wxMouseEvent& event)
         if (btn.is_hovered)
         {
             any_hovered = true;
-            if (idx < kRightTooltips.size())
-            {
-                SetToolTip(kRightTooltips[idx]);
-            }
+            new_hovered_index = static_cast<int>(idx);
+            new_hovered_is_left = false;
         }
     }
 
     if (!any_hovered)
     {
-        UnsetToolTip();
+        if (auto* tooltip = TooltipWindow::GetOrCreate(wxTheApp->GetTopWindow(), ds_))
+        {
+            tooltip->HideTooltip();
+        }
+        tooltip_delay_timer_.Stop();
+        pending_tooltip_index_ = -1;
+    }
+    else if (changed)
+    {
+        if (auto* tooltip = TooltipWindow::GetOrCreate(wxTheApp->GetTopWindow(), ds_))
+        {
+            tooltip->HideTooltip();
+        }
+        pending_tooltip_index_ = new_hovered_index;
+        pending_tooltip_is_left_ = new_hovered_is_left;
+        tooltip_delay_timer_.StartOnce(400);
     }
 
     // R5 Fix 2: Hand cursor on button hover
@@ -325,9 +350,16 @@ void Toolbar::OnMouseLeave(wxMouseEvent& /*event*/)
     {
         btn.is_hovered = false;
     }
+
+    if (auto* tooltip = TooltipWindow::GetOrCreate(wxTheApp->GetTopWindow(), ds_))
+    {
+        tooltip->HideTooltip();
+    }
+    tooltip_delay_timer_.Stop();
+    pending_tooltip_index_ = -1;
+
     // R5 Fix 2: Restore default cursor
     SetCursor(wxNullCursor);
-    UnsetToolTip();
     Refresh();
 }
 
@@ -390,8 +422,25 @@ void Toolbar::OnMouseDown(wxMouseEvent& event)
             {
                 // R5 Fix 20: Save button — flash green and publish save event
                 event_bus_.publish(core::events::TabSaveRequestEvent{});
-                save_flash_active_ = true;
-                save_flash_timer_.StartOnce(400);
+
+                transition_manager_.start<float>("save_pulse",
+                                                 1.0F,
+                                                 1.2F,
+                                                 [this](float scale)
+                                                 {
+                                                     save_pulse_scale_ = scale;
+                                                     Refresh();
+                                                 });
+
+                transition_manager_.start<float>("save_flash",
+                                                 1.0F,
+                                                 0.0F,
+                                                 [this](float a)
+                                                 {
+                                                     save_flash_alpha_ = a;
+                                                     Refresh();
+                                                 });
+
                 Refresh();
             }
             else if (i == 1 && on_theme_gallery_click_)
@@ -626,11 +675,12 @@ void Toolbar::DrawButton(wxGraphicsContext& gc, const ButtonInfo& btn, const cor
 
     // Background
     // R5 Fix 20: Green flash for save button after save
-    if (save_flash_active_ && btn.icon_type == 3)
+    if (save_flash_alpha_ > 0.01F && btn.icon_type == 3)
     {
         auto flash_col = theme_engine().color(core::ThemeColorToken::SuccessColor);
-        gc.SetBrush(gc.CreateBrush(
-            wxBrush(wxColour(flash_col.Red(), flash_col.Green(), flash_col.Blue(), 80))));
+        int alpha = static_cast<int>(save_flash_alpha_ * 80.0F);
+        gc.SetBrush(gc.CreateBrush(wxBrush(wxColour(
+            flash_col.Red(), flash_col.Green(), flash_col.Blue(), static_cast<wxByte>(alpha)))));
         gc.SetPen(*wxTRANSPARENT_PEN);
         gc.DrawRoundedRectangle(rx, ry, rw, rh, 4.0);
     }

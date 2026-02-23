@@ -108,6 +108,14 @@ add_library(markamp_core STATIC
     ${CMAKE_SOURCE_DIR}/src/ui/ControlState.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/LayoutMetrics.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/ColorPaletteGenerator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/animation/EasingFunctions.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/animation/ValueInterpolator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/animation/SpringPhysics.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/animation/AnimationTimeline.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/animation/TransitionManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/animation/SkeletonLoader.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/animation/FocusRingAnimator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/animation/ProgressBar.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/ColorUtils.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/ComponentSizeResolver.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/DesignTokenRegistry.cpp
@@ -3951,6 +3959,21 @@ add_executable(test_tile_cache unit/test_tile_cache.cpp)
 target_include_directories(test_tile_cache PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_tile_cache PRIVATE Catch2::Catch2WithMain markamp_core)
 add_test(NAME test_tile_cache COMMAND test_tile_cache)
+
+add_executable(test_animation_math unit/test_animation_math.cpp)
+target_include_directories(test_animation_math PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_animation_math PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_animation_math COMMAND test_animation_math)
+
+add_executable(test_animation_timeline unit/test_animation_timeline.cpp)
+target_include_directories(test_animation_timeline PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_animation_timeline PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_animation_timeline COMMAND test_animation_timeline)
+
+add_executable(test_animation_ui unit/test_animation_ui.cpp)
+target_include_directories(test_animation_ui PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_animation_ui PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_animation_ui COMMAND test_animation_ui)
 
 add_executable(test_video_embed_object unit/test_video_embed_object.cpp)
 target_include_directories(test_video_embed_object PRIVATE ${CMAKE_SOURCE_DIR}/src)

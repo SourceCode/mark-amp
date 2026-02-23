@@ -15,11 +15,9 @@ NotificationManager::NotificationManager(wxWindow* parent,
     : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTRANSPARENT_WINDOW)
     , theme_engine_(theme_engine)
     , event_bus_(event_bus)
-    , animation_timer_(this)
 {
     SetBackgroundStyle(wxBG_STYLE_PAINT);
     Bind(wxEVT_PAINT, &NotificationManager::OnPaint, this);
-    Bind(wxEVT_TIMER, &NotificationManager::OnAnimationTimer, this, animation_timer_.GetId());
 
     // R18 Fix 19: Click on specific toast to dismiss it (improved from R16)
     Bind(wxEVT_LEFT_DOWN,
@@ -45,11 +43,11 @@ NotificationManager::NotificationManager(wxWindow* parent,
                          if (action_rect.Contains(pos))
                          {
                              iter->action_callback();
-                             iter->dismissing = true;
+                             StartDismissAnimation(iter->id);
                              return;
                          }
                      }
-                     iter->dismissing = true;
+                     StartDismissAnimation(iter->id);
                      return;
                  }
 
@@ -71,10 +69,11 @@ void NotificationManager::ShowNotification(const std::string& message,
                                            core::events::NotificationLevel level,
                                            int duration_ms)
 {
+    static uint64_t next_id = 1;
     NotificationEntry entry;
 
+    entry.id = next_id++;
     entry.message = message;
-
     entry.level = level;
     entry.duration_ms = duration_ms;
     entry.opacity = 0.0F;
@@ -89,78 +88,148 @@ void NotificationManager::ShowNotification(const std::string& message,
         toasts_.pop_front();
     }
 
-    if (!animation_timer_.IsRunning())
+    uint64_t id = entry.id;
+
+    // 1. Fade In
+    std::string in_name = "toast_in_" + std::to_string(id);
+    animation::AnimationConfig in_cfg;
+    in_cfg.duration = std::chrono::milliseconds(200);
+    in_cfg.easing_type = animation::EasingType::EaseOutCubic;
+    transition_manager_.register_transition(in_name, in_cfg);
+    transition_manager_.start<float>(in_name,
+                                     0.0f,
+                                     1.0f,
+                                     [this, id](float op)
+                                     {
+                                         auto it = std::find_if(toasts_.begin(),
+                                                                toasts_.end(),
+                                                                [id](const auto& t)
+                                                                { return t.id == id; });
+                                         if (it != toasts_.end() && !it->dismissing)
+                                         {
+                                             it->opacity = op;
+                                             Refresh();
+                                         }
+                                     });
+
+    if (duration_ms > 0)
     {
-        animation_timer_.Start(kFadeStepMs);
+        // 2. Progress Elapsed Time
+        std::string prog_name = "toast_prog_" + std::to_string(id);
+        animation::AnimationConfig prog_cfg;
+        prog_cfg.duration = std::chrono::milliseconds(duration_ms);
+        prog_cfg.delay = std::chrono::milliseconds(200); // Wait for fade in
+        prog_cfg.easing_type = animation::EasingType::Linear;
+        transition_manager_.register_transition(prog_name, prog_cfg);
+        transition_manager_.start<int>(prog_name,
+                                       0,
+                                       duration_ms,
+                                       [this, id](int elapsed)
+                                       {
+                                           auto it = std::find_if(toasts_.begin(),
+                                                                  toasts_.end(),
+                                                                  [id](const auto& t)
+                                                                  { return t.id == id; });
+                                           if (it != toasts_.end() && !it->dismissing)
+                                           {
+                                               it->elapsed_ms = elapsed;
+                                               Refresh();
+                                           }
+                                       });
+
+        // 3. Auto Dismiss (Delayed Fade Out)
+        std::string out_name = "toast_auto_out_" + std::to_string(id);
+        animation::AnimationConfig out_cfg;
+        out_cfg.duration = std::chrono::milliseconds(150);
+        out_cfg.delay = std::chrono::milliseconds(200 + duration_ms);
+        out_cfg.easing_type = animation::EasingType::EaseOutQuad;
+        transition_manager_.register_transition(out_name, out_cfg);
+        transition_manager_.start<float>(out_name,
+                                         1.0f,
+                                         0.0f,
+                                         [this, id](float op)
+                                         {
+                                             auto it = std::find_if(toasts_.begin(),
+                                                                    toasts_.end(),
+                                                                    [id](const auto& t)
+                                                                    { return t.id == id; });
+                                             if (it != toasts_.end())
+                                             {
+                                                 it->dismissing = true;
+                                                 it->opacity = op;
+                                                 if (op <= 0.0f)
+                                                 {
+                                                     toasts_.erase(it);
+                                                     UpdateLayout();
+                                                 }
+                                                 Refresh();
+                                             }
+                                         });
     }
 
     UpdateLayout();
     MARKAMP_LOG_DEBUG("Notification shown: {}", message);
 }
 
+void NotificationManager::StartDismissAnimation(uint64_t id)
+{
+    auto it =
+        std::find_if(toasts_.begin(), toasts_.end(), [id](const auto& t) { return t.id == id; });
+    if (it == toasts_.end() || it->dismissing)
+        return;
+
+    it->dismissing = true;
+
+    std::string out_name = "toast_manual_out_" + std::to_string(id);
+    animation::AnimationConfig out_cfg;
+    out_cfg.duration = std::chrono::milliseconds(150);
+    out_cfg.easing_type = animation::EasingType::EaseOutQuad;
+
+    transition_manager_.register_transition(out_name, out_cfg);
+    transition_manager_.start<float>(out_name,
+                                     it->opacity,
+                                     0.0f,
+                                     [this, id](float op)
+                                     {
+                                         auto toast_it = std::find_if(toasts_.begin(),
+                                                                      toasts_.end(),
+                                                                      [id](const auto& t)
+                                                                      { return t.id == id; });
+                                         if (toast_it != toasts_.end())
+                                         {
+                                             toast_it->opacity = op;
+                                             if (op <= 0.0f)
+                                             {
+                                                 toasts_.erase(toast_it);
+                                                 UpdateLayout();
+                                             }
+                                             Refresh();
+                                         }
+                                     });
+}
+
 void NotificationManager::DismissTop()
 {
     if (!toasts_.empty())
     {
-        toasts_.back().dismissing = true;
+        StartDismissAnimation(toasts_.back().id);
     }
 }
 
 void NotificationManager::DismissAll()
 {
-    for (auto& toast : toasts_)
+    // Need a copy of IDs because StartDismissAnimation captures id
+    std::vector<uint64_t> ids;
+    ids.reserve(toasts_.size());
+    for (const auto& toast : toasts_)
     {
-        toast.dismissing = true;
-    }
-}
-
-void NotificationManager::OnAnimationTimer(wxTimerEvent& /*event*/)
-{
-    bool needs_timer = false;
-
-    for (auto iter = toasts_.begin(); iter != toasts_.end();)
-    {
-        auto& toast = *iter;
-
-        if (toast.dismissing)
-        {
-            toast.opacity -= kFadeOutSpeed;
-            if (toast.opacity <= 0.0F)
-            {
-                iter = toasts_.erase(iter);
-                continue;
-            }
-            needs_timer = true;
-        }
-        else if (toast.opacity < 1.0F)
-        {
-            toast.opacity += kFadeInSpeed;
-            if (toast.opacity > 1.0F)
-            {
-                toast.opacity = 1.0F;
-            }
-            needs_timer = true;
-        }
-        else
-        {
-            // Fully visible — track duration
-            toast.elapsed_ms += kFadeStepMs;
-            if (toast.duration_ms > 0 && toast.elapsed_ms >= toast.duration_ms)
-            {
-                toast.dismissing = true;
-            }
-            needs_timer = true;
-        }
-
-        ++iter;
+        ids.push_back(toast.id);
     }
 
-    if (!needs_timer && toasts_.empty())
+    for (uint64_t id : ids)
     {
-        animation_timer_.Stop();
+        StartDismissAnimation(id);
     }
-
-    Refresh();
 }
 
 void NotificationManager::OnPaint(wxPaintEvent& /*event*/)
