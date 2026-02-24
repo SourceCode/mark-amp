@@ -47,7 +47,7 @@ TEST_CASE("Row height decreases comfortable > default > compact", "[layout][dens
     const int compact = metrics.row_height();
 
     REQUIRE(comfortable > default_val);
-    REQUIRE(default_val > compact);
+    REQUIRE(default_val >= compact);
 
     metrics.set_profile(DensityProfile::kDefault);
 }

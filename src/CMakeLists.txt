@@ -75,6 +75,9 @@ add_executable(markamp
     core/VsCodeThemeAdapter.cpp
     core/ThemeScopeMapper.cpp
     ui/SplitterBar.cpp
+    ui/layout/WorkbenchLayoutModel.cpp
+    ui/layout/ResizeHandle.cpp
+    ui/layout/WorkbenchShell.cpp
     ui/StatusBarPanel.cpp
     ui/FileTreeCtrl.cpp
     ui/EditorPanel.cpp

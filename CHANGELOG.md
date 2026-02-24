@@ -1,5 +1,23 @@
 # MarkAmp Release History
 
+## v2.8.41 — 2026-02-23
+
+### Highlights
+
+V13 Phase 07: Activity Bar completion. Implemented features for badge animation, rich tooltips, keyboard navigation, drag-to-reorder, and added Account items.
+
+### Added
+
+- **Activity Bar Animations**: Badges now pulse when counts increase.
+- **Rich Tooltips**: Activity Bar tooltips include full item names, shortcut hints, and badge details.
+- **Drag & Drop**: Users can now drag-to-reorder Activity Bar items with visual insertion line feedback.
+- **Keyboard Navigation**: Added full keyboard navigation support (Up/Down, Enter, Home/End) to `ActivityBar.cpp`.
+- **Account Item**: Integrated a consistent `kAccount` bottom item in the Activity Bar.
+
+### Fixed
+
+- Resolved linting warnings related to const-correctness and color blending math in Activity Bar components.
+
 ## v2.8.40 — 2026-02-23
 
 ### Highlights

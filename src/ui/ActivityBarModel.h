@@ -25,6 +25,8 @@ struct ActivityBarItemModel
     std::string label;           ///< Display/tooltip label
     std::string shortcut_hint;   ///< Keyboard shortcut (e.g., "Cmd+Shift+E")
     std::string accessible_name; ///< Screen reader label
+    std::string icon_name;       ///< Name of the SVG icon to use for rendering
+    bool is_bottom_item{false};  ///< Whether to render this item at the bottom of the rail
     BadgeStyle badge_style{BadgeStyle::kNone};
     int badge_count{0}; ///< Count value (only meaningful when badge_style == kCount)
     bool visible{true}; ///< Whether item is shown

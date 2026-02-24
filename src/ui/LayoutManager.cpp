@@ -1665,54 +1665,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     activity_bar_selection_sub_ = event_bus_.subscribe<core::events::ActivityBarSelectionEvent>(
         [this](const core::events::ActivityBarSelectionEvent& evt)
         {
-            // Map ActivityBarItem → SidebarMode
-            SidebarMode target_mode = SidebarMode::kExplorer;
-            switch (evt.item)
-            {
-                case core::events::ActivityBarItem::FileExplorer:
-                    target_mode = SidebarMode::kExplorer;
-                    break;
-                case core::events::ActivityBarItem::Search:
-                    target_mode = SidebarMode::kSearch;
-                    break;
-                case core::events::ActivityBarItem::Settings:
-                    target_mode = SidebarMode::kSettings;
-                    break;
-                case core::events::ActivityBarItem::Themes:
-                    target_mode = SidebarMode::kThemes;
-                    break;
-                case core::events::ActivityBarItem::Extensions:
-                    target_mode = SidebarMode::kExtensions;
-                    break;
-                case core::events::ActivityBarItem::kNotebooks:
-                    target_mode = SidebarMode::kNotebooks;
-                    break;
-                case core::events::ActivityBarItem::kCanvas:
-                    target_mode = SidebarMode::kCanvas;
-                    break;
-                case core::events::ActivityBarItem::kGraph:
-                    target_mode = SidebarMode::kGraph;
-                    break;
-                case core::events::ActivityBarItem::kAI:
-                    target_mode = SidebarMode::kAI;
-                    break;
-                case core::events::ActivityBarItem::kFlashcards:
-                    target_mode = SidebarMode::kFlashcards;
-                    break;
-                case core::events::ActivityBarItem::kGit:
-                    target_mode = SidebarMode::kGit;
-                    break;
-                case core::events::ActivityBarItem::kTasks:
-                    target_mode = SidebarMode::kTasks;
-                    break;
-                case core::events::ActivityBarItem::kDatabase:
-                    target_mode = SidebarMode::kDatabase;
-                    break;
-                case core::events::ActivityBarItem::kPresentation:
-                    target_mode = SidebarMode::kPresentation;
-                    break;
-            }
-            SetSidebarMode(target_mode);
+            // Map ActivityBarItem -> SidebarMode. Since they are both strings
+            // and use the exact same ID set, we pass it right through.
+            SetSidebarMode(evt.item);
             if (!is_sidebar_visible())
             {
                 set_sidebar_visible(true);
@@ -1723,7 +1678,7 @@ LayoutManager::LayoutManager(wxWindow* parent,
     show_extensions_sub_ = event_bus_.subscribe<core::events::ShowExtensionsBrowserRequestEvent>(
         [this]([[maybe_unused]] const core::events::ShowExtensionsBrowserRequestEvent& evt)
         {
-            SetSidebarMode(SidebarMode::kExtensions);
+            SetSidebarMode(kSidebarModeExtensions);
             if (!is_sidebar_visible())
             {
                 set_sidebar_visible(true);
@@ -1733,7 +1688,7 @@ LayoutManager::LayoutManager(wxWindow* parent,
     show_explorer_sub_ = event_bus_.subscribe<core::events::ShowExplorerRequestEvent>(
         [this]([[maybe_unused]] const core::events::ShowExplorerRequestEvent& evt)
         {
-            SetSidebarMode(SidebarMode::kExplorer);
+            SetSidebarMode(kSidebarModeExplorer);
             if (!is_sidebar_visible())
             {
                 set_sidebar_visible(true);
@@ -2165,7 +2120,7 @@ void LayoutManager::SaveLayoutState()
     config_->set("layout.workbench_state", shell_->save_state_to_json().dump());
 
     // Phase 06 Task 9: Persist active sidebar mode
-    config_->set("layout.sidebar_mode", static_cast<int>(sidebar_mode_));
+    config_->set("layout.sidebar_mode", sidebar_mode_);
     // Fix 15: Persist active file path for restore on next launch
     config_->set("workspace.last_active_file", active_file_path_);
 }
@@ -2190,11 +2145,8 @@ void LayoutManager::RestoreLayoutState()
     }
 
     // Phase 06 Task 9: Restore active sidebar mode
-    int saved_mode = config_->get_int("layout.sidebar_mode", 0);
-    if (saved_mode >= 0 && saved_mode <= static_cast<int>(SidebarMode::kPresentation))
-    {
-        sidebar_mode_ = static_cast<SidebarMode>(saved_mode);
-    }
+    std::string saved_mode = config_->get_string("layout.sidebar_mode", kSidebarModeExplorer);
+    sidebar_mode_ = saved_mode;
 }
 
 void LayoutManager::ToggleEditorMinimap()
@@ -2215,14 +2167,14 @@ void LayoutManager::ToggleEditorMinimap()
 void LayoutManager::RegisterSidebarPanels()
 {
     // Explorer panel is created eagerly (already exists in CreateLayout)
-    panel_registry_.Register(SidebarMode::kExplorer,
+    panel_registry_.Register(kSidebarModeExplorer,
                              "EXPLORER",
                              "\xF0\x9F\x93\x81", // 📁
                              [this](wxWindow* /*parent*/) -> wxPanel* { return explorer_panel_; });
 
     // Extensions panel is created lazily
     panel_registry_.Register(
-        SidebarMode::kExtensions,
+        kSidebarModeExtensions,
         "EXTENSIONS",
         "\xF0\x9F\xA7\xA9", // 🧩
         [this](wxWindow* parent) -> wxPanel*
@@ -2359,7 +2311,7 @@ void LayoutManager::RegisterSidebarPanels()
 
     // ── Search panel ──
     panel_registry_.Register(
-        SidebarMode::kSearch,
+        kSidebarModeSearch,
         "SEARCH",
         "\xF0\x9F\x94\x8D", // 🔍
         [this](wxWindow* parent) -> wxPanel*
@@ -2475,7 +2427,7 @@ void LayoutManager::RegisterSidebarPanels()
         });
 
     // ── Settings panel ──
-    panel_registry_.Register(SidebarMode::kSettings,
+    panel_registry_.Register(kSidebarModeSettings,
                              "SETTINGS",
                              "\xE2\x9A\x99", // ⚙
                              [make_feature_panel](wxWindow* parent) -> wxPanel*
@@ -2504,7 +2456,7 @@ void LayoutManager::RegisterSidebarPanels()
                              });
 
     // ── Themes panel ──
-    panel_registry_.Register(SidebarMode::kThemes,
+    panel_registry_.Register(kSidebarModeThemes,
                              "THEMES",
                              "\xF0\x9F\x8E\xA8", // 🎨
                              [make_feature_panel](wxWindow* parent) -> wxPanel*
@@ -2526,7 +2478,7 @@ void LayoutManager::RegisterSidebarPanels()
 
     // ── Notebooks panel ──
     panel_registry_.Register(
-        SidebarMode::kNotebooks,
+        kSidebarModeNotebooks,
         "NOTEBOOKS",
         "\xF0\x9F\x93\x93", // 📓
         [make_feature_panel](wxWindow* parent) -> wxPanel*
@@ -2541,7 +2493,7 @@ void LayoutManager::RegisterSidebarPanels()
         });
 
     // ── Canvas panel ──
-    panel_registry_.Register(SidebarMode::kCanvas,
+    panel_registry_.Register(kSidebarModeCanvas,
                              "CANVAS",
                              "\xF0\x9F\x96\xBC", // 🖼
                              [make_feature_panel](wxWindow* parent) -> wxPanel*
@@ -2556,7 +2508,7 @@ void LayoutManager::RegisterSidebarPanels()
                              });
 
     // ── Graph panel ──
-    panel_registry_.Register(SidebarMode::kGraph,
+    panel_registry_.Register(kSidebarModeGraph,
                              "KNOWLEDGE GRAPH",
                              "\xF0\x9F\x95\xB8", // 🕸
                              [make_feature_panel](wxWindow* parent) -> wxPanel*
@@ -2573,7 +2525,7 @@ void LayoutManager::RegisterSidebarPanels()
 
     // ── AI Assistant panel ──
     panel_registry_.Register(
-        SidebarMode::kAI,
+        kSidebarModeAI,
         "AI ASSISTANT",
         "\xF0\x9F\xA4\x96", // 🤖
         [this](wxWindow* parent) -> wxPanel*
@@ -2701,7 +2653,7 @@ void LayoutManager::RegisterSidebarPanels()
         });
 
     // ── Flashcards panel ──
-    panel_registry_.Register(SidebarMode::kFlashcards,
+    panel_registry_.Register(kSidebarModeFlashcards,
                              "FLASHCARDS",
                              "\xF0\x9F\x83\x8F", // 🃏
                              [make_feature_panel](wxWindow* parent) -> wxPanel*
@@ -2718,7 +2670,7 @@ void LayoutManager::RegisterSidebarPanels()
 
     // ── Git panel ──
     panel_registry_.Register(
-        SidebarMode::kGit,
+        kSidebarModeGit,
         "SOURCE CONTROL",
         "\xF0\x9F\x94\x80", // 🔀
         [this](wxWindow* parent) -> wxPanel*
@@ -2839,7 +2791,7 @@ void LayoutManager::RegisterSidebarPanels()
 
     // ── Tasks panel ──
     panel_registry_.Register(
-        SidebarMode::kTasks,
+        kSidebarModeTasks,
         "TASKS",
         "\xE2\x9C\x85", // ✅
         [make_feature_panel](wxWindow* parent) -> wxPanel*
@@ -2855,7 +2807,7 @@ void LayoutManager::RegisterSidebarPanels()
 
     // ── Database panel ──
     panel_registry_.Register(
-        SidebarMode::kDatabase,
+        kSidebarModeDatabase,
         "DATABASE",
         "\xF0\x9F\x97\x84", // 🗄
         [make_feature_panel](wxWindow* parent) -> wxPanel*
@@ -2870,7 +2822,7 @@ void LayoutManager::RegisterSidebarPanels()
         });
 
     // ── Presentation panel ──
-    panel_registry_.Register(SidebarMode::kPresentation,
+    panel_registry_.Register(kSidebarModePresentation,
                              "PRESENTATION",
                              "\xF0\x9F\x93\xBD", // 📽
                              [make_feature_panel](wxWindow* parent) -> wxPanel*
@@ -2913,7 +2865,7 @@ void LayoutManager::SetSidebarMode(SidebarMode mode)
         target_panel->Show();
 
         // Special handling for Extensions: trigger installed list refresh
-        if (mode == SidebarMode::kExtensions && extensions_panel_ != nullptr)
+        if (mode == kSidebarModeExtensions && extensions_panel_ != nullptr)
         {
             extensions_panel_->ShowInstalledExtensions();
         }
@@ -2928,8 +2880,8 @@ void LayoutManager::SetSidebarMode(SidebarMode mode)
 
     // Phase 06 Task 8: Broadcast SidebarModeChangedEvent
     core::events::SidebarModeChangedEvent changed_evt;
-    changed_evt.previous_mode = static_cast<int>(previous_mode);
-    changed_evt.new_mode = static_cast<int>(mode);
+    changed_evt.previous_mode = previous_mode;
+    changed_evt.new_mode = mode;
     event_bus_.publish(changed_evt);
 }
 

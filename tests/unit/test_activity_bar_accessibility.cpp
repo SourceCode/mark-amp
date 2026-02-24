@@ -12,13 +12,42 @@ static auto make_test_model() -> ActivityBarModel
                     "File Explorer",
                     "Cmd+Shift+E",
                     "File Explorer",
+                    "activity-explorer",
+                    false,
                     BadgeStyle::kNone,
                     0,
                     true,
                     0});
-    model.add_item({"search", "Search", "Cmd+Shift+F", "Search", BadgeStyle::kNone, 0, true, 0});
-    model.add_item({"settings", "Settings", "Cmd+,", "Settings", BadgeStyle::kNone, 0, true, 0});
-    model.add_item({"themes", "Themes", "", "Theme Gallery", BadgeStyle::kNone, 0, true, 0});
+    model.add_item({"search",
+                    "Search",
+                    "Cmd+Shift+F",
+                    "Search",
+                    "activity-search",
+                    false,
+                    BadgeStyle::kNone,
+                    0,
+                    true,
+                    0});
+    model.add_item({"settings",
+                    "Settings",
+                    "Cmd+,",
+                    "Settings",
+                    "activity-settings",
+                    true,
+                    BadgeStyle::kNone,
+                    0,
+                    true,
+                    0});
+    model.add_item({"themes",
+                    "Themes",
+                    "",
+                    "Theme Gallery",
+                    "toolbar-themes",
+                    true,
+                    BadgeStyle::kNone,
+                    0,
+                    true,
+                    0});
     return model;
 }
 

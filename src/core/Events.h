@@ -674,38 +674,43 @@ MARKAMP_DECLARE_EVENT_END;
 // Activity bar events
 // ============================================================================
 
-enum class ActivityBarItem
+namespace ActivityBarItemId
 {
-    FileExplorer,
-    Search,
-    Settings,
-    Themes,
-    Extensions,
-    kNotebooks,   // V8 Phase 11
-    kCanvas,      // V8 Phase 11
-    kGraph,       // V8 Phase 11
-    kAI,          // UI Completeness
-    kFlashcards,  // UI Completeness
-    kGit,         // UI Completeness
-    kTasks,       // UI Completeness
-    kDatabase,    // UI Completeness
-    kPresentation // UI Completeness
-};
+// Standard activity bar items mirroring the core SidebarModes
+constexpr const char* kFileExplorer = "workbench.view.explorer";
+constexpr const char* kSearch = "workbench.view.search";
+constexpr const char* kSettings = "workbench.view.settings";
+constexpr const char* kThemes = "workbench.view.themes";
+constexpr const char* kExtensions = "workbench.view.extensions";
+constexpr const char* kNotebooks = "workbench.view.notebooks";
+constexpr const char* kCanvas = "workbench.view.canvas";
+constexpr const char* kGraph = "workbench.view.graph";
+constexpr const char* kAI = "workbench.view.ai";
+constexpr const char* kFlashcards = "workbench.view.flashcards";
+constexpr const char* kGit = "workbench.view.git";
+constexpr const char* kTasks = "workbench.view.tasks";
+constexpr const char* kDatabase = "workbench.view.database";
+constexpr const char* kPresentation = "workbench.view.presentation";
+constexpr const char* kAccount = "workbench.view.account";
+} // namespace ActivityBarItemId
+
+// Type alias to replace the old Enum
+using ActivityBarItem = std::string;
 
 MARKAMP_DECLARE_EVENT_WITH_FIELDS(ActivityBarSelectionEvent)
-ActivityBarItem item{ActivityBarItem::FileExplorer};
+ActivityBarItem item{ActivityBarItemId::kFileExplorer};
 
 ActivityBarSelectionEvent() = default;
 explicit ActivityBarSelectionEvent(ActivityBarItem item_id)
-    : item(item_id)
+    : item(std::move(item_id))
 {
 }
 MARKAMP_DECLARE_EVENT_END;
 
 // Phase 06 Task 8: SidebarModeChangedEvent — broadcast when sidebar mode switches
 MARKAMP_DECLARE_EVENT_WITH_FIELDS(SidebarModeChangedEvent)
-int previous_mode{0}; // SidebarMode as int (avoids circular include)
-int new_mode{0};
+std::string previous_mode; // Migrated from int to string
+std::string new_mode;
 MARKAMP_DECLARE_EVENT_END;
 
 // Phase 06 Task 7: Badge notification events for ActivityBar

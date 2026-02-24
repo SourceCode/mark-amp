@@ -13,45 +13,14 @@ using namespace markamp;
 // SidebarMode ↔ ActivityBarItem mapping tests
 // =============================================================================
 
-TEST_CASE("SidebarMode enum has expected number of entries", "[workbench][sidebar]")
-{
-    // Verify all 8 modes exist and have distinct integer values
-    const auto explorer = static_cast<int>(ui::SidebarMode::kExplorer);
-    const auto search = static_cast<int>(ui::SidebarMode::kSearch);
-    const auto settings = static_cast<int>(ui::SidebarMode::kSettings);
-    const auto themes = static_cast<int>(ui::SidebarMode::kThemes);
-    const auto extensions = static_cast<int>(ui::SidebarMode::kExtensions);
-    const auto notebooks = static_cast<int>(ui::SidebarMode::kNotebooks);
-    const auto canvas = static_cast<int>(ui::SidebarMode::kCanvas);
-    const auto graph = static_cast<int>(ui::SidebarMode::kGraph);
-
-    REQUIRE(explorer != search);
-    REQUIRE(search != settings);
-    REQUIRE(settings != themes);
-    REQUIRE(themes != extensions);
-    REQUIRE(extensions != notebooks);
-    REQUIRE(notebooks != canvas);
-    REQUIRE(canvas != graph);
-}
-
-TEST_CASE("SidebarMode values start at zero for Explorer", "[workbench][sidebar]")
-{
-    REQUIRE(static_cast<int>(ui::SidebarMode::kExplorer) == 0);
-}
-
-TEST_CASE("ActivityBarItem and SidebarMode have matching values", "[workbench][sidebar]")
+TEST_CASE("SidebarMode string constants match ActivityBarItemId constants", "[workbench][sidebar]")
 {
     // Verify the mapping between ActivityBarItem and SidebarMode is consistent
-    REQUIRE(static_cast<int>(core::events::ActivityBarItem::FileExplorer) ==
-            static_cast<int>(ui::SidebarMode::kExplorer));
-    REQUIRE(static_cast<int>(core::events::ActivityBarItem::Search) ==
-            static_cast<int>(ui::SidebarMode::kSearch));
-    REQUIRE(static_cast<int>(core::events::ActivityBarItem::Settings) ==
-            static_cast<int>(ui::SidebarMode::kSettings));
-    REQUIRE(static_cast<int>(core::events::ActivityBarItem::Themes) ==
-            static_cast<int>(ui::SidebarMode::kThemes));
-    REQUIRE(static_cast<int>(core::events::ActivityBarItem::Extensions) ==
-            static_cast<int>(ui::SidebarMode::kExtensions));
+    REQUIRE(core::events::ActivityBarItemId::kFileExplorer == ui::kSidebarModeExplorer);
+    REQUIRE(core::events::ActivityBarItemId::kSearch == ui::kSidebarModeSearch);
+    REQUIRE(core::events::ActivityBarItemId::kSettings == ui::kSidebarModeSettings);
+    REQUIRE(core::events::ActivityBarItemId::kThemes == ui::kSidebarModeThemes);
+    REQUIRE(core::events::ActivityBarItemId::kExtensions == ui::kSidebarModeExtensions);
 }
 
 // =============================================================================
@@ -70,7 +39,7 @@ TEST_CASE("SidebarPanelRegistry register and lookup", "[workbench][registry]")
     ui::SidebarPanelRegistry registry;
     bool factory_called = false;
 
-    registry.Register(ui::SidebarMode::kSearch,
+    registry.Register(ui::kSidebarModeSearch,
                       "SEARCH",
                       "\xF0\x9F\x94\x8D",
                       [&factory_called](wxWindow* /*parent*/) -> wxPanel*
@@ -80,7 +49,7 @@ TEST_CASE("SidebarPanelRegistry register and lookup", "[workbench][registry]")
                       });
 
     REQUIRE(registry.AllModes().size() == 1);
-    REQUIRE(registry.GetLabel(ui::SidebarMode::kSearch) == "SEARCH");
+    REQUIRE(registry.GetLabel(ui::kSidebarModeSearch) == "SEARCH");
     REQUIRE_FALSE(factory_called); // Lazy: not called until GetOrCreate
 }
 
@@ -88,22 +57,22 @@ TEST_CASE("SidebarPanelRegistry returns empty label for unregistered mode", "[wo
 {
     ui::SidebarPanelRegistry registry;
 
-    REQUIRE(registry.GetLabel(ui::SidebarMode::kGraph).empty());
+    REQUIRE(registry.GetLabel(ui::kSidebarModeGraph).empty());
 }
 
 TEST_CASE("SidebarPanelRegistry AllModes returns all registered modes", "[workbench][registry]")
 {
     ui::SidebarPanelRegistry registry;
 
-    registry.Register(ui::SidebarMode::kExplorer,
+    registry.Register(ui::kSidebarModeExplorer,
                       "EXPLORER",
                       "\xF0\x9F\x93\x81",
                       [](wxWindow* /*parent*/) -> wxPanel* { return nullptr; });
-    registry.Register(ui::SidebarMode::kSearch,
+    registry.Register(ui::kSidebarModeSearch,
                       "SEARCH",
                       "\xF0\x9F\x94\x8D",
                       [](wxWindow* /*parent*/) -> wxPanel* { return nullptr; });
-    registry.Register(ui::SidebarMode::kSettings,
+    registry.Register(ui::kSidebarModeSettings,
                       "SETTINGS",
                       "\xE2\x9A\x99",
                       [](wxWindow* /*parent*/) -> wxPanel* { return nullptr; });
@@ -118,18 +87,18 @@ TEST_CASE("SidebarPanelRegistry AllModes returns all registered modes", "[workbe
 TEST_CASE("SidebarModeChangedEvent carries previous and new mode", "[workbench][events]")
 {
     core::events::SidebarModeChangedEvent evt;
-    evt.previous_mode = 0;
-    evt.new_mode = 1;
+    evt.previous_mode = ui::kSidebarModeExplorer;
+    evt.new_mode = ui::kSidebarModeSearch;
 
-    REQUIRE(evt.previous_mode == 0);
-    REQUIRE(evt.new_mode == 1);
+    REQUIRE(evt.previous_mode == ui::kSidebarModeExplorer);
+    REQUIRE(evt.new_mode == ui::kSidebarModeSearch);
 }
 
 TEST_CASE("SidebarModeChangedEvent can be published and received", "[workbench][events]")
 {
     core::EventBus bus;
-    int received_previous = -1;
-    int received_new = -1;
+    std::string received_previous;
+    std::string received_new;
 
     auto sub = bus.subscribe<core::events::SidebarModeChangedEvent>(
         [&](const core::events::SidebarModeChangedEvent& evt)
@@ -139,12 +108,12 @@ TEST_CASE("SidebarModeChangedEvent can be published and received", "[workbench][
         });
 
     core::events::SidebarModeChangedEvent evt;
-    evt.previous_mode = static_cast<int>(ui::SidebarMode::kExplorer);
-    evt.new_mode = static_cast<int>(ui::SidebarMode::kSearch);
+    evt.previous_mode = ui::kSidebarModeExplorer;
+    evt.new_mode = ui::kSidebarModeSearch;
     bus.publish(evt);
 
-    REQUIRE(received_previous == static_cast<int>(ui::SidebarMode::kExplorer));
-    REQUIRE(received_new == static_cast<int>(ui::SidebarMode::kSearch));
+    REQUIRE(received_previous == ui::kSidebarModeExplorer);
+    REQUIRE(received_new == ui::kSidebarModeSearch);
 }
 
 // =============================================================================
@@ -153,23 +122,23 @@ TEST_CASE("SidebarModeChangedEvent can be published and received", "[workbench][
 
 TEST_CASE("ActivityBarSelectionEvent can be constructed with item", "[workbench][events]")
 {
-    const core::events::ActivityBarSelectionEvent evt{core::events::ActivityBarItem::Search};
+    const core::events::ActivityBarSelectionEvent evt{core::events::ActivityBarItemId::kSearch};
 
-    REQUIRE(evt.item == core::events::ActivityBarItem::Search);
+    REQUIRE(evt.item == core::events::ActivityBarItemId::kSearch);
 }
 
 TEST_CASE("ActivityBarSelectionEvent round-trips through EventBus", "[workbench][events]")
 {
     core::EventBus bus;
-    core::events::ActivityBarItem received_item = core::events::ActivityBarItem::FileExplorer;
+    core::events::ActivityBarItem received_item = core::events::ActivityBarItemId::kFileExplorer;
 
     auto sub = bus.subscribe<core::events::ActivityBarSelectionEvent>(
         [&](const core::events::ActivityBarSelectionEvent& evt) { received_item = evt.item; });
 
-    const core::events::ActivityBarSelectionEvent evt{core::events::ActivityBarItem::Extensions};
+    const core::events::ActivityBarSelectionEvent evt{core::events::ActivityBarItemId::kExtensions};
     bus.publish(evt);
 
-    REQUIRE(received_item == core::events::ActivityBarItem::Extensions);
+    REQUIRE(received_item == core::events::ActivityBarItemId::kExtensions);
 }
 
 // =============================================================================
@@ -206,28 +175,28 @@ TEST_CASE("ExtensionUpdatesAvailableEvent carries update_count", "[workbench][ev
 TEST_CASE("Config can store and retrieve sidebar mode", "[workbench][persistence]")
 {
     core::Config config;
-    const int mode_val = static_cast<int>(ui::SidebarMode::kSettings);
+    const std::string mode_val = ui::kSidebarModeSettings;
     config.set("layout.sidebar_mode", mode_val);
 
-    const int restored = config.get_int("layout.sidebar_mode", 0);
+    const std::string restored = config.get_string("layout.sidebar_mode", "");
     REQUIRE(restored == mode_val);
 }
 
 TEST_CASE("Config returns default when sidebar mode not set", "[workbench][persistence]")
 {
     core::Config config;
-    const int restored = config.get_int("layout.sidebar_mode", 0);
-    REQUIRE(restored == 0); // Default is kExplorer (0)
+    const std::string restored = config.get_string("layout.sidebar_mode", ui::kSidebarModeExplorer);
+    REQUIRE(restored == ui::kSidebarModeExplorer); // Default is kExplorer
 }
 
 TEST_CASE("Config rejects invalid sidebar mode gracefully", "[workbench][persistence]")
 {
     core::Config config;
-    config.set("layout.sidebar_mode", 999);
+    config.set("layout.sidebar_mode", std::string("workbench.view.invalid000"));
 
-    const int restored = config.get_int("layout.sidebar_mode", 0);
-    // The value is stored as-is; validation happens in RestoreLayoutState
-    REQUIRE(restored == 999);
+    const std::string restored = config.get_string("layout.sidebar_mode", "");
+    // The value is stored as-is; validation happens in RegisterSidebarPanels
+    REQUIRE(restored == "workbench.view.invalid000");
 }
 
 // =============================================================================
@@ -236,24 +205,25 @@ TEST_CASE("Config rejects invalid sidebar mode gracefully", "[workbench][persist
 
 TEST_CASE("Quick switcher maps E to FileExplorer", "[workbench][shortcuts]")
 {
-    const core::events::ActivityBarSelectionEvent evt{core::events::ActivityBarItem::FileExplorer};
-    REQUIRE(evt.item == core::events::ActivityBarItem::FileExplorer);
+    const core::events::ActivityBarSelectionEvent evt{
+        core::events::ActivityBarItemId::kFileExplorer};
+    REQUIRE(evt.item == core::events::ActivityBarItemId::kFileExplorer);
 }
 
 TEST_CASE("Quick switcher maps F to Search", "[workbench][shortcuts]")
 {
-    const core::events::ActivityBarSelectionEvent evt{core::events::ActivityBarItem::Search};
-    REQUIRE(evt.item == core::events::ActivityBarItem::Search);
+    const core::events::ActivityBarSelectionEvent evt{core::events::ActivityBarItemId::kSearch};
+    REQUIRE(evt.item == core::events::ActivityBarItemId::kSearch);
 }
 
 TEST_CASE("Quick switcher maps G to Graph", "[workbench][shortcuts]")
 {
-    const core::events::ActivityBarSelectionEvent evt{core::events::ActivityBarItem::kGraph};
-    REQUIRE(evt.item == core::events::ActivityBarItem::kGraph);
+    const core::events::ActivityBarSelectionEvent evt{core::events::ActivityBarItemId::kGraph};
+    REQUIRE(evt.item == core::events::ActivityBarItemId::kGraph);
 }
 
 TEST_CASE("Quick switcher maps X to Extensions", "[workbench][shortcuts]")
 {
-    const core::events::ActivityBarSelectionEvent evt{core::events::ActivityBarItem::Extensions};
-    REQUIRE(evt.item == core::events::ActivityBarItem::Extensions);
+    const core::events::ActivityBarSelectionEvent evt{core::events::ActivityBarItemId::kExtensions};
+    REQUIRE(evt.item == core::events::ActivityBarItemId::kExtensions);
 }

@@ -56,13 +56,30 @@ ActivityBar::ActivityBar(wxWindow* parent, DesignSystemContext& ds, core::EventB
     Bind(wxEVT_TIMER,
          [this](wxTimerEvent& /*evt*/)
          {
-             if (hover_index_ >= 0 && hover_index_ < static_cast<int>(items_.size()))
+             auto vis_items = model_.visible_items();
+             if (hover_index_ >= 0 && hover_index_ < static_cast<int>(vis_items.size()) &&
+                 hover_index_ < static_cast<int>(item_bounds_.size()))
              {
                  auto* tooltip = TooltipWindow::GetOrCreate(wxTheApp->GetTopWindow(), ds_);
-                 const auto& item = items_[static_cast<std::size_t>(hover_index_)];
-                 int tooltip_y = item.bounds.GetY() + (item.bounds.GetHeight() - 24) / 2;
+                 const auto& item = vis_items[static_cast<std::size_t>(hover_index_)];
+                 const auto& bounds = item_bounds_[static_cast<std::size_t>(hover_index_)];
+
+                 wxString tooltip_text = item.label;
+                 if (item.badge_count > 0 || item.badge_style == BadgeStyle::kDot ||
+                     item.badge_style == BadgeStyle::kUrgent)
+                 {
+                     tooltip_text += wxString::Format(
+                         " (%s)",
+                         ActivityBarModel::badge_display(item.badge_style, item.badge_count));
+                 }
+                 if (!item.shortcut_hint.empty())
+                 {
+                     tooltip_text += wxString::Format(" [%s]", item.shortcut_hint);
+                 }
+
+                 int tooltip_y = bounds.GetY() + (bounds.GetHeight() - 24) / 2;
                  wxPoint screen_pos = ClientToScreen(wxPoint(GetSize().GetWidth() + 4, tooltip_y));
-                 tooltip->ShowTooltip(item.label, screen_pos);
+                 tooltip->ShowTooltip(tooltip_text, screen_pos);
              }
          });
 
@@ -78,16 +95,17 @@ ActivityBar::ActivityBar(wxWindow* parent, DesignSystemContext& ds, core::EventB
     // Phase 06 Task 7: Subscribe to badge notification events
     search_count_sub_ = event_bus_.subscribe<core::events::SearchResultCountEvent>(
         [this](const core::events::SearchResultCountEvent& evt)
-        { SetBadge(core::events::ActivityBarItem::Search, evt.count); });
+        { SetBadge(core::events::ActivityBarItemId::kSearch, evt.count); });
 
     diagnostics_sub_ = event_bus_.subscribe<core::events::DiagnosticsCountChangedEvent>(
         [this](const core::events::DiagnosticsCountChangedEvent& evt) {
-            SetBadge(core::events::ActivityBarItem::Settings, evt.error_count + evt.warning_count);
+            SetBadge(core::events::ActivityBarItemId::kSettings,
+                     evt.error_count + evt.warning_count);
         });
 
     extension_updates_sub_ = event_bus_.subscribe<core::events::ExtensionUpdatesAvailableEvent>(
         [this](const core::events::ExtensionUpdatesAvailableEvent& evt)
-        { SetBadge(core::events::ActivityBarItem::Extensions, evt.update_count); });
+        { SetBadge(core::events::ActivityBarItemId::kExtensions, evt.update_count); });
 
     keyboard_mode_sub_ = event_bus_.subscribe<core::events::KeyboardModeChangedEvent>(
         [this](const core::events::KeyboardModeChangedEvent& /*evt*/) { Refresh(); });
@@ -95,22 +113,89 @@ ActivityBar::ActivityBar(wxWindow* parent, DesignSystemContext& ds, core::EventB
 
 void ActivityBar::CreateItems()
 {
-    items_ = {
-        {core::events::ActivityBarItem::FileExplorer, "Explorer", "activity-explorer", {}},
-        {core::events::ActivityBarItem::Search, "Search", "activity-search", {}},
-        {core::events::ActivityBarItem::kNotebooks, "Notebooks", "activity-notebooks", {}},
-        {core::events::ActivityBarItem::kCanvas, "Canvas", "activity-canvas", {}},
-        {core::events::ActivityBarItem::kGraph, "Knowledge Graph", "activity-graph", {}},
-        {core::events::ActivityBarItem::kAI, "AI Assistant", "activity-ai", {}},
-        {core::events::ActivityBarItem::kFlashcards, "Flashcards", "activity-flashcards", {}},
-        {core::events::ActivityBarItem::kGit, "Git", "activity-git", {}},
-        {core::events::ActivityBarItem::kTasks, "Tasks", "activity-tasks", {}},
-        {core::events::ActivityBarItem::kDatabase, "Database", "activity-database", {}},
-        {core::events::ActivityBarItem::kPresentation, "Presentation", "activity-presentation", {}},
-        {core::events::ActivityBarItem::Extensions, "Extensions", "activity-extensions", {}},
-        {core::events::ActivityBarItem::Settings, "Settings", "activity-settings", {}},
-        {core::events::ActivityBarItem::Themes, "Themes", "toolbar-themes", {}},
-    };
+    model_ = ActivityBarModel{}; // Reset
+
+    // Top items
+    model_.add_item({core::events::ActivityBarItemId::kFileExplorer,
+                     "Explorer",
+                     "Cmd+Shift+E",
+                     "Explorer",
+                     "activity-explorer",
+                     false});
+    model_.add_item({core::events::ActivityBarItemId::kSearch,
+                     "Search",
+                     "Cmd+Shift+F",
+                     "Search",
+                     "activity-search",
+                     false});
+    model_.add_item({core::events::ActivityBarItemId::kNotebooks,
+                     "Notebooks",
+                     "",
+                     "Notebooks",
+                     "activity-notebooks",
+                     false});
+    model_.add_item({core::events::ActivityBarItemId::kCanvas,
+                     "Canvas",
+                     "",
+                     "Canvas",
+                     "activity-canvas",
+                     false});
+    model_.add_item({core::events::ActivityBarItemId::kGraph,
+                     "Knowledge Graph",
+                     "",
+                     "Knowledge Graph",
+                     "activity-graph",
+                     false});
+    model_.add_item({core::events::ActivityBarItemId::kAI,
+                     "AI Assistant",
+                     "",
+                     "AI Assistant",
+                     "activity-ai",
+                     false});
+    model_.add_item({core::events::ActivityBarItemId::kFlashcards,
+                     "Flashcards",
+                     "",
+                     "Flashcards",
+                     "activity-flashcards",
+                     false});
+    model_.add_item(
+        {core::events::ActivityBarItemId::kGit, "Git", "", "Git", "activity-git", false});
+    model_.add_item(
+        {core::events::ActivityBarItemId::kTasks, "Tasks", "", "Tasks", "activity-tasks", false});
+    model_.add_item({core::events::ActivityBarItemId::kDatabase,
+                     "Database",
+                     "",
+                     "Database",
+                     "activity-database",
+                     false});
+    model_.add_item({core::events::ActivityBarItemId::kPresentation,
+                     "Presentation",
+                     "",
+                     "Presentation",
+                     "activity-presentation",
+                     false});
+    model_.add_item({core::events::ActivityBarItemId::kExtensions,
+                     "Extensions",
+                     "",
+                     "Extensions",
+                     "activity-extensions",
+                     false});
+
+    // Bottom items
+    model_.add_item({core::events::ActivityBarItemId::kSettings,
+                     "Settings",
+                     "",
+                     "Settings",
+                     "activity-settings",
+                     true});
+    model_.add_item(
+        {core::events::ActivityBarItemId::kThemes, "Themes", "", "Themes", "toolbar-themes", true});
+    model_.add_item({core::events::ActivityBarItemId::kAccount,
+                     "Account",
+                     "",
+                     "Account",
+                     "activity-account",
+                     true});
 }
 
 void ActivityBar::SetActiveItem(core::events::ActivityBarItem item)
@@ -159,12 +244,47 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
 
     auto size = GetClientSize();
     const int kBarWidth = ds_.metrics.activity_bar_slot_height();
-    int item_y = ds_.spacing.scaled(SpacingToken::kMd);
 
-    for (int item_index = 0; item_index < static_cast<int>(items_.size()); ++item_index)
+    auto vis_items = model_.visible_items();
+    item_bounds_.resize(vis_items.size());
+
+    int top_y = ds_.spacing.scaled(SpacingToken::kMd);
+    int bottom_y = size.GetHeight() - ds_.spacing.scaled(SpacingToken::kMd);
+
+    int last_top_item_index = -1;
+    int first_bottom_item_index = -1;
+
+    // Calculate bounds: Bottom items go upwards from bottom_y
+    for (int item_index = static_cast<int>(vis_items.size()) - 1; item_index >= 0; --item_index)
     {
-        auto& item = items_[static_cast<std::size_t>(item_index)];
-        item.bounds = wxRect(0, item_y, kBarWidth, kBarWidth);
+        const auto& item = vis_items[static_cast<std::size_t>(item_index)];
+        if (item.is_bottom_item)
+        {
+            bottom_y -= kBarWidth;
+            item_bounds_[static_cast<std::size_t>(item_index)] =
+                wxRect(0, bottom_y, kBarWidth, kBarWidth);
+            first_bottom_item_index = item_index;
+        }
+    }
+
+    // Top items go downwards from top_y
+    for (int item_index = 0; item_index < static_cast<int>(vis_items.size()); ++item_index)
+    {
+        const auto& item = vis_items[static_cast<std::size_t>(item_index)];
+        if (!item.is_bottom_item)
+        {
+            item_bounds_[static_cast<std::size_t>(item_index)] =
+                wxRect(0, top_y, kBarWidth, kBarWidth);
+            top_y += kBarWidth;
+            last_top_item_index = item_index;
+        }
+    }
+
+    for (int item_index = 0; item_index < static_cast<int>(vis_items.size()); ++item_index)
+    {
+        const auto& item = vis_items[static_cast<std::size_t>(item_index)];
+        const auto& bounds = item_bounds_[static_cast<std::size_t>(item_index)];
+        const int item_y = bounds.GetY();
 
         const bool kIsActive = (item.item_id == active_item_);
         const bool kIsHover = (item_index == hover_index_);
@@ -175,7 +295,7 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
             auto active_bg = clr.accent_primary.with_alpha(0.12F);
             paint_dc.SetBrush(wxBrush(active_bg.to_wx_colour()));
             paint_dc.SetPen(*wxTRANSPARENT_PEN);
-            paint_dc.DrawRectangle(0, item_y, kBarWidth, kBarWidth);
+            paint_dc.DrawRectangle(bounds);
         }
 
         // Active indicator (left border bar)
@@ -183,7 +303,8 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
         {
             paint_dc.SetBrush(wxBrush(clr.accent_primary.to_wx_colour()));
             paint_dc.SetPen(*wxTRANSPARENT_PEN);
-            paint_dc.DrawRectangle(0, item_y, 4, kBarWidth);
+            // Task 3 (Active Indicator): precisely 2px instead of 4px
+            paint_dc.DrawRectangle(0, item_y, 2, kBarWidth);
         }
 
         // Hover background
@@ -192,7 +313,7 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
             auto hover = clr.bg_panel.lighten(0.1F);
             paint_dc.SetBrush(wxBrush(hover.to_wx_colour()));
             paint_dc.SetPen(*wxTRANSPARENT_PEN);
-            paint_dc.DrawRectangle(0, item_y, kBarWidth, kBarWidth);
+            paint_dc.DrawRectangle(bounds);
         }
 
         // Icon rendering via IconManager
@@ -205,21 +326,21 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
             press_offset_y = 1;
         }
 
-        wxColour icon_color;
+        core::Color base_color =
+            kIsActive ? clr.editor_fg : clr.editor_fg.blend(clr.bg_panel, 0.3F);
+        if (is_dragging_ && item_index == drag_index_)
+        {
+            base_color = base_color.blend(clr.bg_panel, 0.6F);
+        }
+        const wxColour icon_color = base_color.to_wx_colour();
+
         if (kIsActive)
         {
-            icon_color = clr.editor_fg.to_wx_colour();
-
             // Phase 06 Task 41: Active state left border indication
             paint_dc.SetBrush(wxBrush(clr.accent_primary.to_wx_colour()));
             paint_dc.SetPen(*wxTRANSPARENT_PEN);
-            paint_dc.DrawRectangle(0, item_y, 4, kBarWidth);
-        }
-        else
-        {
-            // Dimmed for inactive — blend fg towards bg
-            auto dimmed = clr.editor_fg.blend(clr.bg_panel, 0.3F);
-            icon_color = dimmed.to_wx_colour();
+            // Task 3: 2px wide
+            paint_dc.DrawRectangle(0, item_y, 2, kBarWidth);
         }
 
         const int kIconSize = 24;
@@ -230,7 +351,8 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
             paint_dc, item.icon_name, kIconX, kIconY, wxSize(kIconSize, kIconSize), icon_color);
 
         // R18 Fix 25: Badge count indicator
-        if (item.badge_count > 0)
+        if (item.badge_style == BadgeStyle::kCount || item.badge_style == BadgeStyle::kDot ||
+            item.badge_style == BadgeStyle::kUrgent)
         {
             auto badge_bg = clr.accent_primary.to_wx_colour();
             paint_dc.SetBrush(wxBrush(badge_bg));
@@ -239,7 +361,8 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
             paint_dc.SetTextForeground(*wxWHITE);
             auto badge_font = ds_.typography.font(TypeSlot::kCaption);
             paint_dc.SetFont(badge_font);
-            auto badge_text = wxString::Format("%d", item.badge_count);
+
+            auto badge_text = ActivityBarModel::badge_display(item.badge_style, item.badge_count);
             auto badge_extent = paint_dc.GetTextExtent(badge_text);
 
             const int kTextW = badge_extent.GetWidth();
@@ -248,11 +371,23 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
             const int kBadgeX = kBarWidth - 8 - kBadgeW / 2;
             const int kBadgeYPos = item_y + 4;
 
-            paint_dc.DrawRoundedRectangle(
-                kBadgeX - kBadgeW / 2, kBadgeYPos, kBadgeW, kBadgeH, kBadgeH / 2.0);
-            paint_dc.DrawText(badge_text,
-                              kBadgeX - kTextW / 2,
-                              kBadgeYPos + kBadgeH / 2 - badge_extent.GetHeight() / 2);
+            float scale = 1.0F;
+            if (auto it = badge_scales_.find(item.item_id); it != badge_scales_.end())
+            {
+                scale = it->second;
+            }
+
+            const int scaled_w = static_cast<int>(kBadgeW * scale);
+            const int scaled_h = static_cast<int>(kBadgeH * scale);
+
+            const int center_x = kBadgeX;
+            const int center_y = kBadgeYPos + kBadgeH / 2;
+            const int draw_x = center_x - scaled_w / 2;
+            const int draw_y = center_y - scaled_h / 2;
+
+            paint_dc.DrawRoundedRectangle(draw_x, draw_y, scaled_w, scaled_h, scaled_h / 2.0);
+            paint_dc.DrawText(
+                badge_text, center_x - kTextW / 2, center_y - badge_extent.GetHeight() / 2);
 
             // Restore font
             paint_dc.SetFont(font);
@@ -260,24 +395,22 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
 
         // Register item bounds with global FocusRingRenderer
         FocusRingRenderer::get().register_item_bounds(
-            FocusZoneId::kActivityBar, item_index, this, item.bounds);
-
-        item_y += kBarWidth;
+            FocusZoneId::kActivityBar, item_index, this, bounds);
     }
 
-    // R17 Fix 29: Bottom border separator below last item
-    if (!items_.empty())
+    // R17 Fix 29: Bottom border separator below last top item
+    if (last_top_item_index >= 0)
     {
         auto border_light = clr.border_light.to_wx_colour();
         paint_dc.SetPen(wxPen(border_light));
-        paint_dc.DrawLine(4, item_y, kBarWidth - 4, item_y);
+        paint_dc.DrawLine(4, top_y, kBarWidth - 4, top_y);
     }
 
-    // R20 Fix 20: Separator above the bottom-most item (last item)
-    if (items_.size() > 1)
+    // R20 Fix 20: Separator above the bottom-most item section (first bottom item)
+    if (first_bottom_item_index >= 0)
     {
-        const auto& last_item = items_.back();
-        const int kSepY = last_item.bounds.GetY() - 2;
+        const int kSepY =
+            item_bounds_[static_cast<std::size_t>(first_bottom_item_index)].GetY() - 2;
         auto sep_col = clr.border_light.to_wx_colour();
         paint_dc.SetPen(wxPen(sep_col));
         paint_dc.DrawLine(8, kSepY, kBarWidth - 8, kSepY);
@@ -308,6 +441,23 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
     paint_dc.SetPen(wxPen(shadow_col));
     paint_dc.DrawLine(size.GetWidth() - 2, 0, size.GetWidth() - 2, size.GetHeight());
 
+    // Phase 06 Task 12: Drag reorder feedback
+    if (is_dragging_ && drag_target_index_ >= 0 && drag_index_ >= 0 &&
+        drag_target_index_ != drag_index_ &&
+        drag_target_index_ < static_cast<int>(item_bounds_.size()))
+    {
+        const auto& target_bounds = item_bounds_[static_cast<std::size_t>(drag_target_index_)];
+        int insert_y = target_bounds.GetY();
+        if (drag_target_index_ > drag_index_)
+        {
+            insert_y = target_bounds.GetBottom();
+        }
+        auto accent = ds_.theme.resolve_token("accent.primary")
+                          .value_or(ds_.theme.color(core::ThemeColorToken::AccentPrimary));
+        paint_dc.SetPen(wxPen(accent, 2));
+        paint_dc.DrawLine(0, insert_y, kBarWidth, insert_y);
+    }
+
     // Draw the global animated focus ring over the top
     FocusRingRenderer::get().draw(paint_dc, this, ds_.theme);
 }
@@ -331,9 +481,9 @@ void ActivityBar::OnMouseDown(wxMouseEvent& event)
     is_dragging_ = false;
     Refresh();
 
-    if (item_index >= 0 && item_index < static_cast<int>(items_.size()))
+    if (item_index >= 0 && item_index < static_cast<int>(model_.visible_items().size()))
     {
-        auto item = items_[static_cast<std::size_t>(item_index)].item_id;
+        auto item = model_.visible_items()[static_cast<std::size_t>(item_index)].item_id;
         SetActiveItem(item);
 
         const core::events::ActivityBarSelectionEvent evt(item);
@@ -359,9 +509,10 @@ void ActivityBar::OnMouseUp(wxMouseEvent& /*event*/)
 void ActivityBar::OnDoubleClick(wxMouseEvent& event)
 {
     const int item_index = HitTest(event.GetPosition());
-    if (item_index >= 0 && item_index < static_cast<int>(items_.size()))
+    auto vis_items = model_.visible_items();
+    if (item_index >= 0 && item_index < static_cast<int>(vis_items.size()))
     {
-        auto item = items_[static_cast<std::size_t>(item_index)].item_id;
+        auto item = vis_items[static_cast<std::size_t>(item_index)].item_id;
         if (item == active_item_)
         {
             core::events::SidebarToggleEvent toggle_evt;
@@ -437,9 +588,9 @@ void ActivityBar::OnMouseLeave(wxMouseEvent& /*event*/)
 
 auto ActivityBar::HitTest(const wxPoint& pt) const -> int
 {
-    for (int item_index = 0; item_index < static_cast<int>(items_.size()); ++item_index)
+    for (int item_index = 0; item_index < static_cast<int>(item_bounds_.size()); ++item_index)
     {
-        if (items_[static_cast<std::size_t>(item_index)].bounds.Contains(pt))
+        if (item_bounds_[static_cast<std::size_t>(item_index)].Contains(pt))
         {
             return item_index;
         }
@@ -448,98 +599,96 @@ auto ActivityBar::HitTest(const wxPoint& pt) const -> int
 }
 
 // R18 Fix 25: Set badge count on an activity bar item
+// R18 Fix 25: Set badge count on an activity bar item
 void ActivityBar::SetBadge(core::events::ActivityBarItem item, int count)
 {
-    for (auto& bar_item : items_)
+    // Find if the count actually increased
+    bool increased = false;
+    for (const auto& m_item : model_.all_items())
     {
-        if (bar_item.item_id == item)
+        if (m_item.item_id == item)
         {
-            bar_item.badge_count = count;
-            Refresh();
-            return;
+            if (count > m_item.badge_count)
+            {
+                increased = true;
+            }
+            break;
         }
     }
+
+    model_.set_badge(item, count > 0 ? BadgeStyle::kCount : BadgeStyle::kNone, count);
+
+    // Task 5: Badge Animation
+    if (increased)
+    {
+        const float kPulseScale = 1.3F;
+        std::string badge_item = item;
+        transition_manager_.start<float>(
+            "badge_" + badge_item,
+            1.0F,
+            kPulseScale,
+            [this, badge_item](const float& s) { badge_scales_[badge_item] = s; },
+            [this, badge_item, kPulseScale]()
+            {
+                transition_manager_.start<float>("badge_settle_" + badge_item,
+                                                 kPulseScale,
+                                                 1.0F,
+                                                 [this, badge_item](const float& s)
+                                                 { badge_scales_[badge_item] = s; });
+            });
+    }
+
+    Refresh();
 }
 
 // Helper to announce selection
 void ActivityBar::AnnounceCurrentItem()
 {
-    if (focus_index_ >= 0 && focus_index_ < static_cast<int>(items_.size()))
-    {
-        const auto& item = items_[static_cast<std::size_t>(focus_index_)];
-        bool is_active = (item.item_id == active_item_);
-        accessibility::AccessibilityController::get().announce_focus(
-            item.label, "Tab", is_active ? "Selected" : "");
-    }
+    accessibility::AccessibilityController::get().announce_focus(
+        model_.focused_announcement(), "Tab", "");
 }
 
 // Phase 06 Task 6: Keyboard focus navigation
 void ActivityBar::OnKeyDown(wxKeyEvent& event)
 {
-    if (items_.empty())
+    if (model_.visible_items().empty())
     {
         event.Skip();
         return;
     }
 
     const int key_code = event.GetKeyCode();
-    const int item_count = static_cast<int>(items_.size());
     bool focus_moved = false;
 
     switch (key_code)
     {
         case WXK_UP:
-        {
-            if (focus_index_ <= 0)
-            {
-                focus_index_ = item_count - 1;
-            }
-            else
-            {
-                --focus_index_;
-            }
+            model_.focus_previous();
+            focus_index_ = model_.focus_index();
             focus_moved = true;
             break;
-        }
         case WXK_DOWN:
-        {
-            if (focus_index_ < 0 || focus_index_ >= item_count - 1)
-            {
-                focus_index_ = 0;
-            }
-            else
-            {
-                ++focus_index_;
-            }
+            model_.focus_next();
+            focus_index_ = model_.focus_index();
             focus_moved = true;
             break;
-        }
         case WXK_RETURN:
         case WXK_SPACE:
-        {
-            if (focus_index_ >= 0 && focus_index_ < item_count)
-            {
-                auto item = items_[static_cast<std::size_t>(focus_index_)].item_id;
-                SetActiveItem(item);
-                core::events::ActivityBarSelectionEvent evt(item);
-                event_bus_.publish(evt);
-                // Announce newly active state
-                AnnounceCurrentItem();
-            }
+            model_.activate_focused();
+            SetActiveItem(model_.active_item_id());
+            event_bus_.publish(core::events::ActivityBarSelectionEvent(model_.active_item_id()));
+            AnnounceCurrentItem();
             break;
-        }
         case WXK_HOME:
-        {
+            model_.set_focus(0);
             focus_index_ = 0;
             focus_moved = true;
             break;
-        }
         case WXK_END:
-        {
-            focus_index_ = item_count - 1;
+            model_.set_focus(model_.item_count() - 1);
+            focus_index_ = model_.focus_index();
             focus_moved = true;
             break;
-        }
         default:
             event.Skip();
             break;
@@ -558,19 +707,21 @@ void ActivityBar::OnSetFocus(wxFocusEvent& /*event*/)
     if (focus_index_ < 0)
     {
         // Default focus to the active item
-        for (int idx = 0; idx < static_cast<int>(items_.size()); ++idx)
+        auto vis_items = model_.visible_items();
+        for (int idx = 0; idx < static_cast<int>(vis_items.size()); ++idx)
         {
-            if (items_[static_cast<std::size_t>(idx)].item_id == active_item_)
+            if (vis_items[static_cast<std::size_t>(idx)].item_id == active_item_)
             {
                 focus_index_ = idx;
                 break;
             }
         }
-        if (focus_index_ < 0 && !items_.empty())
+        if (focus_index_ < 0 && !vis_items.empty())
         {
             focus_index_ = 0;
         }
     }
+    model_.set_focus(focus_index_);
     FocusManager::get().set_focus(FocusZoneId::kActivityBar, focus_index_);
     Refresh();
     AnnounceCurrentItem(); // Phase 05 Task 11: Announce when control receives global tab focus
@@ -589,9 +740,10 @@ void ActivityBar::OnKillFocus(wxFocusEvent& /*event*/)
 // Phase 06 Task 6: Programmatic focus to a specific item
 void ActivityBar::FocusItem(int index)
 {
-    if (index >= 0 && index < static_cast<int>(items_.size()))
+    if (index >= 0 && index < static_cast<int>(model_.visible_items().size()))
     {
         focus_index_ = index;
+        model_.set_focus(index);
         SetFocus();
         FocusManager::get().set_focus(FocusZoneId::kActivityBar, focus_index_);
         Refresh();
@@ -611,16 +763,14 @@ void ActivityBar::FinishDrag()
         return;
     }
 
-    const int item_count = static_cast<int>(items_.size());
+    const int item_count = static_cast<int>(model_.visible_items().size());
     if (drag_index_ >= item_count || drag_target_index_ >= item_count)
     {
         return;
     }
 
     // Move the dragged item to the target position
-    auto dragged = std::move(items_[static_cast<std::size_t>(drag_index_)]);
-    items_.erase(items_.begin() + drag_index_);
-    items_.insert(items_.begin() + drag_target_index_, std::move(dragged));
+    model_.reorder(drag_index_, drag_target_index_);
 
     MARKAMP_LOG_INFO(
         "ActivityBar: Reordered item from index {} to {}", drag_index_, drag_target_index_);
@@ -632,12 +782,13 @@ void ActivityBar::OnRightClick(wxMouseEvent& event)
     wxMenu menu;
     constexpr int kMenuBaseId = 10000;
 
+    auto all_items = model_.all_items();
     // Add show/hide toggle for each item
-    for (int idx = 0; idx < static_cast<int>(items_.size()); ++idx)
+    for (int idx = 0; idx < static_cast<int>(all_items.size()); ++idx)
     {
-        const auto& item = items_[static_cast<std::size_t>(idx)];
+        const auto& item = all_items[static_cast<std::size_t>(idx)];
         wxMenuItem* menu_item = menu.AppendCheckItem(kMenuBaseId + idx, item.label);
-        menu_item->Check(true); // All items visible by default
+        menu_item->Check(item.visible);
     }
 
     menu.AppendSeparator();
@@ -646,12 +797,25 @@ void ActivityBar::OnRightClick(wxMouseEvent& event)
     constexpr int kResetId = 10100;
     menu.Append(kResetId, "Reset Activity Bar");
 
-    // Bind the reset handler
+    // Bind the handlers
+    for (int idx = 0; idx < static_cast<int>(all_items.size()); ++idx)
+    {
+        const std::string item_id = all_items[static_cast<std::size_t>(idx)].item_id;
+        menu.Bind(
+            wxEVT_MENU,
+            [this, item_id](wxCommandEvent& cmd)
+            {
+                model_.set_item_visible(item_id, cmd.IsChecked());
+                Refresh();
+            },
+            kMenuBaseId + idx);
+    }
+
     menu.Bind(
         wxEVT_MENU,
         [this](wxCommandEvent& /*cmd*/)
         {
-            CreateItems();
+            model_.reset_order();
             Refresh();
             MARKAMP_LOG_INFO("ActivityBar: Reset to default order");
         },

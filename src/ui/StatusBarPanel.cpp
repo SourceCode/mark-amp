@@ -12,6 +12,7 @@
 #include "core/Logger.h"
 #include "ui/FocusManager.h"
 #include "ui/FocusRingRenderer.h"
+#include "ui/SidebarMode.h"
 
 #include <wx/app.h>
 #include <wx/dcbuffer.h>
@@ -1256,29 +1257,38 @@ auto StatusBarPanel::view_mode_label(core::events::ViewMode mode) -> std::string
     return "SPLIT"; // fallback
 }
 
-auto StatusBarPanel::sidebar_mode_label(int mode) -> std::string
+auto StatusBarPanel::sidebar_mode_label(const std::string& mode) -> std::string
 {
-    switch (mode)
-    {
-        case 0:
-            return "EXPLORER";
-        case 1:
-            return "SEARCH";
-        case 2:
-            return "SETTINGS";
-        case 3:
-            return "THEMES";
-        case 4:
-            return "EXTENSIONS";
-        case 5:
-            return "NOTEBOOKS";
-        case 6:
-            return "CANVAS";
-        case 7:
-            return "GRAPH";
-        default:
-            return "EXPLORER";
-    }
+    if (mode == kSidebarModeExplorer)
+        return "EXPLORER";
+    if (mode == kSidebarModeSearch)
+        return "SEARCH";
+    if (mode == kSidebarModeSettings)
+        return "SETTINGS";
+    if (mode == kSidebarModeThemes)
+        return "THEMES";
+    if (mode == kSidebarModeExtensions)
+        return "EXTENSIONS";
+    if (mode == kSidebarModeNotebooks)
+        return "NOTEBOOKS";
+    if (mode == kSidebarModeCanvas)
+        return "CANVAS";
+    if (mode == kSidebarModeGraph)
+        return "GRAPH";
+    if (mode == kSidebarModeAI)
+        return "AI";
+    if (mode == kSidebarModeFlashcards)
+        return "FLASHCARDS";
+    if (mode == kSidebarModeGit)
+        return "GIT";
+    if (mode == kSidebarModeTasks)
+        return "TASKS";
+    if (mode == kSidebarModeDatabase)
+        return "DATABASE";
+    if (mode == kSidebarModePresentation)
+        return "PRESENTATION";
+
+    return "EXPLORER";
 }
 
 } // namespace markamp::ui

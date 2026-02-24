@@ -212,7 +212,7 @@ private:
     bool bottom_panel_visible_{false};
 
     // Phase 8 / Phase 06: Sidebar mode switching
-    SidebarMode sidebar_mode_{SidebarMode::kExplorer};
+    SidebarMode sidebar_mode_{kSidebarModeExplorer};
     SidebarPanelRegistry panel_registry_;
     wxPanel* explorer_panel_{nullptr}; // Container for file tree + search + footer
     ExtensionsBrowserPanel* extensions_panel_{nullptr};
@@ -233,7 +233,7 @@ private:
 
     // Phase 06 Task 11: Secondary sidebar
     bool secondary_sidebar_visible_{false};
-    SidebarMode secondary_sidebar_mode_{SidebarMode::kSearch};
+    SidebarMode secondary_sidebar_mode_{kSidebarModeSearch};
     SidebarPanelRegistry secondary_panel_registry_;
 
     // Phase 06 Task 15/16: Zen and Presentation Mode state

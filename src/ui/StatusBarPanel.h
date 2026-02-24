@@ -200,7 +200,7 @@ private:
     static auto view_mode_label(core::events::ViewMode mode) -> std::string;
 
     /// Convert sidebar mode int to display name.
-    static auto sidebar_mode_label(int mode) -> std::string;
+    static auto sidebar_mode_label(const std::string& mode) -> std::string;
 
     /// Helper to count words in content.
     static auto count_words(const std::string& content) -> int;

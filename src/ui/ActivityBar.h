@@ -3,11 +3,14 @@
 #include "DesignSystemContext.h"
 #include "core/EventBus.h"
 #include "core/Events.h"
+#include "ui/ActivityBarModel.h"
+#include "ui/animation/TransitionManager.h"
 
 #include <wx/panel.h>
 #include <wx/timer.h>
 
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace markamp::ui
@@ -34,23 +37,19 @@ public:
     void FocusItem(int index);
 
 private:
-    struct BarItem
-    {
-        core::events::ActivityBarItem item_id;
-        std::string label;     // Tooltip text
-        std::string icon_name; // SVG icon identifier
-        wxRect bounds;         // Hit-test rectangle
-        int badge_count{0};    // R18 Fix 25: Badge count indicator
-    };
-
     DesignSystemContext& ds_;
     core::EventBus& event_bus_;
 
-    std::vector<BarItem> items_;
-    core::events::ActivityBarItem active_item_{core::events::ActivityBarItem::FileExplorer};
+    ActivityBarModel model_;
+    std::vector<wxRect> item_bounds_;
+    std::unordered_map<std::string, float> badge_scales_;
+    core::events::ActivityBarItem active_item_{core::events::ActivityBarItemId::kFileExplorer};
+
     int hover_index_{-1};
     int pressed_index_{-1}; // R20 Fix 18: index of item being pressed
     int focus_index_{-1};   // Phase 06 Task 6: keyboard focus index
+
+    animation::TransitionManager transition_manager_{this};
 
     // Phase 06 Task 12: Drag reorder
     int drag_index_{-1};

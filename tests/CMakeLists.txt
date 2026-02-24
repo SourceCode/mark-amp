@@ -123,6 +123,9 @@ add_library(markamp_core STATIC
     ${CMAKE_SOURCE_DIR}/src/ui/animation/ProgressBar.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/ColorUtils.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/ComponentSizeResolver.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/layout/WorkbenchLayoutModel.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/layout/ResizeHandle.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/layout/WorkbenchShell.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/DesignTokenRegistry.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/DesignTokenValue.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/ElevationSystem.cpp
@@ -5608,3 +5611,7 @@ add_test(NAME test_icon_manager COMMAND test_icon_manager)
 add_executable(test_phase05_keyboard_mode unit/test_phase05_keyboard_mode.cpp)
 target_link_libraries(test_phase05_keyboard_mode PRIVATE markamp_core Catch2::Catch2WithMain)
 add_test(NAME test_phase05_keyboard_mode COMMAND test_phase05_keyboard_mode)
+
+add_executable(test_phase06_workbench_zones unit/test_phase06_workbench_zones.cpp)
+target_link_libraries(test_phase06_workbench_zones PRIVATE markamp_core Catch2::Catch2WithMain)
+add_test(NAME test_phase06_workbench_zones COMMAND test_phase06_workbench_zones)

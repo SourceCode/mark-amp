@@ -314,7 +314,7 @@ MainFrame::MainFrame(const wxString& title,
         [this]([[maybe_unused]] wxCommandEvent& evt)
         {
             const core::events::ActivityBarSelectionEvent sel_evt{
-                core::events::ActivityBarItem::FileExplorer};
+                core::events::ActivityBarItemId::kFileExplorer};
             event_bus_->publish(sel_evt);
         },
         wxID_HIGHEST + 200);
@@ -323,7 +323,7 @@ MainFrame::MainFrame(const wxString& title,
         [this]([[maybe_unused]] wxCommandEvent& evt)
         {
             const core::events::ActivityBarSelectionEvent sel_evt{
-                core::events::ActivityBarItem::Search};
+                core::events::ActivityBarItemId::kSearch};
             event_bus_->publish(sel_evt);
         },
         wxID_HIGHEST + 201);
@@ -332,7 +332,7 @@ MainFrame::MainFrame(const wxString& title,
         [this]([[maybe_unused]] wxCommandEvent& evt)
         {
             const core::events::ActivityBarSelectionEvent sel_evt{
-                core::events::ActivityBarItem::kGraph};
+                core::events::ActivityBarItemId::kGraph};
             event_bus_->publish(sel_evt);
         },
         wxID_HIGHEST + 202);
@@ -341,7 +341,7 @@ MainFrame::MainFrame(const wxString& title,
         [this]([[maybe_unused]] wxCommandEvent& evt)
         {
             const core::events::ActivityBarSelectionEvent sel_evt{
-                core::events::ActivityBarItem::Extensions};
+                core::events::ActivityBarItemId::kExtensions};
             event_bus_->publish(sel_evt);
         },
         wxID_HIGHEST + 203);
@@ -1884,7 +1884,7 @@ void MainFrame::createMenuBar()
             {
                 // Show the settings panel in the sidebar
                 event_bus_->publish(core::events::ActivityBarSelectionEvent(
-                    core::events::ActivityBarItem::Settings));
+                    core::events::ActivityBarItemId::kSettings));
 
                 // Batch 5B: Forward deep-link fields through a follow-up event
                 // so the SettingsPanel can scroll/filter to the target setting.
@@ -2571,7 +2571,8 @@ void MainFrame::RegisterPaletteCommands()
          "",
          [this]()
          {
-             auto report = accessibility::AccessibilityAuditor::run_contrast_audit(*theme_engine_);
+             auto report = accessibility::AccessibilityAuditor::run_contrast_audit(
+                 theme_engine_->current_theme());
              std::string status = report.is_fully_aa_compliant() ? "Passed" : "Failed";
              MARKAMP_LOG_INFO(
                  "Accessibility Audit {}: {} Total token pairs. AAA: {}, AA: {}, Failures: {}",
