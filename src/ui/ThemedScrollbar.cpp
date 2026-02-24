@@ -200,8 +200,7 @@ void ThemedScrollbar::OnMouseMove(wxMouseEvent& event)
         // Notify scroll target
         if (scroll_target_ != nullptr)
         {
-            wxScrollEvent scroll_event(wxEVT_SCROLLWIN_THUMBTRACK);
-            scroll_event.SetPosition(position_);
+            wxScrollWinEvent scroll_event(wxEVT_SCROLLWIN_THUMBTRACK, position_, wxHORIZONTAL);
             scroll_target_->GetEventHandler()->ProcessEvent(scroll_event);
         }
     }

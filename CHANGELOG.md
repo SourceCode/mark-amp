@@ -1,5 +1,17 @@
 # MarkAmp Release History
 
+## v2.8.43 — 2026-02-24
+
+### Highlights
+
+V13 Phase 08 Tasks 18-20: Sidebar Context and Memory. Implemented independent width preferences for sidebar panels, replaced the static workspace name with an interactive BreadcrumbBar layout, and added a contextual metadata SidebarFooter to primary sidebars.
+
+### Added
+
+- **Sidebar Width Memory (Task 18)**: Preserves individual drag-resized width thresholds across distinct panels into the `config_defaults.json` scope.
+- **Breadcrumb Mode (Task 19)**: Integrated `BreadcrumbBar` natively within `PanelHeader` structures replacing static text labels on navigation transitions.
+- **Sidebar Footer Status (Task 20)**: Implemented `SidebarFooter` UI elements presenting real-time contextual information at the absolute bottom coordinates of `ExplorerPanel` and `SearchSidebarPanel`.
+
 ## v2.8.42 — 2026-02-23
 
 ### Highlights

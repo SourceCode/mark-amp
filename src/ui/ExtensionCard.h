@@ -9,6 +9,7 @@
 #include <wx/button.h>
 #include <wx/panel.h>
 #include <wx/sizer.h>
+#include <wx/statbmp.h>
 #include <wx/stattext.h>
 
 #include <functional>
@@ -16,6 +17,8 @@
 
 namespace markamp::ui
 {
+
+class IconManager;
 
 /// Compact card widget for displaying an extension in the scrolling list.
 /// Shows name, publisher, version, description, and an action button.
@@ -32,6 +35,7 @@ public:
 
     ExtensionCard(wxWindow* parent,
                   core::ThemeEngine& theme_engine,
+                  IconManager& icon_manager,
                   const std::string& extension_id,
                   const std::string& name,
                   const std::string& publisher,
@@ -56,9 +60,11 @@ public:
 
 private:
     core::ThemeEngine& theme_engine_;
+    IconManager& icon_manager_;
     std::string extension_id_;
     State state_;
 
+    wxStaticBitmap* icon_bitmap_{nullptr};
     wxStaticText* name_label_{nullptr};
     wxStaticText* publisher_label_{nullptr};
     wxStaticText* version_label_{nullptr};

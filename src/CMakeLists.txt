@@ -108,9 +108,15 @@ add_executable(markamp
     ui/ActivityBar.cpp
     ui/SidebarPanelRegistry.cpp
     ui/SidebarToolbar.cpp
+    ui/PanelHeader.cpp
+    ui/SidebarFooter.cpp
+    ui/SidebarSection.cpp
+    ui/SidebarSkeletonPlaceholder.cpp
+    ui/EmptyPanelState.cpp
     ui/SearchSidebarPanel.cpp
     ui/GraphSidebarPanel.cpp
     ui/ExtensionsBrowserPanel.cpp
+    ui/ExplorerPanel.cpp
     ui/ExtensionCard.cpp
     ui/ExtensionDetailPanel.cpp
     ui/OutputPanel.cpp
@@ -869,12 +875,23 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "Src" FILES
     ui/SidebarPanelRegistry.cpp
     ui/SidebarToolbar.h
     ui/SidebarToolbar.cpp
+    ui/SidebarHeader.h
+    ui/SidebarHeader.cpp
+    ui/PanelHeader.h
+    ui/PanelHeader.cpp
+    ui/SidebarFooter.cpp
+    ui/SidebarSection.h
+    ui/SidebarSection.cpp
+    ui/SidebarSkeletonPlaceholder.h
+    ui/SidebarSkeletonPlaceholder.cpp
     ui/SearchSidebarPanel.h
+    ui/EmptyPanelState.cpp
     ui/SearchSidebarPanel.cpp
     ui/GraphSidebarPanel.h
     ui/GraphSidebarPanel.cpp
     ui/ExtensionsBrowserPanel.h
     ui/ExtensionsBrowserPanel.cpp
+    ui/ExplorerPanel.h
     ui/ExtensionCard.h
     ui/ExtensionCard.cpp
     ui/ExtensionDetailPanel.h

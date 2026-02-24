@@ -17,6 +17,8 @@
 
 namespace markamp::ui
 {
+class SidebarSkeletonPlaceholder;
+class ThemedScrollbar;
 
 class FileTreeCtrl : public ThemeAwareWindow
 {
@@ -42,6 +44,10 @@ public:
     // Workspace root for relative path calculation
     void SetWorkspaceRoot(const std::string& root_path);
 
+    // Loading State
+    void ShowLoadingState();
+    void HideLoadingState();
+
     // Layout constants
     [[deprecated(
         "Use ComponentSizeResolver for tree row height")]] static constexpr int kRowHeight = 24;
@@ -57,6 +63,7 @@ protected:
 
 private:
     // Rendering
+    void OnSize(wxSizeEvent& event);
     void OnPaint(wxPaintEvent& event);
     void
     DrawNode(wxDC& dc, const core::FileNode& node, int depth, int& y_offset, int& current_index);
@@ -109,6 +116,8 @@ private:
     // Scrolling
     void UpdateVirtualHeight();
     void OnScroll(wxMouseEvent& event);
+    void OnScrollbarDrag(wxScrollWinEvent& event);
+    void UpdateScrollbar();
 
     // Filtering
     auto MatchesFilter(const core::FileNode& node, const std::string& lower_filter) const -> bool;
@@ -127,6 +136,11 @@ private:
 
     int scroll_offset_{0};
     int virtual_height_{0};
+
+    SidebarSkeletonPlaceholder* loading_skeleton_{nullptr};
+    bool is_loading_{false};
+
+    ThemedScrollbar* scrollbar_{nullptr};
 };
 
 } // namespace markamp::ui

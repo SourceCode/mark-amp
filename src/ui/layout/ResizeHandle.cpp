@@ -12,12 +12,14 @@ namespace markamp::ui::layout
 ResizeHandle::ResizeHandle(wxWindow* parent,
                            DesignSystemContext& ds_ctx,
                            ResizeOrientation orientation,
-                           std::function<void(int delta)> on_drag)
+                           std::function<void(int delta)> on_drag,
+                           std::function<void()> on_drag_end)
     : ThemeAwareWindow(
           parent, ds_ctx.theme, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxNO_BORDER)
     , ds_(ds_ctx)
     , orientation_(orientation)
     , on_drag_(std::move(on_drag))
+    , on_drag_end_(std::move(on_drag_end))
 {
     SetBackgroundStyle(wxBG_STYLE_PAINT);
 
@@ -165,6 +167,11 @@ void ResizeHandle::OnMouseUp(wxMouseEvent& /*event*/)
         if (HasCapture())
         {
             ReleaseMouse();
+        }
+
+        if (on_drag_end_)
+        {
+            on_drag_end_();
         }
 
         if (!is_hovered_)

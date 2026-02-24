@@ -1,0 +1,142 @@
+#include "ExplorerPanel.h"
+
+#include "EmptyPanelState.h"
+#include "FileTreeCtrl.h"
+#include "PanelHeader.h"
+#include "SidebarFooter.h"
+#include "core/Events.h"
+#include "ui/DesignSystemContext.h"
+#include "ui/IconManager.h"
+
+#include <wx/stattext.h>
+
+namespace markamp::ui
+{
+
+ExplorerPanel::ExplorerPanel(wxWindow* parent,
+                             core::ThemeEngine& theme_engine,
+                             core::EventBus& event_bus,
+                             DesignSystemContext& ds,
+                             IconManager& icon_manager)
+    : ThemeAwareWindow(
+          parent, theme_engine, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxNO_BORDER)
+    , event_bus_(event_bus)
+{
+    SetBackgroundColour(theme_engine.color(core::ThemeColorToken::BgPanel));
+    CreateLayout(ds, icon_manager);
+}
+
+void ExplorerPanel::CreateLayout(DesignSystemContext& ds, IconManager& icon_manager)
+{
+    auto* main_sizer = new wxBoxSizer(wxVERTICAL);
+
+    // 1. Panel Header
+    auto* header = new PanelHeader(this, ds, icon_manager, event_bus_);
+    header->set_title("EXPLORER");
+    header->set_panel_id("explorer");
+    header->set_display_mode(PanelHeaderMode::kBreadcrumb);
+
+    // Task 8 contextual icons (partially set up here, full logic later)
+    std::vector<PanelHeader::ActionIcon> actions = {
+        {"explorer.refresh", "refresh", "Refresh Explorer"},
+        {"explorer.collapse", "panel-collapse", "Collapse Folders"}};
+    header->set_actions(actions);
+    main_sizer->Add(header, 0, wxEXPAND);
+
+    action_sub_ = event_bus_.subscribe<core::events::PanelHeaderActionEvent>(
+        [this](const core::events::PanelHeaderActionEvent& evt)
+        {
+            if (evt.action_id == "explorer.collapse")
+            {
+                if (file_tree_)
+                {
+                    file_tree_->CollapseAllNodes();
+                }
+            }
+            // "explorer.refresh" would be handled via LayoutManager or a global refresh event
+        });
+
+    // 2. Sections Container (Scrollable or just expanded?)
+    // Usually Explorer is a vertical list of sections
+    auto* sections_sizer = new wxBoxSizer(wxVERTICAL);
+
+    // "Open Editors"
+    open_editors_section_ = new SidebarSection(this, ds, icon_manager, event_bus_, "OPEN EDITORS");
+    auto* empty_editors = new wxPanel(open_editors_section_);
+    auto* empty_editors_sizer = new wxBoxSizer(wxVERTICAL);
+    auto* empty_label = new wxStaticText(empty_editors, wxID_ANY, "No editors open.");
+    empty_label->SetForegroundColour(theme_engine().color(core::ThemeColorToken::TextMuted));
+    empty_label->SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular));
+    empty_editors_sizer->Add(empty_label, 1, wxALIGN_CENTER | wxALL, 10);
+    empty_editors->SetSizer(empty_editors_sizer);
+    open_editors_section_->set_content(empty_editors);
+    open_editors_section_->set_expanded(false); // Collapsed by default
+
+    // "Folders" (Workspace)
+    folders_section_ = new SidebarSection(this, ds, icon_manager, event_bus_, "WORKSPACE");
+
+    // We'll use a container panel so we can swap between the tree and the empty state
+    auto* workspace_container = new wxPanel(folders_section_, wxID_ANY);
+    workspace_container->SetBackgroundColour(GetBackgroundColour());
+    auto* workspace_sizer = new wxBoxSizer(wxVERTICAL);
+    workspace_container->SetSizer(workspace_sizer);
+
+    file_tree_ = new FileTreeCtrl(workspace_container, theme_engine(), event_bus_);
+    workspace_sizer->Add(file_tree_, 1, wxEXPAND);
+
+    empty_state_ = new EmptyPanelState(workspace_container, ds, icon_manager);
+    empty_state_->set_icon("open-folder");
+    empty_state_->set_message("You have not yet opened a folder.");
+    empty_state_->set_action("Open Folder",
+                             [this]
+                             {
+                                 // Dispatch open folder event
+                                 core::events::WorkspaceOpenRequestEvent evt;
+                                 event_bus_.publish(evt);
+                             });
+    workspace_sizer->Add(empty_state_, 1, wxEXPAND);
+
+    // Initial state: show empty state if no workspace open
+    // For now, assume file tree is active but you can easily toggle:
+    // empty_state_->Show(); file_tree_->Hide(); workspace_container->Layout();
+    empty_state_->Hide();
+
+    folders_section_->set_content(workspace_container);
+    folders_section_->set_expanded(true);
+
+    // Outline
+    outline_section_ = new SidebarSection(this, ds, icon_manager, event_bus_, "OUTLINE");
+    auto* empty_outline = new wxPanel(outline_section_);
+    empty_outline->SetSizer(new wxBoxSizer(wxVERTICAL));
+    outline_section_->set_content(empty_outline);
+    outline_section_->set_expanded(false);
+
+    // Timeline
+    timeline_section_ = new SidebarSection(this, ds, icon_manager, event_bus_, "TIMELINE");
+    auto* empty_timeline = new wxPanel(timeline_section_);
+    empty_timeline->SetSizer(new wxBoxSizer(wxVERTICAL));
+    timeline_section_->set_content(empty_timeline);
+    timeline_section_->set_expanded(false);
+
+    // Assemble sections
+    sections_sizer->Add(open_editors_section_, 0, wxEXPAND);
+    sections_sizer->Add(folders_section_, 1, wxEXPAND); // Flexible height
+    sections_sizer->Add(outline_section_, 0, wxEXPAND);
+    sections_sizer->Add(timeline_section_, 0, wxEXPAND);
+
+    main_sizer->Add(sections_sizer, 1, wxEXPAND);
+
+    // Footer
+    footer_ = new SidebarFooter(this, ds, event_bus_);
+    footer_->set_text("0 items selected");
+    main_sizer->Add(footer_, 0, wxEXPAND);
+
+    SetSizer(main_sizer);
+}
+
+void ExplorerPanel::OnThemeChanged(const core::Theme& /*new_theme*/)
+{
+    SetBackgroundColour(theme_engine().color(core::ThemeColorToken::BgPanel));
+}
+
+} // namespace markamp::ui

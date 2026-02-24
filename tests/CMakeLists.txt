@@ -102,6 +102,9 @@ add_library(markamp_core STATIC
     ${CMAKE_SOURCE_DIR}/src/ui/OutputPanel.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/ProblemsPanel.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/TreeViewHost.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/PanelHeader.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/SidebarSection.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/SidebarSkeletonPlaceholder.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/WebviewHostPanel.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/WalkthroughPanel.cpp
     # V10 Phase 01: Unified control state tracking

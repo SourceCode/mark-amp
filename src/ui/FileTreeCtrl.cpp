@@ -1,6 +1,10 @@
 #include "ui/FileTreeCtrl.h"
 
 #include "FileTreeCtrl.h"
+#include "SidebarSkeletonPlaceholder.h"
+#include "ThemeAwareWindow.h"
+#include "ThemedScrollbar.h"
+#include "core/CommandRegistry.h"
 #include "core/Events.h"
 
 #if defined(__GNUC__) || defined(__clang__)
@@ -10,6 +14,7 @@
 
 #include "FileTypeIconResolver.h"
 #include "IconManager.h"
+#include "SidebarSkeletonPlaceholder.h"
 #include "core/Logger.h"
 #include "ui/FocusManager.h"
 #include "ui/FocusRingRenderer.h"
@@ -52,6 +57,10 @@ FileTreeCtrl::FileTreeCtrl(wxWindow* parent,
     Bind(wxEVT_LEAVE_WINDOW, &FileTreeCtrl::OnMouseLeave, this);
     Bind(wxEVT_MOUSEWHEEL, &FileTreeCtrl::OnScroll, this);
     Bind(wxEVT_KEY_DOWN, &FileTreeCtrl::OnKeyDown, this);
+    Bind(wxEVT_SIZE, &FileTreeCtrl::OnSize, this);
+
+    Bind(wxEVT_SCROLLWIN_THUMBTRACK, &FileTreeCtrl::OnScrollbarDrag, this);
+    Bind(wxEVT_SCROLLWIN_THUMBRELEASE, &FileTreeCtrl::OnScrollbarDrag, this);
 
     // Allow focus for keyboard events
     SetCanFocus(true);
@@ -62,6 +71,13 @@ FileTreeCtrl::FileTreeCtrl(wxWindow* parent,
 
     keyboard_mode_sub_ = event_bus_.subscribe<core::events::KeyboardModeChangedEvent>(
         [this](const core::events::KeyboardModeChangedEvent& /*evt*/) { Refresh(); });
+
+    loading_skeleton_ = new SidebarSkeletonPlaceholder(
+        this, theme_engine, SidebarSkeletonPlaceholder::Style::kList);
+    loading_skeleton_->Hide();
+
+    scrollbar_ = new ThemedScrollbar(this, theme_engine, this);
+    scrollbar_->Hide();
 
     LoadIcons();
 }
@@ -283,6 +299,24 @@ void FileTreeCtrl::ApplyFilterRecursive(std::vector<core::FileNode>& nodes,
 
 // --- Rendering ---
 
+void FileTreeCtrl::OnSize(wxSizeEvent& event)
+{
+    auto sz = GetClientSize();
+    if (loading_skeleton_ != nullptr)
+    {
+        loading_skeleton_->SetSize(sz);
+    }
+
+    if (scrollbar_ != nullptr)
+    {
+        scrollbar_->SetSize(
+            sz.GetWidth() - ThemedScrollbar::kWidth, 0, ThemedScrollbar::kWidth, sz.GetHeight());
+    }
+
+    UpdateScrollbar();
+    event.Skip();
+}
+
 void FileTreeCtrl::OnPaint(wxPaintEvent& /*event*/)
 {
     wxAutoBufferedPaintDC dc(this);
@@ -292,6 +326,11 @@ void FileTreeCtrl::OnPaint(wxPaintEvent& /*event*/)
     dc.SetBrush(theme_engine().brush(core::ThemeColorToken::BgPanel));
     dc.SetPen(*wxTRANSPARENT_PEN);
     dc.DrawRectangle(sz);
+
+    if (is_loading_)
+    {
+        return; // Let the child placeholder draw itself
+    }
 
     // Set clip region
     dc.SetClippingRegion(0, 0, sz.GetWidth(), sz.GetHeight());
@@ -311,6 +350,27 @@ void FileTreeCtrl::OnPaint(wxPaintEvent& /*event*/)
 
     // Draw animated focus ring
     FocusRingRenderer::get().draw(dc, this, theme_engine());
+}
+
+void FileTreeCtrl::ShowLoadingState()
+{
+    is_loading_ = true;
+    if (loading_skeleton_ != nullptr)
+    {
+        loading_skeleton_->SetSize(GetClientSize());
+        loading_skeleton_->ShowAndAnimate();
+    }
+    Refresh();
+}
+
+void FileTreeCtrl::HideLoadingState()
+{
+    is_loading_ = false;
+    if (loading_skeleton_ != nullptr)
+    {
+        loading_skeleton_->HideAndStop();
+    }
+    Refresh();
 }
 
 void FileTreeCtrl::LoadIcons()
@@ -799,10 +859,33 @@ void FileTreeCtrl::OnMouseDown(wxMouseEvent& event)
                 on_file_open_(*hit.node);
             }
 
-            // Publish event
-            core::events::ActiveFileChangedEvent evt;
-            evt.file_id = hit.node->id;
-            event_bus_.publish(evt);
+            // Publish Breadcrumb Event
+            core::events::SidebarBreadcrumbUpdateEvent breadcrumb_evt;
+            breadcrumb_evt.panel_id = "explorer";
+
+            std::vector<std::string> path;
+            std::function<bool(const std::vector<core::FileNode>&, const std::string&)> find_path;
+            find_path = [&](const std::vector<core::FileNode>& nodes,
+                            const std::string& target_id) -> bool
+            {
+                for (const auto& n : nodes)
+                {
+                    path.push_back(n.name);
+                    if (n.id == target_id)
+                        return true;
+                    if (n.is_folder() && find_path(n.children, target_id))
+                        return true;
+                    path.pop_back();
+                }
+                return false;
+            };
+
+            if (!find_path(roots_, hit.node->id))
+            {
+                path = {hit.node->name};
+            }
+            breadcrumb_evt.breadcrumb_path = path;
+            event_bus_.publish(breadcrumb_evt);
 
             MARKAMP_LOG_DEBUG("File selected: {}", hit.node->name);
         }
@@ -899,6 +982,7 @@ void FileTreeCtrl::UpdateVirtualHeight()
     };
 
     virtual_height_ = count_visible(roots_) * kRowHeight;
+    UpdateScrollbar();
 }
 
 void FileTreeCtrl::OnScroll(wxMouseEvent& event)
@@ -916,7 +1000,31 @@ void FileTreeCtrl::OnScroll(wxMouseEvent& event)
         scroll_offset_ = std::min(max_scroll, scroll_offset_ + scroll_amount);
     }
 
+    UpdateScrollbar();
     Refresh();
+}
+
+void FileTreeCtrl::OnScrollbarDrag(wxScrollWinEvent& event)
+{
+    scroll_offset_ = event.GetPosition();
+    Refresh();
+}
+
+void FileTreeCtrl::UpdateScrollbar()
+{
+    if (scrollbar_ != nullptr)
+    {
+        auto sz = GetClientSize();
+        scrollbar_->UpdateScrollPosition(scroll_offset_, sz.GetHeight(), virtual_height_);
+        if (virtual_height_ > sz.GetHeight())
+        {
+            scrollbar_->Show();
+        }
+        else
+        {
+            scrollbar_->Hide();
+        }
+    }
 }
 
 // --- Theme ---

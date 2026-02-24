@@ -4,8 +4,6 @@
 #include "BreadcrumbBar.h"
 #include "CanvasWorkspacePanel.h"
 #include "EditorPanel.h"
-#include "ExtensionsBrowserPanel.h"
-#include "FileTreeCtrl.h"
 #include "OutputPanel.h"
 #include "ProblemsPanel.h"
 #include "SplitView.h"
@@ -20,6 +18,13 @@
 #include "core/FeatureRegistry.h"
 #include "core/Logger.h"
 #include "core/SampleFiles.h"
+#include "ui/ExplorerPanel.h"
+#include "ui/ExtensionsBrowserPanel.h"
+#include "ui/FileTreeCtrl.h"
+#include "ui/GraphSidebarPanel.h"
+#include "ui/IconManager.h"
+#include "ui/SearchSidebarPanel.h"
+#include "ui/SidebarHeader.h"
 
 #include <nlohmann/json.hpp>
 #include <wx/button.h>
@@ -28,6 +33,7 @@
 #include <wx/dcbuffer.h>
 #include <wx/filedlg.h>
 #include <wx/listbox.h>
+#include <wx/menu.h>
 #include <wx/msgdlg.h>
 #include <wx/sizer.h>
 
@@ -110,6 +116,22 @@ LayoutManager::LayoutManager(wxWindow* parent,
 
     // Start auto-save
     StartAutoSave();
+
+    panel_context_menu_sub_ = event_bus_.subscribe<core::events::PanelContextMenuEvent>(
+        [this](const core::events::PanelContextMenuEvent& evt)
+        {
+            wxMenu menu;
+            menu.Append(wxID_ANY, "Panel: " + evt.panel_title)->Enable(false);
+            menu.AppendSeparator();
+
+            auto* hide_item = menu.Append(wxID_ANY, "Hide Sidebar");
+            menu.Bind(
+                wxEVT_MENU,
+                [this](wxCommandEvent&) { this->set_sidebar_visible(false); },
+                hide_item->GetId());
+
+            PopupMenu(&menu, ScreenToClient(wxPoint(evt.screen_x, evt.screen_y)));
+        });
 
     // R6 event subscriptions
     find_sub_ = event_bus_.subscribe<core::events::FindRequestEvent>(
@@ -1752,6 +1774,21 @@ void LayoutManager::CreateLayout()
 {
     // --- Workbench Shell ---
     shell_ = new layout::WorkbenchShell(this, *ds_context_);
+    shell_->set_zone_resized_callback(
+        [this](layout::WorkbenchZoneId zone_id)
+        {
+            if (zone_id == layout::WorkbenchZoneId::kPrimarySidebar)
+            {
+                auto* container = shell_->get_zone_container(zone_id);
+                if (container != nullptr)
+                {
+                    int width = container->GetSize().GetWidth();
+                    config_->set("layout.sidebar.width." + sidebar_mode_, width);
+                    [[maybe_unused]] auto res = config_->save();
+                    MARKAMP_LOG_DEBUG("Saved sidebar width {} for mode {}", width, sidebar_mode_);
+                }
+            }
+        });
 
     // --- Activity Bar (Task 8) ---
     auto* activity_bar_zone = shell_->get_zone_container(layout::WorkbenchZoneId::kActivityBar);
@@ -1765,29 +1802,12 @@ void LayoutManager::CreateLayout()
         shell_->get_zone_container(layout::WorkbenchZoneId::kPrimarySidebar);
     auto* explorer_sizer = new wxBoxSizer(wxVERTICAL);
 
-    auto* search_sizer = new wxBoxSizer(wxHORIZONTAL);
-    search_field_ = new wxSearchCtrl(
-        primary_sidebar_zone, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(-1, 28));
-    search_field_->SetDescriptiveText("Filter files\u2026");
-    search_field_->ShowCancelButton(true);
-    search_field_->SetBackgroundColour(
-        theme_engine()
-            .resolve_token("sidebar.bg")
-            .value_or(theme_engine().color(core::ThemeColorToken::BgPanel))
-            .ChangeLightness(110));
-    search_field_->SetForegroundColour(
-        theme_engine()
-            .resolve_token("text.main")
-            .value_or(theme_engine().color(core::ThemeColorToken::TextMain)));
-    search_field_->SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular));
+    explorer_panel_ = new ExplorerPanel(
+        primary_sidebar_zone, theme_engine(), event_bus_, *ds_context_, IconManager::get());
+    explorer_sizer->Add(explorer_panel_, 1, wxEXPAND | wxALL, 0);
 
-    search_sizer->AddSpacer(8);
-    search_sizer->Add(search_field_, 1, wxALIGN_CENTER_VERTICAL);
-    search_sizer->AddSpacer(8);
-    explorer_sizer->Add(search_sizer, 0, wxEXPAND | wxTOP | wxBOTTOM, 8);
-
-    file_tree_ = new FileTreeCtrl(primary_sidebar_zone, theme_engine(), event_bus_);
-    explorer_sizer->Add(file_tree_, 1, wxEXPAND | wxALL, 8);
+    search_field_ = explorer_panel_->GetSearchField();
+    file_tree_ = explorer_panel_->GetFileTree();
 
     search_field_->Bind(wxEVT_TEXT,
                         [this](wxCommandEvent& /*evt*/)
@@ -1981,8 +2001,8 @@ void LayoutManager::SetPresentationMode(bool enable)
     if (enable)
     {
         pre_presentation_state_ = shell_->save_state_to_json();
-        // Presentation mode hides side panels to maximize space but keeps activity bar or status if
-        // needed. Usually, just hide sidebars and panels.
+        // Presentation mode hides side panels to maximize space but keeps activity bar or
+        // status if needed. Usually, just hide sidebars and panels.
         shell_->set_zone_visible(layout::WorkbenchZoneId::kPrimarySidebar, false);
         shell_->set_zone_visible(layout::WorkbenchZoneId::kSecondarySidebar, false);
         shell_->set_zone_visible(layout::WorkbenchZoneId::kPanelArea, false);
@@ -2183,8 +2203,13 @@ void LayoutManager::RegisterSidebarPanels()
             {
                 return nullptr;
             }
-            extensions_panel_ = new ExtensionsBrowserPanel(
-                parent, theme_engine(), event_bus_, *ext_mgmt_service_, *ext_gallery_service_);
+            extensions_panel_ = new ExtensionsBrowserPanel(parent,
+                                                           theme_engine(),
+                                                           event_bus_,
+                                                           *ext_mgmt_service_,
+                                                           *ext_gallery_service_,
+                                                           *ds_context_,
+                                                           IconManager::get());
             auto* sidebar_sizer = sidebar_container()->GetSizer();
             if (sidebar_sizer != nullptr)
             {
@@ -2316,114 +2341,15 @@ void LayoutManager::RegisterSidebarPanels()
         "\xF0\x9F\x94\x8D", // 🔍
         [this](wxWindow* parent) -> wxPanel*
         {
-            auto* panel = new wxPanel(parent, wxID_ANY);
-            panel->SetBackgroundColour(
-                theme_engine()
-                    .resolve_token("sidebar.bg")
-                    .value_or(theme_engine().color(core::ThemeColorToken::BgPanel)));
-            auto* sizer = new wxBoxSizer(wxVERTICAL);
+            auto* search_panel = new SearchSidebarPanel(
+                parent, theme_engine(), event_bus_, *ds_context_, IconManager::get());
 
-            // Header
-            auto* hdr = new wxPanel(panel, wxID_ANY, wxDefaultPosition, wxSize(-1, 36));
-            hdr->SetBackgroundColour(
-                theme_engine()
-                    .resolve_token("sidebar.bg")
-                    .value_or(theme_engine().color(core::ThemeColorToken::BgPanel))
-                    .ChangeLightness(108));
-            auto* hdr_sizer = new wxBoxSizer(wxHORIZONTAL);
-            hdr_sizer->AddSpacer(8);
-            auto* title = new wxStaticText(hdr, wxID_ANY, "SEARCH");
-            title->SetFont(
-                theme_engine().font(core::ThemeFontToken::MonoRegular).Bold().Scaled(0.85f));
-            title->SetForegroundColour(
-                theme_engine()
-                    .resolve_token("text.main")
-                    .value_or(theme_engine().color(core::ThemeColorToken::TextMain)));
-            hdr_sizer->Add(title, 1, wxALIGN_CENTER_VERTICAL);
-            hdr->SetSizer(hdr_sizer);
-            sizer->Add(hdr, 0, wxEXPAND);
-
-            // Search input
-            auto* search_input =
-                new wxSearchCtrl(panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(-1, 28));
-            search_input->SetDescriptiveText("Search files\u2026");
-            search_input->ShowCancelButton(true);
-            search_input->SetBackgroundColour(
-                theme_engine()
-                    .resolve_token("sidebar.bg")
-                    .value_or(theme_engine().color(core::ThemeColorToken::BgPanel))
-                    .ChangeLightness(115));
-            search_input->SetForegroundColour(
-                theme_engine()
-                    .resolve_token("text.main")
-                    .value_or(theme_engine().color(core::ThemeColorToken::TextMain)));
-            search_input->SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular));
-            sizer->Add(search_input, 0, wxEXPAND | wxALL, 8);
-
-            // Replace input
-            auto* replace_input =
-                new wxTextCtrl(panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(-1, 28));
-            replace_input->SetHint("Replace\u2026");
-            replace_input->SetBackgroundColour(
-                theme_engine()
-                    .resolve_token("sidebar.bg")
-                    .value_or(theme_engine().color(core::ThemeColorToken::BgPanel))
-                    .ChangeLightness(115));
-            replace_input->SetForegroundColour(
-                theme_engine()
-                    .resolve_token("text.main")
-                    .value_or(theme_engine().color(core::ThemeColorToken::TextMain)));
-            replace_input->SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular));
-            sizer->Add(replace_input, 0, wxEXPAND | wxLEFT | wxRIGHT, 8);
-
-            // Options bar
-            auto* opts = new wxBoxSizer(wxHORIZONTAL);
-            opts->AddSpacer(8);
-            auto* regex_cb = new wxCheckBox(panel, wxID_ANY, "Regex");
-            regex_cb->SetForegroundColour(
-                theme_engine()
-                    .resolve_token("text.muted")
-                    .value_or(theme_engine().color(core::ThemeColorToken::TextMuted)));
-            regex_cb->SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular).Scaled(0.75f));
-            opts->Add(regex_cb, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
-            auto* case_cb = new wxCheckBox(panel, wxID_ANY, "Case");
-            case_cb->SetForegroundColour(
-                theme_engine()
-                    .resolve_token("text.muted")
-                    .value_or(theme_engine().color(core::ThemeColorToken::TextMuted)));
-            case_cb->SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular).Scaled(0.75f));
-            opts->Add(case_cb, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
-            auto* word_cb = new wxCheckBox(panel, wxID_ANY, "Word");
-            word_cb->SetForegroundColour(
-                theme_engine()
-                    .resolve_token("text.muted")
-                    .value_or(theme_engine().color(core::ThemeColorToken::TextMuted)));
-            word_cb->SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular).Scaled(0.75f));
-            opts->Add(word_cb, 0, wxALIGN_CENTER_VERTICAL);
-            sizer->Add(opts, 0, wxEXPAND | wxTOP | wxBOTTOM, 4);
-
-            // Results list
-            auto* results_label = new wxStaticText(
-                panel,
-                wxID_ANY,
-                "No search results match your query\nTry changing the filters or keywords.");
-            results_label->SetForegroundColour(
-                theme_engine()
-                    .resolve_token("text.muted")
-                    .value_or(theme_engine().color(core::ThemeColorToken::TextMuted)));
-            results_label->SetFont(
-                theme_engine().font(core::ThemeFontToken::MonoRegular).Scaled(0.8f));
-            sizer->AddStretchSpacer();
-            sizer->Add(results_label, 0, wxALIGN_CENTER | wxALL, 16);
-            sizer->AddStretchSpacer();
-
-            panel->SetSizer(sizer);
             auto* sidebar_sizer = sidebar_container()->GetSizer();
             if (sidebar_sizer != nullptr)
             {
-                sidebar_sizer->Add(panel, 1, wxEXPAND);
+                sidebar_sizer->Add(search_panel, 1, wxEXPAND);
             }
-            return panel;
+            return search_panel;
         });
 
     // ── Settings panel ──
@@ -2848,33 +2774,81 @@ void LayoutManager::SetSidebarMode(SidebarMode mode)
     auto previous_mode = sidebar_mode_;
     sidebar_mode_ = mode;
 
-    // Hide all registered panels
-    for (const auto& registered_mode : panel_registry_.AllModes())
+    // Task 18: Load preferred width from config
+    int saved_width = config_->get_int("layout.sidebar.width." + mode, -1);
+    if (saved_width > 0)
     {
-        auto* panel = panel_registry_.GetOrCreate(registered_mode, sidebar_container());
-        if (panel != nullptr)
-        {
-            panel->Hide();
-        }
+        // Actually, LayoutManager doesn't expose layout_model_ directly, but we can resize via
+        // shell_ if there is a way. Or we can just use set_sidebar_width
+        set_sidebar_width(saved_width);
     }
 
-    // Show the target panel (lazily creating it if needed)
-    auto* target_panel = panel_registry_.GetOrCreate(mode, sidebar_container());
-    if (target_panel != nullptr)
+    if (sidebar_transition_mgr_ == nullptr && sidebar_container() != nullptr)
     {
+        sidebar_transition_mgr_ =
+            std::make_unique<animation::TransitionManager>(sidebar_container());
+    }
+
+    auto* target_panel = panel_registry_.GetOrCreate(mode, sidebar_container());
+    auto* old_panel = panel_registry_.GetOrCreate(previous_mode, sidebar_container());
+
+    if (sidebar_transition_mgr_ && target_panel && old_panel && target_panel != old_panel)
+    {
+        // Simple crossfade: old panel fades out, then hide it and show new panel fading in
+        sidebar_transition_mgr_->stop_all();
+
+        // Freeze layout
+        sidebar_container()->Freeze();
+
+        old_panel->Hide();
+        target_panel->SetTransparent(0);
         target_panel->Show();
 
-        // Special handling for Extensions: trigger installed list refresh
         if (mode == kSidebarModeExtensions && extensions_panel_ != nullptr)
         {
             extensions_panel_->ShowInstalledExtensions();
         }
+
+        sidebar_container()->Layout();
+        sidebar_container()->Thaw();
+
+        // Fade in new panel
+        sidebar_transition_mgr_->start<int>("sidebar_fade",
+                                            0,
+                                            255,
+                                            [target_panel](const int& val)
+                                            {
+                                                if (target_panel)
+                                                    target_panel->SetTransparent(
+                                                        static_cast<wxByte>(val));
+                                            });
     }
+    else
+    {
+        // Fallback or initialization
+        for (const auto& registered_mode : panel_registry_.AllModes())
+        {
+            auto* p = panel_registry_.GetOrCreate(registered_mode, sidebar_container());
+            if (p != nullptr && p != target_panel)
+            {
+                p->Hide();
+            }
+        }
 
-    // Header label update delegated to standard Workbench shell APIs where applicable
+        if (target_panel != nullptr)
+        {
+            target_panel->SetTransparent(255);
+            target_panel->Show();
 
-    sidebar_container()->Layout();
-    sidebar_container()->Refresh();
+            if (mode == kSidebarModeExtensions && extensions_panel_ != nullptr)
+            {
+                extensions_panel_->ShowInstalledExtensions();
+            }
+        }
+
+        sidebar_container()->Layout();
+        sidebar_container()->Refresh();
+    }
 
     // Phase 06 Task 17: Sidebar transition animations should be handled via CSS or layout rules
 

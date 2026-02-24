@@ -32,49 +32,60 @@ WorkbenchShell::WorkbenchShell(wxWindow* parent, DesignSystemContext& ds)
     }
 
     // Create ResizeHandles
-    primary_sidebar_handle_ =
-        new ResizeHandle(this,
-                         ds_,
-                         ResizeOrientation::kVertical,
-                         [this](int delta)
-                         {
-                             auto& state =
-                                 layout_model_.get_state(WorkbenchZoneId::kPrimarySidebar);
-                             layout_model_.resize_zone(WorkbenchZoneId::kPrimarySidebar,
-                                                       state.current_width + delta,
-                                                       state.current_height);
-                             trigger_layout();
-                         });
+    primary_sidebar_handle_ = new ResizeHandle(
+        this,
+        ds_,
+        ResizeOrientation::kVertical,
+        [this](int delta)
+        {
+            auto& state = layout_model_.get_state(WorkbenchZoneId::kPrimarySidebar);
+            layout_model_.resize_zone(WorkbenchZoneId::kPrimarySidebar,
+                                      state.current_width + delta,
+                                      state.current_height);
+            trigger_layout();
+        },
+        [this]()
+        {
+            if (on_zone_resized_)
+                on_zone_resized_(WorkbenchZoneId::kPrimarySidebar);
+        });
 
-    secondary_sidebar_handle_ =
-        new ResizeHandle(this,
-                         ds_,
-                         ResizeOrientation::kVertical,
-                         [this](int delta)
-                         {
-                             auto& state =
-                                 layout_model_.get_state(WorkbenchZoneId::kSecondarySidebar);
-                             // Dragging left increases secondary sidebar width since it's on the
-                             // right
-                             layout_model_.resize_zone(WorkbenchZoneId::kSecondarySidebar,
-                                                       state.current_width - delta,
-                                                       state.current_height);
-                             trigger_layout();
-                         });
+    secondary_sidebar_handle_ = new ResizeHandle(
+        this,
+        ds_,
+        ResizeOrientation::kVertical,
+        [this](int delta)
+        {
+            auto& state = layout_model_.get_state(WorkbenchZoneId::kSecondarySidebar);
+            // Dragging left increases secondary sidebar width since it's on the right
+            layout_model_.resize_zone(WorkbenchZoneId::kSecondarySidebar,
+                                      state.current_width - delta,
+                                      state.current_height);
+            trigger_layout();
+        },
+        [this]()
+        {
+            if (on_zone_resized_)
+                on_zone_resized_(WorkbenchZoneId::kSecondarySidebar);
+        });
 
-    panel_area_handle_ =
-        new ResizeHandle(this,
-                         ds_,
-                         ResizeOrientation::kHorizontal,
-                         [this](int delta)
-                         {
-                             auto& state = layout_model_.get_state(WorkbenchZoneId::kPanelArea);
-                             // Dragging up increases panel area height since it's on the bottom
-                             layout_model_.resize_zone(WorkbenchZoneId::kPanelArea,
-                                                       state.current_width,
-                                                       state.current_height - delta);
-                             trigger_layout();
-                         });
+    panel_area_handle_ = new ResizeHandle(
+        this,
+        ds_,
+        ResizeOrientation::kHorizontal,
+        [this](int delta)
+        {
+            auto& state = layout_model_.get_state(WorkbenchZoneId::kPanelArea);
+            // Dragging up increases panel area height since it's on the bottom
+            layout_model_.resize_zone(
+                WorkbenchZoneId::kPanelArea, state.current_width, state.current_height - delta);
+            trigger_layout();
+        },
+        [this]()
+        {
+            if (on_zone_resized_)
+                on_zone_resized_(WorkbenchZoneId::kPanelArea);
+        });
 
     Bind(wxEVT_SIZE, &WorkbenchShell::OnSize, this);
 }

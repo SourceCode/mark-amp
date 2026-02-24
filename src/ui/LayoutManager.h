@@ -45,10 +45,17 @@ class IExtensionManagementService;
 class IExtensionGalleryService;
 } // namespace markamp::core
 
+namespace markamp::ui::animation
+{
+class TransitionManager;
+}
+
 namespace markamp::ui
 {
 
+class ActivityBar;
 class BreadcrumbBar;
+class ExplorerPanel;
 class ExtensionsBrowserPanel;
 class FileTreeCtrl;
 class OutputPanel;
@@ -214,7 +221,7 @@ private:
     // Phase 8 / Phase 06: Sidebar mode switching
     SidebarMode sidebar_mode_{kSidebarModeExplorer};
     SidebarPanelRegistry panel_registry_;
-    wxPanel* explorer_panel_{nullptr}; // Container for file tree + search + footer
+    ExplorerPanel* explorer_panel_{nullptr}; // Container for file tree + search + footer
     ExtensionsBrowserPanel* extensions_panel_{nullptr};
     core::IExtensionManagementService* ext_mgmt_service_{nullptr};
     core::IExtensionGalleryService* ext_gallery_service_{nullptr};
@@ -230,6 +237,9 @@ private:
 
     // Phase 06 Task 10: Sidebar toolbar
     SidebarToolbar* sidebar_toolbar_{nullptr};
+
+    // Phase 08 Task 4: Sidebar Transition Animation
+    std::unique_ptr<animation::TransitionManager> sidebar_transition_mgr_;
 
     // Phase 06 Task 11: Secondary sidebar
     bool secondary_sidebar_visible_{false};
@@ -288,6 +298,8 @@ private:
     core::Subscription toggle_comment_sub_;
     core::Subscription delete_line_sub_;
     core::Subscription wrap_toggle_sub_;
+
+    core::Subscription panel_context_menu_sub_;
 
     // R7 subscriptions
     core::Subscription move_line_up_sub_;

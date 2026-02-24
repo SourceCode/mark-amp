@@ -107,14 +107,24 @@ void WorkbenchLayoutModel::set_zone_visible(WorkbenchZoneId zone_id, bool visibl
         }
         else
         {
-            if (state.current_width > 0)
+            if (state.current_width >= constraints_[zone_id].min_width)
             {
                 state.restored_width = state.current_width;
             }
-            if (state.current_height > 0)
+            else if (state.restored_width < constraints_[zone_id].min_width)
+            {
+                state.restored_width = constraints_[zone_id].default_width;
+            }
+
+            if (state.current_height >= constraints_[zone_id].min_height)
             {
                 state.restored_height = state.current_height;
             }
+            else if (state.restored_height < constraints_[zone_id].min_height)
+            {
+                state.restored_height = constraints_[zone_id].default_height;
+            }
+
             state.current_width = 0;
             state.current_height = 0;
         }
@@ -134,11 +144,68 @@ void WorkbenchLayoutModel::resize_zone(WorkbenchZoneId zone_id, int new_width, i
 
     if (state.visible)
     {
-        // For horizontal zones like PanelArea we care about height.
-        // For vertical zones like Sidebars we care about width.
-        state.current_width = std::clamp(new_width, constraints.min_width, constraints.max_width);
-        state.current_height =
-            std::clamp(new_height, constraints.min_height, constraints.max_height);
+        int snapped_width = new_width;
+        int snapped_height = new_height;
+
+        constexpr int kSnapThreshold = 10;
+
+        // Task 11: Snap to default
+        if (std::abs(new_width - constraints.default_width) <= kSnapThreshold)
+        {
+            snapped_width = constraints.default_width;
+        }
+
+        if (std::abs(new_height - constraints.default_height) <= kSnapThreshold)
+        {
+            snapped_height = constraints.default_height;
+        }
+
+        bool should_collapse = false;
+
+        // Task 12: Enforce min/max and collapse on drag past minimum
+        if (zone_id == WorkbenchZoneId::kPrimarySidebar ||
+            zone_id == WorkbenchZoneId::kSecondarySidebar)
+        {
+            if (new_width < constraints.min_width / 2)
+            {
+                should_collapse = true;
+            }
+            else
+            {
+                snapped_width =
+                    std::clamp(snapped_width, constraints.min_width, constraints.max_width);
+            }
+            snapped_height =
+                std::clamp(snapped_height, constraints.min_height, constraints.max_height);
+        }
+        else if (zone_id == WorkbenchZoneId::kPanelArea)
+        {
+            if (new_height < constraints.min_height / 2)
+            {
+                should_collapse = true;
+            }
+            else
+            {
+                snapped_height =
+                    std::clamp(snapped_height, constraints.min_height, constraints.max_height);
+            }
+            snapped_width = std::clamp(snapped_width, constraints.min_width, constraints.max_width);
+        }
+        else
+        {
+            snapped_width = std::clamp(snapped_width, constraints.min_width, constraints.max_width);
+            snapped_height =
+                std::clamp(snapped_height, constraints.min_height, constraints.max_height);
+        }
+
+        if (should_collapse)
+        {
+            set_zone_visible(zone_id, false);
+            return;
+        }
+
+        state.current_width = snapped_width;
+        state.current_height = snapped_height;
         recalculate_layout();
     }
 }

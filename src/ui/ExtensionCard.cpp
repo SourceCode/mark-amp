@@ -1,5 +1,7 @@
 #include "ExtensionCard.h"
 
+#include "ui/IconManager.h"
+
 #include <wx/dcbuffer.h>
 
 namespace markamp::ui
@@ -7,6 +9,7 @@ namespace markamp::ui
 
 ExtensionCard::ExtensionCard(wxWindow* parent,
                              core::ThemeEngine& theme_engine,
+                             IconManager& icon_manager,
                              const std::string& extension_id,
                              const std::string& name,
                              const std::string& publisher,
@@ -15,6 +18,7 @@ ExtensionCard::ExtensionCard(wxWindow* parent,
                              State state)
     : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxSize(-1, kCardHeight))
     , theme_engine_(theme_engine)
+    , icon_manager_(icon_manager)
     , extension_id_(extension_id)
     , state_(state)
 {
@@ -43,30 +47,36 @@ void ExtensionCard::CreateLayout(const std::string& name,
                                  const std::string& description)
 {
     auto* main_sizer = new wxBoxSizer(wxHORIZONTAL);
+    main_sizer->AddSpacer(kCardPadding);
 
-    // Info area (left side, takes most space)
+    // Icon (left)
+    icon_bitmap_ = new wxStaticBitmap(this, wxID_ANY, wxNullBitmap);
+    main_sizer->Add(icon_bitmap_, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 12);
+
+    // Info area (middle, takes most space)
     info_panel_ = new wxPanel(this, wxID_ANY);
     auto* info_sizer = new wxBoxSizer(wxVERTICAL);
 
-    // Row 1: Name (bold) + publisher + version
+    // Row 1: Name (bold) + version
     auto* header_sizer = new wxBoxSizer(wxHORIZONTAL);
 
     name_label_ = new wxStaticText(info_panel_, wxID_ANY, name);
     name_label_->SetFont(theme_engine_.font(core::ThemeFontToken::MonoRegular).Bold().Scaled(1.0F));
 
-    publisher_label_ = new wxStaticText(info_panel_, wxID_ANY, publisher);
-    publisher_label_->SetFont(theme_engine_.font(core::ThemeFontToken::MonoRegular).Scaled(0.85F));
-
     version_label_ = new wxStaticText(info_panel_, wxID_ANY, "v" + version);
     version_label_->SetFont(theme_engine_.font(core::ThemeFontToken::MonoRegular).Scaled(0.80F));
 
     header_sizer->Add(name_label_, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
-    header_sizer->Add(publisher_label_, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
     header_sizer->Add(version_label_, 0, wxALIGN_CENTER_VERTICAL);
 
     info_sizer->Add(header_sizer, 0, wxEXPAND | wxBOTTOM, 2);
 
-    // Row 2: Description (truncated)
+    // Row 2: Publisher
+    publisher_label_ = new wxStaticText(info_panel_, wxID_ANY, publisher);
+    publisher_label_->SetFont(theme_engine_.font(core::ThemeFontToken::MonoRegular).Scaled(0.85F));
+    info_sizer->Add(publisher_label_, 0, wxEXPAND | wxBOTTOM, 4);
+
+    // Row 3: Description (truncated)
     auto truncated_desc = description;
     constexpr size_t kMaxDescLen = 80;
     if (truncated_desc.length() > kMaxDescLen)
@@ -81,7 +91,6 @@ void ExtensionCard::CreateLayout(const std::string& name,
 
     info_panel_->SetSizer(info_sizer);
 
-    main_sizer->AddSpacer(kCardPadding);
     main_sizer->Add(info_panel_, 1, wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM, 8);
 
     // Action button (right side)
@@ -169,6 +178,13 @@ void ExtensionCard::ApplyTheme(core::ThemeEngine& theme_engine)
     if (info_panel_ != nullptr)
     {
         info_panel_->SetBackgroundColour(bg_color);
+    }
+
+    if (icon_bitmap_ != nullptr)
+    {
+        auto icon_color = theme_engine.color(core::ThemeColorToken::TextMuted);
+        icon_bitmap_->SetBitmap(
+            icon_manager_.get_icon_bitmap("extensions", wxSize(36, 36), icon_color));
     }
 
     if (name_label_ != nullptr)

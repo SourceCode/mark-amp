@@ -642,6 +642,16 @@ MARKAMP_DECLARE_EVENT_END;
 MARKAMP_DECLARE_EVENT(ShowExtensionsBrowserRequestEvent);
 MARKAMP_DECLARE_EVENT(ShowExplorerRequestEvent);
 
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PanelHeaderActionEvent)
+std::string action_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PanelContextMenuEvent)
+std::string panel_title;
+int screen_x{0};
+int screen_y{0};
+MARKAMP_DECLARE_EVENT_END;
+
 // ============================================================================
 // Notification events
 // ============================================================================
@@ -711,6 +721,12 @@ MARKAMP_DECLARE_EVENT_END;
 MARKAMP_DECLARE_EVENT_WITH_FIELDS(SidebarModeChangedEvent)
 std::string previous_mode; // Migrated from int to string
 std::string new_mode;
+MARKAMP_DECLARE_EVENT_END;
+
+// Phase 08 Task 19: Sidebar Header Breadcrumb Mode
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SidebarBreadcrumbUpdateEvent)
+std::string panel_id;
+std::vector<std::string> breadcrumb_path;
 MARKAMP_DECLARE_EVENT_END;
 
 // Phase 06 Task 7: Badge notification events for ActivityBar

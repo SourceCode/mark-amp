@@ -46,7 +46,7 @@ TEST_CASE("WorkbenchLayoutModel override bounds apply purely bounds bypass",
     REQUIRE(overriden_state.current_width == 50);
 
     // But standard resize must re-clamp
-    model.resize_zone(WorkbenchZoneId::kPrimarySidebar, 50, 100);
+    model.resize_zone(WorkbenchZoneId::kPrimarySidebar, 100, 100);
     const auto& re_clamped = model.get_state(WorkbenchZoneId::kPrimarySidebar);
     REQUIRE(re_clamped.current_width ==
             model.get_constraints(WorkbenchZoneId::kPrimarySidebar).min_width);

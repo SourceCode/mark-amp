@@ -21,7 +21,8 @@ public:
     ResizeHandle(wxWindow* parent,
                  DesignSystemContext& ds,
                  ResizeOrientation orientation,
-                 std::function<void(int delta)> on_drag);
+                 std::function<void(int delta)> on_drag,
+                 std::function<void()> on_drag_end = nullptr);
 
     void UpdateLayoutMetrics();
 
@@ -32,6 +33,7 @@ private:
     DesignSystemContext& ds_;
     ResizeOrientation orientation_;
     std::function<void(int delta)> on_drag_;
+    std::function<void()> on_drag_end_;
 
     bool is_dragging_{false};
     int drag_start_pos_{0};

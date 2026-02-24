@@ -31,6 +31,12 @@ public:
     void load_state_from_json(const nlohmann::json& json_state);
     void apply_preset(const std::string& preset_id);
 
+    /// Callbacks
+    void set_zone_resized_callback(std::function<void(WorkbenchZoneId)> cb)
+    {
+        on_zone_resized_ = std::move(cb);
+    }
+
 protected:
     void OnThemeChanged(const core::Theme& new_theme) override;
 
@@ -44,6 +50,8 @@ private:
     ResizeHandle* primary_sidebar_handle_{nullptr};
     ResizeHandle* secondary_sidebar_handle_{nullptr};
     ResizeHandle* panel_area_handle_{nullptr};
+
+    std::function<void(WorkbenchZoneId)> on_zone_resized_;
 
     animation::TransitionManager transition_manager_{this};
 

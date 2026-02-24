@@ -19,8 +19,12 @@
 namespace markamp::ui
 {
 
+struct DesignSystemContext;
+class IconManager;
 class ExtensionCard;
 class ExtensionDetailPanel;
+class SidebarSection;
+class SidebarSkeletonPlaceholder;
 
 /// Extensions browser panel shown in the sidebar.
 /// Allows searching, browsing, and managing extensions.
@@ -31,7 +35,9 @@ public:
                            core::ThemeEngine& theme_engine,
                            core::EventBus& event_bus,
                            core::IExtensionManagementService& mgmt_service,
-                           core::IExtensionGalleryService& gallery_service);
+                           core::IExtensionGalleryService& gallery_service,
+                           DesignSystemContext& ds,
+                           IconManager& icon_manager);
 
     /// Refresh the installed extensions list.
     void ShowInstalledExtensions();
@@ -42,54 +48,60 @@ public:
     /// Apply current theme styling.
     void ApplyTheme();
 
-    /// The view mode for the browser.
-    enum class ViewMode
-    {
-        kInstalled,
-        kSearchResults
-    };
-
 private:
     core::ThemeEngine& theme_engine_;
     core::EventBus& event_bus_;
     core::IExtensionManagementService& mgmt_service_;
     core::IExtensionGalleryService& gallery_service_;
-
-    ViewMode view_mode_{ViewMode::kInstalled};
+    DesignSystemContext& ds_;
+    IconManager& icon_manager_;
 
     // UI elements
     wxSearchCtrl* search_ctrl_{nullptr};
-    wxPanel* tab_bar_{nullptr};
-    wxButton* installed_tab_{nullptr};
-    wxButton* search_tab_{nullptr};
     wxScrolledWindow* card_scroll_{nullptr};
     wxBoxSizer* card_sizer_{nullptr};
+
+    SidebarSection* installed_section_{nullptr};
+    SidebarSection* recommended_section_{nullptr};
+    SidebarSection* search_section_{nullptr};
+
+    wxBoxSizer* installed_card_sizer_{nullptr};
+    wxBoxSizer* recommended_card_sizer_{nullptr};
+    wxBoxSizer* search_card_sizer_{nullptr};
+
     ExtensionDetailPanel* detail_panel_{nullptr};
+    SidebarSkeletonPlaceholder* loading_skeleton_{nullptr};
 
     // State
-    std::vector<ExtensionCard*> cards_;
+    std::vector<ExtensionCard*> installed_cards_;
+    std::vector<ExtensionCard*> recommended_cards_;
+    std::vector<ExtensionCard*> search_cards_;
     std::vector<core::LocalExtension> installed_extensions_;
+    core::GallerySortBy gallery_sort_{core::GallerySortBy::kInstallCount};
+    std::string gallery_category_;
 
     // Subscriptions
     core::Subscription install_sub_;
     core::Subscription uninstall_sub_;
+    core::Subscription header_action_sub_;
 
     void CreateLayout();
-    void ClearCards();
-    void PopulateInstalledCards();
-    void PopulateSearchCards(const std::vector<core::GalleryExtension>& results);
+    void ClearInstalledCards();
+    void ClearRecommendedCards();
+    void ClearSearchCards();
+    void PopulateInstalledSection();
+    void PopulateRecommendedSection();
+    void PopulateSearchSection(const std::vector<core::GalleryExtension>& results);
     void OnSearchChanged(wxCommandEvent& event);
-    void OnTabClicked(ViewMode mode);
     void OnCardClicked(const std::string& extension_id);
     void OnCardAction(const std::string& extension_id, bool is_installed);
     void ShowCardList();
     void ShowDetailView(const std::string& extension_id);
-    void UpdateTabStyles();
+    void ShowFilterMenu();
 
     [[nodiscard]] auto IsExtensionInstalled(const std::string& extension_id) const -> bool;
 
     static constexpr int kSearchBarHeight = 28;
-    static constexpr int kTabBarHeight = 32;
 };
 
 } // namespace markamp::ui

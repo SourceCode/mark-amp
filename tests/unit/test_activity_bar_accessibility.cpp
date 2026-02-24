@@ -93,7 +93,7 @@ TEST_CASE("Badge display caps at 99+", "[activitybar][badge]")
 {
     REQUIRE(ActivityBarModel::badge_display(BadgeStyle::kCount, 5) == "5");
     REQUIRE(ActivityBarModel::badge_display(BadgeStyle::kCount, 100) == "99+");
-    REQUIRE(ActivityBarModel::badge_display(BadgeStyle::kDot, 0) == "●");
+    REQUIRE(ActivityBarModel::badge_display(BadgeStyle::kDot, 0) == " ");
     REQUIRE(ActivityBarModel::badge_display(BadgeStyle::kUrgent, 0) == "!");
     REQUIRE(ActivityBarModel::badge_display(BadgeStyle::kNone, 0).empty());
 }
