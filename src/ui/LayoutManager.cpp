@@ -1755,7 +1755,7 @@ void LayoutManager::CreateLayout()
 
     // --- Activity Bar (Task 8) ---
     auto* activity_bar_zone = shell_->get_zone_container(layout::WorkbenchZoneId::kActivityBar);
-    auto* activity_bar = new ActivityBar(activity_bar_zone, *ds_context_, event_bus_);
+    auto* activity_bar = new ActivityBar(activity_bar_zone, *ds_context_, event_bus_, config_);
     auto* activity_bar_sizer = new wxBoxSizer(wxVERTICAL);
     activity_bar_sizer->Add(activity_bar, 1, wxEXPAND);
     activity_bar_zone->SetSizer(activity_bar_sizer);

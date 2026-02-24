@@ -7,26 +7,29 @@
 #include "SpacingGrid.h"
 #include "TooltipWindow.h"
 #include "TypographyScale.h"
+#include "core/Config.h"
 #include "core/Logger.h"
 #include "core/ThemeEngine.h"
 #include "ui/IconManager.h"
 #include "ui/accessibility/AccessibilityController.h"
 
+#include <nlohmann/json.hpp>
 #include <wx/app.h>
 #include <wx/dcbuffer.h>
+#include <wx/graphics.h>
 #include <wx/menu.h>
 
 namespace markamp::ui
 {
 
-ActivityBar::ActivityBar(wxWindow* parent, DesignSystemContext& ds, core::EventBus& event_bus)
-    : wxPanel(parent,
-              wxID_ANY,
-              wxDefaultPosition,
-              wxSize(ds.metrics.activity_bar_slot_height(), -1),
-              wxTAB_TRAVERSAL | wxNO_BORDER | wxWANTS_CHARS)
+ActivityBar::ActivityBar(wxWindow* parent,
+                         DesignSystemContext& ds,
+                         core::EventBus& event_bus,
+                         core::Config* config)
+    : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE | wxWANTS_CHARS)
     , ds_(ds)
     , event_bus_(event_bus)
+    , config_(config)
 {
     const int kBarWidth = ds_.metrics.activity_bar_slot_height();
     SetMinSize(wxSize(kBarWidth, -1));
@@ -57,8 +60,17 @@ ActivityBar::ActivityBar(wxWindow* parent, DesignSystemContext& ds, core::EventB
          [this](wxTimerEvent& /*evt*/)
          {
              auto vis_items = model_.visible_items();
-             if (hover_index_ >= 0 && hover_index_ < static_cast<int>(vis_items.size()) &&
-                 hover_index_ < static_cast<int>(item_bounds_.size()))
+             if (hover_index_ == -2 && !overflow_button_bounds_.IsEmpty())
+             {
+                 auto* tooltip = TooltipWindow::GetOrCreate(wxTheApp->GetTopWindow(), ds_);
+                 wxString tooltip_text = "Additional Views";
+                 int tooltip_y = overflow_button_bounds_.GetY() +
+                                 (overflow_button_bounds_.GetHeight() - 24) / 2;
+                 wxPoint screen_pos = ClientToScreen(wxPoint(GetSize().GetWidth() + 4, tooltip_y));
+                 tooltip->ShowTooltip(tooltip_text, screen_pos);
+             }
+             else if (hover_index_ >= 0 && hover_index_ < static_cast<int>(vis_items.size()) &&
+                      hover_index_ < static_cast<int>(item_bounds_.size()))
              {
                  auto* tooltip = TooltipWindow::GetOrCreate(wxTheApp->GetTopWindow(), ds_);
                  const auto& item = vis_items[static_cast<std::size_t>(hover_index_)];
@@ -109,6 +121,35 @@ ActivityBar::ActivityBar(wxWindow* parent, DesignSystemContext& ds, core::EventB
 
     keyboard_mode_sub_ = event_bus_.subscribe<core::events::KeyboardModeChangedEvent>(
         [this](const core::events::KeyboardModeChangedEvent& /*evt*/) { Refresh(); });
+
+    // Phase 07 Task 18: Extension-contributed panels
+    custom_panel_sub_ = event_bus_.subscribe<core::events::CustomPanelRegisteredEvent>(
+        [this](const core::events::CustomPanelRegisteredEvent& evt)
+        {
+            // Only add items intended for the primary sidebar (or unmarked logic)
+            if (evt.location.empty() || evt.location == "left_sidebar" || evt.location == "primary")
+            {
+                model_.add_item({evt.panel_id,
+                                 evt.panel_id, // Default label to ID
+                                 "",
+                                 evt.panel_id,
+                                 "activity-extension", // Default extension icon
+                                 false});
+                LoadLayoutFromConfig();
+                UpdateItemBounds();
+                Refresh();
+            }
+        });
+
+    custom_panel_unsub_ = event_bus_.subscribe<core::events::CustomPanelUnregisteredEvent>(
+        [this](const core::events::CustomPanelUnregisteredEvent& evt)
+        {
+            model_.remove_item(evt.panel_id);
+            UpdateItemBounds();
+            Refresh();
+        });
+
+    Bind(wxEVT_SIZE, &ActivityBar::OnSize, this);
 }
 
 void ActivityBar::CreateItems()
@@ -191,11 +232,13 @@ void ActivityBar::CreateItems()
     model_.add_item(
         {core::events::ActivityBarItemId::kThemes, "Themes", "", "Themes", "toolbar-themes", true});
     model_.add_item({core::events::ActivityBarItemId::kAccount,
-                     "Account",
+                     "Accounts",
                      "",
-                     "Account",
+                     "Accounts",
                      "activity-account",
                      true});
+
+    LoadLayoutFromConfig();
 }
 
 void ActivityBar::SetActiveItem(core::events::ActivityBarItem item)
@@ -221,11 +264,95 @@ void ActivityBar::UpdateLayoutMetrics()
     const int kBarWidth = ds_.metrics.activity_bar_slot_height();
     SetMinSize(wxSize(kBarWidth, -1));
     SetMaxSize(wxSize(kBarWidth, -1));
+    UpdateItemBounds();
     if (GetParent() != nullptr)
     {
         GetParent()->Layout();
     }
     Refresh();
+}
+
+void ActivityBar::OnSize(wxSizeEvent& event)
+{
+    UpdateItemBounds();
+    event.Skip();
+    Refresh();
+}
+
+void ActivityBar::UpdateItemBounds()
+{
+    auto size = GetClientSize();
+    const int kBarWidth = ds_.metrics.activity_bar_slot_height();
+
+    auto vis_items = model_.visible_items();
+    item_bounds_.resize(vis_items.size());
+
+    int top_y = ds_.spacing.scaled(SpacingToken::kMd);
+    int bottom_y = size.GetHeight() - ds_.spacing.scaled(SpacingToken::kMd);
+
+    int num_bottom_items = 0;
+    int num_top_items = 0;
+
+    for (const auto& item : vis_items)
+    {
+        if (item.is_bottom_item)
+            num_bottom_items++;
+        else
+            num_top_items++;
+    }
+
+    int available_top_space = bottom_y - (num_bottom_items * kBarWidth) - top_y;
+    int max_top_items = std::max(0, available_top_space / kBarWidth);
+
+    overflow_active_ = (num_top_items > max_top_items);
+    int visible_top_items = overflow_active_ ? std::max(0, max_top_items - 1) : num_top_items;
+
+    last_top_item_index_ = -1;
+    first_bottom_item_index_ = -1;
+
+    // Calculate bounds: Bottom items go upwards from bottom_y
+    for (int item_index = static_cast<int>(vis_items.size()) - 1; item_index >= 0; --item_index)
+    {
+        const auto& item = vis_items[static_cast<std::size_t>(item_index)];
+        if (item.is_bottom_item)
+        {
+            bottom_y -= kBarWidth;
+            item_bounds_[static_cast<std::size_t>(item_index)] =
+                wxRect(0, bottom_y, kBarWidth, kBarWidth);
+            first_bottom_item_index_ = item_index;
+        }
+    }
+
+    // Top items go downwards from top_y
+    int current_top = 0;
+    for (int item_index = 0; item_index < static_cast<int>(vis_items.size()); ++item_index)
+    {
+        const auto& item = vis_items[static_cast<std::size_t>(item_index)];
+        if (!item.is_bottom_item)
+        {
+            if (current_top < visible_top_items)
+            {
+                item_bounds_[static_cast<std::size_t>(item_index)] =
+                    wxRect(0, top_y, kBarWidth, kBarWidth);
+                top_y += kBarWidth;
+                last_top_item_index_ = item_index;
+            }
+            else
+            {
+                item_bounds_[static_cast<std::size_t>(item_index)] = wxRect(0, 0, 0, 0); // Hidden
+            }
+            current_top++;
+        }
+    }
+
+    if (overflow_active_ && max_top_items > 0)
+    {
+        overflow_button_bounds_ = wxRect(0, top_y, kBarWidth, kBarWidth);
+    }
+    else
+    {
+        overflow_button_bounds_ = wxRect(0, 0, 0, 0);
+    }
 }
 
 void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
@@ -246,44 +373,15 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
     const int kBarWidth = ds_.metrics.activity_bar_slot_height();
 
     auto vis_items = model_.visible_items();
-    item_bounds_.resize(vis_items.size());
-
-    int top_y = ds_.spacing.scaled(SpacingToken::kMd);
-    int bottom_y = size.GetHeight() - ds_.spacing.scaled(SpacingToken::kMd);
-
-    int last_top_item_index = -1;
-    int first_bottom_item_index = -1;
-
-    // Calculate bounds: Bottom items go upwards from bottom_y
-    for (int item_index = static_cast<int>(vis_items.size()) - 1; item_index >= 0; --item_index)
-    {
-        const auto& item = vis_items[static_cast<std::size_t>(item_index)];
-        if (item.is_bottom_item)
-        {
-            bottom_y -= kBarWidth;
-            item_bounds_[static_cast<std::size_t>(item_index)] =
-                wxRect(0, bottom_y, kBarWidth, kBarWidth);
-            first_bottom_item_index = item_index;
-        }
-    }
-
-    // Top items go downwards from top_y
-    for (int item_index = 0; item_index < static_cast<int>(vis_items.size()); ++item_index)
-    {
-        const auto& item = vis_items[static_cast<std::size_t>(item_index)];
-        if (!item.is_bottom_item)
-        {
-            item_bounds_[static_cast<std::size_t>(item_index)] =
-                wxRect(0, top_y, kBarWidth, kBarWidth);
-            top_y += kBarWidth;
-            last_top_item_index = item_index;
-        }
-    }
 
     for (int item_index = 0; item_index < static_cast<int>(vis_items.size()); ++item_index)
     {
         const auto& item = vis_items[static_cast<std::size_t>(item_index)];
         const auto& bounds = item_bounds_[static_cast<std::size_t>(item_index)];
+        if (bounds.IsEmpty())
+        {
+            continue; // Item is hidden in overflow
+        }
         const int item_y = bounds.GetY();
 
         const bool kIsActive = (item.item_id == active_item_);
@@ -398,19 +496,56 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
             FocusZoneId::kActivityBar, item_index, this, bounds);
     }
 
-    // R17 Fix 29: Bottom border separator below last top item
-    if (last_top_item_index >= 0)
+    // Draw overflow indicator if active
+    if (overflow_active_ && !overflow_button_bounds_.IsEmpty())
     {
-        auto border_light = clr.border_light.to_wx_colour();
-        paint_dc.SetPen(wxPen(border_light));
-        paint_dc.DrawLine(4, top_y, kBarWidth - 4, top_y);
+        const bool kIsHover = (hover_index_ == -2); // Use -2 for overflow hover
+        if (kIsHover)
+        {
+            auto hover = clr.bg_panel.lighten(0.1F);
+            paint_dc.SetBrush(wxBrush(hover.to_wx_colour()));
+            paint_dc.SetPen(*wxTRANSPARENT_PEN);
+            paint_dc.DrawRectangle(overflow_button_bounds_);
+        }
+
+        const int kIconSize = 24;
+        const int kIconX = (kBarWidth - kIconSize) / 2;
+        const int kIconY = overflow_button_bounds_.GetY() + (kBarWidth - kIconSize) / 2;
+
+        IconManager::get().draw_icon(paint_dc,
+                                     "activity-more",
+                                     kIconX,
+                                     kIconY,
+                                     wxSize(kIconSize, kIconSize),
+                                     clr.text_muted.to_wx_colour());
+    }
+
+    // R17 Fix 29: Bottom border separator below last top item
+    if (last_top_item_index_ >= 0 || overflow_active_)
+    {
+        int sep_y = 0;
+        if (overflow_active_ && !overflow_button_bounds_.IsEmpty())
+        {
+            sep_y = overflow_button_bounds_.GetBottom();
+        }
+        else if (last_top_item_index_ >= 0)
+        {
+            sep_y = item_bounds_[static_cast<std::size_t>(last_top_item_index_)].GetBottom();
+        }
+
+        if (sep_y > 0)
+        {
+            auto border_light = clr.border_light.to_wx_colour();
+            paint_dc.SetPen(wxPen(border_light));
+            paint_dc.DrawLine(4, sep_y, kBarWidth - 4, sep_y);
+        }
     }
 
     // R20 Fix 20: Separator above the bottom-most item section (first bottom item)
-    if (first_bottom_item_index >= 0)
+    if (first_bottom_item_index_ >= 0)
     {
         const int kSepY =
-            item_bounds_[static_cast<std::size_t>(first_bottom_item_index)].GetY() - 2;
+            item_bounds_[static_cast<std::size_t>(first_bottom_item_index_)].GetY() - 2;
         auto sep_col = clr.border_light.to_wx_colour();
         paint_dc.SetPen(wxPen(sep_col));
         paint_dc.DrawLine(8, kSepY, kBarWidth - 8, kSepY);
@@ -458,6 +593,54 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
         paint_dc.DrawLine(0, insert_y, kBarWidth, insert_y);
     }
 
+    // Phase 07 Task 22: Rendering Polish - Draw dragged item floating with strict alpha blend
+    if (is_dragging_ && drag_index_ >= 0 && drag_index_ < static_cast<int>(vis_items.size()))
+    {
+        const auto& item = vis_items[static_cast<std::size_t>(drag_index_)];
+        const auto& bounds = item_bounds_[static_cast<std::size_t>(drag_index_)];
+        wxPoint current_offset = drag_current_pos_ - drag_start_pos_;
+
+        std::unique_ptr<wxGraphicsContext> gc(wxGraphicsContext::Create(paint_dc));
+        if (gc)
+        {
+            gc->SetAntialiasMode(wxANTIALIAS_DEFAULT);
+            // 85% opacity overlay blend
+            wxColour floating_bg(clr.bg_panel.lighten(0.15F).to_wx_colour().Red(),
+                                 clr.bg_panel.lighten(0.15F).to_wx_colour().Green(),
+                                 clr.bg_panel.lighten(0.15F).to_wx_colour().Blue(),
+                                 static_cast<unsigned char>(255 * 0.85F));
+
+            gc->SetBrush(gc->CreateBrush(wxBrush(floating_bg)));
+            gc->SetPen(*wxTRANSPARENT_PEN);
+
+            double float_x = bounds.GetX() + current_offset.x;
+            double float_y = bounds.GetY() + current_offset.y;
+            gc->DrawRoundedRectangle(float_x, float_y, bounds.GetWidth(), bounds.GetHeight(), 4.0);
+
+            // Subtle 1px border for elevation
+            wxColour border_col(clr.text_muted.to_wx_colour().Red(),
+                                clr.text_muted.to_wx_colour().Green(),
+                                clr.text_muted.to_wx_colour().Blue(),
+                                static_cast<unsigned char>(255 * 0.3F));
+            gc->SetPen(gc->CreatePen(wxPen(border_col, 1)));
+            gc->SetBrush(gc->CreateBrush(*wxTRANSPARENT_BRUSH));
+            gc->DrawRoundedRectangle(float_x, float_y, bounds.GetWidth(), bounds.GetHeight(), 4.0);
+        }
+
+        const int float_int_x = bounds.GetX() + current_offset.x;
+        const int float_int_y = bounds.GetY() + current_offset.y;
+        const int kIconSize = 24;
+        const int kIconX = float_int_x + (kBarWidth - kIconSize) / 2;
+        const int kIconY = float_int_y + (kBarWidth - kIconSize) / 2;
+
+        IconManager::get().draw_icon(paint_dc,
+                                     item.icon_name,
+                                     kIconX,
+                                     kIconY,
+                                     wxSize(kIconSize, kIconSize),
+                                     clr.editor_fg.to_wx_colour());
+    }
+
     // Draw the global animated focus ring over the top
     FocusRingRenderer::get().draw(paint_dc, this, ds_.theme);
 }
@@ -465,6 +648,50 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
 void ActivityBar::OnMouseDown(wxMouseEvent& event)
 {
     const int item_index = HitTest(event.GetPosition());
+
+    // Overflow button click
+    if (item_index == -2)
+    {
+        pressed_index_ = -2;
+        Refresh();
+
+        wxMenu menu;
+        auto vis_items = model_.visible_items();
+        constexpr int kMenuBaseId = 20000;
+        int hidden_count = 0;
+
+        for (int idx = 0; idx < static_cast<int>(vis_items.size()); ++idx)
+        {
+            if (!vis_items[static_cast<std::size_t>(idx)].is_bottom_item &&
+                item_bounds_[static_cast<std::size_t>(idx)].IsEmpty())
+            {
+                const auto& item = vis_items[static_cast<std::size_t>(idx)];
+                menu.Append(kMenuBaseId + idx, item.label);
+
+                const std::string item_id = item.item_id;
+                menu.Bind(
+                    wxEVT_MENU,
+                    [this, item_id](wxCommandEvent& /*cmd*/)
+                    {
+                        SetActiveItem(item_id);
+                        const core::events::ActivityBarSelectionEvent evt(item_id);
+                        event_bus_.publish(evt);
+                    },
+                    kMenuBaseId + idx);
+                hidden_count++;
+            }
+        }
+
+        if (hidden_count > 0)
+        {
+            PopupMenu(&menu, overflow_button_bounds_.GetLeftBottom());
+        }
+
+        pressed_index_ = -1;
+        Refresh();
+        return;
+    }
+
     // R20 Fix 18: Track pressed item for visual feedback
     pressed_index_ = item_index;
 
@@ -534,12 +761,13 @@ void ActivityBar::OnMouseMove(wxMouseEvent& event)
         }
         if (is_dragging_)
         {
+            drag_current_pos_ = event.GetPosition();
             const int target = HitTest(event.GetPosition());
             if (target != drag_target_index_)
             {
                 drag_target_index_ = target;
-                Refresh();
             }
+            Refresh();
             return;
         }
     }
@@ -588,9 +816,15 @@ void ActivityBar::OnMouseLeave(wxMouseEvent& /*event*/)
 
 auto ActivityBar::HitTest(const wxPoint& pt) const -> int
 {
+    if (overflow_active_ && overflow_button_bounds_.Contains(pt))
+    {
+        return -2;
+    }
+
     for (int item_index = 0; item_index < static_cast<int>(item_bounds_.size()); ++item_index)
     {
-        if (item_bounds_[static_cast<std::size_t>(item_index)].Contains(pt))
+        if (!item_bounds_[static_cast<std::size_t>(item_index)].IsEmpty() &&
+            item_bounds_[static_cast<std::size_t>(item_index)].Contains(pt))
         {
             return item_index;
         }
@@ -771,6 +1005,8 @@ void ActivityBar::FinishDrag()
 
     // Move the dragged item to the target position
     model_.reorder(drag_index_, drag_target_index_);
+    UpdateItemBounds();
+    SaveLayoutToConfig();
 
     MARKAMP_LOG_INFO(
         "ActivityBar: Reordered item from index {} to {}", drag_index_, drag_target_index_);
@@ -806,6 +1042,8 @@ void ActivityBar::OnRightClick(wxMouseEvent& event)
             [this, item_id](wxCommandEvent& cmd)
             {
                 model_.set_item_visible(item_id, cmd.IsChecked());
+                UpdateItemBounds();
+                SaveLayoutToConfig();
                 Refresh();
             },
             kMenuBaseId + idx);
@@ -816,12 +1054,67 @@ void ActivityBar::OnRightClick(wxMouseEvent& event)
         [this](wxCommandEvent& /*cmd*/)
         {
             model_.reset_order();
+            UpdateItemBounds();
+            SaveLayoutToConfig();
             Refresh();
             MARKAMP_LOG_INFO("ActivityBar: Reset to default order");
         },
         kResetId);
 
     PopupMenu(&menu, event.GetPosition());
+}
+
+void ActivityBar::SaveLayoutToConfig()
+{
+    if (!config_)
+        return;
+
+    nlohmann::json j = nlohmann::json::array();
+    auto layout = model_.get_layout();
+    for (const auto& [id, visible] : layout)
+    {
+        j.push_back({{"id", id}, {"visible", visible}});
+    }
+
+    config_->set("ui.activity_bar.layout", j.dump());
+    auto result = config_->save();
+    if (!result.has_value())
+    {
+        MARKAMP_LOG_ERROR("Failed to save activity bar layout to config: {}", result.error());
+    }
+}
+
+void ActivityBar::LoadLayoutFromConfig()
+{
+    if (!config_)
+        return;
+
+    const std::string layout_str = config_->get_string("ui.activity_bar.layout");
+    if (layout_str.empty())
+        return;
+
+    try
+    {
+        auto j = nlohmann::json::parse(layout_str);
+        std::vector<std::pair<std::string, bool>> layout;
+
+        if (j.is_array())
+        {
+            for (const auto& item : j)
+            {
+                if (item.contains("id") && item["id"].is_string() && item.contains("visible") &&
+                    item["visible"].is_boolean())
+                {
+                    layout.emplace_back(item["id"].get<std::string>(), item["visible"].get<bool>());
+                }
+            }
+            model_.apply_layout(layout);
+        }
+    }
+    catch (const nlohmann::json::exception& e)
+    {
+        MARKAMP_LOG_ERROR("Failed to parse activity bar layout from config: {}", e.what());
+    }
 }
 
 } // namespace markamp::ui

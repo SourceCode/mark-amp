@@ -47,6 +47,9 @@ public:
     /// Add an item to the bar.
     void add_item(ActivityBarItemModel item);
 
+    /// Remove an item from the bar.
+    void remove_item(const std::string& item_id);
+
     /// Get all items (in current order, filtered by visibility).
     [[nodiscard]] auto visible_items() const -> std::vector<ActivityBarItemModel>;
 
@@ -99,6 +102,12 @@ public:
 
     /// Reset order to initial registration order.
     void reset_order();
+
+    /// Apply serialized layout (order and visibility).
+    void apply_layout(const std::vector<std::pair<std::string, bool>>& layout);
+
+    /// Get current layout for serialization.
+    [[nodiscard]] auto get_layout() const -> std::vector<std::pair<std::string, bool>>;
 
     // ── Accessibility ───────────────────────────────────────────────
 

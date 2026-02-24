@@ -1,5 +1,18 @@
 # MarkAmp Release History
 
+## v2.8.42 — 2026-02-23
+
+### Highlights
+
+V13 Phase 07: Rendering Polish and Accessibility for Activity Bar.
+
+### Added
+
+- **Accessibility**: Added screen reader indexing (e.g., "1 of 5") and announcements for Activity Bar.
+- **Rendering Polish**: Subpixel-precision and 85% alpha blending when dragging Activity Bar items.
+- **Persistence**: Activity Bar saves order, visibility states, and sizes to configuration.
+- **Overflow Limits**: Prevents overlapping UI in Activity Bar with precise constraints.
+
 ## v2.8.41 — 2026-02-23
 
 ### Highlights

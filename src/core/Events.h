@@ -3808,6 +3808,11 @@ std::string extension_id; ///< Contributing extension
 std::string location;     ///< Panel location
 MARKAMP_DECLARE_EVENT_END;
 
+/// Fired when a custom panel is unregistered.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CustomPanelUnregisteredEvent)
+std::string panel_id; ///< Panel identifier
+MARKAMP_DECLARE_EVENT_END;
+
 /// Fired when a widget container layout changes.
 MARKAMP_DECLARE_EVENT_WITH_FIELDS(WidgetLayoutChangedEvent)
 std::string container_id; ///< Container that changed

@@ -11,6 +11,18 @@ void ActivityBarModel::add_item(ActivityBarItemModel item)
     items_.push_back(std::move(item));
 }
 
+void ActivityBarModel::remove_item(const std::string& item_id)
+{
+    auto iter =
+        std::remove_if(items_.begin(),
+                       items_.end(),
+                       [&](const ActivityBarItemModel& item) { return item.item_id == item_id; });
+    if (iter != items_.end())
+    {
+        items_.erase(iter, items_.end());
+    }
+}
+
 auto ActivityBarModel::visible_items() const -> std::vector<ActivityBarItemModel>
 {
     std::vector<ActivityBarItemModel> result;
@@ -144,7 +156,7 @@ auto ActivityBarModel::badge_display(BadgeStyle style, int count) -> std::string
         case BadgeStyle::kNone:
             return "";
         case BadgeStyle::kDot:
-            return "●";
+            return count > 0 ? "●" : " ";
         case BadgeStyle::kUrgent:
             return "!";
         case BadgeStyle::kCount:
@@ -152,7 +164,7 @@ auto ActivityBarModel::badge_display(BadgeStyle style, int count) -> std::string
             {
                 return "99+";
             }
-            return std::to_string(count);
+            return count > 0 ? std::to_string(count) : "";
     }
     return "";
 }
@@ -176,7 +188,53 @@ void ActivityBarModel::reset_order()
         items_[static_cast<std::size_t>(idx)].order_index = idx;
     }
 }
+void ActivityBarModel::apply_layout(const std::vector<std::pair<std::string, bool>>& layout)
+{
+    std::vector<ActivityBarItemModel> new_items;
+    new_items.reserve(items_.size());
 
+    for (const auto& pair : layout)
+    {
+        const auto& id = pair.first;
+        const auto& visible = pair.second;
+        auto it = std::find_if(
+            items_.begin(), items_.end(), [&id](const auto& item) { return item.item_id == id; });
+        if (it != items_.end())
+        {
+            it->visible = visible;
+            new_items.push_back(*it);
+        }
+    }
+
+    for (const auto& item : items_)
+    {
+        auto it =
+            std::find_if(new_items.begin(),
+                         new_items.end(),
+                         [&](const auto& new_item) { return new_item.item_id == item.item_id; });
+        if (it == new_items.end())
+        {
+            new_items.push_back(item);
+        }
+    }
+
+    items_ = std::move(new_items);
+    for (int idx = 0; idx < static_cast<int>(items_.size()); ++idx)
+    {
+        items_[static_cast<std::size_t>(idx)].order_index = idx;
+    }
+}
+
+auto ActivityBarModel::get_layout() const -> std::vector<std::pair<std::string, bool>>
+{
+    std::vector<std::pair<std::string, bool>> layout;
+    layout.reserve(items_.size());
+    for (const auto& item : items_)
+    {
+        layout.emplace_back(item.item_id, item.visible);
+    }
+    return layout;
+}
 auto ActivityBarModel::focused_announcement() const -> std::string
 {
     const auto vis = visible_items();
@@ -187,7 +245,8 @@ auto ActivityBarModel::focused_announcement() const -> std::string
 
     const auto& item = vis[static_cast<std::size_t>(focus_index_)];
     std::ostringstream announcement;
-    announcement << item.accessible_name;
+    announcement << "Activity Bar, " << item.accessible_name;
+    announcement << ", " << (focus_index_ + 1) << " of " << vis.size();
 
     const auto badge_text = badge_display(item.badge_style, item.badge_count);
     if (!badge_text.empty())
