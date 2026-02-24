@@ -200,6 +200,14 @@ MARKAMP_DECLARE_EVENT_WITH_FIELDS(SidebarToggleEvent)
 bool visible;
 MARKAMP_DECLARE_EVENT_END;
 
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ZenModeChangedEvent)
+bool enabled{false};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PresentationModeChangedEvent)
+bool enabled{false};
+MARKAMP_DECLARE_EVENT_END;
+
 // ============================================================================
 // Editor events
 // ============================================================================

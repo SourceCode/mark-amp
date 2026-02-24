@@ -10,19 +10,21 @@
 #include "SpacingGrid.h"
 #include "ThemeAwareWindow.h"
 #include "TypographyScale.h"
-#include "animation/TransitionManager.h"
 #include "core/EventBus.h"
 #include "core/Events.h"
 #include "core/FileNode.h"
 #include "core/ThemeEngine.h"
+#include "layout/WorkbenchShell.h"
 
-#include <wx/button.h>
+#include <nlohmann/json.hpp>
 #include <wx/notebook.h>
+#include <wx/panel.h>
 #include <wx/sizer.h>
 #include <wx/srchctrl.h>
 #include <wx/stattext.h>
 #include <wx/textctrl.h>
 #include <wx/timer.h>
+#include <wx/window.h>
 
 #include <filesystem>
 #include <string>
@@ -80,8 +82,8 @@ public:
                   core::IMathRenderer* math_renderer = nullptr);
 
     // Zone access (for later phases to populate)
-    [[nodiscard]] auto sidebar_container() -> wxPanel*;
-    [[nodiscard]] auto content_container() -> wxPanel*;
+    [[nodiscard]] auto sidebar_container() -> wxWindow*;
+    [[nodiscard]] auto content_container() -> wxWindow*;
     [[nodiscard]] auto statusbar_container() -> StatusBarPanel*;
 
     // Data
@@ -125,6 +127,15 @@ public:
 
     // Phase 6D/7A: Forward minimap toggle to editor
     void ToggleEditorMinimap();
+
+    // Phase 06 Task 15/16: Zen and Presentation modes
+    void ToggleZenMode();
+    void SetZenMode(bool enable);
+    [[nodiscard]] auto is_zen_mode() const -> bool;
+
+    void TogglePresentationMode();
+    void SetPresentationMode(bool enable);
+    [[nodiscard]] auto is_presentation_mode() const -> bool;
 
     // Phase 8: Sidebar panel switching
     void SetSidebarMode(SidebarMode mode);
@@ -179,21 +190,16 @@ private:
     std::unique_ptr<ElevationSystem> elevation_system_;
     std::unique_ptr<DesignSystemContext> ds_context_;
 
-    // Child panels
-    wxPanel* sidebar_panel_{nullptr};
-    wxPanel* content_panel_{nullptr};
+    // Core layout container
+    layout::WorkbenchShell* shell_{nullptr};
+
+    // Child components
     StatusBarPanel* statusbar_panel_{nullptr};
-    SplitterBar* splitter_{nullptr};
     FileTreeCtrl* file_tree_{nullptr};
     TabBar* tab_bar_{nullptr};
     wxSearchCtrl* search_field_{nullptr}; // R5 Fix 7: wxSearchCtrl has built-in cancel button
     SplitView* split_view_{nullptr};
     Toolbar* toolbar_{nullptr};
-    wxStaticText* file_count_label_{nullptr};
-    wxStaticText* header_label_{nullptr};    // R3 Fix 19
-    wxPanel* header_panel_{nullptr};         // V8 Phase 1: theme hot-swap
-    wxPanel* footer_panel_{nullptr};         // V8 Phase 1: theme hot-swap
-    wxButton* collapse_btn_{nullptr};        // V8 Phase 1: theme hot-swap
     BreadcrumbBar* breadcrumb_bar_{nullptr}; // R3 Fix 14
 
     // Bottom panel host (Output, Problems, Walkthrough tabs)
@@ -225,28 +231,24 @@ private:
     // Phase 06 Task 10: Sidebar toolbar
     SidebarToolbar* sidebar_toolbar_{nullptr};
 
-    // Phase 06 Task 17: Sidebar transition animation
-    float sidebar_transition_alpha_{1.0F};
-
     // Phase 06 Task 11: Secondary sidebar
-    wxPanel* secondary_sidebar_panel_{nullptr};
     bool secondary_sidebar_visible_{false};
     SidebarMode secondary_sidebar_mode_{SidebarMode::kSearch};
     SidebarPanelRegistry secondary_panel_registry_;
+
+    // Phase 06 Task 15/16: Zen and Presentation Mode state
+    bool zen_mode_{false};
+    nlohmann::json pre_zen_state_;
+    bool presentation_mode_{false};
+    nlohmann::json pre_presentation_state_;
 
     // V8 Phase 11: Unified workbench mode
     core::events::WorkbenchMode workbench_mode_{core::events::WorkbenchMode::kEditor};
     core::Subscription workbench_mode_switch_sub_;
 
-    // Sizer management
-    wxBoxSizer* main_sizer_{nullptr};
-    wxBoxSizer* body_sizer_{nullptr};
-
     bool sidebar_visible_{true};
     int sidebar_width_{kDefaultSidebarWidth};
     int sidebar_current_width_{kDefaultSidebarWidth};
-
-    animation::TransitionManager transition_manager_;
 
     // Event subscriptions
     core::Subscription sidebar_toggle_sub_;
@@ -254,7 +256,6 @@ private:
     void CreateLayout();
     void CreateBottomPanelHost();
     void RegisterSidebarPanels();
-    void UpdateSidebarSize(int width);
     void SaveLayoutState();
     void RestoreLayoutState();
 
@@ -409,9 +410,6 @@ private:
     wxTimer auto_save_timer_;
     static constexpr int kAutoSaveIntervalMs = 30000; // 30 seconds
     void OnAutoSaveTimer(wxTimerEvent& event);
-
-    // Sidebar custom painting
-    void OnSidebarPaint(wxPaintEvent& event);
 };
 
 } // namespace markamp::ui

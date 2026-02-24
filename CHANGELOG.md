@@ -1,5 +1,19 @@
 # MarkAmp Release History
 
+## v2.8.40 — 2026-02-23
+
+### Highlights
+
+V13 Phase 06: Workbench Shell Architecture. Fully implemented the new zone-based layout engine (`WorkbenchShell`) to orchestrate Activity Bar, Sidebars, Editor Area, and Panels via `LayoutManager`. Added support for layout presets, state persistence, Zen Mode, and Presentation Mode.
+
+### Added
+
+- **Workbench Shell** — `WorkbenchShell` takes over layout, enforcing a precise constraint system across `kActivityBar`, `kPrimarySidebar`, `kEditorArea`, `kSecondarySidebar`, and `kPanelArea`.
+- **Zone Resizing** — Generic `ResizeHandle` system wired between adjacent zones, deprecating the legacy `SplitterBar`.
+- **Layout Presets & Persistence** — Layout geometry, zone visibility, and preset modes serialize/deserialize seamlessly from JSON across restarts.
+- **Mode Switching** — Seamless toggle transitions into `ZenMode` and `PresentationMode` via `LayoutManager`, automatically saving and restoring panel configurations.
+- **Catch2 Test Suite** — Comprehensive `test_workbench_shell.cpp` validating geometry constraints, state persistence, and border bounds.
+
 ## v2.8.38 — 2026-02-23
 
 ### Highlights

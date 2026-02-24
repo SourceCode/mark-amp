@@ -1,16 +1,19 @@
 #include "LayoutManager.h"
 
+#include "ActivityBar.h"
 #include "BreadcrumbBar.h"
 #include "CanvasWorkspacePanel.h"
 #include "EditorPanel.h"
 #include "ExtensionsBrowserPanel.h"
 #include "FileTreeCtrl.h"
+#include "OutputPanel.h"
+#include "ProblemsPanel.h"
 #include "SplitView.h"
-#include "SplitterBar.h"
 #include "StatusBarPanel.h"
 #include "TabBar.h"
 #include "ThemeGallery.h"
 #include "Toolbar.h"
+#include "WalkthroughPanel.h"
 #include "core/BuiltInPlugins.h"
 #include "core/Config.h"
 #include "core/Events.h"
@@ -18,6 +21,7 @@
 #include "core/Logger.h"
 #include "core/SampleFiles.h"
 
+#include <nlohmann/json.hpp>
 #include <wx/button.h>
 #include <wx/checkbox.h>
 #include <wx/clipbrd.h>
@@ -49,7 +53,6 @@ LayoutManager::LayoutManager(wxWindow* parent,
     , feature_registry_(feature_registry)
     , mermaid_renderer_(mermaid_renderer)
     , math_renderer_(math_renderer)
-    , transition_manager_(this)
 {
     design_registry_ = std::make_unique<DesignTokenRegistry>(theme_engine, event_bus_);
     typography_scale_ = std::make_unique<TypographyScale>();
@@ -1653,8 +1656,7 @@ LayoutManager::LayoutManager(wxWindow* parent,
             }
         });
 
-    MARKAMP_LOG_INFO(
-        "LayoutManager created (sidebar={}px, visible={})", sidebar_width_, sidebar_visible_);
+    MARKAMP_LOG_INFO("LayoutManager created", sidebar_width(), is_sidebar_visible());
 
     // Phase 06: Register sidebar panels in the registry
     RegisterSidebarPanels();
@@ -1711,7 +1713,7 @@ LayoutManager::LayoutManager(wxWindow* parent,
                     break;
             }
             SetSidebarMode(target_mode);
-            if (!sidebar_visible_)
+            if (!is_sidebar_visible())
             {
                 set_sidebar_visible(true);
             }
@@ -1722,7 +1724,7 @@ LayoutManager::LayoutManager(wxWindow* parent,
         [this]([[maybe_unused]] const core::events::ShowExtensionsBrowserRequestEvent& evt)
         {
             SetSidebarMode(SidebarMode::kExtensions);
-            if (!sidebar_visible_)
+            if (!is_sidebar_visible())
             {
                 set_sidebar_visible(true);
             }
@@ -1732,7 +1734,7 @@ LayoutManager::LayoutManager(wxWindow* parent,
         [this]([[maybe_unused]] const core::events::ShowExplorerRequestEvent& evt)
         {
             SetSidebarMode(SidebarMode::kExplorer);
-            if (!sidebar_visible_)
+            if (!is_sidebar_visible())
             {
                 set_sidebar_visible(true);
             }
@@ -1747,7 +1749,8 @@ LayoutManager::LayoutManager(wxWindow* parent,
                 if (breadcrumb_bar_ != nullptr)
                 {
                     breadcrumb_bar_->Show(evt.enabled);
-                    content_panel_->Layout();
+                    if (auto* c = content_container())
+                        c->Layout();
                 }
             }
             // Phase 4: Mermaid toggle — forward to SplitView/PreviewPanel
@@ -1792,70 +1795,24 @@ void LayoutManager::SaveFile(const std::string& path)
 
 void LayoutManager::CreateLayout()
 {
-    // --- Sidebar panel ---
-    sidebar_panel_ = new wxPanel(this, wxID_ANY);
-    sidebar_panel_->SetBackgroundStyle(wxBG_STYLE_PAINT);
-    sidebar_panel_->Bind(wxEVT_PAINT, &LayoutManager::OnSidebarPaint, this);
+    // --- Workbench Shell ---
+    shell_ = new layout::WorkbenchShell(this, *ds_context_);
 
-    // Sidebar internal layout: header + content + footer
-    auto* sidebar_sizer = new wxBoxSizer(wxVERTICAL);
+    // --- Activity Bar (Task 8) ---
+    auto* activity_bar_zone = shell_->get_zone_container(layout::WorkbenchZoneId::kActivityBar);
+    auto* activity_bar = new ActivityBar(activity_bar_zone, *ds_context_, event_bus_);
+    auto* activity_bar_sizer = new wxBoxSizer(wxVERTICAL);
+    activity_bar_sizer->Add(activity_bar, 1, wxEXPAND);
+    activity_bar_zone->SetSizer(activity_bar_sizer);
 
-    // Header: "EXPLORER"
-    header_panel_ = new wxPanel(sidebar_panel_, wxID_ANY, wxDefaultPosition, wxSize(-1, 40));
-    header_panel_->SetBackgroundColour(
-        theme_engine()
-            .resolve_token("sidebar.border")
-            .value_or(theme_engine().color(core::ThemeColorToken::BgHeader)));
-
-    // Fix 11: Render "EXPLORER" label in header
-    auto* header_sizer = new wxBoxSizer(wxHORIZONTAL);
-    header_label_ = new wxStaticText(header_panel_, wxID_ANY, "EXPLORER");
-    header_label_->SetFont(
-        theme_engine().font(core::ThemeFontToken::MonoRegular).Bold().Scaled(0.85f));
-    header_label_->SetForegroundColour(
-        theme_engine()
-            .resolve_token("text.muted")
-            .value_or(theme_engine().color(core::ThemeColorToken::TextMuted)));
-    header_sizer->AddSpacer(12);
-    header_sizer->Add(header_label_, 0, wxALIGN_CENTER_VERTICAL);
-    header_sizer->AddStretchSpacer();
-
-    // R4 Fix 15: Collapse All button in sidebar header
-    collapse_btn_ = new wxButton(
-        header_panel_, wxID_ANY, "\xE2\x96\xBE", wxDefaultPosition, wxSize(28, 28), wxBORDER_NONE);
-    collapse_btn_->SetToolTip("Collapse All");
-    collapse_btn_->SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular).Scaled(0.85f));
-    collapse_btn_->SetForegroundColour(
-        theme_engine()
-            .resolve_token("text.muted")
-            .value_or(theme_engine().color(core::ThemeColorToken::TextMuted)));
-    collapse_btn_->SetBackgroundColour(
-        theme_engine()
-            .resolve_token("sidebar.border")
-            .value_or(theme_engine().color(core::ThemeColorToken::BgHeader)));
-    collapse_btn_->Bind(wxEVT_BUTTON,
-                        [this](wxCommandEvent& /*evt*/)
-                        {
-                            if (file_tree_ != nullptr)
-                            {
-                                file_tree_->CollapseAllNodes();
-                            }
-                        });
-    header_sizer->Add(collapse_btn_, 0, wxALIGN_CENTER_VERTICAL);
-    header_sizer->AddSpacer(4);
-
-    header_panel_->SetSizer(header_sizer);
-
-    sidebar_sizer->Add(header_panel_, 0, wxEXPAND);
-
-    // R5 Fix 7: Use wxSearchCtrl for built-in clear/cancel button
-    // Phase 8: Wrap explorer widgets in a container panel for sidebar switching
-    explorer_panel_ = new wxPanel(sidebar_panel_, wxID_ANY);
+    // --- Primary Sidebar (Task 9) ---
+    auto* primary_sidebar_zone =
+        shell_->get_zone_container(layout::WorkbenchZoneId::kPrimarySidebar);
     auto* explorer_sizer = new wxBoxSizer(wxVERTICAL);
 
     auto* search_sizer = new wxBoxSizer(wxHORIZONTAL);
     search_field_ = new wxSearchCtrl(
-        explorer_panel_, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(-1, 28));
+        primary_sidebar_zone, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(-1, 28));
     search_field_->SetDescriptiveText("Filter files\u2026");
     search_field_->ShowCancelButton(true);
     search_field_->SetBackgroundColour(
@@ -1872,13 +1829,11 @@ void LayoutManager::CreateLayout()
     search_sizer->AddSpacer(8);
     search_sizer->Add(search_field_, 1, wxALIGN_CENTER_VERTICAL);
     search_sizer->AddSpacer(8);
-    explorer_sizer->Add(search_sizer, 0, wxEXPAND | wxTOP | wxBOTTOM, 8); // 8E: was 4
+    explorer_sizer->Add(search_sizer, 0, wxEXPAND | wxTOP | wxBOTTOM, 8);
 
-    // Spacer content area -> FileTreeCtrl
-    file_tree_ = new FileTreeCtrl(explorer_panel_, theme_engine(), event_bus_);
+    file_tree_ = new FileTreeCtrl(primary_sidebar_zone, theme_engine(), event_bus_);
     explorer_sizer->Add(file_tree_, 1, wxEXPAND | wxALL, 8);
 
-    // Bind search field text changes to filter
     search_field_->Bind(wxEVT_TEXT,
                         [this](wxCommandEvent& /*evt*/)
                         {
@@ -1888,7 +1843,6 @@ void LayoutManager::CreateLayout()
                             }
                         });
 
-    // R5 Fix 7: Bind cancel button to clear the filter
     search_field_->Bind(wxEVT_SEARCHCTRL_CANCEL_BTN,
                         [this](wxCommandEvent& /*evt*/)
                         {
@@ -1899,7 +1853,6 @@ void LayoutManager::CreateLayout()
                             }
                         });
 
-    // Wire file open callback — double-click or context menu "Open" (Fix 1)
     file_tree_->SetOnFileOpen(
         [this](const core::FileNode& node)
         {
@@ -1909,7 +1862,6 @@ void LayoutManager::CreateLayout()
             }
         });
 
-    // Wire file select callback — single-click opens file (Fix 2)
     file_tree_->SetOnFileSelect(
         [this](const core::FileNode& node)
         {
@@ -1919,13 +1871,11 @@ void LayoutManager::CreateLayout()
             }
         });
 
-    // Load sample file tree only when not restoring a workspace (Fix 14)
     if (config_ == nullptr || config_->get_string("workspace.last_path", "").empty())
     {
         auto sample_root = core::get_sample_file_tree();
         file_tree_->SetFileTree(sample_root.children);
 
-        // Auto-select first file
         if (!sample_root.children.empty())
         {
             for (const auto& child : sample_root.children)
@@ -1937,45 +1887,18 @@ void LayoutManager::CreateLayout()
                 }
             }
         }
-    } // end: Fix 14 conditional sample tree
+    }
 
-    // Footer — Fix 13: show file count
-    footer_panel_ = new wxPanel(explorer_panel_, wxID_ANY, wxDefaultPosition, wxSize(-1, 28));
-    footer_panel_->SetBackgroundColour(theme_engine().resolve_token("bg.app").value_or(
-        theme_engine().color(core::ThemeColorToken::BgApp)));
-    auto* footer_sizer = new wxBoxSizer(wxHORIZONTAL);
-    file_count_label_ = new wxStaticText(footer_panel_, wxID_ANY, "");
-    file_count_label_->SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular).Scaled(0.8f));
-    file_count_label_->SetForegroundColour(
-        theme_engine()
-            .resolve_token("text.muted")
-            .value_or(theme_engine().color(core::ThemeColorToken::TextMuted)));
-    footer_sizer->AddSpacer(12);
-    footer_sizer->Add(file_count_label_, 1, wxALIGN_CENTER_VERTICAL);
-    footer_panel_->SetSizer(footer_sizer);
-    explorer_sizer->Add(footer_panel_, 0, wxEXPAND);
+    primary_sidebar_zone->SetSizer(explorer_sizer);
 
-    explorer_panel_->SetSizer(explorer_sizer);
-    sidebar_sizer->Add(explorer_panel_, 1, wxEXPAND);
-
-    sidebar_panel_->SetSizer(sidebar_sizer);
-
-    // --- Splitter ---
-    splitter_ = new SplitterBar(this, *ds_context_, this);
-
-    // --- Content panel ---
-    content_panel_ = new wxPanel(this, wxID_ANY);
-    content_panel_->SetBackgroundColour(theme_engine().resolve_token("bg.app").value_or(
-        theme_engine().color(core::ThemeColorToken::BgApp)));
-
-    // Content internal: toolbar + split view
+    // --- Content Area (Task 10) ---
+    auto* editor_zone = shell_->get_zone_container(layout::WorkbenchZoneId::kEditorArea);
     auto* content_sizer = new wxBoxSizer(wxVERTICAL);
 
-    toolbar_ = new Toolbar(content_panel_, *ds_context_, event_bus_);
+    toolbar_ = new Toolbar(editor_zone, *ds_context_, event_bus_);
     toolbar_->SetOnThemeGalleryClick(
         [this]()
         {
-            // Phase 4: Guard ThemeGallery behind feature toggle
             if (feature_registry_ != nullptr &&
                 !feature_registry_->is_enabled(core::builtin_features::kThemeGallery))
             {
@@ -1986,15 +1909,12 @@ void LayoutManager::CreateLayout()
         });
     content_sizer->Add(toolbar_, 0, wxEXPAND);
 
-    // Tab bar (QoL feature 1)
-    tab_bar_ = new TabBar(content_panel_, *ds_context_, event_bus_);
+    tab_bar_ = new TabBar(editor_zone, *ds_context_, event_bus_);
     content_sizer->Add(tab_bar_, 0, wxEXPAND);
 
-    // R3 Fix 14: BreadcrumbBar between tab bar and split view
-    breadcrumb_bar_ = new BreadcrumbBar(content_panel_, *ds_context_);
+    breadcrumb_bar_ = new BreadcrumbBar(editor_zone, *ds_context_);
     content_sizer->Add(breadcrumb_bar_, 0, wxEXPAND);
 
-    // Phase 9: Respect initial feature toggle state for breadcrumb
     if (feature_registry_ != nullptr &&
         !feature_registry_->is_enabled(core::builtin_features::kBreadcrumb))
     {
@@ -2002,56 +1922,148 @@ void LayoutManager::CreateLayout()
     }
 
     split_view_ = new SplitView(
-        content_panel_, *ds_context_, event_bus_, config_, mermaid_renderer_, math_renderer_);
+        editor_zone, *ds_context_, event_bus_, config_, mermaid_renderer_, math_renderer_);
 
-    // Phase 4: Wire FeatureRegistry to SplitView (forwards to EditorPanel)
     if (feature_registry_ != nullptr)
     {
         split_view_->set_feature_registry(feature_registry_);
-
-        // Set initial Mermaid rendering state from feature registry
         split_view_->set_mermaid_enabled(
             feature_registry_->is_enabled(core::builtin_features::kMermaid));
     }
 
     content_sizer->Add(split_view_, 1, wxEXPAND);
-
-    content_panel_->SetSizer(content_sizer);
+    editor_zone->SetSizer(content_sizer);
 
     // --- Status bar ---
-    statusbar_panel_ = new StatusBarPanel(this, *ds_context_, event_bus_);
+    auto* statusbar_zone = shell_->get_zone_container(layout::WorkbenchZoneId::kStatusBar);
+    statusbar_panel_ = new StatusBarPanel(statusbar_zone, *ds_context_, event_bus_);
+    auto* statusbar_sizer = new wxBoxSizer(wxVERTICAL);
+    statusbar_sizer->Add(statusbar_panel_, 1, wxEXPAND);
+    statusbar_zone->SetSizer(statusbar_sizer);
+
+    // --- Panel Area (Task 12) ---
+    auto* panel_zone = shell_->get_zone_container(layout::WorkbenchZoneId::kPanelArea);
+    auto* panel_sizer = new wxBoxSizer(wxVERTICAL);
+    bottom_panel_notebook_ =
+        new wxNotebook(panel_zone, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxNB_TOP);
+
+    output_panel_ = new OutputPanel(bottom_panel_notebook_, nullptr);
+    problems_panel_ = new ProblemsPanel(bottom_panel_notebook_, nullptr);
+    walkthrough_panel_ = new WalkthroughPanel(bottom_panel_notebook_);
+
+    bottom_panel_notebook_->AddPage(output_panel_, "Output");
+    bottom_panel_notebook_->AddPage(problems_panel_, "Problems");
+    bottom_panel_notebook_->AddPage(walkthrough_panel_, "Walkthrough");
+
+    panel_sizer->Add(bottom_panel_notebook_, 1, wxEXPAND);
+    panel_zone->SetSizer(panel_sizer);
+
+    // --- Secondary Sidebar (Task 11) ---
+    auto* secondary_sidebar_zone =
+        shell_->get_zone_container(layout::WorkbenchZoneId::kSecondarySidebar);
+    auto* secondary_sizer = new wxBoxSizer(wxVERTICAL);
+    // Left empty for ad-hoc or future plugin usage
+    secondary_sidebar_zone->SetSizer(secondary_sizer);
 
     // --- Main layout ---
-    main_sizer_ = new wxBoxSizer(wxVERTICAL);
+    auto* main_sizer = new wxBoxSizer(wxVERTICAL);
+    main_sizer->Add(shell_, 1, wxEXPAND);
+    SetSizer(main_sizer);
 
-    // Body: sidebar + splitter + content (horizontal)
-    body_sizer_ = new wxBoxSizer(wxHORIZONTAL);
+    // Final layout refresh
+    shell_->trigger_layout();
+}
 
-    sidebar_current_width_ = sidebar_visible_ ? sidebar_width_ : 0;
+// --- Mode Switching (Zen / Presentation) ---
 
-    body_sizer_->Add(sidebar_panel_, 0, wxEXPAND);
-    body_sizer_->Add(splitter_, 0, wxEXPAND);
-    body_sizer_->Add(content_panel_, 1, wxEXPAND);
+void LayoutManager::ToggleZenMode()
+{
+    SetZenMode(!zen_mode_);
+}
 
-    main_sizer_->Add(body_sizer_, 1, wxEXPAND);
-    main_sizer_->Add(statusbar_panel_, 0, wxEXPAND);
+void LayoutManager::SetZenMode(bool enable)
+{
+    if (zen_mode_ == enable || shell_ == nullptr)
+        return;
 
-    SetSizer(main_sizer_);
+    if (enable)
+    {
+        pre_zen_state_ = shell_->save_state_to_json();
+        shell_->set_zone_visible(layout::WorkbenchZoneId::kActivityBar, false);
+        shell_->set_zone_visible(layout::WorkbenchZoneId::kPrimarySidebar, false);
+        shell_->set_zone_visible(layout::WorkbenchZoneId::kSecondarySidebar, false);
+        shell_->set_zone_visible(layout::WorkbenchZoneId::kPanelArea, false);
+        shell_->set_zone_visible(layout::WorkbenchZoneId::kStatusBar, false);
+    }
+    else
+    {
+        shell_->load_state_from_json(pre_zen_state_);
+    }
 
-    // Apply initial sidebar width
-    UpdateSidebarSize(sidebar_current_width_);
+    zen_mode_ = enable;
+
+    // Broadcast event
+    core::events::ZenModeChangedEvent evt;
+    evt.enabled = enable;
+    event_bus_.publish(evt);
+}
+
+auto LayoutManager::is_zen_mode() const -> bool
+{
+    return zen_mode_;
+}
+
+void LayoutManager::TogglePresentationMode()
+{
+    SetPresentationMode(!presentation_mode_);
+}
+
+void LayoutManager::SetPresentationMode(bool enable)
+{
+    if (presentation_mode_ == enable || shell_ == nullptr)
+        return;
+
+    if (enable)
+    {
+        pre_presentation_state_ = shell_->save_state_to_json();
+        // Presentation mode hides side panels to maximize space but keeps activity bar or status if
+        // needed. Usually, just hide sidebars and panels.
+        shell_->set_zone_visible(layout::WorkbenchZoneId::kPrimarySidebar, false);
+        shell_->set_zone_visible(layout::WorkbenchZoneId::kSecondarySidebar, false);
+        shell_->set_zone_visible(layout::WorkbenchZoneId::kPanelArea, false);
+    }
+    else
+    {
+        shell_->load_state_from_json(pre_presentation_state_);
+    }
+
+    presentation_mode_ = enable;
+
+    // Broadcast event
+    core::events::PresentationModeChangedEvent evt;
+    evt.enabled = enable;
+    event_bus_.publish(evt);
+}
+
+auto LayoutManager::is_presentation_mode() const -> bool
+{
+    return presentation_mode_;
 }
 
 // --- Zone access ---
 
-auto LayoutManager::sidebar_container() -> wxPanel*
+auto LayoutManager::sidebar_container() -> wxWindow*
 {
-    return sidebar_panel_;
+    if (!shell_)
+        return nullptr;
+    return shell_->get_zone_container(layout::WorkbenchZoneId::kPrimarySidebar);
 }
 
-auto LayoutManager::content_container() -> wxPanel*
+auto LayoutManager::content_container() -> wxWindow*
 {
-    return content_panel_;
+    if (!shell_)
+        return nullptr;
+    return shell_->get_zone_container(layout::WorkbenchZoneId::kEditorArea);
 }
 
 auto LayoutManager::statusbar_container() -> StatusBarPanel*
@@ -2065,28 +2077,6 @@ void LayoutManager::setFileTree(const std::vector<core::FileNode>& roots)
     {
         file_tree_->SetFileTree(roots);
     }
-
-    // Fix 13: Update sidebar footer file count
-    if (file_count_label_ != nullptr)
-    {
-        size_t total_files = 0;
-        size_t total_folders = 0;
-        for (const auto& root : roots)
-        {
-            total_files += root.file_count();
-            total_folders += root.folder_count();
-            if (root.is_folder())
-            {
-                ++total_folders;
-            }
-            else
-            {
-                ++total_files;
-            }
-        }
-        file_count_label_->SetLabel(
-            wxString::Format("%zu files, %zu folders", total_files, total_folders));
-    }
 }
 
 // Fix 15: Forward workspace root to file tree for relative path computation
@@ -2096,143 +2086,51 @@ void LayoutManager::SetWorkspaceRoot(const std::string& root_path)
     {
         file_tree_->SetWorkspaceRoot(root_path);
     }
-    // R3 Fix 19: Update sidebar header with workspace folder name
-    // V8 Phase 1 Task 4: Store workspace name for project-first sidebar header
-    if (header_label_ != nullptr)
-    {
-        std::string folder_name = std::filesystem::path(root_path).filename().string();
-        std::transform(folder_name.begin(), folder_name.end(), folder_name.begin(), ::toupper);
-        workspace_name_ = folder_name;
-        header_label_->SetLabel(folder_name);
-    }
 }
 
 // --- Sidebar control ---
 
 void LayoutManager::toggle_sidebar()
 {
-    set_sidebar_visible(!sidebar_visible_);
+    set_sidebar_visible(!is_sidebar_visible());
 }
 
 void LayoutManager::set_sidebar_visible(bool visible)
 {
-    if (visible == sidebar_visible_)
-    {
-        return;
-    }
-
-    sidebar_visible_ = visible;
-    int start_width = sidebar_current_width_;
-    int target_width = visible ? sidebar_width_ : 0;
-
-    animation::AnimationConfig config;
-    config.duration = std::chrono::milliseconds(visible ? 300 : 200);
-    config.easing_type =
-        visible ? animation::EasingType::EaseOutCubic : animation::EasingType::EaseInCubic;
-
-    transition_manager_.register_transition("sidebar_width", config);
-    transition_manager_.start<int>(
-        "sidebar_width",
-        start_width,
-        target_width,
-        [this](int w) { UpdateSidebarSize(w); },
-        [this]() { SaveLayoutState(); });
-
-    MARKAMP_LOG_DEBUG("Sidebar animation started: {} -> {}", start_width, target_width);
+    if (shell_)
+        shell_->set_zone_visible(layout::WorkbenchZoneId::kPrimarySidebar, visible);
+    SaveLayoutState();
 }
 
 auto LayoutManager::is_sidebar_visible() const -> bool
 {
-    return sidebar_visible_;
+    if (shell_)
+        return shell_->is_zone_visible(layout::WorkbenchZoneId::kPrimarySidebar);
+    return true;
 }
 
-void LayoutManager::set_sidebar_width(int width)
+void LayoutManager::set_sidebar_width(int /*width*/)
 {
-    sidebar_width_ = std::clamp(width, kMinSidebarWidth, kMaxSidebarWidth);
-    if (sidebar_visible_)
-    {
-        UpdateSidebarSize(sidebar_width_);
-    }
-    SaveLayoutState();
+    // Width managed by resize handle
 }
+
 auto LayoutManager::sidebar_width() const -> int
 {
-    return sidebar_width_;
+    // Getting width from shell is not natively hooked yet, return default
+    return kDefaultSidebarWidth;
 }
 
 void LayoutManager::ShowBottomPanel(bool show)
 {
-    if (show == bottom_panel_visible_)
-    {
-        return;
-    }
-
-    bottom_panel_visible_ = show;
-    if (bottom_panel_notebook_ == nullptr)
-    {
-        return; // Target widget not created yet
-    }
-
-    int start_height = bottom_panel_notebook_->GetSize().GetHeight();
-    int target_height = show ? kBottomPanelHeight : 0;
-
-    animation::AnimationConfig config;
-    config.duration = std::chrono::milliseconds(show ? 300 : 200);
-    config.easing_type =
-        show ? animation::EasingType::EaseOutCubic : animation::EasingType::EaseInCubic;
-
-    transition_manager_.register_transition("bottom_panel_height", config);
-    transition_manager_.start<int>(
-        "bottom_panel_height",
-        start_height,
-        target_height,
-        [this, show](int h)
-        {
-            if (bottom_panel_notebook_ != nullptr)
-            {
-                if (h > 0 && !bottom_panel_notebook_->IsShown())
-                {
-                    bottom_panel_notebook_->Show(true);
-                }
-                else if (h == 0 && !show)
-                {
-                    bottom_panel_notebook_->Show(false);
-                }
-
-                // Smoothly update the height to give a sliding effect
-                bottom_panel_notebook_->SetMinSize(wxSize(-1, h));
-                bottom_panel_notebook_->SetMaxSize(wxSize(-1, h));
-                body_sizer_->Layout();
-                main_sizer_->Layout();
-            }
-        },
-        [this]() { SaveLayoutState(); });
-
-    MARKAMP_LOG_DEBUG("Bottom panel animation started: {} -> {}", start_height, target_height);
+    if (shell_)
+        shell_->set_zone_visible(layout::WorkbenchZoneId::kPanelArea, show);
 }
 
 auto LayoutManager::is_bottom_panel_visible() const -> bool
 {
-    return bottom_panel_visible_;
-}
-
-void LayoutManager::UpdateSidebarSize(int width)
-{
-    sidebar_current_width_ = width;
-
-    // Show/hide sidebar and splitter based on width
-    bool show = (width > 0);
-    sidebar_panel_->Show(show);
-    splitter_->Show(show);
-
-    if (show)
-    {
-        sidebar_panel_->SetMinSize(wxSize(width, -1));
-        sidebar_panel_->SetMaxSize(wxSize(width, -1));
-    }
-
-    body_sizer_->Layout();
-    main_sizer_->Layout();
+    if (shell_)
+        return shell_->is_zone_visible(layout::WorkbenchZoneId::kPanelArea);
+    return false;
 }
 
 // --- Theme ---
@@ -2240,10 +2138,6 @@ void LayoutManager::UpdateSidebarSize(int width)
 void LayoutManager::OnThemeChanged(const core::Theme& new_theme)
 {
     ThemeAwareWindow::OnThemeChanged(new_theme);
-
-    content_panel_->SetBackgroundColour(theme_engine().resolve_token("bg.app").value_or(
-        theme_engine().color(core::ThemeColorToken::BgApp)));
-    content_panel_->Refresh();
 
     if (search_field_ != nullptr)
     {
@@ -2258,117 +2152,18 @@ void LayoutManager::OnThemeChanged(const core::Theme& new_theme)
                 .value_or(theme_engine().color(core::ThemeColorToken::TextMain)));
         search_field_->Refresh();
     }
-
-    // V8 Phase 1: Re-apply theme tokens to sidebar header/footer/collapse button
-    if (header_panel_ != nullptr)
-    {
-        header_panel_->SetBackgroundColour(
-            theme_engine()
-                .resolve_token("sidebar.border")
-                .value_or(theme_engine().color(core::ThemeColorToken::BgHeader)));
-        header_panel_->Refresh();
-    }
-    if (header_label_ != nullptr)
-    {
-        header_label_->SetForegroundColour(
-            theme_engine()
-                .resolve_token("text.muted")
-                .value_or(theme_engine().color(core::ThemeColorToken::TextMuted)));
-        header_label_->Refresh();
-    }
-    if (collapse_btn_ != nullptr)
-    {
-        collapse_btn_->SetForegroundColour(
-            theme_engine()
-                .resolve_token("text.muted")
-                .value_or(theme_engine().color(core::ThemeColorToken::TextMuted)));
-        collapse_btn_->SetBackgroundColour(
-            theme_engine()
-                .resolve_token("sidebar.border")
-                .value_or(theme_engine().color(core::ThemeColorToken::BgHeader)));
-        collapse_btn_->Refresh();
-    }
-    if (footer_panel_ != nullptr)
-    {
-        footer_panel_->SetBackgroundColour(theme_engine().resolve_token("bg.app").value_or(
-            theme_engine().color(core::ThemeColorToken::BgApp)));
-        footer_panel_->Refresh();
-    }
-    if (file_count_label_ != nullptr)
-    {
-        file_count_label_->SetForegroundColour(
-            theme_engine()
-                .resolve_token("text.muted")
-                .value_or(theme_engine().color(core::ThemeColorToken::TextMuted)));
-        file_count_label_->Refresh();
-    }
-
-    sidebar_panel_->Refresh();
-}
-
-void LayoutManager::OnSidebarPaint(wxPaintEvent& /*event*/)
-{
-    wxAutoBufferedPaintDC paint_dc(sidebar_panel_);
-    auto client_sz = sidebar_panel_->GetClientSize();
-    const int panel_width = client_sz.GetWidth();
-    const int panel_height = client_sz.GetHeight();
-
-    // 8D: Subtle top-to-bottom gradient (BgPanel → 3% darker)
-    {
-        auto base_col = theme_engine()
-                            .resolve_token("sidebar.bg")
-                            .value_or(theme_engine().color(core::ThemeColorToken::BgPanel));
-        auto darker = base_col.ChangeLightness(97);
-        for (int row = 0; row < panel_height; ++row)
-        {
-            const double frac =
-                static_cast<double>(row) / static_cast<double>(std::max(panel_height - 1, 1));
-            auto lerp = [](int from, int to, double ratio) -> unsigned char
-            {
-                return static_cast<unsigned char>(
-                    std::clamp(static_cast<int>(from + ratio * (to - from)), 0, 255));
-            };
-            paint_dc.SetPen(wxPen(wxColour(lerp(base_col.Red(), darker.Red(), frac),
-                                           lerp(base_col.Green(), darker.Green(), frac),
-                                           lerp(base_col.Blue(), darker.Blue(), frac)),
-                                  1));
-            paint_dc.DrawLine(0, row, panel_width, row);
-        }
-    }
-
-    // 8A: Drop shadow on right edge (4 graduated bands: 8%→4%→2%→1% black)
-    {
-        constexpr int kShadowBands = 4;
-        constexpr std::array<unsigned char, kShadowBands> kShadowAlphas = {20, 10, 5, 3};
-        for (int band = 0; band < kShadowBands; ++band)
-        {
-            paint_dc.SetPen(
-                wxPen(wxColour(0, 0, 0, kShadowAlphas.at(static_cast<size_t>(band))), 1));
-            paint_dc.DrawLine(panel_width - 1 - band, 0, panel_width - 1 - band, panel_height);
-        }
-    }
-
-    // 8B: Soft left highlight — 1px BgPanel lighter
-    {
-        auto highlight = theme_engine()
-                             .resolve_token("sidebar.bg")
-                             .value_or(theme_engine().color(core::ThemeColorToken::BgPanel))
-                             .ChangeLightness(108);
-        paint_dc.SetPen(wxPen(highlight, 1));
-        paint_dc.DrawLine(0, 0, 0, panel_height);
-    }
 }
 
 // --- Persistence ---
 
 void LayoutManager::SaveLayoutState()
 {
-    if (config_ == nullptr)
+    if (config_ == nullptr || shell_ == nullptr)
     {
         return;
     }
-    config_->set("layout.sidebar_visible", sidebar_visible_);
-    config_->set("layout.sidebar_width", sidebar_width_);
+    config_->set("layout.workbench_state", shell_->save_state_to_json().dump());
+
     // Phase 06 Task 9: Persist active sidebar mode
     config_->set("layout.sidebar_mode", static_cast<int>(sidebar_mode_));
     // Fix 15: Persist active file path for restore on next launch
@@ -2377,14 +2172,22 @@ void LayoutManager::SaveLayoutState()
 
 void LayoutManager::RestoreLayoutState()
 {
-    if (config_ == nullptr)
+    if (config_ == nullptr || shell_ == nullptr)
     {
         return;
     }
-    sidebar_visible_ = config_->get_bool("layout.sidebar_visible", true);
-    sidebar_width_ = config_->get_int("layout.sidebar_width", kDefaultSidebarWidth);
-    sidebar_width_ = std::clamp(sidebar_width_, kMinSidebarWidth, kMaxSidebarWidth);
-    sidebar_current_width_ = sidebar_visible_ ? sidebar_width_ : 0;
+
+    auto state_str = config_->get_string("layout.workbench_state", "");
+    if (!state_str.empty())
+    {
+        try
+        {
+            shell_->load_state_from_json(nlohmann::json::parse(state_str));
+        }
+        catch (...)
+        {
+        }
+    }
 
     // Phase 06 Task 9: Restore active sidebar mode
     int saved_mode = config_->get_int("layout.sidebar_mode", 0);
@@ -2430,7 +2233,7 @@ void LayoutManager::RegisterSidebarPanels()
             }
             extensions_panel_ = new ExtensionsBrowserPanel(
                 parent, theme_engine(), event_bus_, *ext_mgmt_service_, *ext_gallery_service_);
-            auto* sidebar_sizer = sidebar_panel_->GetSizer();
+            auto* sidebar_sizer = sidebar_container()->GetSizer();
             if (sidebar_sizer != nullptr)
             {
                 sidebar_sizer->Add(extensions_panel_, 1, wxEXPAND);
@@ -2546,7 +2349,7 @@ void LayoutManager::RegisterSidebarPanels()
         }
 
         panel->SetSizer(sizer);
-        auto* sidebar_sizer = sidebar_panel_->GetSizer();
+        auto* sidebar_sizer = sidebar_container()->GetSizer();
         if (sidebar_sizer != nullptr)
         {
             sidebar_sizer->Add(panel, 1, wxEXPAND);
@@ -2663,7 +2466,7 @@ void LayoutManager::RegisterSidebarPanels()
             sizer->AddStretchSpacer();
 
             panel->SetSizer(sizer);
-            auto* sidebar_sizer = sidebar_panel_->GetSizer();
+            auto* sidebar_sizer = sidebar_container()->GetSizer();
             if (sidebar_sizer != nullptr)
             {
                 sidebar_sizer->Add(panel, 1, wxEXPAND);
@@ -2889,7 +2692,7 @@ void LayoutManager::RegisterSidebarPanels()
             sizer->Add(input_sizer, 0, wxEXPAND | wxBOTTOM, 4);
 
             panel->SetSizer(sizer);
-            auto* sidebar_sizer = sidebar_panel_->GetSizer();
+            auto* sidebar_sizer = sidebar_container()->GetSizer();
             if (sidebar_sizer != nullptr)
             {
                 sidebar_sizer->Add(panel, 1, wxEXPAND);
@@ -3026,7 +2829,7 @@ void LayoutManager::RegisterSidebarPanels()
             sizer->Add(changes_list, 1, wxEXPAND | wxALL, 4);
 
             panel->SetSizer(sizer);
-            auto* sidebar_sizer = sidebar_panel_->GetSizer();
+            auto* sidebar_sizer = sidebar_container()->GetSizer();
             if (sidebar_sizer != nullptr)
             {
                 sidebar_sizer->Add(panel, 1, wxEXPAND);
@@ -3096,7 +2899,7 @@ void LayoutManager::SetSidebarMode(SidebarMode mode)
     // Hide all registered panels
     for (const auto& registered_mode : panel_registry_.AllModes())
     {
-        auto* panel = panel_registry_.GetOrCreate(registered_mode, sidebar_panel_);
+        auto* panel = panel_registry_.GetOrCreate(registered_mode, sidebar_container());
         if (panel != nullptr)
         {
             panel->Hide();
@@ -3104,7 +2907,7 @@ void LayoutManager::SetSidebarMode(SidebarMode mode)
     }
 
     // Show the target panel (lazily creating it if needed)
-    auto* target_panel = panel_registry_.GetOrCreate(mode, sidebar_panel_);
+    auto* target_panel = panel_registry_.GetOrCreate(mode, sidebar_container());
     if (target_panel != nullptr)
     {
         target_panel->Show();
@@ -3116,41 +2919,12 @@ void LayoutManager::SetSidebarMode(SidebarMode mode)
         }
     }
 
-    // Update header label
-    if (header_label_ != nullptr)
-    {
-        if (mode == SidebarMode::kExplorer)
-        {
-            // V8 Phase 1 Task 4: Show project name instead of generic "EXPLORER"
-            header_label_->SetLabel(workspace_name_.empty() ? "EXPLORER" : workspace_name_);
-        }
-        else
-        {
-            header_label_->SetLabel(panel_registry_.GetLabel(mode));
-        }
-    }
+    // Header label update delegated to standard Workbench shell APIs where applicable
 
-    sidebar_panel_->Layout();
-    sidebar_panel_->Refresh();
+    sidebar_container()->Layout();
+    sidebar_container()->Refresh();
 
-    // Phase 06 Task 17: Start transition animation
-    sidebar_transition_alpha_ = 0.0F;
-    animation::AnimationConfig alpha_config;
-    alpha_config.duration = std::chrono::milliseconds(150);
-    alpha_config.easing_type = animation::EasingType::Linear;
-
-    transition_manager_.register_transition("sidebar_alpha", alpha_config);
-    transition_manager_.start<float>("sidebar_alpha",
-                                     0.0F,
-                                     1.0F,
-                                     [this](float alpha)
-                                     {
-                                         sidebar_transition_alpha_ = alpha;
-                                         if (sidebar_panel_ != nullptr)
-                                         {
-                                             sidebar_panel_->Refresh();
-                                         }
-                                     });
+    // Phase 06 Task 17: Sidebar transition animations should be handled via CSS or layout rules
 
     // Phase 06 Task 8: Broadcast SidebarModeChangedEvent
     core::events::SidebarModeChangedEvent changed_evt;
@@ -3172,49 +2946,10 @@ auto LayoutManager::sidebar_toolbar() -> SidebarToolbar*
 // Phase 06 Task 11: Toggle secondary sidebar visibility
 void LayoutManager::ToggleSecondarySidebar()
 {
-    secondary_sidebar_visible_ = !secondary_sidebar_visible_;
-
-    if (secondary_sidebar_panel_ == nullptr && secondary_sidebar_visible_)
-    {
-        // Lazily create secondary sidebar panel
-        secondary_sidebar_panel_ = new wxPanel(content_container(), wxID_ANY);
-        secondary_sidebar_panel_->SetMinSize(wxSize(kDefaultSidebarWidth, -1));
-        secondary_sidebar_panel_->SetBackgroundColour(
-            theme_engine()
-                .resolve_token("sidebar.bg")
-                .value_or(theme_engine().color(core::ThemeColorToken::BgPanel)));
-
-        auto* sizer = new wxBoxSizer(wxVERTICAL);
-        auto* label = new wxStaticText(secondary_sidebar_panel_, wxID_ANY, "Secondary Sidebar");
-        label->SetForegroundColour(
-            theme_engine()
-                .resolve_token("text.muted")
-                .value_or(theme_engine().color(core::ThemeColorToken::TextMuted)));
-        sizer->AddStretchSpacer();
-        sizer->Add(label, 0, wxALIGN_CENTER);
-        sizer->AddStretchSpacer();
-        secondary_sidebar_panel_->SetSizer(sizer);
-
-        // Add to body sizer (right side)
-        if (body_sizer_ != nullptr)
-        {
-            body_sizer_->Add(secondary_sidebar_panel_, 0, wxEXPAND);
-        }
-    }
-
-    if (secondary_sidebar_panel_ != nullptr)
-    {
-        secondary_sidebar_panel_->Show(secondary_sidebar_visible_);
-        if (body_sizer_ != nullptr)
-        {
-            body_sizer_->Layout();
-        }
-    }
-
-    if (config_ != nullptr)
-    {
-        config_->set("layout.secondary_sidebar_visible", secondary_sidebar_visible_);
-    }
+    if (!shell_)
+        return;
+    bool visible = shell_->is_zone_visible(layout::WorkbenchZoneId::kSecondarySidebar);
+    shell_->set_zone_visible(layout::WorkbenchZoneId::kSecondarySidebar, !visible);
 }
 
 void LayoutManager::SetSecondarySidebarMode(SidebarMode mode)
@@ -3225,7 +2960,9 @@ void LayoutManager::SetSecondarySidebarMode(SidebarMode mode)
 
 auto LayoutManager::is_secondary_sidebar_visible() const -> bool
 {
-    return secondary_sidebar_visible_;
+    if (!shell_)
+        return false;
+    return shell_->is_zone_visible(layout::WorkbenchZoneId::kSecondarySidebar);
 }
 
 auto LayoutManager::sidebar_panel_registry() -> SidebarPanelRegistry&
@@ -3256,18 +2993,14 @@ void LayoutManager::ShowCanvasWorkspace()
     }
 
     // Hide editor content, show canvas workspace
-    if (content_panel_ != nullptr)
+    if (auto* c = content_container())
     {
-        content_panel_->Hide();
+        c->Hide();
     }
     canvas_workspace_->Show();
 
     // Replace content in body sizer
-    if (body_sizer_ != nullptr)
-    {
-        body_sizer_->Add(canvas_workspace_, 1, wxEXPAND);
-        body_sizer_->Layout();
-    }
+    Layout();
 
     canvas_mode_ = true;
 
@@ -3288,19 +3021,13 @@ void LayoutManager::ShowEditorWorkspace()
     if (canvas_workspace_ != nullptr)
     {
         canvas_workspace_->Hide();
-        if (body_sizer_ != nullptr)
-        {
-            body_sizer_->Detach(canvas_workspace_);
-        }
+        // body_sizer_ removed, rely on main Layout()
     }
-    if (content_panel_ != nullptr)
+    if (auto* c = content_container())
     {
-        content_panel_->Show();
+        c->Show();
     }
-    if (body_sizer_ != nullptr)
-    {
-        body_sizer_->Layout();
-    }
+    Layout();
 
     canvas_mode_ = false;
 
