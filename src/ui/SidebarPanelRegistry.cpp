@@ -50,6 +50,12 @@ auto SidebarPanelRegistry::GetLabel(SidebarMode mode) const -> std::string
     return (entry != nullptr) ? entry->label : std::string{};
 }
 
+auto SidebarPanelRegistry::GetIconChar(SidebarMode mode) const -> std::string
+{
+    const auto* entry = FindEntry(mode);
+    return (entry != nullptr) ? entry->icon_char : std::string{};
+}
+
 auto SidebarPanelRegistry::IsRegistered(SidebarMode mode) const -> bool
 {
     return FindEntry(mode) != nullptr;

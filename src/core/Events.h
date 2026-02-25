@@ -719,6 +719,18 @@ explicit ActivityBarSelectionEvent(ActivityBarItem item_id)
 }
 MARKAMP_DECLARE_EVENT_END;
 
+// Phase 09 Task 2: SecondarySidebarSelectionEvent — broadcast when a tab is clicked in the
+// secondary sidebar
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SecondarySidebarSelectionEvent)
+ActivityBarItem item;
+
+SecondarySidebarSelectionEvent() = default;
+explicit SecondarySidebarSelectionEvent(ActivityBarItem item_id)
+    : item(std::move(item_id))
+{
+}
+MARKAMP_DECLARE_EVENT_END;
+
 // Phase 06 Task 8: SidebarModeChangedEvent — broadcast when sidebar mode switches
 MARKAMP_DECLARE_EVENT_WITH_FIELDS(SidebarModeChangedEvent)
 std::string previous_mode; // Migrated from int to string

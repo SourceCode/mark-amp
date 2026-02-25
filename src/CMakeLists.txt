@@ -114,6 +114,7 @@ add_executable(markamp
     ui/SidebarSkeletonPlaceholder.cpp
     ui/EmptyPanelState.cpp
     ui/SearchSidebarPanel.cpp
+    ui/SecondarySidebarTabStrip.cpp
     ui/GraphSidebarPanel.cpp
     ui/ExtensionsBrowserPanel.cpp
     ui/ExplorerPanel.cpp

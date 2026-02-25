@@ -119,7 +119,7 @@ void ExtensionsBrowserPanel::CreateLayout()
 
     // 1. Installed Section
     installed_section_ =
-        new SidebarSection(card_scroll_, ds_, icon_manager_, event_bus_, "INSTALLED");
+        new SidebarSection(card_scroll_, ds_, icon_manager_, event_bus_, nullptr, "INSTALLED");
     auto* inst_panel = new wxPanel(installed_section_);
     installed_card_sizer_ = new wxBoxSizer(wxVERTICAL);
     inst_panel->SetSizer(installed_card_sizer_);
@@ -128,7 +128,7 @@ void ExtensionsBrowserPanel::CreateLayout()
 
     // 2. Recommended Section
     recommended_section_ =
-        new SidebarSection(card_scroll_, ds_, icon_manager_, event_bus_, "RECOMMENDED");
+        new SidebarSection(card_scroll_, ds_, icon_manager_, event_bus_, nullptr, "RECOMMENDED");
     auto* rec_panel = new wxPanel(recommended_section_);
     recommended_card_sizer_ = new wxBoxSizer(wxVERTICAL);
     rec_panel->SetSizer(recommended_card_sizer_);
@@ -137,7 +137,7 @@ void ExtensionsBrowserPanel::CreateLayout()
 
     // 3. Search / Marketplace Section
     search_section_ =
-        new SidebarSection(card_scroll_, ds_, icon_manager_, event_bus_, "MARKETPLACE");
+        new SidebarSection(card_scroll_, ds_, icon_manager_, event_bus_, nullptr, "MARKETPLACE");
     auto* search_panel = new wxPanel(search_section_);
     search_card_sizer_ = new wxBoxSizer(wxVERTICAL);
     search_panel->SetSizer(search_card_sizer_);

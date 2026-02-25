@@ -918,6 +918,18 @@ target_link_libraries(test_sidebar_filter PRIVATE
 )
 add_test(NAME test_sidebar_filter COMMAND test_sidebar_filter)
 
+# --- Phase 09 Secondary Sidebar test ---
+add_executable(test_phase09_secondary_sidebar
+    test_phase09_secondary_sidebar.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/SidebarPanelRegistry.cpp
+)
+target_include_directories(test_phase09_secondary_sidebar PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_phase09_secondary_sidebar PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_phase09_secondary_sidebar COMMAND test_phase09_secondary_sidebar)
+
 # --- Mermaid Phase 3 test ---
 add_executable(test_mermaid_phase3
     unit/test_mermaid_phase3.cpp

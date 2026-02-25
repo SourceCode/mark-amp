@@ -2472,7 +2472,7 @@ void MainFrame::RegisterDefaultShortcuts()
     shortcut_manager_.register_shortcut(
         {"edit.indent_selection", "Indent Selection", ']', kCmd, "editor", "Edit", {}});
     shortcut_manager_.register_shortcut(
-        {"edit.outdent_selection", "[", kCmd, "editor", "Edit", {}});
+        {"edit.outdent_selection", "Outdent Selection", '[', kCmd, "editor", "Edit", {}});
     shortcut_manager_.register_shortcut(
         {"edit.select_word", "Select Word", 'D', kCmd, "editor", "Edit", {}});
     shortcut_manager_.register_shortcut({"edit.jump_to_bracket",

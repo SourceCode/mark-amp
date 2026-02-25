@@ -1,5 +1,18 @@
 # MarkAmp Release History
 
+## v2.9.45 — 2026-02-25
+
+### Highlights
+
+V13 Phase 09 Tasks 1-4: Secondary Sidebar Implementation. Built an independent, distinct sidebar panel registry and tab strip UI to support low-profile, contextual sidebar panels.
+
+### Added
+
+- **Independent Panel Registry (Task 1)**: Integrated a secondary `SidebarPanelRegistry` allowing panels to register, execute, and store settings independently of the primary sidebar.
+- **Micro Tab Strip UI (Task 2)**: Developed the horizontal `SecondarySidebarTabStrip` component using low-profile visual design tokens mirroring modern code editors.
+- **Secondary Sidebar Layout Zones (Task 3)**: Wired `SecondarySidebarTabStrip` into `WorkbenchShell` via the `kSecondarySidebar` constraint zone.
+- **Layout Manager Binding (Task 4)**: Added `SetSecondarySidebarMode` commands and bound them to `SecondarySidebarSelectionEvent` calls.
+
 ## v2.9.44 — 2026-02-25
 
 ### Highlights

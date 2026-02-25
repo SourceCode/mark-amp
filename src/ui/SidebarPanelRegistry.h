@@ -44,6 +44,9 @@ public:
     /// Get the label for a registered mode (empty string if unregistered).
     [[nodiscard]] auto GetLabel(SidebarMode mode) const -> std::string;
 
+    /// Get the icon char for a registered mode (empty string if unregistered).
+    [[nodiscard]] auto GetIconChar(SidebarMode mode) const -> std::string;
+
     /// Check if a mode has been registered.
     [[nodiscard]] auto IsRegistered(SidebarMode mode) const -> bool;
 

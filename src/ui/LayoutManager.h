@@ -58,6 +58,7 @@ class FileTreeCtrl;
 class OutputPanel;
 class PreviewPanel;
 class ProblemsPanel;
+class SecondarySidebarTabStrip;
 class SplitterBar;
 class SplitView;
 class StatusBarPanel;
@@ -233,10 +234,13 @@ private:
     // Phase 08 Task 4: Sidebar Transition Animation
     std::unique_ptr<animation::TransitionManager> sidebar_transition_mgr_;
 
-    // Phase 06 Task 11: Secondary sidebar
+    // Phase 06 Task 11 / Phase 09: Secondary sidebar
     bool secondary_sidebar_visible_{false};
     SidebarMode secondary_sidebar_mode_{kSidebarModeSearch};
     SidebarPanelRegistry secondary_panel_registry_;
+    SecondarySidebarTabStrip* secondary_tab_strip_{nullptr};
+    wxPanel* secondary_sidebar_container_{nullptr};
+    core::Subscription secondary_sidebar_selection_sub_;
 
     // Phase 06 Task 15/16: Zen and Presentation Mode state
     bool zen_mode_{false};
@@ -258,6 +262,7 @@ private:
     void CreateLayout();
     void CreateBottomPanelHost();
     void RegisterSidebarPanels();
+    void RegisterSecondarySidebarPanels();
     void SaveLayoutState();
     void RestoreLayoutState();
 

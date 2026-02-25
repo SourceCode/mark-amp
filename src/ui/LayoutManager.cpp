@@ -24,6 +24,7 @@
 #include "ui/GraphSidebarPanel.h"
 #include "ui/IconManager.h"
 #include "ui/SearchSidebarPanel.h"
+#include "ui/SecondarySidebarTabStrip.h"
 #include "ui/SidebarHeader.h"
 
 #include <nlohmann/json.hpp>
@@ -1682,6 +1683,13 @@ LayoutManager::LayoutManager(wxWindow* parent,
 
     // Phase 06: Register sidebar panels in the registry
     RegisterSidebarPanels();
+    RegisterSecondarySidebarPanels();
+
+    // Phase 09 Task 2: Subscribe to Secondary Sidebar Tab Strip selections
+    secondary_sidebar_selection_sub_ =
+        event_bus_.subscribe<core::events::SecondarySidebarSelectionEvent>(
+            [this](const core::events::SecondarySidebarSelectionEvent& evt)
+            { SetSecondarySidebarMode(evt.item); });
 
     // Phase 06: Subscribe to ActivityBar selection events to switch sidebar mode
     activity_bar_selection_sub_ = event_bus_.subscribe<core::events::ActivityBarSelectionEvent>(
@@ -1979,7 +1987,25 @@ void LayoutManager::CreateLayout()
     auto* secondary_sidebar_zone =
         shell_->get_zone_container(layout::WorkbenchZoneId::kSecondarySidebar);
     auto* secondary_sizer = new wxBoxSizer(wxVERTICAL);
-    // Left empty for ad-hoc or future plugin usage
+
+    // Phase 09 Task 2 & 3: Secondary Sidebar Mini Tab Strip & Container
+    secondary_tab_strip_ = new SecondarySidebarTabStrip(
+        secondary_sidebar_zone, theme_engine(), *ds_context_, event_bus_, config_);
+    secondary_sizer->Add(secondary_tab_strip_, 0, wxEXPAND);
+
+    for (const auto& mode : secondary_panel_registry_.AllModes())
+    {
+        secondary_tab_strip_->AddTab(mode,
+                                     secondary_panel_registry_.GetIconChar(mode),
+                                     secondary_panel_registry_.GetLabel(mode));
+    }
+    secondary_tab_strip_->SetActiveMode(secondary_sidebar_mode_);
+
+    secondary_sidebar_container_ = new wxPanel(secondary_sidebar_zone, wxID_ANY);
+    auto* secondary_content_sizer = new wxBoxSizer(wxVERTICAL);
+    secondary_sidebar_container_->SetSizer(secondary_content_sizer);
+    secondary_sizer->Add(secondary_sidebar_container_, 1, wxEXPAND);
+
     secondary_sidebar_zone->SetSizer(secondary_sizer);
 
     // --- Main layout ---
@@ -2806,6 +2832,36 @@ void LayoutManager::RegisterSidebarPanels()
                              });
 }
 
+void LayoutManager::RegisterSecondarySidebarPanels()
+{
+    // Phase 09 Task 1: Register panels for the secondary sidebar.
+    // We instantiate new instances here so they are completely independent of the primary sidebar.
+
+    secondary_panel_registry_.Register(
+        kSidebarModeExplorer,
+        "EXPLORER",
+        "\xF0\x9F\x93\x81", // 📁
+        [this](wxWindow* parent) -> wxPanel*
+        {
+            auto* p = new ExplorerPanel(
+                parent, theme_engine(), event_bus_, config_, *ds_context_, IconManager::get());
+            p->Hide();
+            return p;
+        });
+
+    secondary_panel_registry_.Register(
+        kSidebarModeSearch,
+        "SEARCH",
+        "\xF0\x9F\x94\x8D", // 🔍
+        [this](wxWindow* parent) -> wxPanel*
+        {
+            auto* p = new SearchSidebarPanel(
+                parent, theme_engine(), event_bus_, config_, *ds_context_, IconManager::get());
+            p->Hide();
+            return p;
+        });
+}
+
 void LayoutManager::SetSidebarMode(SidebarMode mode)
 {
     if (mode == sidebar_mode_)
@@ -2917,8 +2973,36 @@ void LayoutManager::ToggleSecondarySidebar()
 
 void LayoutManager::SetSecondarySidebarMode(SidebarMode mode)
 {
+    if (mode == secondary_sidebar_mode_)
+    {
+        return;
+    }
+
+    auto previous_mode = secondary_sidebar_mode_;
     secondary_sidebar_mode_ = mode;
-    // Future: swap secondary panel content based on mode
+
+    if (secondary_tab_strip_ != nullptr)
+    {
+        secondary_tab_strip_->SetActiveMode(mode);
+    }
+
+    if (secondary_sidebar_container_ == nullptr)
+    {
+        return;
+    }
+
+    auto* target_panel = secondary_panel_registry_.GetOrCreate(mode, secondary_sidebar_container_);
+    auto* old_panel =
+        secondary_panel_registry_.GetOrCreate(previous_mode, secondary_sidebar_container_);
+
+    if (target_panel != nullptr && old_panel != nullptr && target_panel != old_panel)
+    {
+        secondary_sidebar_container_->Freeze();
+        old_panel->Hide();
+        target_panel->Show();
+        secondary_sidebar_container_->Layout();
+        secondary_sidebar_container_->Thaw();
+    }
 }
 
 auto LayoutManager::is_secondary_sidebar_visible() const -> bool

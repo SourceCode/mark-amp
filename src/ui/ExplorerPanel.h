@@ -25,6 +25,7 @@ class ExplorerPanel : public ThemeAwareWindow
 public:
     ExplorerPanel(wxWindow* parent,
                   core::ThemeEngine& theme_engine,
+                  core::EventBus& event_bus,
                   core::Config* config,
                   DesignSystemContext& ds,
                   IconManager& icon_manager);
