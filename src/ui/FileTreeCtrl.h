@@ -48,6 +48,13 @@ public:
     void ShowLoadingState();
     void HideLoadingState();
 
+    // Scroll Persistence
+    [[nodiscard]] int GetScrollOffset() const
+    {
+        return scroll_offset_;
+    }
+    void SetScrollOffset(int offset);
+
     // Layout constants
     [[deprecated(
         "Use ComponentSizeResolver for tree row height")]] static constexpr int kRowHeight = 24;

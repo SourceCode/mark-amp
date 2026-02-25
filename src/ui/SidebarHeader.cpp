@@ -5,6 +5,8 @@
 #include "ui/ComponentSizeResolver.h"
 #include "ui/DesignSystemContext.h"
 #include "ui/IconManager.h"
+#include "ui/TypographyScale.h"
+#include "ui/accessibility/AccessibilityController.h"
 
 #include <wx/dcbuffer.h>
 #include <wx/graphics.h>
@@ -15,14 +17,15 @@ namespace markamp::ui
 wxBEGIN_EVENT_TABLE(SidebarHeader, ThemeAwareWindow) EVT_PAINT(SidebarHeader::OnPaint)
     EVT_SIZE(SidebarHeader::OnSize) EVT_LEFT_DOWN(SidebarHeader::OnMouseLeftDown)
         EVT_LEFT_UP(SidebarHeader::OnMouseLeftUp) EVT_MOTION(SidebarHeader::OnMouseMotion)
-            EVT_LEAVE_WINDOW(SidebarHeader::OnMouseLeave) wxEND_EVENT_TABLE()
+            EVT_LEAVE_WINDOW(SidebarHeader::OnMouseLeave) EVT_SET_FOCUS(SidebarHeader::OnSetFocus)
+                EVT_KILL_FOCUS(SidebarHeader::OnKillFocus) wxEND_EVENT_TABLE()
 
-                SidebarHeader::SidebarHeader(wxWindow* parent,
-                                             DesignSystemContext& ds,
-                                             IconManager& icon_manager,
-                                             core::EventBus& event_bus)
+                    SidebarHeader::SidebarHeader(wxWindow* parent,
+                                                 DesignSystemContext& ds,
+                                                 IconManager& icon_manager,
+                                                 core::EventBus& event_bus)
     : ThemeAwareWindow(parent,
-                       ds.theme_engine(),
+                       ds.theme,
                        wxID_ANY,
                        wxDefaultPosition,
                        wxDefaultSize,
@@ -77,7 +80,7 @@ void SidebarHeader::set_breadcrumb(const std::vector<std::string>& path)
 void SidebarHeader::UpdateMetrics()
 {
     // Use PanelHeader metric for now as they are visually similar
-    auto metrics = ds_.sizes.resolve(ComponentKind::kPanelHeader);
+    auto metrics = ds_.component_sizes.resolve(ComponentKind::kPanelHeader);
     height_ = metrics.height;
     SetMinSize(wxSize(-1, height_));
     SetMaxSize(wxSize(-1, height_));
@@ -113,8 +116,8 @@ void SidebarHeader::OnPaint(wxPaintEvent& /*event*/)
     wxAutoBufferedPaintDC dc(this);
 
     // Background
-    auto current_theme = theme();
-    dc.SetBackground(wxBrush(current_theme.color(core::ThemeColorToken::SideBarBackground)));
+    auto& current_theme = ds_.theme;
+    dc.SetBackground(wxBrush(current_theme.color(core::ThemeColorToken::SidebarBg)));
     dc.Clear();
 
     wxSize size = GetClientSize();
@@ -122,8 +125,8 @@ void SidebarHeader::OnPaint(wxPaintEvent& /*event*/)
     if (mode_ == SidebarHeaderMode::kTitle)
     {
         // Title Text
-        dc.SetFont(ds_.typography.get_font(TypeSlot::kLabelStrong));
-        dc.SetTextForeground(current_theme.color(core::ThemeColorToken::SideBarTitleForeground));
+        dc.SetFont(ds_.typography.font(TypeSlot::kBodyStrong));
+        dc.SetTextForeground(current_theme.color(core::ThemeColorToken::SidebarFg));
 
         wxSize extent = dc.GetTextExtent(title_);
 
@@ -138,10 +141,9 @@ void SidebarHeader::OnPaint(wxPaintEvent& /*event*/)
         // Hover background
         if (is_hovering_collapse_all_ || is_pressed_collapse_all_)
         {
-            wxColour bg_color =
-                is_pressed_collapse_all_
-                    ? current_theme.color(core::ThemeColorToken::ToolbarActiveBackground)
-                    : current_theme.color(core::ThemeColorToken::ToolbarHoverBackground);
+            wxColour bg_color = is_pressed_collapse_all_
+                                    ? current_theme.color(core::ThemeColorToken::ControlBgPressed)
+                                    : current_theme.color(core::ThemeColorToken::ControlBgHover);
 
             dc.SetPen(*wxTRANSPARENT_PEN);
             dc.SetBrush(wxBrush(bg_color));
@@ -153,14 +155,23 @@ void SidebarHeader::OnPaint(wxPaintEvent& /*event*/)
         }
 
         auto icon_color = is_hovering_collapse_all_
-                              ? current_theme.color(core::ThemeColorToken::IconForeground)
-                              : current_theme.color(core::ThemeColorToken::SideBarTitleForeground);
+                              ? current_theme.color(core::ThemeColorToken::SidebarFg)
+                              : current_theme.color(core::ThemeColorToken::SidebarFg);
 
-        icon_manager_.render_icon(dc,
-                                  "action-collapse-all",
-                                  wxPoint(collapse_all_rect_.x, collapse_all_rect_.y),
-                                  16,
-                                  icon_color);
+        icon_manager_.draw_icon(dc,
+                                "action-collapse-all",
+                                collapse_all_rect_.x,
+                                collapse_all_rect_.y,
+                                wxSize(16, 16),
+                                icon_color);
+    }
+
+    if (HasFocus())
+    {
+        auto client_size = GetClientSize();
+        dc.SetPen(wxPen(current_theme.color(core::ThemeColorToken::FocusRingColor)));
+        dc.SetBrush(*wxTRANSPARENT_BRUSH);
+        dc.DrawRectangle(0, 0, client_size.x, height_);
     }
 }
 
@@ -212,6 +223,18 @@ void SidebarHeader::OnMouseLeave(wxMouseEvent& event)
         SetControlCursor(ControlCursorType::kArrow);
         RefreshRect(collapse_all_rect_.Inflate(4));
     }
+    event.Skip();
+}
+
+void SidebarHeader::OnSetFocus(wxFocusEvent& event)
+{
+    Refresh();
+    event.Skip();
+}
+
+void SidebarHeader::OnKillFocus(wxFocusEvent& event)
+{
+    Refresh();
     event.Skip();
 }
 

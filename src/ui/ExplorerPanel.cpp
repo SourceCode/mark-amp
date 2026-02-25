@@ -16,14 +16,35 @@ namespace markamp::ui
 ExplorerPanel::ExplorerPanel(wxWindow* parent,
                              core::ThemeEngine& theme_engine,
                              core::EventBus& event_bus,
+                             core::Config* config,
                              DesignSystemContext& ds,
                              IconManager& icon_manager)
     : ThemeAwareWindow(
-          parent, theme_engine, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxNO_BORDER)
+          parent, theme_engine, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE)
     , event_bus_(event_bus)
+    , config_(config)
 {
     SetBackgroundColour(theme_engine.color(core::ThemeColorToken::BgPanel));
     CreateLayout(ds, icon_manager);
+
+    if (config_ && file_tree_)
+    {
+        int scroll_y = config_->get_int("sidebar.explorer.state.scroll_y", 0);
+        file_tree_->SetScrollOffset(scroll_y);
+    }
+}
+
+ExplorerPanel::~ExplorerPanel()
+{
+    if (config_ && file_tree_)
+    {
+        config_->set("sidebar.explorer.state.scroll_y", file_tree_->GetScrollOffset());
+        auto result = config_->save();
+        if (!result)
+        {
+            // Log error or handle failure
+        }
+    }
 }
 
 void ExplorerPanel::CreateLayout(DesignSystemContext& ds, IconManager& icon_manager)
@@ -61,7 +82,8 @@ void ExplorerPanel::CreateLayout(DesignSystemContext& ds, IconManager& icon_mana
     auto* sections_sizer = new wxBoxSizer(wxVERTICAL);
 
     // "Open Editors"
-    open_editors_section_ = new SidebarSection(this, ds, icon_manager, event_bus_, "OPEN EDITORS");
+    open_editors_section_ = new SidebarSection(
+        this, ds, icon_manager, event_bus_, config_, "OPEN EDITORS", "open_editors");
     auto* empty_editors = new wxPanel(open_editors_section_);
     auto* empty_editors_sizer = new wxBoxSizer(wxVERTICAL);
     auto* empty_label = new wxStaticText(empty_editors, wxID_ANY, "No editors open.");
@@ -73,7 +95,8 @@ void ExplorerPanel::CreateLayout(DesignSystemContext& ds, IconManager& icon_mana
     open_editors_section_->set_expanded(false); // Collapsed by default
 
     // "Folders" (Workspace)
-    folders_section_ = new SidebarSection(this, ds, icon_manager, event_bus_, "WORKSPACE");
+    folders_section_ =
+        new SidebarSection(this, ds, icon_manager, event_bus_, config_, "WORKSPACE", "folders");
 
     // We'll use a container panel so we can swap between the tree and the empty state
     auto* workspace_container = new wxPanel(folders_section_, wxID_ANY);
@@ -105,14 +128,16 @@ void ExplorerPanel::CreateLayout(DesignSystemContext& ds, IconManager& icon_mana
     folders_section_->set_expanded(true);
 
     // Outline
-    outline_section_ = new SidebarSection(this, ds, icon_manager, event_bus_, "OUTLINE");
+    outline_section_ =
+        new SidebarSection(this, ds, icon_manager, event_bus_, config_, "OUTLINE", "outline");
     auto* empty_outline = new wxPanel(outline_section_);
     empty_outline->SetSizer(new wxBoxSizer(wxVERTICAL));
     outline_section_->set_content(empty_outline);
     outline_section_->set_expanded(false);
 
     // Timeline
-    timeline_section_ = new SidebarSection(this, ds, icon_manager, event_bus_, "TIMELINE");
+    timeline_section_ =
+        new SidebarSection(this, ds, icon_manager, event_bus_, config_, "TIMELINE", "timeline");
     auto* empty_timeline = new wxPanel(timeline_section_);
     empty_timeline->SetSizer(new wxBoxSizer(wxVERTICAL));
     timeline_section_->set_content(empty_timeline);

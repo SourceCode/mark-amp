@@ -114,6 +114,16 @@ add_library(markamp_core STATIC
     ${CMAKE_SOURCE_DIR}/src/ui/accessibility/AccessibilityAuditor.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/accessibility/AccessibilityTokenMapper.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/accessibility/SkipToContentButton.cpp
+)
+if(APPLE)
+    target_sources(markamp_core PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/MacScreenReaderBridge.mm)
+elseif(WIN32)
+    target_sources(markamp_core PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/WinScreenReaderBridge.cpp)
+elseif(UNIX AND NOT APPLE)
+    target_sources(markamp_core PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/LinuxScreenReaderBridge.cpp)
+endif()
+
+target_sources(markamp_core PRIVATE
     ${CMAKE_SOURCE_DIR}/src/ui/LayoutMetrics.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/ColorPaletteGenerator.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/animation/EasingFunctions.cpp
@@ -141,6 +151,9 @@ add_library(markamp_core STATIC
     ${CMAKE_SOURCE_DIR}/src/ui/IconManager.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/IconLibrary.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/FileTypeIconResolver.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/ThemeAwareWindow.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/BreadcrumbBar.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/FocusRingRenderer.cpp
     # V3 Phases 1–3: Block Data Model, ID Generation, Notebook
     ${CMAKE_SOURCE_DIR}/src/core/Block.cpp
     ${CMAKE_SOURCE_DIR}/src/core/BlockID.cpp
@@ -5626,3 +5639,13 @@ add_executable(test_phase07_activity_bar
 )
 target_link_libraries(test_phase07_activity_bar PRIVATE markamp_core Catch2::Catch2WithMain)
 add_test(NAME test_phase07_activity_bar COMMAND test_phase07_activity_bar)
+
+add_executable(test_phase08_sidebar 
+    unit/test_phase08_sidebar.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/SidebarHeader.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/SidebarSection.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/EmptyPanelState.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/SidebarFooter.cpp
+)
+target_link_libraries(test_phase08_sidebar PRIVATE markamp_core Catch2::Catch2WithMain)
+add_test(NAME test_phase08_sidebar COMMAND test_phase08_sidebar)

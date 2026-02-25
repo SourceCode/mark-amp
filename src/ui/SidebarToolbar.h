@@ -25,10 +25,11 @@ struct ToolbarAction
 
 /// Contextual header bar at the top of the sidebar showing the active panel
 /// title and per-mode action buttons (collapse, filter, refresh, etc.).
-class SidebarToolbar : public wxPanel
+class [[deprecated("Use PanelHeader and SidebarHeader from Phase 08")]] SidebarToolbar
+    : public wxPanel
 {
 public:
-    SidebarToolbar(wxWindow* parent, core::ThemeEngine& theme_engine, core::EventBus& event_bus);
+    SidebarToolbar(wxWindow * parent, core::ThemeEngine & theme_engine, core::EventBus & event_bus);
 
     /// Set the title label shown in the toolbar header.
     void SetTitle(const std::string& title);

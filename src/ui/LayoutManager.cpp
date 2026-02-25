@@ -1694,6 +1694,20 @@ LayoutManager::LayoutManager(wxWindow* parent,
             {
                 set_sidebar_visible(true);
             }
+
+            // Focus the sidebar when switched via activity bar
+            auto* sidebar = sidebar_container();
+            if (sidebar != nullptr)
+            {
+                sidebar->SetFocus();
+                if (sidebar_mode_ == kSidebarModeExplorer && explorer_panel_ != nullptr)
+                {
+                    if (auto* tree = explorer_panel_->GetFileTree())
+                    {
+                        tree->SetFocus();
+                    }
+                }
+            }
         });
 
     // Phase 8: Subscribe to sidebar mode switching events
@@ -1714,6 +1728,30 @@ LayoutManager::LayoutManager(wxWindow* parent,
             if (!is_sidebar_visible())
             {
                 set_sidebar_visible(true);
+            }
+        });
+
+    sidebar_focus_sub_ = event_bus_.subscribe<core::events::SidebarFocusRequestEvent>(
+        [this](const core::events::SidebarFocusRequestEvent&)
+        {
+            if (!is_sidebar_visible())
+            {
+                set_sidebar_visible(true);
+            }
+
+            auto* sidebar = sidebar_container();
+            if (sidebar != nullptr)
+            {
+                sidebar->SetFocus();
+
+                // If it's the explorer panel, try to focus the tree
+                if (sidebar_mode_ == kSidebarModeExplorer && explorer_panel_ != nullptr)
+                {
+                    if (auto* tree = explorer_panel_->GetFileTree())
+                    {
+                        tree->SetFocus();
+                    }
+                }
             }
         });
 
@@ -1802,8 +1840,12 @@ void LayoutManager::CreateLayout()
         shell_->get_zone_container(layout::WorkbenchZoneId::kPrimarySidebar);
     auto* explorer_sizer = new wxBoxSizer(wxVERTICAL);
 
-    explorer_panel_ = new ExplorerPanel(
-        primary_sidebar_zone, theme_engine(), event_bus_, *ds_context_, IconManager::get());
+    explorer_panel_ = new ExplorerPanel(primary_sidebar_zone,
+                                        theme_engine(),
+                                        event_bus_,
+                                        config_,
+                                        *ds_context_,
+                                        IconManager::get());
     explorer_sizer->Add(explorer_panel_, 1, wxEXPAND | wxALL, 0);
 
     search_field_ = explorer_panel_->GetSearchField();
@@ -2342,7 +2384,7 @@ void LayoutManager::RegisterSidebarPanels()
         [this](wxWindow* parent) -> wxPanel*
         {
             auto* search_panel = new SearchSidebarPanel(
-                parent, theme_engine(), event_bus_, *ds_context_, IconManager::get());
+                parent, theme_engine(), event_bus_, config_, *ds_context_, IconManager::get());
 
             auto* sidebar_sizer = sidebar_container()->GetSizer();
             if (sidebar_sizer != nullptr)
@@ -2862,11 +2904,6 @@ void LayoutManager::SetSidebarMode(SidebarMode mode)
 auto LayoutManager::GetSidebarMode() const -> SidebarMode
 {
     return sidebar_mode_;
-}
-
-auto LayoutManager::sidebar_toolbar() -> SidebarToolbar*
-{
-    return sidebar_toolbar_;
 }
 
 // Phase 06 Task 11: Toggle secondary sidebar visibility

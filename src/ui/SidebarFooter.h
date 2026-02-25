@@ -20,10 +20,21 @@ public:
     SidebarFooter(wxWindow* parent, DesignSystemContext& ds, core::EventBus& event_bus);
 
     void set_text(const std::string& text);
+    [[nodiscard]] auto get_text() const -> const std::string&
+    {
+        return text_;
+    }
+
+    bool AcceptsFocus() const override
+    {
+        return true;
+    }
 
 protected:
     void OnPaint(wxPaintEvent& event);
     void OnSize(wxSizeEvent& event);
+    void OnSetFocus(wxFocusEvent& event);
+    void OnKillFocus(wxFocusEvent& event);
     void OnThemeChanged(const core::Theme& new_theme) override;
 
 private:

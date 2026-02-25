@@ -2313,6 +2313,67 @@ void MainFrame::RegisterDefaultShortcuts()
     shortcut_manager_.register_shortcut(
         {"view.fullscreen", "Toggle Fullscreen", WXK_F11, wxMOD_NONE, "global", "View", {}});
 
+    // V13 Phase 08 Task 23: Sidebar Navigation Shortcuts
+    shortcut_manager_.register_shortcut(
+        {"view.sidebar.explorer",
+         "Show Explorer",
+         'E',
+         kCmdShift,
+         "global",
+         "View",
+         [this]()
+         {
+             if (event_bus_)
+             {
+                 event_bus_->publish(core::events::ActivityBarSelectionEvent(
+                     core::events::ActivityBarItemId::kFileExplorer));
+             }
+         }});
+    shortcut_manager_.register_shortcut({"view.sidebar.search",
+                                         "Show Search",
+                                         'F',
+                                         kCmdShift,
+                                         "global",
+                                         "View",
+                                         [this]()
+                                         {
+                                             if (event_bus_)
+                                             {
+                                                 event_bus_->publish(
+                                                     core::events::ActivityBarSelectionEvent(
+                                                         core::events::ActivityBarItemId::kSearch));
+                                             }
+                                         }});
+    shortcut_manager_.register_shortcut(
+        {"view.sidebar.extensions",
+         "Show Extensions",
+         'X',
+         kCmdShift,
+         "global",
+         "View",
+         [this]()
+         {
+             if (event_bus_)
+             {
+                 event_bus_->publish(core::events::ActivityBarSelectionEvent(
+                     core::events::ActivityBarItemId::kExtensions));
+             }
+         }});
+    shortcut_manager_.register_shortcut({"view.sidebar.focus",
+                                         "Focus Sidebar",
+                                         '0',
+                                         kCmd,
+                                         "global",
+                                         "View",
+                                         [this]()
+                                         {
+                                             if (event_bus_)
+                                             {
+                                                 event_bus_->publish(
+                                                     core::events::SidebarFocusRequestEvent());
+                                             }
+                                         }});
+
     // Edit shortcuts
     shortcut_manager_.register_shortcut({"edit.undo", "Undo", 'Z', kCmd, "editor", "Edit", {}});
     shortcut_manager_.register_shortcut(
@@ -2390,6 +2451,12 @@ void MainFrame::RegisterDefaultShortcuts()
     shortcut_manager_.register_shortcut(
         {"edit.insert_line_below", "Insert Line Below", WXK_RETURN, kCmd, "editor", "Edit", {}});
 
+    // R7 shortcuts
+    shortcut_manager_.register_shortcut(
+        {"edit.indent_selection", "Indent Selection", ']', kCmd, "editor", "Edit", {}});
+    shortcut_manager_.register_shortcut(
+        {"edit.outdent_selection", "Outdent Selection", '[', kCmd, "editor", "Edit", {}});
+
     // R8 shortcuts
     shortcut_manager_.register_shortcut(
         {"edit.copy_line_up", "Copy Line Up", WXK_UP, kCmdShift | wxMOD_ALT, "editor", "Edit", {}});
@@ -2405,7 +2472,7 @@ void MainFrame::RegisterDefaultShortcuts()
     shortcut_manager_.register_shortcut(
         {"edit.indent_selection", "Indent Selection", ']', kCmd, "editor", "Edit", {}});
     shortcut_manager_.register_shortcut(
-        {"edit.outdent_selection", "Outdent Selection", '[', kCmd, "editor", "Edit", {}});
+        {"edit.outdent_selection", "[", kCmd, "editor", "Edit", {}});
     shortcut_manager_.register_shortcut(
         {"edit.select_word", "Select Word", 'D', kCmd, "editor", "Edit", {}});
     shortcut_manager_.register_shortcut({"edit.jump_to_bracket",
@@ -2547,6 +2614,7 @@ void MainFrame::RegisterPaletteCommands()
                                                event_bus_->publish(evt);
                                            }
                                        }});
+
     command_palette_->RegisterCommand({"Toggle Sidebar",
                                        "View",
                                        shortcut_manager_.get_shortcut_text("view.sidebar"),
@@ -2557,6 +2625,54 @@ void MainFrame::RegisterPaletteCommands()
                                                core::events::SidebarToggleEvent evt;
                                                evt.visible = true;
                                                event_bus_->publish(evt);
+                                           }
+                                       }});
+
+    command_palette_->RegisterCommand(
+        {"Show Explorer",
+         "View",
+         shortcut_manager_.get_shortcut_text("view.sidebar.explorer"),
+         [this]()
+         {
+             if (event_bus_)
+             {
+                 event_bus_->publish(core::events::ActivityBarSelectionEvent(
+                     core::events::ActivityBarItemId::kFileExplorer));
+             }
+         }});
+    command_palette_->RegisterCommand({"Show Search",
+                                       "View",
+                                       shortcut_manager_.get_shortcut_text("view.sidebar.search"),
+                                       [this]()
+                                       {
+                                           if (event_bus_)
+                                           {
+                                               event_bus_->publish(
+                                                   core::events::ActivityBarSelectionEvent(
+                                                       core::events::ActivityBarItemId::kSearch));
+                                           }
+                                       }});
+    command_palette_->RegisterCommand(
+        {"Show Extensions",
+         "View",
+         shortcut_manager_.get_shortcut_text("view.sidebar.extensions"),
+         [this]()
+         {
+             if (event_bus_)
+             {
+                 event_bus_->publish(core::events::ActivityBarSelectionEvent(
+                     core::events::ActivityBarItemId::kExtensions));
+             }
+         }});
+    command_palette_->RegisterCommand({"Focus Sidebar",
+                                       "View",
+                                       shortcut_manager_.get_shortcut_text("view.sidebar.focus"),
+                                       [this]()
+                                       {
+                                           if (event_bus_)
+                                           {
+                                               event_bus_->publish(
+                                                   core::events::SidebarFocusRequestEvent());
                                            }
                                        }});
     command_palette_->RegisterCommand(

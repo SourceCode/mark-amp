@@ -34,6 +34,11 @@ public:
     void set_display_mode(SidebarHeaderMode mode);
     void set_breadcrumb(const std::vector<std::string>& path);
 
+    bool AcceptsFocus() const override
+    {
+        return true;
+    }
+
 protected:
     void OnPaint(wxPaintEvent& event);
     void OnSize(wxSizeEvent& event);
@@ -41,6 +46,8 @@ protected:
     void OnMouseLeftUp(wxMouseEvent& event);
     void OnMouseMotion(wxMouseEvent& event);
     void OnMouseLeave(wxMouseEvent& event);
+    void OnSetFocus(wxFocusEvent& event);
+    void OnKillFocus(wxFocusEvent& event);
 
     void OnThemeChanged(const core::Theme& new_theme) override;
 

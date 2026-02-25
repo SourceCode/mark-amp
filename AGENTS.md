@@ -779,7 +779,11 @@ Mermaid, Table Editor, Format Bar, Theme Gallery, Link Preview, Image Preview, B
 | `FileTreeCtrl`         | File tree with type-ahead, indent guides, 30+ icons, context menus  |
 | `ActivityBar`          | Vertical icon rail (Explorer, Search, Settings, Themes, Extensions) |
 | `BreadcrumbBar`        | Clickable path breadcrumbs with heading glyphs                      |
-| `SidebarToolbar`       | Sidebar toolbar                                                     |
+| `SidebarHeader`        | Top-level sidebar header with workspace name and global actions     |
+| `PanelHeader`          | Reusable header for individual sidebar panels                       |
+| `SidebarSection`       | Collapsible section container for grouping panel content            |
+| `SidebarFooter`        | Optional footer for contextual status information                   |
+| `EmptyPanelState`      | Helpful empty state visualization when a panel has no content       |
 | `SidebarPanelRegistry` | Register sidebar panels                                             |
 | `SidebarMode`          | Sidebar display modes                                               |
 | `BacklinksPanel`       | Sidebar backlinks view                                              |

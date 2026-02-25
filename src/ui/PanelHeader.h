@@ -49,6 +49,11 @@ public:
 
     void set_toolbar(wxWindow* toolbar);
 
+    bool AcceptsFocus() const override
+    {
+        return true;
+    }
+
 protected:
     void OnPaint(wxPaintEvent& event);
     void OnSize(wxSizeEvent& event);
@@ -57,6 +62,8 @@ protected:
     void OnMouseRightUp(wxMouseEvent& event);
     void OnMouseMotion(wxMouseEvent& event);
     void OnMouseLeave(wxMouseEvent& event);
+    void OnSetFocus(wxFocusEvent& event);
+    void OnKillFocus(wxFocusEvent& event);
 
     void OnThemeChanged(const core::Theme& new_theme) override;
 

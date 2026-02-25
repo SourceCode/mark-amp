@@ -7,9 +7,6 @@
 #include "LayoutMetrics.h"
 #include "SidebarPanelRegistry.h"
 #include "SidebarToolbar.h"
-#include "SpacingGrid.h"
-#include "ThemeAwareWindow.h"
-#include "TypographyScale.h"
 #include "core/EventBus.h"
 #include "core/Events.h"
 #include "core/FileNode.h"
@@ -153,9 +150,6 @@ public:
     /// Phase 06 Task 2/4: Lazy panel registry for sidebar modes
     [[nodiscard]] auto sidebar_panel_registry() -> SidebarPanelRegistry&;
 
-    /// Phase 06 Task 10: Sidebar toolbar (contextual header)
-    [[nodiscard]] auto sidebar_toolbar() -> SidebarToolbar*;
-
     /// Phase 06 Task 11: Secondary sidebar on the right side of the content area
     void ToggleSecondarySidebar();
     void SetSecondarySidebarMode(SidebarMode mode);
@@ -229,14 +223,12 @@ private:
     core::Subscription show_explorer_sub_;
     core::Subscription feature_toggled_sub_;
     core::Subscription activity_bar_selection_sub_;
+    core::Subscription sidebar_focus_sub_;
 
     // V8 Phase 6: Canvas workspace
     CanvasWorkspacePanel* canvas_workspace_{nullptr};
     bool canvas_mode_{false};
     core::Subscription board_open_sub_;
-
-    // Phase 06 Task 10: Sidebar toolbar
-    SidebarToolbar* sidebar_toolbar_{nullptr};
 
     // Phase 08 Task 4: Sidebar Transition Animation
     std::unique_ptr<animation::TransitionManager> sidebar_transition_mgr_;

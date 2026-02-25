@@ -1,5 +1,18 @@
 # MarkAmp Release History
 
+## v2.9.44 — 2026-02-25
+
+### Highlights
+
+V13 Phase 08 Tasks 21-25: Primary Sidebar Overhaul completion. Addressed accessibility implementation, added keyboard and Command Palette navigation for sidebar panels, persisted panel and section state across sessions, and built comprehensive Catch2 tests for all sidebar components.
+
+### Added
+
+- **Sidebar Accessibility (Task 22)**: Integrated `AccessibilityController` announcements for all sidebar structural elements (`PanelHeader`, `SidebarSection`, `SidebarFooter`), ensuring proper ARIA-style roles and screen reader navigation.
+- **Sidebar Keyboard Shortcuts (Task 23)**: Registered `Cmd+Shift+E/F/X` for Explorer/Search/Extensions and mapped them actively to the `EventBus` allowing fluid panel switching.
+- **Sidebar Panel State Persistence (Task 24)**: Persisted `SidebarSection` expanded/collapsed status, `ExplorerPanel` scroll positions, and `SearchSidebarPanel` query history natively to `core::Config`.
+- **Primary Sidebar Catch2 Test Suite (Task 25)**: Completed rigorous verification tests for all new sidebar components asserting stable compilation and runtime component integrity.
+
 ## v2.8.43 — 2026-02-24
 
 ### Highlights

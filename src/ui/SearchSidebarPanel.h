@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/Config.h"
 #include "core/EventBus.h"
 #include "core/Events.h"
 #include "core/ThemeEngine.h"
@@ -35,8 +36,10 @@ public:
     SearchSidebarPanel(wxWindow* parent,
                        core::ThemeEngine& theme_engine,
                        core::EventBus& event_bus,
+                       core::Config* config,
                        DesignSystemContext& ds,
                        IconManager& icon_manager);
+    ~SearchSidebarPanel() override;
 
     /// Clear search results and input.
     void ClearResults();
@@ -55,6 +58,7 @@ protected:
 
 private:
     core::EventBus& event_bus_;
+    core::Config* config_{nullptr};
     DesignSystemContext& ds_;
     IconManager& icon_manager_;
 

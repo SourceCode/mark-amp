@@ -373,6 +373,13 @@ void FileTreeCtrl::HideLoadingState()
     Refresh();
 }
 
+void FileTreeCtrl::SetScrollOffset(int offset)
+{
+    scroll_offset_ = std::clamp(offset, 0, std::max(0, virtual_height_ - GetClientSize().y));
+    UpdateScrollbar();
+    Refresh();
+}
+
 void FileTreeCtrl::LoadIcons()
 {
     // Icons are now loaded dynamically via IconManager

@@ -9,7 +9,8 @@
 namespace markamp::core
 {
 class EventBus;
-}
+class Config;
+} // namespace markamp::core
 
 namespace markamp::ui
 {
@@ -23,7 +24,9 @@ public:
                    DesignSystemContext& ds,
                    IconManager& icon_manager,
                    core::EventBus& event_bus,
-                   const std::string& title);
+                   core::Config* config,
+                   const std::string& title,
+                   const std::string& persistence_id = "");
 
     void set_content(wxWindow* content_window);
     [[nodiscard]] auto get_content() const -> wxWindow*
@@ -51,6 +54,16 @@ private:
 
         void UpdateMetrics();
 
+        [[nodiscard]] auto get_title() const -> const std::string&
+        {
+            return title_;
+        }
+
+        bool AcceptsFocus() const override
+        {
+            return true;
+        }
+
     protected:
         void OnPaint(wxPaintEvent& event);
         void OnSize(wxSizeEvent& event);
@@ -58,6 +71,9 @@ private:
         void OnLeftUp(wxMouseEvent& event);
         void OnMotion(wxMouseEvent& event);
         void OnLeave(wxMouseEvent& event);
+        void OnSetFocus(wxFocusEvent& event);
+        void OnKillFocus(wxFocusEvent& event);
+        void OnKeyDown(wxKeyEvent& event);
         void OnThemeChanged(const core::Theme& new_theme) override;
 
     private:
@@ -74,6 +90,8 @@ private:
 
     DesignSystemContext& ds_;
     IconManager& icon_manager_;
+    core::Config* config_{nullptr};
+    std::string persistence_id_;
 
     SectionHeader* header_{nullptr};
     wxWindow* content_{nullptr};

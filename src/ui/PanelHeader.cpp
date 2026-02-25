@@ -7,6 +7,7 @@
 #include "ui/DesignSystemContext.h"
 #include "ui/IconManager.h"
 #include "ui/TypographyScale.h"
+#include "ui/accessibility/AccessibilityController.h"
 
 #include <wx/dataobj.h>
 #include <wx/dcbuffer.h>
@@ -20,12 +21,13 @@ wxBEGIN_EVENT_TABLE(PanelHeader, ThemeAwareWindow) EVT_PAINT(PanelHeader::OnPain
     EVT_SIZE(PanelHeader::OnSize) EVT_LEFT_DOWN(PanelHeader::OnMouseLeftDown)
         EVT_LEFT_UP(PanelHeader::OnMouseLeftUp) EVT_RIGHT_UP(PanelHeader::OnMouseRightUp)
             EVT_MOTION(PanelHeader::OnMouseMotion) EVT_LEAVE_WINDOW(PanelHeader::OnMouseLeave)
-                wxEND_EVENT_TABLE()
+                EVT_SET_FOCUS(PanelHeader::OnSetFocus) EVT_KILL_FOCUS(PanelHeader::OnKillFocus)
+                    wxEND_EVENT_TABLE()
 
-                    PanelHeader::PanelHeader(wxWindow* parent,
-                                             DesignSystemContext& ds,
-                                             IconManager& icon_manager,
-                                             core::EventBus& event_bus)
+                        PanelHeader::PanelHeader(wxWindow* parent,
+                                                 DesignSystemContext& ds,
+                                                 IconManager& icon_manager,
+                                                 core::EventBus& event_bus)
     : ThemeAwareWindow(parent,
                        ds.theme,
                        wxID_ANY,
@@ -235,6 +237,13 @@ void PanelHeader::OnPaint(wxPaintEvent& /*event*/)
         icon_manager_.draw_icon(
             dc, ar.action.icon_name, ar.rect.x, ar.rect.y, wxSize(16, 16), icon_color);
     }
+
+    if (HasFocus())
+    {
+        dc.SetPen(wxPen(current_theme.color(core::ThemeColorToken::FocusRingColor)));
+        dc.SetBrush(*wxTRANSPARENT_BRUSH);
+        dc.DrawRectangle(0, 0, GetClientSize().x, header_height_);
+    }
 }
 
 void PanelHeader::OnMouseLeftDown(wxMouseEvent& event)
@@ -363,6 +372,18 @@ void PanelHeader::OnMouseLeave(wxMouseEvent& event)
     {
         SetControlCursor(ControlCursorType::kArrow);
     }
+    event.Skip();
+}
+
+void PanelHeader::OnSetFocus(wxFocusEvent& event)
+{
+    Refresh();
+    event.Skip();
+}
+
+void PanelHeader::OnKillFocus(wxFocusEvent& event)
+{
+    Refresh();
     event.Skip();
 }
 

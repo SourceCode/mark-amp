@@ -2,6 +2,7 @@
 
 #include "ui/DesignSystemContext.h"
 #include "ui/TypographyScale.h"
+#include "ui/accessibility/AccessibilityController.h"
 
 #include <wx/dcbuffer.h>
 
@@ -9,11 +10,12 @@ namespace markamp::ui
 {
 
 wxBEGIN_EVENT_TABLE(SidebarFooter, ThemeAwareWindow) EVT_PAINT(SidebarFooter::OnPaint)
-    EVT_SIZE(SidebarFooter::OnSize) wxEND_EVENT_TABLE()
+    EVT_SIZE(SidebarFooter::OnSize) EVT_SET_FOCUS(SidebarFooter::OnSetFocus)
+        EVT_KILL_FOCUS(SidebarFooter::OnKillFocus) wxEND_EVENT_TABLE()
 
-        SidebarFooter::SidebarFooter(wxWindow* parent,
-                                     DesignSystemContext& ds,
-                                     core::EventBus& /*event_bus*/)
+            SidebarFooter::SidebarFooter(wxWindow* parent,
+                                         DesignSystemContext& ds,
+                                         core::EventBus& /*event_bus*/)
     : ThemeAwareWindow(parent,
                        ds.theme,
                        wxID_ANY,
@@ -31,6 +33,7 @@ void SidebarFooter::set_text(const std::string& text)
     if (text_ != text)
     {
         text_ = text;
+        accessibility::AccessibilityController::get().announce(text_, false);
         Refresh();
     }
 }
@@ -50,6 +53,19 @@ void SidebarFooter::OnThemeChanged(const core::Theme& /*new_theme*/)
 
 void SidebarFooter::OnSize(wxSizeEvent& event)
 {
+    event.Skip();
+}
+
+void SidebarFooter::OnSetFocus(wxFocusEvent& event)
+{
+    accessibility::AccessibilityController::get().announce_focus(text_, "Status", "");
+    Refresh();
+    event.Skip();
+}
+
+void SidebarFooter::OnKillFocus(wxFocusEvent& event)
+{
+    Refresh();
     event.Skip();
 }
 
@@ -75,6 +91,13 @@ void SidebarFooter::OnPaint(wxPaintEvent& /*event*/)
 
     int left_padding = 10;
     dc.DrawText(text_, left_padding, (footer_height_ - extent.y) / 2);
+
+    if (HasFocus())
+    {
+        dc.SetPen(wxPen(current_theme.color(core::ThemeColorToken::FocusRingColor)));
+        dc.SetBrush(*wxTRANSPARENT_BRUSH);
+        dc.DrawRectangle(0, 0, size.x, footer_height_);
+    }
 }
 
 } // namespace markamp::ui

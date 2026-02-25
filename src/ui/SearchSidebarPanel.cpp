@@ -100,11 +100,13 @@ wxBEGIN_EVENT_TABLE(MatchBadge, ThemeAwareWindow) EVT_PAINT(MatchBadge::OnPaint)
     SearchSidebarPanel::SearchSidebarPanel(wxWindow* parent,
                                            core::ThemeEngine& theme_engine,
                                            core::EventBus& event_bus,
+                                           core::Config* config,
                                            DesignSystemContext& ds,
                                            IconManager& icon_manager)
     : ThemeAwareWindow(
           parent, theme_engine, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE)
     , event_bus_(event_bus)
+    , config_(config)
     , ds_(ds)
     , icon_manager_(icon_manager)
 {
@@ -191,8 +193,8 @@ wxBEGIN_EVENT_TABLE(MatchBadge, ThemeAwareWindow) EVT_PAINT(MatchBadge::OnPaint)
     header->set_toolbar(toolbar_panel);
 
     // Search Details Section
-    auto* details_section =
-        new SidebarSection(this, ds_, icon_manager_, event_bus_, "Search Details");
+    auto* details_section = new SidebarSection(
+        this, ds_, icon_manager_, event_bus_, config_, "Search Details", "search_details");
     auto* details_panel = new wxPanel(details_section, wxID_ANY);
     details_panel->SetBackgroundColour(GetBackgroundColour());
     auto* details_sizer = new wxBoxSizer(wxVERTICAL);
@@ -254,6 +256,18 @@ wxBEGIN_EVENT_TABLE(MatchBadge, ThemeAwareWindow) EVT_PAINT(MatchBadge::OnPaint)
     main_sizer->Add(footer_, 0, wxEXPAND);
 
     SetSizer(main_sizer);
+
+    // Load persisted state
+    if (config_)
+    {
+        search_input_->SetValue(config_->get_string("sidebar.search.state.query"));
+        replace_input_->SetValue(config_->get_string("sidebar.search.state.replace"));
+        files_include_input_->SetValue(config_->get_string("sidebar.search.state.include"));
+        files_exclude_input_->SetValue(config_->get_string("sidebar.search.state.exclude"));
+        regex_cb_->SetValue(config_->get_bool("sidebar.search.state.regex"));
+        case_cb_->SetValue(config_->get_bool("sidebar.search.state.case_sensitive"));
+        word_cb_->SetValue(config_->get_bool("sidebar.search.state.whole_word"));
+    }
 
     // Bind events
     search_input_->Bind(wxEVT_SEARCHCTRL_SEARCH_BTN, &SearchSidebarPanel::OnSearch, this);
@@ -420,6 +434,27 @@ void SearchSidebarPanel::OnResultSelected(wxCommandEvent& /*event*/)
     }
 
     MARKAMP_LOG_INFO("SearchSidebarPanel: Result selected at index {}", sel);
+}
+
+SearchSidebarPanel::~SearchSidebarPanel()
+{
+    if (config_)
+    {
+        config_->set("sidebar.search.state.query", search_input_->GetValue().ToStdString());
+        config_->set("sidebar.search.state.replace", replace_input_->GetValue().ToStdString());
+        config_->set("sidebar.search.state.include",
+                     files_include_input_->GetValue().ToStdString());
+        config_->set("sidebar.search.state.exclude",
+                     files_exclude_input_->GetValue().ToStdString());
+        config_->set("sidebar.search.state.regex", regex_cb_->GetValue());
+        config_->set("sidebar.search.state.case_sensitive", case_cb_->GetValue());
+        config_->set("sidebar.search.state.whole_word", word_cb_->GetValue());
+        auto result = config_->save();
+        if (!result)
+        {
+            // Log error
+        }
+    }
 }
 
 } // namespace markamp::ui

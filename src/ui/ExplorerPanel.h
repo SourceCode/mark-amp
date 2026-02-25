@@ -2,6 +2,7 @@
 
 #include "SidebarSection.h"
 #include "ThemeAwareWindow.h"
+#include "core/Config.h"
 #include "core/EventBus.h"
 #include "core/FileNode.h"
 #include "core/ThemeEngine.h"
@@ -24,9 +25,10 @@ class ExplorerPanel : public ThemeAwareWindow
 public:
     ExplorerPanel(wxWindow* parent,
                   core::ThemeEngine& theme_engine,
-                  core::EventBus& event_bus,
+                  core::Config* config,
                   DesignSystemContext& ds,
                   IconManager& icon_manager);
+    ~ExplorerPanel() override;
 
     FileTreeCtrl* GetFileTree() const
     {
@@ -51,6 +53,7 @@ private:
     void CreateLayout(DesignSystemContext& ds, IconManager& icon_manager);
 
     core::EventBus& event_bus_;
+    core::Config* config_{nullptr};
     std::function<void(const core::FileNode&)> on_file_open_;
 
     SidebarSection* open_editors_section_{nullptr};
