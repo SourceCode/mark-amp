@@ -1689,7 +1689,93 @@ LayoutManager::LayoutManager(wxWindow* parent,
     secondary_sidebar_selection_sub_ =
         event_bus_.subscribe<core::events::SecondarySidebarSelectionEvent>(
             [this](const core::events::SecondarySidebarSelectionEvent& evt)
-            { SetSecondarySidebarMode(evt.item); });
+            {
+                // Phase 09 Task 16: Panel Duplication Detection
+                if (evt.item != "" && evt.item == GetSidebarMode())
+                {
+                    MARKAMP_LOG_WARN(
+                        "Phase 09 Task 16: Panel '{}' is now duplicated in both sidebars.",
+                        evt.item);
+                }
+
+                SetSecondarySidebarMode(evt.item);
+                if (activity_bar_ != nullptr)
+                {
+                    activity_bar_->SetSecondaryActiveItem(evt.item);
+                }
+            });
+
+    // Phase 09 Task 22: Auto-open Outline in Secondary Sidebar
+    file_opened_sub_ = event_bus_.subscribe<core::events::FileOpenedEvent>(
+        [this]([[maybe_unused]] const core::events::FileOpenedEvent& evt)
+        {
+            if (GetSidebarMode() == kSidebarModeExplorer)
+            {
+                if (config_ &&
+                    config_->get_bool("workbench.secondarySidebar.autoOpenOutline", true))
+                {
+                    if (secondary_sidebar_mode_ != kSidebarModeOutline)
+                    {
+                        if (!is_secondary_sidebar_visible())
+                            ToggleSecondarySidebar();
+                        SetSecondarySidebarMode(kSidebarModeOutline);
+                        if (secondary_tab_strip_ &&
+                            !secondary_tab_strip_->HasTab(kSidebarModeOutline))
+                        {
+                            auto icon = secondary_panel_registry_.GetIconChar(kSidebarModeOutline);
+                            auto label = secondary_panel_registry_.GetLabel(kSidebarModeOutline);
+                            secondary_tab_strip_->AddTab(kSidebarModeOutline, icon, label);
+                        }
+                    }
+                }
+            }
+        });
+
+    // Phase 09 Task 6: Panel drag and drop
+    sidebar_panel_moved_sub_ = event_bus_.subscribe<core::events::SidebarPanelMovedEvent>(
+        [this](const core::events::SidebarPanelMovedEvent& evt)
+        {
+            if (activity_bar_ == nullptr || secondary_tab_strip_ == nullptr)
+                return;
+
+            if (evt.target_sidebar == "primary")
+            {
+                secondary_tab_strip_->RemoveTab(evt.panel_id);
+                activity_bar_->SetItemVisible(evt.panel_id, true);
+
+                SetSidebarMode(evt.panel_id);
+                activity_bar_->SetActiveItem(evt.panel_id);
+                if (!is_sidebar_visible())
+                {
+                    set_sidebar_visible(true);
+                }
+            }
+            else if (evt.target_sidebar == "secondary")
+            {
+                activity_bar_->SetItemVisible(evt.panel_id, false);
+
+                std::string label = secondary_panel_registry_.GetLabel(evt.panel_id);
+                if (label.empty())
+                {
+                    label = panel_registry_.GetLabel(evt.panel_id);
+                }
+
+                std::string icon = secondary_panel_registry_.GetIconChar(evt.panel_id);
+                if (icon.empty())
+                {
+                    icon = panel_registry_.GetIconChar(evt.panel_id);
+                }
+
+                secondary_tab_strip_->AddTab(evt.panel_id, icon, label);
+
+                SetSecondarySidebarMode(evt.panel_id);
+                activity_bar_->SetSecondaryActiveItem(evt.panel_id);
+                if (!is_secondary_sidebar_visible())
+                {
+                    set_secondary_sidebar_visible(true);
+                }
+            }
+        });
 
     // Phase 06: Subscribe to ActivityBar selection events to switch sidebar mode
     activity_bar_selection_sub_ = event_bus_.subscribe<core::events::ActivityBarSelectionEvent>(
@@ -1838,7 +1924,9 @@ void LayoutManager::CreateLayout()
 
     // --- Activity Bar (Task 8) ---
     auto* activity_bar_zone = shell_->get_zone_container(layout::WorkbenchZoneId::kActivityBar);
-    auto* activity_bar = new ActivityBar(activity_bar_zone, *ds_context_, event_bus_, config_);
+    activity_bar_ = new ActivityBar(activity_bar_zone, *ds_context_, event_bus_, config_);
+    auto* activity_bar = activity_bar_;
+    activity_bar->CreateItems();
     auto* activity_bar_sizer = new wxBoxSizer(wxVERTICAL);
     activity_bar_sizer->Add(activity_bar, 1, wxEXPAND);
     activity_bar_zone->SetSizer(activity_bar_sizer);
@@ -1993,18 +2081,62 @@ void LayoutManager::CreateLayout()
         secondary_sidebar_zone, theme_engine(), *ds_context_, event_bus_, config_);
     secondary_sizer->Add(secondary_tab_strip_, 0, wxEXPAND);
 
-    for (const auto& mode : secondary_panel_registry_.AllModes())
+    std::string panels_str =
+        config_ ? config_->get_string("workbench.secondarySidebar.panels", "SEARCH") : "SEARCH";
+    std::vector<std::string> default_panels;
+    std::stringstream ss(panels_str);
+    std::string item;
+    while (std::getline(ss, item, ','))
     {
-        secondary_tab_strip_->AddTab(mode,
-                                     secondary_panel_registry_.GetIconChar(mode),
-                                     secondary_panel_registry_.GetLabel(mode));
+        if (!item.empty())
+        {
+            default_panels.push_back(item);
+        }
     }
+
+    for (const auto& mode : default_panels)
+    {
+        if (secondary_panel_registry_.IsRegistered(mode))
+        {
+            secondary_tab_strip_->AddTab(mode,
+                                         secondary_panel_registry_.GetIconChar(mode),
+                                         secondary_panel_registry_.GetLabel(mode));
+        }
+    }
+
+    if (!default_panels.empty() && secondary_panel_registry_.IsRegistered(default_panels.front()))
+    {
+        secondary_sidebar_mode_ = default_panels.front();
+    }
+    else
+    {
+        auto modes = secondary_panel_registry_.AllModes();
+        if (!modes.empty())
+        {
+            secondary_sidebar_mode_ = modes.front();
+        }
+    }
+
     secondary_tab_strip_->SetActiveMode(secondary_sidebar_mode_);
 
     secondary_sidebar_container_ = new wxPanel(secondary_sidebar_zone, wxID_ANY);
     auto* secondary_content_sizer = new wxBoxSizer(wxVERTICAL);
     secondary_sidebar_container_->SetSizer(secondary_content_sizer);
     secondary_sizer->Add(secondary_sidebar_container_, 1, wxEXPAND);
+
+    // Phase 09 Task 15: Secondary Sidebar Empty State
+    secondary_empty_state_ = new wxStaticText(secondary_sidebar_container_,
+                                              wxID_ANY,
+                                              "No panels assigned.\nDrag a panel here to view.",
+                                              wxDefaultPosition,
+                                              wxDefaultSize,
+                                              wxALIGN_CENTER_HORIZONTAL);
+    secondary_empty_state_->SetForegroundColour(
+        theme_engine().color(core::ThemeColorToken::TextMuted));
+    secondary_content_sizer->AddStretchSpacer(1);
+    secondary_content_sizer->Add(secondary_empty_state_, 0, wxALIGN_CENTER);
+    secondary_content_sizer->AddStretchSpacer(1);
+    secondary_empty_state_->Hide();
 
     secondary_sidebar_zone->SetSizer(secondary_sizer);
 
@@ -2140,9 +2272,20 @@ void LayoutManager::toggle_sidebar()
 
 void LayoutManager::set_sidebar_visible(bool visible)
 {
-    if (shell_)
+    sidebar_visible_ = visible;
+    if (shell_ != nullptr)
+    {
         shell_->set_zone_visible(layout::WorkbenchZoneId::kPrimarySidebar, visible);
-    SaveLayoutState();
+    }
+}
+
+void LayoutManager::set_secondary_sidebar_visible(bool visible)
+{
+    secondary_sidebar_visible_ = visible;
+    if (shell_ != nullptr)
+    {
+        shell_->set_zone_visible(layout::WorkbenchZoneId::kSecondarySidebar, visible);
+    }
 }
 
 auto LayoutManager::is_sidebar_visible() const -> bool
@@ -2860,6 +3003,26 @@ void LayoutManager::RegisterSecondarySidebarPanels()
             p->Hide();
             return p;
         });
+
+    secondary_panel_registry_.Register(
+        kSidebarModeOutline,
+        "OUTLINE",
+        "\xF0\x9F\x93\x83", // 📄
+        [this](wxWindow* parent) -> wxPanel*
+        {
+            auto* p = new wxPanel(parent, wxID_ANY);
+            p->SetBackgroundColour(theme_engine().color(core::ThemeColorToken::BgPanel));
+            auto* sizer = new wxBoxSizer(wxVERTICAL);
+            auto* label =
+                new wxStaticText(p, wxID_ANY, "Outline Panel (Stub)\nProvides document structure.");
+            label->SetForegroundColour(theme_engine().color(core::ThemeColorToken::TextMuted));
+            sizer->AddStretchSpacer(1);
+            sizer->Add(label, 0, wxALIGN_CENTER);
+            sizer->AddStretchSpacer(1);
+            p->SetSizer(sizer);
+            p->Hide();
+            return p;
+        });
 }
 
 void LayoutManager::SetSidebarMode(SidebarMode mode)
@@ -2979,6 +3142,17 @@ void LayoutManager::SetSecondarySidebarMode(SidebarMode mode)
     }
 
     auto previous_mode = secondary_sidebar_mode_;
+
+    // Phase 09 Task 19: Save previous panel width
+    if (shell_ && config_ && !previous_mode.empty())
+    {
+        int width = shell_->get_zone_bounds(layout::WorkbenchZoneId::kSecondarySidebar).GetWidth();
+        if (width > 0)
+        {
+            config_->set("workbench.secondarySidebar.panelWidth." + previous_mode, width);
+        }
+    }
+
     secondary_sidebar_mode_ = mode;
 
     if (secondary_tab_strip_ != nullptr)
@@ -2995,13 +3169,50 @@ void LayoutManager::SetSecondarySidebarMode(SidebarMode mode)
     auto* old_panel =
         secondary_panel_registry_.GetOrCreate(previous_mode, secondary_sidebar_container_);
 
-    if (target_panel != nullptr && old_panel != nullptr && target_panel != old_panel)
+    if (old_panel != nullptr)
+    {
+        old_panel->Hide();
+    }
+
+    if (target_panel != nullptr)
     {
         secondary_sidebar_container_->Freeze();
-        old_panel->Hide();
+        if (secondary_empty_state_ != nullptr)
+        {
+            secondary_empty_state_->Hide();
+        }
         target_panel->Show();
+
+        // Phase 09 Task 19: Restore new panel width
+        if (shell_ && config_)
+        {
+            int default_width = config_->get_int("workbench.secondarySidebar.panelWidth." + mode,
+                                                 LayoutManager::kDefaultSidebarWidth);
+            shell_->set_zone_width(layout::WorkbenchZoneId::kSecondarySidebar, default_width);
+        }
+
         secondary_sidebar_container_->Layout();
         secondary_sidebar_container_->Thaw();
+    }
+    else if (mode == "" && secondary_empty_state_ != nullptr)
+    {
+        // Phase 09 Task 15: Empty State
+        secondary_sidebar_container_->Freeze();
+        secondary_empty_state_->Show();
+        secondary_sidebar_container_->Layout();
+        secondary_sidebar_container_->Thaw();
+    }
+}
+
+void LayoutManager::SwapSidebars()
+{
+    auto primary = GetSidebarMode();
+    auto secondary = secondary_sidebar_mode_;
+
+    if (!primary.empty() && !secondary.empty())
+    {
+        SetSidebarMode(secondary);
+        SetSecondarySidebarMode(primary);
     }
 }
 

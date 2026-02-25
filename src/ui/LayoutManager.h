@@ -154,7 +154,11 @@ public:
     /// Phase 06 Task 11: Secondary sidebar on the right side of the content area
     void ToggleSecondarySidebar();
     void SetSecondarySidebarMode(SidebarMode mode);
+    void set_secondary_sidebar_visible(bool visible);
     [[nodiscard]] auto is_secondary_sidebar_visible() const -> bool;
+
+    // Phase 09 Task 21: Sidebar Swap Command
+    void SwapSidebars();
 
     static constexpr int kDefaultSidebarWidth = 256;
     static constexpr int kMinSidebarWidth = 180;
@@ -225,6 +229,7 @@ private:
     core::Subscription feature_toggled_sub_;
     core::Subscription activity_bar_selection_sub_;
     core::Subscription sidebar_focus_sub_;
+    core::Subscription file_opened_sub_; // Phase 09 Task 22: Side-by-side auto outline
 
     // V8 Phase 6: Canvas workspace
     CanvasWorkspacePanel* canvas_workspace_{nullptr};
@@ -237,10 +242,14 @@ private:
     // Phase 06 Task 11 / Phase 09: Secondary sidebar
     bool secondary_sidebar_visible_{false};
     SidebarMode secondary_sidebar_mode_{kSidebarModeSearch};
+    // Phase 09 Task 2 & 3: Secondary Sidebar
     SidebarPanelRegistry secondary_panel_registry_;
+    ActivityBar* activity_bar_{nullptr};
     SecondarySidebarTabStrip* secondary_tab_strip_{nullptr};
     wxPanel* secondary_sidebar_container_{nullptr};
+    wxStaticText* secondary_empty_state_{nullptr}; // Phase 09 Task 15: Empty State Label
     core::Subscription secondary_sidebar_selection_sub_;
+    core::Subscription sidebar_panel_moved_sub_;
 
     // Phase 06 Task 15/16: Zen and Presentation Mode state
     bool zen_mode_{false};

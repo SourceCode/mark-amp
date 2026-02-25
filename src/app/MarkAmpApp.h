@@ -85,6 +85,11 @@ public:
     static constexpr int kMinWidth = 800;
     static constexpr int kMinHeight = 600;
 
+    [[nodiscard]] auto quick_pick_service() const -> core::QuickPickService*
+    {
+        return quick_pick_service_.get();
+    }
+
 private:
     // Core services (owned by the app, lifetime-managed)
     std::unique_ptr<core::EventBus> event_bus_;

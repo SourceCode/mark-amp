@@ -315,9 +315,9 @@ void PanelHeader::OnMouseMotion(wxMouseEvent& event)
             Refresh();
             Update();
 
-            wxCustomDataObject drag_data(wxDataFormat("MarkAmpPanelDrag"));
-            std::string payload = title_;
-            drag_data.SetData(payload.size(), payload.c_str());
+            // R20 Fix 21: Use wxTextDataObject for easier cross-panel drop target
+            std::string payload = "MARKAMP_PANEL:" + panel_id_;
+            wxTextDataObject drag_data(payload);
 
             wxDropSource drag_source(this);
             drag_source.SetData(drag_data);

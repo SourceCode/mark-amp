@@ -922,6 +922,7 @@ add_test(NAME test_sidebar_filter COMMAND test_sidebar_filter)
 add_executable(test_phase09_secondary_sidebar
     test_phase09_secondary_sidebar.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/SidebarPanelRegistry.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/SecondarySidebarTabStrip.cpp
 )
 target_include_directories(test_phase09_secondary_sidebar PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_phase09_secondary_sidebar PRIVATE

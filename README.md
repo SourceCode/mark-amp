@@ -1,6 +1,6 @@
 # MarkAmp
 
-**v2.3.16** — A powerful, cross-platform Markdown editor built with C++23 and wxWidgets. Canvas whiteboarding, knowledge graphs, AI writing assistance, plugin architecture, and 50 feature phases in a retro-futuristic package.
+**v2.10.47** — A powerful, cross-platform Markdown editor built with C++23 and wxWidgets. Canvas whiteboarding, knowledge graphs, AI writing assistance, plugin architecture, and 50 feature phases in a retro-futuristic package.
 
 ---
 

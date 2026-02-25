@@ -38,7 +38,8 @@ public:
                        core::EventBus& event_bus,
                        core::Config* config,
                        DesignSystemContext& ds,
-                       IconManager& icon_manager);
+                       IconManager& icon_manager,
+                       const std::string& persistence_id = "");
     ~SearchSidebarPanel() override;
 
     /// Clear search results and input.
@@ -61,6 +62,7 @@ private:
     core::Config* config_{nullptr};
     DesignSystemContext& ds_;
     IconManager& icon_manager_;
+    std::string persistence_id_;
 
     wxSearchCtrl* search_input_{nullptr};
     wxTextCtrl* replace_input_{nullptr};

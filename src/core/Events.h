@@ -3855,6 +3855,12 @@ std::string panel_id; ///< Panel that changed
 bool visible{false};  ///< New visibility state
 MARKAMP_DECLARE_EVENT_END;
 
+/// Fired when a panel is dragged between sidebars.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SidebarPanelMovedEvent)
+std::string panel_id;       ///< Panel identifier
+std::string target_sidebar; ///< "primary" or "secondary"
+MARKAMP_DECLARE_EVENT_END;
+
 // ── Phase 42: PDF Viewer & Document Import ──────────────────────────────────
 
 /// Fired when a PDF document is loaded.

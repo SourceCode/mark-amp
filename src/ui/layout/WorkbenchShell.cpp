@@ -202,6 +202,21 @@ auto WorkbenchShell::is_zone_visible(WorkbenchZoneId id) const -> bool
     return layout_model_.is_zone_visible(id);
 }
 
+auto WorkbenchShell::get_zone_bounds(WorkbenchZoneId id) const -> wxRect
+{
+    return layout_model_.get_state(id).bounds;
+}
+
+void WorkbenchShell::set_zone_width(WorkbenchZoneId id, int width)
+{
+    if (layout_model_.is_zone_visible(id))
+    {
+        const auto& state = layout_model_.get_state(id);
+        layout_model_.set_zone_size_override(id, width, state.current_height);
+        trigger_layout();
+    }
+}
+
 void WorkbenchShell::OnThemeChanged(const core::Theme& new_theme)
 {
     ThemeAwareWindow::OnThemeChanged(new_theme);
@@ -217,6 +232,23 @@ void WorkbenchShell::OnSize(wxSizeEvent& event)
 {
     auto sz = event.GetSize();
     layout_model_.update_window_size(sz.GetWidth(), sz.GetHeight());
+
+    // Phase 09 Task 14: Panel Content Height (Width) Constraints
+    // Ensure both sidebars and editor remain usable.
+    const int minimum_double_sidebar_window_width = 750;
+    if (sz.GetWidth() < minimum_double_sidebar_window_width &&
+        is_zone_visible(WorkbenchZoneId::kSecondarySidebar))
+    {
+        auto_hidden_secondary_ = true;
+        set_zone_visible(WorkbenchZoneId::kSecondarySidebar, false);
+    }
+    else if (sz.GetWidth() >= minimum_double_sidebar_window_width && auto_hidden_secondary_ &&
+             !is_zone_visible(WorkbenchZoneId::kSecondarySidebar))
+    {
+        auto_hidden_secondary_ = false;
+        set_zone_visible(WorkbenchZoneId::kSecondarySidebar, true);
+    }
+
     trigger_layout();
     event.Skip();
 }

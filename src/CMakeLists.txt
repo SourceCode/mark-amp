@@ -744,7 +744,7 @@ elseif(UNIX)
     target_sources(markamp PRIVATE platform/LinuxPlatform.cpp platform/LinuxScreenReaderBridge.cpp)
 endif()
 
-project(MarkAmp VERSION 2.7.34 LANGUAGES CXX)
+project(MarkAmp VERSION 2.10.47 LANGUAGES CXX)
 
 # Include paths -- src/ is the root for includes like "app/MarkAmpApp.h"
 target_include_directories(markamp PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

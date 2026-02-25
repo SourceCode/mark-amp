@@ -239,11 +239,12 @@ void Config::apply_defaults()
     }};
 
     // Additional entries that don't fit in constexpr array due to variant limitations
-    static const std::array<DefaultEntry, 4> kExtraDefaults = {{
+    static const std::array<DefaultEntry, 5> kExtraDefaults = {{
         {"editor.padding_top", 0},
         {"editor.padding_bottom", 0},
         {"editor.bracket_pair_colorization", false},
         {"syntax.dim_whitespace", false},
+        {"workbench.secondarySidebar.panels", "search"},
     }};
 
     auto apply_entry = [this](const DefaultEntry& entry)

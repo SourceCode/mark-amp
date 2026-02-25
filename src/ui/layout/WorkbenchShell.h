@@ -22,6 +22,8 @@ public:
 
     void set_zone_visible(WorkbenchZoneId id, bool visible);
     [[nodiscard]] auto is_zone_visible(WorkbenchZoneId id) const -> bool;
+    [[nodiscard]] auto get_zone_bounds(WorkbenchZoneId id) const -> wxRect;
+    void set_zone_width(WorkbenchZoneId id, int width);
 
     // Forces immediate reflow based on the layout model
     void trigger_layout();
@@ -54,6 +56,9 @@ private:
     std::function<void(WorkbenchZoneId)> on_zone_resized_;
 
     animation::TransitionManager transition_manager_{this};
+
+    bool auto_hidden_secondary_{
+        false}; // Phase 09 Task 14: Track auto-hidden state due to window width limits
 
     void OnSize(wxSizeEvent& event);
 };

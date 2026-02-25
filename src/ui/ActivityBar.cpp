@@ -15,7 +15,9 @@
 
 #include <nlohmann/json.hpp>
 #include <wx/app.h>
+#include <wx/dataobj.h>
 #include <wx/dcbuffer.h>
+#include <wx/dnd.h>
 #include <wx/graphics.h>
 #include <wx/menu.h>
 
@@ -150,6 +152,33 @@ ActivityBar::ActivityBar(wxWindow* parent,
         });
 
     Bind(wxEVT_SIZE, &ActivityBar::OnSize, this);
+
+    // Phase 09 Task 6: Panel Drop Target for Primary Sidebar
+    class PrimaryPanelDropTarget : public wxTextDropTarget
+    {
+    public:
+        explicit PrimaryPanelDropTarget(core::EventBus& bus)
+            : bus_(bus)
+        {
+        }
+        bool OnDropText(wxCoord /*x*/, wxCoord /*y*/, const wxString& data) override
+        {
+            if (data.StartsWith("MARKAMP_PANEL:"))
+            {
+                std::string panel_id = data.Mid(14).ToStdString();
+                core::events::SidebarPanelMovedEvent evt;
+                evt.panel_id = panel_id;
+                evt.target_sidebar = "primary";
+                bus_.publish(evt);
+                return true;
+            }
+            return false;
+        }
+
+    private:
+        core::EventBus& bus_;
+    };
+    SetDropTarget(new PrimaryPanelDropTarget(event_bus_));
 }
 
 void ActivityBar::CreateItems()
@@ -247,9 +276,59 @@ void ActivityBar::SetActiveItem(core::events::ActivityBarItem item)
     Refresh();
 }
 
+void ActivityBar::AddItem(const ActivityBarItemModel& item)
+{
+    model_.add_item(item);
+    UpdateItemBounds();
+    Refresh();
+}
+
+void ActivityBar::RemoveItem(const std::string& item_id)
+{
+    model_.remove_item(item_id);
+    // If the removed item was active, reset appropriately
+    if (active_item_ == item_id)
+    {
+        auto visible = model_.visible_items();
+        if (!visible.empty())
+        {
+            active_item_ = visible.front().item_id;
+        }
+        else
+        {
+            active_item_ = "";
+        }
+    }
+    UpdateItemBounds();
+    Refresh();
+}
+
+void ActivityBar::SetItemVisible(const std::string& item_id, bool visible)
+{
+    model_.set_item_visible(item_id, visible);
+    if (!visible && active_item_ == item_id)
+    {
+        auto visible_items = model_.visible_items();
+        active_item_ = visible_items.empty() ? "" : visible_items.front().item_id;
+    }
+    UpdateItemBounds();
+    Refresh();
+}
+
 auto ActivityBar::GetActiveItem() const -> core::events::ActivityBarItem
 {
     return active_item_;
+}
+
+void ActivityBar::SetSecondaryActiveItem(core::events::ActivityBarItem item)
+{
+    secondary_active_item_ = item;
+    Refresh();
+}
+
+auto ActivityBar::GetSecondaryActiveItem() const -> core::events::ActivityBarItem
+{
+    return secondary_active_item_;
 }
 
 void ActivityBar::ApplyTheme()
@@ -385,6 +464,7 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
         const int item_y = bounds.GetY();
 
         const bool kIsActive = (item.item_id == active_item_);
+        const bool kIsSecondaryActive = (item.item_id == secondary_active_item_);
         const bool kIsHover = (item_index == hover_index_);
 
         // R17 Fix 30: Active item background highlight — subtle accent tint
@@ -439,6 +519,13 @@ void ActivityBar::OnPaint(wxPaintEvent& /*event*/)
             paint_dc.SetPen(*wxTRANSPARENT_PEN);
             // Task 3: 2px wide
             paint_dc.DrawRectangle(0, item_y, 2, kBarWidth);
+        }
+        else if (kIsSecondaryActive)
+        {
+            // Phase 09 Task 5: Secondary Active state right side dot
+            paint_dc.SetBrush(wxBrush(clr.text_muted.to_wx_colour()));
+            paint_dc.SetPen(*wxTRANSPARENT_PEN);
+            paint_dc.DrawCircle(kBarWidth - 6, item_y + (kBarWidth / 2), 2);
         }
 
         const int kIconSize = 24;

@@ -41,8 +41,18 @@ public:
     /// R18 Fix 25: Set badge count on an activity bar item
     void SetBadge(core::events::ActivityBarItem item, int count);
 
+    /// Set the currently active item in the secondary sidebar
+    void SetSecondaryActiveItem(core::events::ActivityBarItem item);
+
+    /// Get the currently active secondary item
+    [[nodiscard]] auto GetSecondaryActiveItem() const -> core::events::ActivityBarItem;
+
     /// Phase 06 Task 6: Focus management
     void FocusItem(int index);
+
+    void AddItem(const ActivityBarItemModel& item);
+    void RemoveItem(const std::string& item_id);
+    void SetItemVisible(const std::string& item_id, bool visible);
 
     DesignSystemContext& ds_;
     core::EventBus& event_bus_;
@@ -52,6 +62,7 @@ public:
     std::vector<wxRect> item_bounds_;
     std::unordered_map<std::string, float> badge_scales_;
     core::events::ActivityBarItem active_item_{core::events::ActivityBarItemId::kFileExplorer};
+    core::events::ActivityBarItem secondary_active_item_;
 
     bool overflow_active_{false};
     wxRect overflow_button_bounds_;

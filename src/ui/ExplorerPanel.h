@@ -28,7 +28,8 @@ public:
                   core::EventBus& event_bus,
                   core::Config* config,
                   DesignSystemContext& ds,
-                  IconManager& icon_manager);
+                  IconManager& icon_manager,
+                  const std::string& persistence_id = "");
     ~ExplorerPanel() override;
 
     FileTreeCtrl* GetFileTree() const
@@ -55,6 +56,7 @@ private:
 
     core::EventBus& event_bus_;
     core::Config* config_{nullptr};
+    std::string persistence_id_;
     std::function<void(const core::FileNode&)> on_file_open_;
 
     SidebarSection* open_editors_section_{nullptr};

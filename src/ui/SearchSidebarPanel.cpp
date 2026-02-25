@@ -102,13 +102,15 @@ wxBEGIN_EVENT_TABLE(MatchBadge, ThemeAwareWindow) EVT_PAINT(MatchBadge::OnPaint)
                                            core::EventBus& event_bus,
                                            core::Config* config,
                                            DesignSystemContext& ds,
-                                           IconManager& icon_manager)
+                                           IconManager& icon_manager,
+                                           const std::string& persistence_id)
     : ThemeAwareWindow(
           parent, theme_engine, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE)
     , event_bus_(event_bus)
     , config_(config)
     , ds_(ds)
     , icon_manager_(icon_manager)
+    , persistence_id_(persistence_id)
 {
     SetBackgroundColour(theme_engine.resolve_token("sidebar.bg")
                             .value_or(theme_engine.color(core::ThemeColorToken::BgPanel)));
@@ -194,7 +196,13 @@ wxBEGIN_EVENT_TABLE(MatchBadge, ThemeAwareWindow) EVT_PAINT(MatchBadge::OnPaint)
 
     // Search Details Section
     auto* details_section = new SidebarSection(
-        this, ds_, icon_manager_, event_bus_, config_, "Search Details", "search_details");
+        this,
+        ds_,
+        icon_manager_,
+        event_bus_,
+        config_,
+        "Search Details",
+        (persistence_id_.empty() ? "" : persistence_id_ + "_") + "search_details");
     auto* details_panel = new wxPanel(details_section, wxID_ANY);
     details_panel->SetBackgroundColour(GetBackgroundColour());
     auto* details_sizer = new wxBoxSizer(wxVERTICAL);
@@ -260,13 +268,15 @@ wxBEGIN_EVENT_TABLE(MatchBadge, ThemeAwareWindow) EVT_PAINT(MatchBadge::OnPaint)
     // Load persisted state
     if (config_)
     {
-        search_input_->SetValue(config_->get_string("sidebar.search.state.query"));
-        replace_input_->SetValue(config_->get_string("sidebar.search.state.replace"));
-        files_include_input_->SetValue(config_->get_string("sidebar.search.state.include"));
-        files_exclude_input_->SetValue(config_->get_string("sidebar.search.state.exclude"));
-        regex_cb_->SetValue(config_->get_bool("sidebar.search.state.regex"));
-        case_cb_->SetValue(config_->get_bool("sidebar.search.state.case_sensitive"));
-        word_cb_->SetValue(config_->get_bool("sidebar.search.state.whole_word"));
+        std::string prefix =
+            "sidebar." + (persistence_id_.empty() ? "" : persistence_id_ + ".") + "search.state.";
+        search_input_->SetValue(config_->get_string(prefix + "query"));
+        replace_input_->SetValue(config_->get_string(prefix + "replace"));
+        files_include_input_->SetValue(config_->get_string(prefix + "include"));
+        files_exclude_input_->SetValue(config_->get_string(prefix + "exclude"));
+        regex_cb_->SetValue(config_->get_bool(prefix + "regex"));
+        case_cb_->SetValue(config_->get_bool(prefix + "case_sensitive"));
+        word_cb_->SetValue(config_->get_bool(prefix + "whole_word"));
     }
 
     // Bind events
@@ -440,15 +450,15 @@ SearchSidebarPanel::~SearchSidebarPanel()
 {
     if (config_)
     {
-        config_->set("sidebar.search.state.query", search_input_->GetValue().ToStdString());
-        config_->set("sidebar.search.state.replace", replace_input_->GetValue().ToStdString());
-        config_->set("sidebar.search.state.include",
-                     files_include_input_->GetValue().ToStdString());
-        config_->set("sidebar.search.state.exclude",
-                     files_exclude_input_->GetValue().ToStdString());
-        config_->set("sidebar.search.state.regex", regex_cb_->GetValue());
-        config_->set("sidebar.search.state.case_sensitive", case_cb_->GetValue());
-        config_->set("sidebar.search.state.whole_word", word_cb_->GetValue());
+        std::string prefix =
+            "sidebar." + (persistence_id_.empty() ? "" : persistence_id_ + ".") + "search.state.";
+        config_->set(prefix + "query", search_input_->GetValue().ToStdString());
+        config_->set(prefix + "replace", replace_input_->GetValue().ToStdString());
+        config_->set(prefix + "include", files_include_input_->GetValue().ToStdString());
+        config_->set(prefix + "exclude", files_exclude_input_->GetValue().ToStdString());
+        config_->set(prefix + "regex", regex_cb_->GetValue());
+        config_->set(prefix + "case_sensitive", case_cb_->GetValue());
+        config_->set(prefix + "whole_word", word_cb_->GetValue());
         auto result = config_->save();
         if (!result)
         {

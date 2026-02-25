@@ -12,6 +12,7 @@
 #include "core/EventBus.h"
 #include "core/Events.h"
 #include "core/Logger.h"
+#include "core/QuickPickService.h"
 #include "core/ShortcutManager.h"
 #include "core/ThemeEngine.h"
 #include "ui/AccessibilityModel.h"
@@ -24,6 +25,7 @@
 #include "ui/accessibility/SkipToContentButton.h"
 
 #include <wx/aboutdlg.h>
+#include <wx/app.h>
 #include <wx/display.h>
 #include <wx/dnd.h>
 #include <wx/filedlg.h>
@@ -2678,6 +2680,62 @@ void MainFrame::RegisterPaletteCommands()
     command_palette_->RegisterCommand(
         {"Toggle Zen Mode", "View", shortcut_manager_.get_shortcut_text("view.zen"), [this]() {
              toggleZenMode();
+         }});
+
+    command_palette_->RegisterCommand(
+        {"Open in Secondary Sidebar...",
+         "View",
+         shortcut_manager_.get_shortcut_text("workbench.action.openInSecondarySidebar"),
+         [this]()
+         {
+             auto& app = static_cast<app::MarkAmpApp&>(*wxTheApp);
+             if (auto* qps = app.quick_pick_service())
+             {
+                 std::vector<core::QuickPickItem> items = {
+                     {"Explorer", "Open Explorer in secondary sidebar", "", false},
+                     {"Search", "Open Search in secondary sidebar", "", false}};
+
+                 core::QuickPickOptions options;
+                 options.title = "Select Panel for Secondary Sidebar";
+                 options.placeholder = "Select a panel...";
+
+                 qps->show(items,
+                           options,
+                           [this](const std::optional<core::QuickPickItem>& selected)
+                           {
+                               if (selected && event_bus_)
+                               {
+                                   core::events::ActivityBarItem item_id;
+                                   if (selected->label == "Explorer")
+                                   {
+                                       item_id = core::events::ActivityBarItemId::kFileExplorer;
+                                   }
+                                   else if (selected->label == "Search")
+                                   {
+                                       item_id = core::events::ActivityBarItemId::kSearch;
+                                   }
+                                   else
+                                   {
+                                       return;
+                                   }
+                                   event_bus_->publish(
+                                       core::events::SecondarySidebarSelectionEvent(item_id));
+                               }
+                           });
+             }
+         }});
+
+    // Phase 09 Task 21: Swap Sidebars Command
+    command_palette_->RegisterCommand(
+        {"Swap Sidebars",
+         "View",
+         shortcut_manager_.get_shortcut_text("workbench.action.swapSidebars"),
+         [this]()
+         {
+             if (layout_)
+             {
+                 layout_->SwapSidebars();
+             }
          }});
 
     // Phase 05: Accessibility Modes

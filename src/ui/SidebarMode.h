@@ -23,5 +23,6 @@ constexpr const char* kSidebarModeGit = "workbench.view.git";
 constexpr const char* kSidebarModeTasks = "workbench.view.tasks";
 constexpr const char* kSidebarModeDatabase = "workbench.view.database";
 constexpr const char* kSidebarModePresentation = "workbench.view.presentation";
+constexpr const char* kSidebarModeOutline = "workbench.view.outline";
 
 } // namespace markamp::ui

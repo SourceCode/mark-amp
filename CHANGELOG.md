@@ -1,5 +1,26 @@
 # MarkAmp Release History
 
+## v2.10.47 — 2026-02-25
+
+### Highlights
+
+V13 Phase 09 completion: Implemented full Secondary Sidebar dual-workflow with tab drag-and-drop, isolated panel width memory, and automated side-by-side Outline+Explorer views. Comprehensive Catch2 tests for tab state transitions. All UX actions mapped via command palette and responsive window geometry constraints.
+
+### Added
+
+- **Secondary Sidebar Empty State**: Elegant `EmptyPanelState` guides users when no active secondary panels are configured.
+- **Tab Drag & Drop Reordering**: Fluid UI dragging implementation built cleanly without external drop-target dependencies directly inside `SecondarySidebarTabStrip`.
+- **Side-by-Side Outline View**: Automatic listener catches `FileOpenedEvent` to pop open the current document's Outline natively in the secondary sidebar frame when the primary frame stays as Explorer.
+- **Catch2 Test Suite**: New `test_phase09_secondary_sidebar.cpp` rigorously asserts the addition, setting, and removal fallback flows of `SecondarySidebarTabStrip`.
+- **Command Palette Swap Sidebars**: Internal `SwapSidebars()` fluidly moves primary panels onto the right edge and vice-versa, mapped via the command palette.
+
+### Changed
+
+- **Tab Closing & Fallback Logic**: Added close (x) target on lateral tabs smoothly transitioning back to the last active panel or an empty state when depleted.
+- **Independent Panel Widths**: Individual panels in the secondary sidebar distinctively remember their size (`workbench.secondarySidebar.panelWidth.[mode]`) across views.
+- **Dual Sidebar Layout Constraints**: Enhanced `WorkbenchShell::OnSize` locking core editor usable width space against collapsing side panels.
+- **Duplicate Panel Warning**: `LayoutManager` issues logs avoiding duplicate rendering when targeting the same panel content across primary and secondary surfaces simultaneously.
+
 ## v2.9.45 — 2026-02-25
 
 ### Highlights

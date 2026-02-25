@@ -10,7 +10,7 @@
 | Field           | Value                                                                                                                      |
 | --------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | Name            | **MarkAmp**                                                                                                                |
-| Version         | **2.9.45**                                                                                                                 |
+| Version         | **2.10.47**                                                                                                                |
 | Language        | C++23 (C++26-ready patterns)                                                                                               |
 | UI Toolkit      | wxWidgets 3.2.9                                                                                                            |
 | Build System    | CMake 3.30+ with presets                                                                                                   |
@@ -786,6 +786,8 @@ Mermaid, Table Editor, Format Bar, Theme Gallery, Link Preview, Image Preview, B
 | `EmptyPanelState`      | Helpful empty state visualization when a panel has no content       |
 | `SidebarPanelRegistry` | Register sidebar panels                                             |
 | `SidebarMode`          | Sidebar display modes                                               |
+| `SecondarySidebar`     | Secondary sidebar wrapper framework                                 |
+| `SecondaryTabStrip`    | Horizontal drag-and-drop tab strip for secondary layout payload     |
 | `BacklinksPanel`       | Sidebar backlinks view                                              |
 | `SearchSidebarPanel`   | Search sidebar                                                      |
 | `GraphSidebarPanel`    | Knowledge graph sidebar                                             |
