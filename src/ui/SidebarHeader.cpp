@@ -74,7 +74,17 @@ void SidebarHeader::set_display_mode(SidebarHeaderMode mode)
 
 void SidebarHeader::set_breadcrumb(const std::vector<std::string>& path)
 {
-    breadcrumb_->SetFilePath(path);
+    std::string full_path;
+    for (const auto& segment : path)
+    {
+        if (!full_path.empty())
+            full_path += "/";
+        full_path += segment;
+    }
+    if (breadcrumb_ != nullptr)
+    {
+        breadcrumb_->SetFilePath(full_path, "");
+    }
 }
 
 void SidebarHeader::UpdateMetrics()

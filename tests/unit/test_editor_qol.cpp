@@ -220,3 +220,28 @@ TEST_CASE("kColorTokenCount integrity after Phase 9", "[theme][phase9]")
     REQUIRE(markamp::core::kColorTokenCount > quick_fix_idx);
     CHECK(markamp::core::kColorTokenCount >= 30);
 }
+
+TEST_CASE("Minimap animation transition manager init", "[editor][minimap]")
+{
+    WxInit init; // Ensure wxWidgets is initialized for EditorPanel creation
+
+    markamp::core::EventBus event_bus;
+    markamp::core::ThemeRegistry theme_registry;
+    markamp::core::ThemeEngine theme_engine(event_bus, theme_registry);
+
+    auto* frame = new wxFrame(nullptr, wxID_ANY, "Test Frame");
+    auto* editor = new markamp::ui::EditorPanel(frame, theme_engine, event_bus);
+
+    // Initial state: minimap invisible
+    REQUIRE(editor->GetZoomLevel() == 0); // Side effect assertion
+
+    // Toggle minimap to trigger initialization of MinimapPanel and TransitionManager
+    editor->ToggleMinimap();
+
+    // Since transition manager is tested via the side effects inside EditorPanel (layout changes)
+    // we just ensure calling ToggleMinimap multiple times doesn't crash or leak state.
+    editor->ToggleMinimap();
+    editor->ToggleMinimap();
+
+    frame->Destroy();
+}

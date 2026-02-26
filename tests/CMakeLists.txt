@@ -111,6 +111,10 @@ add_library(markamp_core STATIC
     ${CMAKE_SOURCE_DIR}/src/ui/SidebarSkeletonPlaceholder.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/WebviewHostPanel.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/WalkthroughPanel.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/GutterDecorationProvider.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/CodeLensProvider.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/GitGutterProvider.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/MergeConflictResolver.cpp
     # V10 Phase 01: Unified control state tracking
     ${CMAKE_SOURCE_DIR}/src/ui/ControlState.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/FocusManager.cpp
@@ -158,6 +162,7 @@ target_sources(markamp_core PRIVATE
     ${CMAKE_SOURCE_DIR}/src/ui/FileTypeIconResolver.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/ThemeAwareWindow.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/BreadcrumbBar.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/BreadcrumbDropdown.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/FocusRingRenderer.cpp
     # V3 Phases 1–3: Block Data Model, ID Generation, Notebook
     ${CMAKE_SOURCE_DIR}/src/core/Block.cpp
@@ -843,6 +848,8 @@ add_test(NAME test_design_system COMMAND test_design_system)
 add_executable(test_editor_qol
     unit/test_editor_qol.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/EditorPanel.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/MinimapPanel.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/OverviewRulerPanel.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/ThemeAwareWindow.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/FloatingFormatBar.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/LinkPreviewPopover.cpp
@@ -5696,3 +5703,9 @@ add_executable(test_phase08_sidebar
 )
 target_link_libraries(test_phase08_sidebar PRIVATE markamp_core Catch2::Catch2WithMain)
 add_test(NAME test_phase08_sidebar COMMAND test_phase08_sidebar)
+
+# Phase 14: Editor Gutter and Decorations
+add_executable(test_phase14_gutter unit/test_phase14_gutter.cpp)
+target_include_directories(test_phase14_gutter PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_phase14_gutter PRIVATE markamp_core Catch2::Catch2WithMain)
+add_test(NAME test_phase14_gutter COMMAND test_phase14_gutter)

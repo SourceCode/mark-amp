@@ -766,6 +766,8 @@ Mermaid, Table Editor, Format Bar, Theme Gallery, Link Preview, Image Preview, B
 | Component                 | Purpose                                                                                                             |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------- |
 | `EditorPanel`             | Scintilla-based editor: 60+ VS Code-inspired features, right-click context menu, sticky scroll, 8 Markdown snippets |
+| `MinimapPanel`            | Bespoke custom-rendered token-aware minimap with bitmap caching, viewport slider, and semantic marker overlays      |
+| `OverviewRulerPanel`      | Dedicated right-edge vertical lane displaying code markers (errors, warnings, breakpoints) and editor states        |
 | `PreviewPanel`            | HTML preview with scroll-to-top, print-friendly CSS                                                                 |
 | `SplitView`               | Editor/preview split layout                                                                                         |
 | `EditorGroupManager`      | Multi-editor group support                                                                                          |

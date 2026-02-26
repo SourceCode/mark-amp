@@ -7,7 +7,7 @@
     <Identity
         Name="MarkAmp.Editor"
         Publisher="CN=MarkAmp"
-        Version="2.11.48.0"
+        Version="2.11.50.0"
         ProcessorArchitecture="x64" />
 
     <Properties>
@@ -20,7 +20,7 @@
     <Dependencies>
         <TargetDeviceFamily
             Name="Windows.Desktop"
-            MinVersion="2.11.48.0"
+            MinVersion="2.11.50.0"
             MaxVersionTested="10.0.22621.0" />
     </Dependencies>
 

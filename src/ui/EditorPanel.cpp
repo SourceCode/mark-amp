@@ -4,6 +4,7 @@
 #include "FloatingFormatBar.h"
 #include "ImagePreviewPopover.h"
 #include "LinkPreviewPopover.h"
+#include "MinimapPanel.h"
 #include "TableEditorOverlay.h"
 #include "core/BuiltInPlugins.h"
 #include "core/Config.h"
@@ -92,6 +93,7 @@ void EditorPanel::SetContent(const std::string& content)
     {
         provider->UpdateContent(content_str);
     }
+    RenderGutterDecorations();
 
     // Apply large file optimizations based on content size
     int line_count = editor_->GetLineCount();
@@ -745,7 +747,8 @@ void EditorPanel::PeekProblem(int line)
                     evt.severity = "hint";
                     break;
             }
-            event_bus_.publish(evt);
+
+            event_bus_.get().publish(evt);
             return;
         }
     }
@@ -930,26 +933,37 @@ void EditorPanel::ApplyDiagnosticMarkers()
     editor_->MarkerSetBackground(kHintMarker, wxColour(128, 128, 128));
 
     // Apply markers for each diagnostic
+    diagnostic_markers_.clear();
     for (const auto& diag : diagnostic_indicators_)
     {
         int marker_id = kInfoMarker; // default
+        OverviewMarker overview_marker;
+        overview_marker.line = diag.line;
+
         switch (diag.severity)
         {
             case core::DiagnosticSeverity::kError:
                 marker_id = kErrorMarker;
+                overview_marker.type = OverviewMarkerType::kError;
                 break;
             case core::DiagnosticSeverity::kWarning:
                 marker_id = kWarningMarker;
+                overview_marker.type = OverviewMarkerType::kWarning;
                 break;
             case core::DiagnosticSeverity::kInformation:
                 marker_id = kInfoMarker;
+                overview_marker.type = OverviewMarkerType::kInfo;
                 break;
             case core::DiagnosticSeverity::kHint:
                 marker_id = kHintMarker;
+                overview_marker.type = OverviewMarkerType::kInfo; // Map hint to info color
                 break;
         }
         editor_->MarkerAdd(diag.line, marker_id);
+        diagnostic_markers_.push_back(overview_marker);
     }
+
+    UpdateOverviewRulerMarkers();
 
     // Also refresh inline annotations if enabled
     if (inline_diagnostics_)
@@ -1064,25 +1078,25 @@ void EditorPanel::ApplyVSCodeSettings()
     }
 
     // ── Glyph margin ──
-    if (glyph_margin_)
+    if (code_folding_)
     {
-        editor_->SetMarginWidth(1, 16); // Standard glyph margin width
+        editor_->SetMarginWidth(kMarginFolding, kFoldMarginWidth);
     }
     else
     {
-        editor_->SetMarginWidth(1, 0);
+        editor_->SetMarginWidth(kMarginFolding, 0);
     }
 
     // ── Folding controls visibility ──
     if (show_folding_controls_ == "never")
     {
-        editor_->SetMarginWidth(kFoldMarginIndex, 0);
+        editor_->SetMarginWidth(kMarginFolding, 0);
     }
     else if (show_folding_controls_ == "always" || show_folding_controls_ == "mouseover")
     {
         if (code_folding_)
         {
-            editor_->SetMarginWidth(kFoldMarginIndex, kFoldMarginWidth);
+            editor_->SetMarginWidth(kMarginFolding, kFoldMarginWidth);
         }
     }
 
@@ -1145,6 +1159,9 @@ void EditorPanel::CreateEditor()
     editor_->SetMouseDwellTime(500);
     editor_->Bind(wxEVT_STC_DWELLSTART, &EditorPanel::OnDwellStart, this);
     editor_->Bind(wxEVT_STC_DWELLEND, &EditorPanel::OnDwellEnd, this);
+
+    // Phase 14: Margin clicks for Breakpoints / Bookmarks
+    editor_->Bind(wxEVT_STC_MARGINCLICK, &EditorPanel::OnMarginClick, this);
 }
 
 void EditorPanel::CreateFindBar()
@@ -1296,11 +1313,10 @@ void EditorPanel::ConfigureFoldMargin()
 {
     if (code_folding_)
     {
-        // Enable fold margin (margin index 2)
-        editor_->SetMarginType(kFoldMarginIndex, wxSTC_MARGIN_SYMBOL);
-        editor_->SetMarginMask(kFoldMarginIndex, static_cast<int>(wxSTC_MASK_FOLDERS));
-        editor_->SetMarginWidth(kFoldMarginIndex, kFoldMarginWidth);
-        editor_->SetMarginSensitive(kFoldMarginIndex, true);
+        editor_->SetMarginType(kMarginFolding, wxSTC_MARGIN_SYMBOL);
+        editor_->SetMarginMask(kMarginFolding, static_cast<int>(wxSTC_MASK_FOLDERS));
+        editor_->SetMarginWidth(kMarginFolding, kFoldMarginWidth);
+        editor_->SetMarginSensitive(kMarginFolding, true);
 
         // Fold markers — modern arrow style
         editor_->MarkerDefine(wxSTC_MARKNUM_FOLDER, wxSTC_MARK_ARROWDOWN);
@@ -1322,7 +1338,7 @@ void EditorPanel::ConfigureFoldMargin()
     }
     else
     {
-        editor_->SetMarginWidth(kFoldMarginIndex, 0);
+        editor_->SetMarginWidth(kMarginFolding, 0);
     }
 }
 
@@ -1362,7 +1378,7 @@ void EditorPanel::ApplyLargeFileOptimizations(int line_count)
         // Disable bracket matching for performance
         bracket_matching_ = false;
         // Disable code folding for large files
-        editor_->SetMarginWidth(kFoldMarginIndex, 0);
+        editor_->SetMarginWidth(kMarginFolding, 0);
 
         MARKAMP_LOG_INFO(
             "Large file mode: {} lines (threshold: {})", line_count, large_file_threshold_);
@@ -1425,6 +1441,100 @@ void EditorPanel::SetupSyntaxIndicators()
     editor_->IndicatorSetStyle(kIndicatorHint, wxSTC_INDIC_DOTS);
     editor_->IndicatorSetForeground(kIndicatorHint,
                                     theme_engine().color(core::ThemeColorToken::TextMuted));
+}
+
+void EditorPanel::OnMarginClick(wxStyledTextEvent& event)
+{
+    if (editor_ == nullptr)
+    {
+        return;
+    }
+
+    const int margin = event.GetMargin();
+    const int line = editor_->LineFromPosition(event.GetPosition());
+
+    if (margin == kMarginBookmarks)
+    {
+        if (bookmarks_.count(line) > 0)
+        {
+            bookmarks_.erase(line);
+            editor_->MarkerDelete(line, kMarkerBookmark);
+        }
+        else
+        {
+            bookmarks_.insert(line);
+            editor_->MarkerAdd(line, kMarkerBookmark);
+        }
+        UpdateOverviewRulerMarkers();
+    }
+    else if (margin == kMarginBreakpoints)
+    {
+        int marker_mask = editor_->MarkerGet(line);
+        if ((marker_mask & (1 << kMarkerBreakpoint)) != 0)
+        {
+            editor_->MarkerDelete(line, kMarkerBreakpoint);
+        }
+        else
+        {
+            editor_->MarkerAdd(line, kMarkerBreakpoint);
+        }
+        UpdateOverviewRulerMarkers();
+    }
+}
+
+void EditorPanel::RenderGutterDecorations()
+{
+    if (editor_ == nullptr)
+    {
+        return;
+    }
+
+    editor_->MarkerDeleteAll(kMarkerGitAdded);
+    editor_->MarkerDeleteAll(kMarkerGitModified);
+    editor_->MarkerDeleteAll(kMarkerGitDeleted);
+
+    editor_->MarkerDefine(kMarkerGitAdded, wxSTC_MARK_VLINE);
+    editor_->MarkerSetForeground(kMarkerGitAdded, wxColour(46, 160, 67)); // GitHub Added Green
+    editor_->MarkerSetBackground(kMarkerGitAdded, wxColour(46, 160, 67));
+
+    editor_->MarkerDefine(kMarkerGitModified, wxSTC_MARK_VLINE);
+    editor_->MarkerSetForeground(kMarkerGitModified,
+                                 wxColour(88, 166, 255)); // GitHub Modified Blue
+    editor_->MarkerSetBackground(kMarkerGitModified, wxColour(88, 166, 255));
+
+    editor_->MarkerDefine(kMarkerGitDeleted, wxSTC_MARK_BACKGROUND);
+    editor_->MarkerSetForeground(kMarkerGitDeleted, wxColour(248, 81, 73)); // GitHub Deleted Red
+    editor_->MarkerSetBackground(kMarkerGitDeleted, wxColour(248, 81, 73));
+
+    git_markers_.clear();
+
+    for (const auto& provider : gutter_providers_)
+    {
+        auto decs = provider->GetDecorations();
+        bool is_git = (provider->GetProviderId() == "provider.git_gutter");
+
+        for (const auto& dec : decs)
+        {
+            editor_->MarkerAdd(dec.line, dec.marker_index);
+
+            if (is_git)
+            {
+                OverviewMarker m;
+                m.line = dec.line;
+                if (dec.marker_index == kMarkerGitAdded)
+                    m.type = OverviewMarkerType::kGitAdded;
+                else if (dec.marker_index == kMarkerGitModified)
+                    m.type = OverviewMarkerType::kGitModified;
+                else if (dec.marker_index == kMarkerGitDeleted)
+                    m.type = OverviewMarkerType::kGitDeleted;
+                else
+                    continue;
+                git_markers_.push_back(m);
+            }
+        }
+    }
+
+    UpdateOverviewRulerMarkers();
 }
 
 void EditorPanel::ClearSyntaxOverlays()
@@ -2418,7 +2528,34 @@ void EditorPanel::OnEditorUpdateUI(wxStyledTextEvent& /*event*/)
     evt.line = GetCursorLine();
     evt.column = GetCursorColumn();
     evt.selection_length = std::abs(editor_->GetSelectionEnd() - editor_->GetSelectionStart());
-    event_bus_.publish_fast(evt);
+    event_bus_.get().publish(evt);
+
+    // Phase 15 Task 22: Minimize Viewport Slider Sync
+    if (minimap_ != nullptr && minimap_visible_)
+    {
+        minimap_->SetViewportRange(
+            editor_->GetFirstVisibleLine(), editor_->LinesOnScreen(), editor_->GetLineCount());
+    }
+
+    // Phase 15 Task 5: Overview Ruler Sync
+    if (overview_ruler_ != nullptr && minimap_visible_)
+    {
+        overview_ruler_->SetViewportRange(
+            editor_->GetFirstVisibleLine(), editor_->LinesOnScreen(), editor_->GetLineCount());
+        overview_ruler_->SetCursorLine(editor_->LineFromPosition(editor_->GetCurrentPos()));
+
+        int sel_len = std::abs(editor_->GetSelectionEnd() - editor_->GetSelectionStart());
+        if (sel_len > 0)
+        {
+            int sel_start_line = editor_->LineFromPosition(editor_->GetSelectionStart());
+            int sel_end_line = editor_->LineFromPosition(editor_->GetSelectionEnd());
+            overview_ruler_->SetSelectionRange(sel_start_line, sel_end_line);
+        }
+        else
+        {
+            overview_ruler_->SetSelectionRange(-1, -1);
+        }
+    }
 
     // Check bracket matching
     if (bracket_matching_)
@@ -2785,12 +2922,21 @@ void EditorPanel::OnDebounceTimer(wxTimerEvent& /*event*/)
 
     try
     {
+        const auto content_str = GetContent();
+
         core::events::EditorContentChangedEvent evt;
-        evt.content = GetContent();
-        event_bus_.publish_fast(evt);
+        evt.content = content_str;
+        event_bus_.get().publish(evt);
 
         // QoL Item 10: Status Bar Stats
         CalculateAndPublishStats();
+
+        // Phase 14: Refresh providers on file change
+        for (const auto& provider : gutter_providers_)
+        {
+            provider->UpdateContent(content_str);
+        }
+        RenderGutterDecorations();
     }
     catch (const std::exception& ex)
     {
@@ -3183,6 +3329,8 @@ void EditorPanel::HighlightAllMatches()
     editor_->SetSearchFlags(flags);
 
     int safety = 0;
+    search_markers_.clear();
+
     while (editor_->SearchInTarget(wxString::FromUTF8(search)) != wxSTC_INVALID_POSITION &&
            safety < 100000)
     {
@@ -3190,16 +3338,79 @@ void EditorPanel::HighlightAllMatches()
         auto end = editor_->GetTargetEnd();
         editor_->IndicatorFillRange(start, end - start);
 
+        // Phase 15 Task 5: Record find match marker
+        OverviewMarker marker;
+        marker.line = editor_->LineFromPosition(start);
+        marker.type = OverviewMarkerType::kFindMatch;
+        search_markers_.push_back(marker);
+
         editor_->SetTargetStart(end);
         editor_->SetTargetEnd(editor_->GetLength());
         ++safety;
     }
+
+    UpdateOverviewRulerMarkers();
 }
 
 void EditorPanel::ClearFindHighlights()
 {
     editor_->SetIndicatorCurrent(kIndicatorFind);
     editor_->IndicatorClearRange(0, editor_->GetLength());
+
+    search_markers_.clear();
+    UpdateOverviewRulerMarkers();
+}
+
+void EditorPanel::UpdateOverviewRulerMarkers()
+{
+    if (overview_ruler_ == nullptr)
+    {
+        return;
+    }
+
+    std::vector<OverviewMarker> all_markers;
+    // Pre-reserve for efficiency assuming average distribution
+    all_markers.reserve(search_markers_.size() + diagnostic_markers_.size() + git_markers_.size() +
+                        20);
+
+    all_markers.insert(all_markers.end(), search_markers_.begin(), search_markers_.end());
+    all_markers.insert(all_markers.end(), diagnostic_markers_.begin(), diagnostic_markers_.end());
+    all_markers.insert(all_markers.end(), git_markers_.begin(), git_markers_.end());
+
+    // Phase 15 Task 17 & 18: Add Bookmarks and Breakpoints from Scintilla
+    int line = editor_->MarkerNext(0, 1 << kMarkerBookmark);
+    while (line >= 0)
+    {
+        OverviewMarker m;
+        m.line = line;
+        m.type = OverviewMarkerType::kBookmark;
+        all_markers.push_back(m);
+        line = editor_->MarkerNext(line + 1, 1 << kMarkerBookmark);
+    }
+
+    line = editor_->MarkerNext(0, 1 << kMarkerBreakpoint);
+    while (line >= 0)
+    {
+        OverviewMarker m;
+        m.line = line;
+        m.type = OverviewMarkerType::kBreakpoint;
+        all_markers.push_back(m);
+        line = editor_->MarkerNext(line + 1, 1 << kMarkerBreakpoint);
+    }
+
+    // Phase 15 Task 21: Show fold region boundaries (collapsed indicators)
+    // Wait, wxStyledTextCtrl has ContractedFoldNext(int lineStart).
+    line = editor_->ContractedFoldNext(0);
+    while (line >= 0)
+    {
+        OverviewMarker m;
+        m.line = line;
+        m.type = OverviewMarkerType::kFoldCollapsed;
+        all_markers.push_back(m);
+        line = editor_->ContractedFoldNext(line + 1);
+    }
+
+    overview_ruler_->SetMarkers(all_markers);
 }
 
 } // namespace markamp::ui
@@ -3884,7 +4095,7 @@ void EditorPanel::CalculateAndPublishStats()
 
     evt.selection_length = std::abs(editor_->GetSelectionEnd() - editor_->GetSelectionStart());
 
-    event_bus_.publish(evt);
+    event_bus_.get().publish(evt);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -4423,47 +4634,33 @@ void EditorPanel::CreateMinimap()
         return;
     }
 
-    minimap_ = new wxStyledTextCtrl(this, wxID_ANY);
+    overview_ruler_ = new OverviewRulerPanel(this, theme_engine(), editor_);
+    minimap_ = new MinimapPanel(this, theme_engine(), editor_);
 
-    // Read-only, no visible chrome
-    minimap_->SetReadOnly(true);
-    minimap_->SetUseHorizontalScrollBar(false);
-    minimap_->SetUseVerticalScrollBar(false);
-    minimap_->SetMarginWidth(0, 0);
-    minimap_->SetMarginWidth(1, 0);
-    minimap_->SetMarginWidth(2, 0);
-
-    // Very small font for overview
-    minimap_->StyleSetSize(wxSTC_STYLE_DEFAULT, 1);
-    minimap_->StyleClearAll();
-
-    // Fixed width
-    minimap_->SetMinSize(wxSize(120, -1));
-    minimap_->SetMaxSize(wxSize(120, -1));
-
-    // Disable caret
-    minimap_->SetCaretWidth(0);
-
-    // No cursor in minimap
-    minimap_->SetCursor(wxCURSOR_HAND);
-
-    // Click handler
-    minimap_->Bind(wxEVT_LEFT_DOWN, &EditorPanel::OnMinimapClick, this);
-
-    // Theme: match editor bg/fg
-    const auto& theme_colors = theme().colors;
-    minimap_->StyleSetBackground(wxSTC_STYLE_DEFAULT, theme_colors.bg_app.to_wx_colour());
-    minimap_->StyleSetForeground(wxSTC_STYLE_DEFAULT, theme_colors.text_muted.to_wx_colour());
-    minimap_->StyleClearAll();
+    if (!transition_manager_)
+    {
+        transition_manager_ = std::make_unique<animation::TransitionManager>(this);
+        animation::AnimationConfig config;
+        config.duration = std::chrono::milliseconds(250);
+        config.easing_type = static_cast<animation::EasingType>(3); // kOutCubic/kOutQuint
+        transition_manager_->register_transition("minimap_slide", config);
+    }
 
     // Add to sizer
     auto sizer = GetSizer();
     if (sizer != nullptr)
     {
+        sizer->Add(overview_ruler_, 0, wxEXPAND);
         sizer->Add(minimap_, 0, wxEXPAND);
         sizer->Layout();
     }
 
+    // Initial state: 0 width
+    overview_ruler_->SetMinSize(wxSize(0, -1));
+    overview_ruler_->SetMaxSize(wxSize(0, -1));
+    minimap_->SetMinSize(wxSize(0, -1));
+    minimap_->SetMaxSize(wxSize(0, -1));
+    overview_ruler_->Hide();
     minimap_->Hide();
 }
 
@@ -4476,20 +4673,53 @@ void EditorPanel::ToggleMinimap()
 
     minimap_visible_ = !minimap_visible_;
 
+    const int target_ruler_width = 14;
+    const int target_minimap_width = minimap_max_column_; // e.g. 120
+
     if (minimap_visible_)
     {
         UpdateMinimapContent();
+        overview_ruler_->Show();
         minimap_->Show();
+        GetSizer()->Layout();
+
+        transition_manager_->start<int>(
+            "minimap_slide",
+            0,
+            100,
+            [this, target_ruler_width, target_minimap_width](const int& pct)
+            {
+                int r_w = (target_ruler_width * pct) / 100;
+                int m_w = (target_minimap_width * pct) / 100;
+                overview_ruler_->SetMinSize(wxSize(r_w, -1));
+                overview_ruler_->SetMaxSize(wxSize(r_w, -1));
+                minimap_->SetMinSize(wxSize(m_w, -1));
+                minimap_->SetMaxSize(wxSize(m_w, -1));
+                GetSizer()->Layout();
+            });
     }
     else
     {
-        minimap_->Hide();
-    }
-
-    auto sizer = GetSizer();
-    if (sizer != nullptr)
-    {
-        sizer->Layout();
+        transition_manager_->start<int>(
+            "minimap_slide",
+            100,
+            0,
+            [this, target_ruler_width, target_minimap_width](const int& pct)
+            {
+                int r_w = (target_ruler_width * pct) / 100;
+                int m_w = (target_minimap_width * pct) / 100;
+                overview_ruler_->SetMinSize(wxSize(r_w, -1));
+                overview_ruler_->SetMaxSize(wxSize(r_w, -1));
+                minimap_->SetMinSize(wxSize(m_w, -1));
+                minimap_->SetMaxSize(wxSize(m_w, -1));
+                GetSizer()->Layout();
+            },
+            [this]()
+            {
+                overview_ruler_->Hide();
+                minimap_->Hide();
+                GetSizer()->Layout();
+            });
     }
 }
 
@@ -4502,55 +4732,34 @@ void EditorPanel::UpdateMinimapContent()
 
     auto content = editor_->GetText().ToStdString();
 
-    minimap_->SetReadOnly(false);
-    minimap_->SetText(content);
-    minimap_->SetReadOnly(true);
-
-    // Scroll minimap proportionally to the editor's scroll position
-    int first_line = editor_->GetFirstVisibleLine();
-    int total_lines = editor_->GetLineCount();
-    int minimap_total = minimap_->GetLineCount();
-
-    if (total_lines > 0)
+    // Extract tokens
+    std::vector<SyntaxToken> tokens;
+    int length = editor_->GetLength();
+    for (int pos = 0; pos < length; ++pos)
     {
-        int minimap_line = first_line * minimap_total / total_lines;
-        minimap_->SetFirstVisibleLine(minimap_line);
+        tokens.push_back({pos, 1, editor_->GetStyleAt(pos)});
     }
+
+    minimap_->SetContent(content, tokens);
+
+    // Update viewport scale
+    minimap_->SetViewportRange(
+        editor_->GetFirstVisibleLine(), editor_->LinesOnScreen(), editor_->GetLineCount());
 }
 
-void EditorPanel::OnMinimapClick(wxMouseEvent& event)
+void EditorPanel::OnMinimapClick(wxMouseEvent& /*event*/, int target_line)
 {
-    if (minimap_ == nullptr || editor_ == nullptr)
-    {
-        event.Skip();
+    if (editor_ == nullptr || minimap_ == nullptr || target_line < 0)
         return;
-    }
 
-    // Get click position in minimap coordinates
-    int click_y = event.GetPosition().y;
-    int minimap_height = minimap_->GetClientSize().GetHeight();
-
-    if (minimap_height <= 0)
-    {
-        event.Skip();
-        return;
-    }
-
-    // Calculate proportional position
-    double fraction = static_cast<double>(click_y) / static_cast<double>(minimap_height);
-    int total_lines = editor_->GetLineCount();
-    // New stability #17: clamp target line to valid range
-    int target_line =
-        std::clamp(static_cast<int>(fraction * total_lines), 0, std::max(0, total_lines - 1));
-
-    // Scroll editor to the target line, centering it
-    int visible_lines = editor_->LinesOnScreen();
-    int first_line = std::max(0, target_line - visible_lines / 2);
-    editor_->SetFirstVisibleLine(first_line);
-
-    // Move cursor to that line
     int target_pos = editor_->PositionFromLine(target_line);
     editor_->GotoPos(target_pos);
+    editor_->EnsureVisibleEnforcePolicy(target_line);
+
+    // Center the line in the visible area
+    int visible_lines = editor_->LinesOnScreen();
+    int first_visible = std::max(0, target_line - visible_lines / 2);
+    editor_->SetFirstVisibleLine(first_visible);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -4782,7 +4991,7 @@ void EditorPanel::OnAutoSaveTimer(wxTimerEvent& /*event*/)
         return;
 
     core::events::FileSavedEvent save_evt;
-    event_bus_.publish(save_evt);
+    event_bus_.get().publish(save_evt);
 }
 
 // #10 Insert final newline on save
@@ -5002,7 +5211,7 @@ void EditorPanel::UpdateSelectionCount()
         core::events::EditorStatsChangedEvent stats_evt;
         stats_evt.selection_length = static_cast<int>(selected.length());
         stats_evt.word_count = count; // Reuse field to communicate occurrence count
-        event_bus_.publish_fast(stats_evt);
+        event_bus_.get().publish(stats_evt);
     }
 }
 
@@ -5698,7 +5907,7 @@ void EditorPanel::ToggleWordWrap()
     // Publish status update
     core::events::SettingChangedEvent setting_evt(
         "editor.wordWrap", wrap_mode_ == core::events::WrapMode::Word ? "true" : "false");
-    event_bus_.publish(setting_evt);
+    event_bus_.get().publish(setting_evt);
 }
 
 // #19 Auto-pair markdown emphasis — wrap selection in *, **, or `
@@ -6682,7 +6891,7 @@ void EditorPanel::ShowEditorContextMenu()
                       case 207:
                       {
                           core::events::FindRequestEvent evt;
-                          event_bus_.publish(evt);
+                          event_bus_.get().publish(evt);
                           break;
                       }
                       case 208:

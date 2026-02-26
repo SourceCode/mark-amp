@@ -1,5 +1,19 @@
 # MarkAmp Release History
 
+## v2.11.50 — 2026-02-26
+
+### Highlights
+
+Phase 15: VS Code Integration - Minimap and Overview Ruler MVP completion. Replaced the generic secondary `wxStyledTextCtrl` with a custom-rendered `MinimapPanel` leveraging a highly optimized `wxBitmap` cache. Added comprehensive semantic data overlays covering search matches, diagnostics (errors/warnings), current cursor line, selections, bookmarks, breakpoints, and folded regions. Integrated smoothly synchronized click-to-scroll and drag-to-scroll mechanics directly into the viewport slider. Implemented the `OverviewRulerPanel` to mirror semantic markers consistently on the far right edge of the editor.
+
+### Added
+
+- **Custom Minimap Rendering**: Swapped out Scintilla-based minimaps for a bespoke `MinimapPanel` directly querying character blocks and applying token styling for performance on large files.
+- **Semantic Overlays**: Diagnostic colors (red/yellow/blue), search matches (accent), breakpoints, and bookmarks dynamically draw onto both the Minimap and Overview Ruler.
+- **Viewport Slider UI**: Translucent, bounds-clamped slider overlay explicitly controlling editor viewport line mappings, supporting click and drag.
+- **Slide Animations**: Configured `TransitionManager` to smoothly slide the Minimap in and out of the viewport.
+- **Overview Ruler Panel**: Dedicated right-edge vertical lane to permanently display code markers and editor states regardless of minimap visibility.
+
 ## v2.11.48 — 2026-02-26
 
 ### Highlights

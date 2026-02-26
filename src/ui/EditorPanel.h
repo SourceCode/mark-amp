@@ -1,11 +1,13 @@
 #pragma once
 
 #include "GutterDecorationProvider.h"
+#include "OverviewRulerPanel.h"
 #include "ThemeAwareWindow.h"
 #include "core/DiagnosticsService.h"
 #include "core/EventBus.h"
 #include "core/Events.h"
 #include "core/ThemeEngine.h"
+#include "ui/animation/TransitionManager.h" // Phase 12: Animation
 
 #include <wx/stc/stc.h>
 #include <wx/timer.h>
@@ -25,10 +27,12 @@ class wxStaticText;
 
 namespace markamp::ui
 {
-class FloatingFormatBar;
 class LinkPreviewPopover;
 class ImagePreviewPopover;
 class TableEditorOverlay;
+class MinimapPanel;
+class FloatingFormatBar;
+class FloatingFormatBar;
 } // namespace markamp::ui
 
 namespace markamp::core
@@ -521,6 +525,10 @@ public:
     static constexpr int kMarkerInfo = 5;
     static constexpr int kMarkerQuickFix = 6;
 
+    static constexpr int kMarkerGitAdded = 14;
+    static constexpr int kMarkerGitModified = 15;
+    static constexpr int kMarkerGitDeleted = 16;
+
     // Indicators (Indices > 7)
     static constexpr int kIndicatorSelectionLine = 8;
     static constexpr int kIndicatorError = 9;
@@ -605,6 +613,8 @@ private:
     void ConfigureWhitespace();
     void ConfigureIndentGuides();
     void ApplyLargeFileOptimizations(int line_count);
+    void UpdateLineNumberMargin();
+    void ConfigureFoldMargin();
 
     // ── Phase 2: Syntax overlay painting ──
     void SetupSyntaxIndicators();
@@ -708,11 +718,20 @@ private:
     void OnFormatBarTimer(wxTimerEvent& event);
 
     // ── Phase 6D: Minimap ──
-    wxStyledTextCtrl* minimap_{nullptr};
+    MinimapPanel* minimap_{nullptr};
+    OverviewRulerPanel* overview_ruler_{nullptr};
+    std::vector<OverviewMarker> search_markers_;
+    std::vector<OverviewMarker> diagnostic_markers_;
+    std::vector<OverviewMarker> git_markers_;
+    void UpdateOverviewRulerMarkers();
+
     bool minimap_visible_{false};
     void CreateMinimap();
     void UpdateMinimapContent();
-    void OnMinimapClick(wxMouseEvent& event);
+    void OnMinimapClick(wxMouseEvent& event, int target_line);
+
+    // ── Phase 12: Animation ──
+    std::unique_ptr<animation::TransitionManager> transition_manager_;
 
     // ── VS Code Improvements state ──
     bool auto_closing_brackets_{true};

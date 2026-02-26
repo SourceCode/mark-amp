@@ -81,6 +81,12 @@ add_executable(markamp
     ui/StatusBarPanel.cpp
     ui/FileTreeCtrl.cpp
     ui/EditorPanel.cpp
+    ui/MinimapPanel.cpp
+    ui/OverviewRulerPanel.cpp
+    ui/GutterDecorationProvider.cpp
+    ui/CodeLensProvider.cpp
+    ui/GitGutterProvider.cpp
+    ui/MergeConflictResolver.cpp
     ui/DiffPanel.cpp
     ui/PreviewPanel.cpp
     ui/SplitView.cpp
