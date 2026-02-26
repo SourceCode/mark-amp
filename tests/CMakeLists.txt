@@ -102,6 +102,10 @@ add_library(markamp_core STATIC
     ${CMAKE_SOURCE_DIR}/src/ui/OutputPanel.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/ProblemsPanel.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/TreeViewHost.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/PanelAreaModel.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/PanelTabBar.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/PanelContainer.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/EmptyPanelState.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/PanelHeader.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/SidebarSection.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/SidebarSkeletonPlaceholder.cpp
@@ -150,6 +154,7 @@ target_sources(markamp_core PRIVATE
     ${CMAKE_SOURCE_DIR}/src/ui/IconRegistry.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/IconManager.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/IconLibrary.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/FileTypeIconRegistry.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/FileTypeIconResolver.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/ThemeAwareWindow.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/BreadcrumbBar.cpp
@@ -917,6 +922,24 @@ target_link_libraries(test_sidebar_filter PRIVATE
     markamp_core
 )
 add_test(NAME test_sidebar_filter COMMAND test_sidebar_filter)
+
+# --- Phase 11 Tab Bar Overhaul test ---
+add_executable(test_phase11_tab_bar unit/test_phase11_tab_bar.cpp)
+target_include_directories(test_phase11_tab_bar PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_phase11_tab_bar PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_phase11_tab_bar COMMAND test_phase11_tab_bar)
+
+# --- Phase 10 Panel Area test ---
+add_executable(test_phase10_panel_area unit/test_phase10_panel_area.cpp)
+target_include_directories(test_phase10_panel_area PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_phase10_panel_area PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_phase10_panel_area COMMAND test_phase10_panel_area)
 
 # --- Phase 09 Secondary Sidebar test ---
 add_executable(test_phase09_secondary_sidebar
@@ -4757,6 +4780,17 @@ target_link_libraries(test_breadcrumb_navigation PRIVATE
     markamp_core
 )
 add_test(NAME test_breadcrumb_navigation COMMAND test_breadcrumb_navigation)
+
+add_executable(test_breadcrumb_bar
+    unit/test_breadcrumb_bar.cpp
+)
+target_include_directories(test_breadcrumb_bar PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_breadcrumb_bar PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+    ${wxWidgets_LIBRARIES}
+)
+add_test(NAME test_breadcrumb_bar COMMAND test_breadcrumb_bar)
 
 # V10 Phase 15: Pane Splitter and Resizing Control Improvements
 add_executable(test_splitter_behavior

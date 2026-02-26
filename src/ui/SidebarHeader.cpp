@@ -36,7 +36,7 @@ wxBEGIN_EVENT_TABLE(SidebarHeader, ThemeAwareWindow) EVT_PAINT(SidebarHeader::On
 {
     SetBackgroundStyle(wxBG_STYLE_PAINT);
 
-    breadcrumb_ = new BreadcrumbBar(this, ds);
+    breadcrumb_ = new BreadcrumbBar(this, ds, event_bus_);
     breadcrumb_->Hide();
 
     UpdateMetrics();

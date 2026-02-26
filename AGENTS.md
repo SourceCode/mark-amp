@@ -774,24 +774,24 @@ Mermaid, Table Editor, Format Bar, Theme Gallery, Link Preview, Image Preview, B
 
 ### 6.3 Sidebar & Navigation
 
-| Component              | Purpose                                                             |
-| ---------------------- | ------------------------------------------------------------------- |
-| `FileTreeCtrl`         | File tree with type-ahead, indent guides, 30+ icons, context menus  |
-| `ActivityBar`          | Vertical icon rail (Explorer, Search, Settings, Themes, Extensions) |
-| `BreadcrumbBar`        | Clickable path breadcrumbs with heading glyphs                      |
-| `SidebarHeader`        | Top-level sidebar header with workspace name and global actions     |
-| `PanelHeader`          | Reusable header for individual sidebar panels                       |
-| `SidebarSection`       | Collapsible section container for grouping panel content            |
-| `SidebarFooter`        | Optional footer for contextual status information                   |
-| `EmptyPanelState`      | Helpful empty state visualization when a panel has no content       |
-| `SidebarPanelRegistry` | Register sidebar panels                                             |
-| `SidebarMode`          | Sidebar display modes                                               |
-| `SecondarySidebar`     | Secondary sidebar wrapper framework                                 |
-| `SecondaryTabStrip`    | Horizontal drag-and-drop tab strip for secondary layout payload     |
-| `BacklinksPanel`       | Sidebar backlinks view                                              |
-| `SearchSidebarPanel`   | Search sidebar                                                      |
-| `GraphSidebarPanel`    | Knowledge graph sidebar                                             |
-| `PaneManager`          | Multi-pane layout management                                        |
+| Component              | Purpose                                                                                               |
+| ---------------------- | ----------------------------------------------------------------------------------------------------- |
+| `FileTreeCtrl`         | File tree with type-ahead, indent guides, 30+ icons, context menus                                    |
+| `ActivityBar`          | Vertical icon rail (Explorer, Search, Settings, Themes, Extensions)                                   |
+| `BreadcrumbBar`        | Interactive vector-rendered path breadcrumbs with drag/drop, context menus, and workspace Quick Picks |
+| `SidebarHeader`        | Top-level sidebar header with workspace name and global actions                                       |
+| `PanelHeader`          | Reusable header for individual sidebar panels                                                         |
+| `SidebarSection`       | Collapsible section container for grouping panel content                                              |
+| `SidebarFooter`        | Optional footer for contextual status information                                                     |
+| `EmptyPanelState`      | Helpful empty state visualization when a panel has no content                                         |
+| `SidebarPanelRegistry` | Register sidebar panels                                                                               |
+| `SidebarMode`          | Sidebar display modes                                                                                 |
+| `SecondarySidebar`     | Secondary sidebar wrapper framework                                                                   |
+| `SecondaryTabStrip`    | Horizontal drag-and-drop tab strip for secondary layout payload                                       |
+| `BacklinksPanel`       | Sidebar backlinks view                                                                                |
+| `SearchSidebarPanel`   | Search sidebar                                                                                        |
+| `GraphSidebarPanel`    | Knowledge graph sidebar                                                                               |
+| `PaneManager`          | Multi-pane layout management                                                                          |
 
 ### 6.4 Status & Notification
 

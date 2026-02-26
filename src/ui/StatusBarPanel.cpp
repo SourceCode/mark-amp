@@ -163,6 +163,16 @@ StatusBarPanel::StatusBarPanel(wxWindow* parent,
             RebuildItems();
             Refresh();
         });
+
+    // Phase 12 Task 24: Editor Group indicator
+    group_focus_sub_ = event_bus_.subscribe<core::events::EditorGroupChangedEvent>(
+        [this](const core::events::EditorGroupChangedEvent& evt)
+        {
+            if (evt.action == "focused" || evt.action == "created")
+            {
+                set_active_group(evt.group_id);
+            }
+        });
 }
 
 // --- State setters ---
@@ -346,6 +356,24 @@ void StatusBarPanel::set_git_branch(const std::string& branch)
     Refresh();
 }
 
+// Phase 10: Panel notifications
+void StatusBarPanel::set_panel_notifications(int error_count, int warning_count, int info_count)
+{
+    panel_errors_ = error_count;
+    panel_warnings_ = warning_count;
+    panel_infos_ = info_count;
+    RebuildItems();
+    Refresh();
+}
+
+// Phase 12 Task 24: Status Bar Group Indicator
+void StatusBarPanel::set_active_group(const std::string& group_id)
+{
+    active_group_ = group_id;
+    RebuildItems();
+    Refresh();
+}
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 void StatusBarPanel::RebuildItems()
@@ -510,6 +538,35 @@ void StatusBarPanel::RebuildItems()
                                "status-git"});
     }
 
+    // Phase 10: Panel notifications
+    if (panel_errors_ > 0 || panel_warnings_ > 0 || panel_infos_ > 0)
+    {
+        std::string badge_text;
+        if (panel_errors_ > 0)
+            badge_text += fmt::format("\xE2\x9D\x8C {} ", panel_errors_);
+        if (panel_warnings_ > 0)
+            badge_text += fmt::format("\xE2\x9A\xA0\xEF\xB8\x8F {} ", panel_warnings_);
+        if (panel_infos_ > 0)
+            badge_text += fmt::format("\xE2\x84\xB9\xEF\xB8\x8F {} ", panel_infos_);
+
+        if (!badge_text.empty() && badge_text.back() == ' ')
+            badge_text.pop_back();
+
+        left_items_.push_back({badge_text,
+                               {},
+                               false,
+                               true,
+                               [this]()
+                               {
+                                   core::events::ToggleBottomPanelRequestEvent action_evt;
+                                   event_bus_.publish(action_evt);
+                               },
+                               "Panel Notifications (Click to toggle panel area)",
+                               false,
+                               false,
+                               ""});
+    }
+
     // Phase 06 Task 15: Sidebar mode indicator
     left_items_.push_back({sidebar_mode_name_,
                            {},
@@ -524,6 +581,14 @@ void StatusBarPanel::RebuildItems()
                            false,
                            false,
                            ""});
+
+    // Phase 12 Task 24: Group Indicator
+    if (!active_group_.empty())
+    {
+        auto group_text = fmt::format("Group {}", active_group_);
+        left_items_.push_back(
+            {group_text, {}, false, false, nullptr, "Active editor group", false, false, ""});
+    }
 
     // Right zone: {N} WORDS • {M} CHARS • SEL: {LEN} • MERMAID: {STATUS} • Theme Name
     if (word_count_ > 0)

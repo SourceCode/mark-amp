@@ -24,6 +24,7 @@ public:
     [[nodiscard]] auto is_zone_visible(WorkbenchZoneId id) const -> bool;
     [[nodiscard]] auto get_zone_bounds(WorkbenchZoneId id) const -> wxRect;
     void set_zone_width(WorkbenchZoneId id, int width);
+    void set_zone_height(WorkbenchZoneId id, int height);
 
     // Forces immediate reflow based on the layout model
     void trigger_layout();

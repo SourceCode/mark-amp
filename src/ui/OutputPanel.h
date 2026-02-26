@@ -13,6 +13,8 @@
 namespace markamp::ui
 {
 
+class PanelContainer;
+
 /// Tabbed output channel viewer in the bottom panel (#44).
 /// Displays extension output channels with channel selector, color-coded log levels,
 /// and scrollable text view. Mirrors VS Code's "Output" panel.
@@ -63,7 +65,7 @@ public:
     void ApplyTheme(const wxColour& bg_colour, const wxColour& fg_colour);
 
 private:
-    void CreateLayout();
+    void CreateLayout(wxWindow* parent);
     void OnChannelChanged(wxCommandEvent& event);
 
     core::OutputChannelService* service_{nullptr};
@@ -71,6 +73,7 @@ private:
     bool auto_scroll_{true};
 
     // UI controls (null in data-only / test mode)
+    wxWindow* toolbar_{nullptr};
     wxChoice* channel_selector_{nullptr};
     wxTextCtrl* text_area_{nullptr};
 };

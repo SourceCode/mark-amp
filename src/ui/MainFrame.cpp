@@ -100,7 +100,8 @@ MainFrame::MainFrame(const wxString& title,
                      markamp::core::ThemeEngine* theme_engine,
                      markamp::core::FeatureRegistry* feature_registry,
                      markamp::core::IMermaidRenderer* mermaid_renderer,
-                     markamp::core::IMathRenderer* math_renderer)
+                     markamp::core::IMathRenderer* math_renderer,
+                     PanelAreaModel* panel_area_model)
     : wxFrame(
           nullptr, wxID_ANY, title, pos, size, wxBORDER_NONE | wxRESIZE_BORDER | wxCLIP_CHILDREN)
     , event_bus_(event_bus)
@@ -111,6 +112,7 @@ MainFrame::MainFrame(const wxString& title,
     , feature_registry_(feature_registry)
     , mermaid_renderer_(mermaid_renderer)
     , math_renderer_(math_renderer)
+    , panel_area_model_(panel_area_model)
     , shortcut_manager_(*event_bus)
 {
     // Minimum size constraints
@@ -193,7 +195,8 @@ MainFrame::MainFrame(const wxString& title,
                                     config_,
                                     feature_registry_,
                                     mermaid_renderer_,
-                                    math_renderer_);
+                                    math_renderer_,
+                                    panel_area_model_);
         sizer->Add(layout_, 1, wxEXPAND);
         layout_->Hide(); // Hidden by default
     }
@@ -282,7 +285,7 @@ MainFrame::MainFrame(const wxString& title,
 
     // Accelerator: Cmd+Shift+P → Command Palette, F1 → Shortcut overlay
     // Phase 06 Task 16: Ctrl+Shift+E/F/G/X → sidebar mode shortcuts
-    wxAcceleratorEntry accel_entries[7];
+    wxAcceleratorEntry accel_entries[11];
     accel_entries[0].Set(wxACCEL_CMD | wxACCEL_SHIFT, 'P', wxID_HIGHEST + 100);
     accel_entries[1].Set(wxACCEL_NORMAL, WXK_F1, wxID_HIGHEST + 101);
     accel_entries[2].Set(wxACCEL_CMD | wxACCEL_SHIFT, 'E', wxID_HIGHEST + 200); // Explorer
@@ -290,7 +293,12 @@ MainFrame::MainFrame(const wxString& title,
     accel_entries[4].Set(wxACCEL_CMD | wxACCEL_SHIFT, 'G', wxID_HIGHEST + 202); // Graph
     accel_entries[5].Set(wxACCEL_CMD | wxACCEL_SHIFT, 'X', wxID_HIGHEST + 203); // Extensions
     accel_entries[6].Set(wxACCEL_ALT, '0', wxID_HIGHEST + 300);                 // Skip to Editor
-    wxAcceleratorTable accel_table(7, accel_entries);
+    accel_entries[7].Set(wxACCEL_CMD, '1', wxID_HIGHEST + 850);
+    accel_entries[8].Set(wxACCEL_CMD, '2', wxID_HIGHEST + 851);
+    accel_entries[9].Set(wxACCEL_CMD, '3', wxID_HIGHEST + 852);
+    // Phase 12 Task 11: Cmd+Ctrl+M to toggle maximize group
+    accel_entries[10].Set(wxACCEL_CMD | wxACCEL_CTRL, 'M', wxID_HIGHEST + 860);
+    wxAcceleratorTable accel_table(11, accel_entries);
     SetAcceleratorTable(accel_table);
 
     Bind(
@@ -309,6 +317,42 @@ MainFrame::MainFrame(const wxString& title,
                 layout_->FocusEditor();
         },
         wxID_HIGHEST + 300);
+
+    // Phase 12 Task 10: Dispatch group focus requests
+    Bind(
+        wxEVT_MENU,
+        [this](wxCommandEvent& /*evt*/)
+        {
+            core::events::EditorGroupFocusRequestEvent evt_obj;
+            evt_obj.group_index = 0;
+            event_bus_->publish(evt_obj);
+        },
+        wxID_HIGHEST + 850);
+    Bind(
+        wxEVT_MENU,
+        [this](wxCommandEvent& /*evt*/)
+        {
+            core::events::EditorGroupFocusRequestEvent evt_obj;
+            evt_obj.group_index = 1;
+            event_bus_->publish(evt_obj);
+        },
+        wxID_HIGHEST + 851);
+    Bind(
+        wxEVT_MENU,
+        [this](wxCommandEvent& /*evt*/)
+        {
+            core::events::EditorGroupFocusRequestEvent evt_obj;
+            evt_obj.group_index = 2;
+            event_bus_->publish(evt_obj);
+        },
+        wxID_HIGHEST + 852);
+
+    // Phase 12 Task 11: Toggle Maximize
+    Bind(
+        wxEVT_MENU,
+        [this](wxCommandEvent& /*evt*/)
+        { event_bus_->publish(core::events::EditorGroupToggleMaximizeEvent{}); },
+        wxID_HIGHEST + 860);
 
     // Phase 06 Task 16: Quick switcher bindings
     Bind(

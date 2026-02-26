@@ -12,6 +12,7 @@
 #include "core/FileNode.h"
 #include "core/ThemeEngine.h"
 #include "layout/WorkbenchShell.h"
+#include "ui/EditorGroupManager.h"
 
 #include <nlohmann/json.hpp>
 #include <wx/notebook.h>
@@ -40,6 +41,7 @@ namespace markamp::core
 {
 class IExtensionManagementService;
 class IExtensionGalleryService;
+class PanelService;
 } // namespace markamp::core
 
 namespace markamp::ui::animation
@@ -52,10 +54,20 @@ namespace markamp::ui
 
 class ActivityBar;
 class BreadcrumbBar;
+class DebugConsolePanel;
 class ExplorerPanel;
 class ExtensionsBrowserPanel;
 class FileTreeCtrl;
 class OutputPanel;
+class PanelAreaModel;
+class PanelContainer;
+class ProblemsPanel;
+class SecondarySidebarTabStrip;
+class SplitView;
+class StatusBarPanel;
+class TabBar;
+class TerminalPanel;
+class PanelContainer;
 class PreviewPanel;
 class ProblemsPanel;
 class SecondarySidebarTabStrip;
@@ -82,9 +94,11 @@ public:
                   core::ThemeEngine& theme_engine,
                   core::EventBus& event_bus,
                   core::Config* config,
-                  core::FeatureRegistry* feature_registry = nullptr,
-                  core::IMermaidRenderer* mermaid_renderer = nullptr,
-                  core::IMathRenderer* math_renderer = nullptr);
+                  core::FeatureRegistry* feature_registry,
+                  core::IMermaidRenderer* mermaid_renderer,
+                  core::IMathRenderer* math_renderer,
+                  PanelAreaModel* panel_area_model);
+    ~LayoutManager() override;
 
     // Zone access (for later phases to populate)
     [[nodiscard]] auto sidebar_container() -> wxWindow*;
@@ -104,6 +118,9 @@ public:
     void SaveActiveFileAs();
     [[nodiscard]] auto GetActiveFilePath() const -> std::string;
     [[nodiscard]] auto GetActiveFileContent() const -> std::string;
+    [[nodiscard]] auto GetActiveTabBar() const -> TabBar*;
+    [[nodiscard]] auto GetActiveEditor() const -> EditorPanel*;
+    [[nodiscard]] auto GetActiveBreadcrumbBar() const -> BreadcrumbBar*;
     [[nodiscard]] auto GetTabBar() -> TabBar*;
     [[nodiscard]] auto HasUnsavedFiles() const -> bool;
     [[nodiscard]] auto GetOpenFileCount() const -> size_t;
@@ -169,6 +186,10 @@ public:
     // Bottom panel control
     void ShowBottomPanel(bool show);
     [[nodiscard]] auto is_bottom_panel_visible() const -> bool;
+    [[nodiscard]] auto get_panel_service() const -> core::PanelService*
+    {
+        return nullptr; // panel_service_ removed, return nullptr or handle differently if needed
+    }
 
     // V8 Phase 6: Canvas mode switching
     void ShowCanvasWorkspace();
@@ -202,17 +223,18 @@ private:
     // Child components
     StatusBarPanel* statusbar_panel_{nullptr};
     FileTreeCtrl* file_tree_{nullptr};
-    TabBar* tab_bar_{nullptr};
     wxSearchCtrl* search_field_{nullptr}; // R5 Fix 7: wxSearchCtrl has built-in cancel button
-    SplitView* split_view_{nullptr};
     Toolbar* toolbar_{nullptr};
-    BreadcrumbBar* breadcrumb_bar_{nullptr}; // R3 Fix 14
+    EditorGroupManager* editor_group_manager_{nullptr};
 
     // Bottom panel host (Output, Problems, Walkthrough tabs)
-    wxNotebook* bottom_panel_notebook_{nullptr};
+    PanelAreaModel* panel_area_model_{nullptr};
+    PanelContainer* panel_container_{nullptr};
     OutputPanel* output_panel_{nullptr};
     ProblemsPanel* problems_panel_{nullptr};
     WalkthroughPanel* walkthrough_panel_{nullptr};
+    TerminalPanel* terminal_panel_{nullptr};
+    DebugConsolePanel* debug_console_panel_{nullptr};
     TreeViewHost* tree_view_host_{nullptr};
     WebviewHostPanel* webview_host_panel_{nullptr};
     bool bottom_panel_visible_{false};
@@ -306,6 +328,8 @@ private:
     core::Subscription wrap_toggle_sub_;
 
     core::Subscription panel_context_menu_sub_;
+    core::Subscription panel_maximize_sub_;
+    int saved_panel_height_{200};
 
     // R7 subscriptions
     core::Subscription move_line_up_sub_;
@@ -428,6 +452,12 @@ private:
     wxTimer auto_save_timer_;
     static constexpr int kAutoSaveIntervalMs = 30000; // 30 seconds
     void OnAutoSaveTimer(wxTimerEvent& event);
+
+    // Phase 10: Panel Area
+    void UpdatePanelNotifications();
+    core::Subscription panel_tabs_sub_;
+    core::Subscription panel_badge_sub_;
+    core::Subscription toggle_bottom_panel_sub_;
 };
 
 } // namespace markamp::ui

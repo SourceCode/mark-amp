@@ -308,6 +308,7 @@ auto PluginManager::activate_plugin(const std::string& plugin_id) -> bool
     ctx.status_bar_item_service = ext_services_.status_bar_item_service;
     ctx.input_box_service = ext_services_.input_box_service;
     ctx.quick_pick_service = ext_services_.quick_pick_service;
+    ctx.panel_service = ext_services_.panel_service;
 
     // Task 1: Wire V4 application-layer services
     ctx.tag_service = ext_services_.tag_service;

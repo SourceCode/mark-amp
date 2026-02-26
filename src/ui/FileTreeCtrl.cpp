@@ -22,6 +22,8 @@
 
 #include <wx/clipbrd.h>
 #include <wx/dcbuffer.h>
+#include <wx/dcclient.h>
+#include <wx/filedlg.h>
 #include <wx/filename.h>
 #include <wx/graphics.h>
 #include <wx/menu.h>
@@ -1087,6 +1089,7 @@ constexpr int kCtxRename = 108;
 constexpr int kCtxNewFolder = 109;
 constexpr int kCtxOpenInTerminal = 110;       // R4 Fix 5
 constexpr int kCtxOpenContainingFolder = 111; // R4 Fix 6
+constexpr int kCtxCompareWith = 112;
 } // namespace
 
 void FileTreeCtrl::OnRightClick(wxMouseEvent& event)
@@ -1146,6 +1149,8 @@ void FileTreeCtrl::ShowFileContextMenu(core::FileNode& node)
     if (node.is_file())
     {
         menu.Append(kCtxOpenContainingFolder, "Open Containing Folder");
+        menu.AppendSeparator();
+        menu.Append(kCtxCompareWith, "Compare with\u2026");
     }
 
     const std::string node_path = node.id;
@@ -1381,6 +1386,26 @@ void FileTreeCtrl::ShowFileContextMenu(core::FileNode& node)
 #elif defined(__linux__)
                     wxExecute(wxString::Format("xdg-open \"%s\"", parent_dir));
 #endif
+                    break;
+                }
+                case kCtxCompareWith:
+                {
+                    wxFileDialog openFileDialog(this,
+                                                "Compare With",
+                                                "",
+                                                "",
+                                                "All files (*.*)|*.*",
+                                                wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+                    if (openFileDialog.ShowModal() == wxID_CANCEL)
+                        return;
+
+                    std::string right_path = openFileDialog.GetPath().ToStdString();
+                    std::string left_path = node_path;
+
+                    core::events::OpenDiffRequestEvent diff_evt;
+                    diff_evt.left_path = left_path;
+                    diff_evt.right_path = right_path;
+                    event_bus_.publish(diff_evt);
                     break;
                 }
                 default:

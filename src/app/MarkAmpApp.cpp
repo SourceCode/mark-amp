@@ -42,6 +42,7 @@
 #include "ui/FocusManager.h"
 #include "ui/FocusRingRenderer.h"
 #include "ui/MainFrame.h"
+#include "ui/PanelAreaModel.h"
 #include "ui/accessibility/AccessibilityController.h"
 
 #include <spdlog/spdlog.h>
@@ -197,6 +198,10 @@ bool MarkAmpApp::OnInit()
     feature_registry_ = std::make_unique<core::FeatureRegistry>(*event_bus_, *config_);
     plugin_manager_ = std::make_unique<core::PluginManager>(*event_bus_, *config_);
 
+    // Create Panel Area constructs to pass to LayoutManager later
+    panel_area_model_ = std::make_unique<ui::PanelAreaModel>(*event_bus_);
+    panel_service_ = std::make_unique<core::PanelService>(*panel_area_model_);
+
     // Wire extension services into PluginManager
     core::PluginManager::ExtensionServices ext_services{};
     ext_services.context_key_service = context_key_service_.get();
@@ -217,9 +222,9 @@ bool MarkAmpApp::OnInit()
     ext_services.status_bar_item_service = status_bar_item_service_.get();
     ext_services.input_box_service = input_box_service_.get();
     ext_services.quick_pick_service = quick_pick_service_.get();
-    ext_services.grammar_engine = grammar_engine_.get();
     ext_services.terminal_service = terminal_service_.get();
     ext_services.task_runner_service = task_runner_service_.get();
+    ext_services.panel_service = panel_service_.get();
     plugin_manager_->set_extension_services(ext_services);
     plugin_manager_->set_status_bar_service(status_bar_item_service_.get());
     plugin_manager_->set_tree_registry(tree_data_provider_registry_.get());
@@ -273,7 +278,8 @@ bool MarkAmpApp::OnInit()
                                     theme_engine_.get(),
                                     feature_registry_.get(),
                                     mermaid_renderer_.get(),
-                                    math_renderer_.get());
+                                    math_renderer_.get(),
+                                    panel_area_model_.get());
 
     // Phase 05 Task 2: Initialize global focus ring tracking
     ui::FocusRingRenderer::get().initialize();

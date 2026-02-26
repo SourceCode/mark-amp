@@ -142,6 +142,7 @@ MARKAMP_DECLARE_EVENT_END;
 MARKAMP_DECLARE_EVENT_WITH_FIELDS(FileOpenedEvent)
 std::string file_path;
 std::string content;
+int group_id{-1};
 MARKAMP_DECLARE_EVENT_END;
 
 MARKAMP_DECLARE_EVENT_WITH_FIELDS(FileContentChangedEvent)
@@ -155,6 +156,12 @@ MARKAMP_DECLARE_EVENT_END;
 
 MARKAMP_DECLARE_EVENT_WITH_FIELDS(ActiveFileChangedEvent)
 std::string file_id;
+int group_id{-1};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(OpenDiffRequestEvent)
+std::string left_path;
+std::string right_path;
 MARKAMP_DECLARE_EVENT_END;
 
 // ============================================================================
@@ -296,6 +303,28 @@ enum class SplitDirection
 
 MARKAMP_DECLARE_EVENT_WITH_FIELDS(SplitDirectionChangedEvent)
 SplitDirection direction{SplitDirection::Horizontal};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// Phase 10: Panel Area (Bottom) Redesign events
+// ============================================================================
+
+enum class BadgeState
+{
+    kNone,
+    kInfo,
+    kWarning,
+    kError,
+    kSuccess,
+    kDot
+};
+
+MARKAMP_DECLARE_EVENT(PanelAreaTabsChangedEvent);
+MARKAMP_DECLARE_EVENT(PanelAreaBadgeChangedEvent);
+MARKAMP_DECLARE_EVENT(ToggleBottomPanelRequestEvent);
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PanelAreaMaximizeToggledEvent)
+bool is_maximized{false};
 MARKAMP_DECLARE_EVENT_END;
 
 // ============================================================================
@@ -459,6 +488,22 @@ std::string file_path;
 TabCloseRequestEvent() = default;
 explicit TabCloseRequestEvent(std::string path)
     : file_path(std::move(path))
+{
+}
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TabDropRequestEvent)
+std::string file_path;
+int source_tabbar_id{-1};
+int target_tabbar_id{-1};
+int insert_index{-1};
+
+TabDropRequestEvent() = default;
+explicit TabDropRequestEvent(std::string path, int source, int target, int index = -1)
+    : file_path(std::move(path))
+    , source_tabbar_id(source)
+    , target_tabbar_id(target)
+    , insert_index(index)
 {
 }
 MARKAMP_DECLARE_EVENT_END;
@@ -1938,6 +1983,27 @@ std::string latex_source;
 std::string error_message;
 int line_number{0};
 MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// Phase 12: Editor Group System (Group Action Bar)
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(EditorGroupSplitRequestEvent)
+int source_tabbar_id{0};
+bool is_horizontal_split{true};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(EditorGroupMoreActionsEvent)
+int source_tabbar_id{0};
+int screen_x{0};
+int screen_y{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(EditorGroupFocusRequestEvent)
+int group_index{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT(EditorGroupToggleMaximizeEvent);
 
 // ============================================================================
 // V4 Phase 19: Pane events

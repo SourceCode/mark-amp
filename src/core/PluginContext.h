@@ -38,6 +38,7 @@ class NotificationService;
 class StatusBarItemService;
 class InputBoxService;
 class QuickPickService;
+class IPanelService;
 
 // Forward declarations for P1–P4 services
 class SnippetEngine;
@@ -139,6 +140,7 @@ struct PluginContext
     StatusBarItemService* status_bar_item_service{nullptr};
     InputBoxService* input_box_service{nullptr};
     QuickPickService* quick_pick_service{nullptr};
+    IPanelService* panel_service{nullptr};
 
     // ── P3+P4: Stubs (N/A for Markdown editor) ──
 

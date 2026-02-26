@@ -42,6 +42,7 @@ class EnvironmentService;
 class NotificationService;
 class InputBoxService;
 class QuickPickService;
+class IPanelService;
 class GrammarEngine;
 class TerminalService;
 class TaskRunnerService;
@@ -201,6 +202,7 @@ public:
         StatusBarItemService* status_bar_item_service{nullptr};
         InputBoxService* input_box_service{nullptr};
         QuickPickService* quick_pick_service{nullptr};
+        IPanelService* panel_service{nullptr};
         GrammarEngine* grammar_engine{nullptr};
         TerminalService* terminal_service{nullptr};
         TaskRunnerService* task_runner_service{nullptr};

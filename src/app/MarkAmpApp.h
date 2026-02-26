@@ -1,9 +1,13 @@
 #pragma once
 
+#include "core/FileNode.h"
 #include "core/MemoryBudget.h"
+#include "core/PanelService.h"
 #include "core/RecentWorkspaces.h"
+#include "core/TerminalService.h"
 #include "core/Watchdog.h"
 #include "platform/PlatformAbstraction.h"
+#include "ui/PanelAreaModel.h"
 
 #include <wx/app.h>
 
@@ -43,11 +47,16 @@ class StatusBarItemService;
 class InputBoxService;
 class QuickPickService;
 class GrammarEngine;
-class TerminalService;
 class TaskRunnerService;
 class Watchdog;
 class MemoryBudget;
+class PanelService;
 } // namespace markamp::core
+
+namespace markamp::ui
+{
+class PanelAreaModel;
+} // namespace markamp::ui
 
 namespace markamp::platform
 {
@@ -125,8 +134,10 @@ private:
     std::unique_ptr<core::InputBoxService> input_box_service_;
     std::unique_ptr<core::QuickPickService> quick_pick_service_;
     std::unique_ptr<core::GrammarEngine> grammar_engine_;
-    std::unique_ptr<core::TerminalService> terminal_service_;
-    std::unique_ptr<core::TaskRunnerService> task_runner_service_;
+    std::unique_ptr<core::TerminalService> terminal_service_{nullptr};
+    std::unique_ptr<core::TaskRunnerService> task_runner_service_{nullptr};
+    std::unique_ptr<ui::PanelAreaModel> panel_area_model_{nullptr};
+    std::unique_ptr<core::PanelService> panel_service_{nullptr};
 
     // Phase 01: Infrastructure
     std::unique_ptr<core::Watchdog> watchdog_;

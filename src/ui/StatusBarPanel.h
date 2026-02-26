@@ -37,11 +37,20 @@ public:
     void set_filename(const std::string& filename);
     void set_language(const std::string& language);
     void set_file_size(std::size_t size_bytes);
-    void set_eol_mode(const std::string& eol_mode);           // R4 Fix 9
-    void set_indent_mode(const std::string& indent_mode);     // R6 Fix 14
-    void set_zoom_level(int zoom_level);                      // R13
-    void set_progress(bool active, const std::string& label); // R18 Fix 12
-    void set_git_branch(const std::string& branch);           // R18 Fix 13
+    void set_eol_mode(const std::string& eol_mode);       // R4 Fix 9
+    void set_indent_mode(const std::string& indent_mode); // R6 Fix 14
+    void set_zoom_level(int zoom_level);                  // R13
+    // R18 Fix 12: Progress indicator
+    void set_progress(bool active, const std::string& label);
+
+    // R18 Fix 13: Git branch
+    void set_git_branch(const std::string& branch);
+
+    // Phase 10: Panel notifications
+    void set_panel_notifications(int error_count, int warning_count, int info_count);
+
+    // Phase 12 Task 24: Status Bar Group Indicator
+    void set_active_group(const std::string& group_id);
 
     // Accessors for testing
     [[nodiscard]] auto ready_state() const -> const std::string&
@@ -172,6 +181,15 @@ private:
     // R17 Fix 8: Save flash
     bool save_flash_active_{false};
     core::Subscription save_sub_;
+
+    // Phase 10: Panel notifications
+    int panel_errors_{0};
+    int panel_warnings_{0};
+    int panel_infos_{0};
+
+    // Phase 12 Task 24: Active group indicator
+    std::string active_group_;
+    core::Subscription group_focus_sub_;
 
     // Phase 04 motion framework
     animation::TransitionManager transition_manager_{this};

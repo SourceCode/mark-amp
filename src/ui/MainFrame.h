@@ -4,6 +4,8 @@
 #include "core/FileNode.h"
 #include "core/ShortcutManager.h"
 #include "platform/PlatformAbstraction.h"
+#include "ui/FocusManager.h"
+#include "ui/FocusRingRenderer.h"
 
 #include <wx/filename.h>
 #include <wx/wx.h>
@@ -31,6 +33,7 @@ namespace markamp::ui
 {
 class AccessibilityModel;
 
+class PanelAreaModel;
 class LayoutManager;
 class StartupPanel;
 class CommandPalette;
@@ -49,7 +52,8 @@ public:
               markamp::core::ThemeEngine* theme_engine,
               markamp::core::FeatureRegistry* feature_registry,
               markamp::core::IMermaidRenderer* mermaid_renderer = nullptr,
-              markamp::core::IMathRenderer* math_renderer = nullptr);
+              markamp::core::IMathRenderer* math_renderer = nullptr,
+              PanelAreaModel* panel_area_model = nullptr);
 
 private:
     // Core references (owned by MarkAmpApp)
@@ -61,6 +65,7 @@ private:
     markamp::core::FeatureRegistry* feature_registry_;
     markamp::core::IMermaidRenderer* mermaid_renderer_{nullptr};
     markamp::core::IMathRenderer* math_renderer_{nullptr};
+    PanelAreaModel* panel_area_model_{nullptr};
 
     // Subscriptions
     std::vector<markamp::core::Subscription> subscriptions_;

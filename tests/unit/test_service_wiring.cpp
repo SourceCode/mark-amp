@@ -127,7 +127,7 @@ TEST_CASE("ServiceWiring: PluginManager receives all ExtensionServices", "[integ
     pm.activate_all();
 
     // Verify plugins are registered
-    REQUIRE(pm.plugin_count() == 15);
+    REQUIRE(pm.plugin_count() == 18);
 }
 
 TEST_CASE("ServiceWiring: EventBus cross-service event delivery", "[integration][wiring]")

@@ -1,6 +1,7 @@
 #include "BuiltInPlugins.h"
 
 #include "FeatureRegistry.h"
+#include "IPanelService.h"
 #include "IPlugin.h"
 #include "Logger.h"
 #include "PluginManager.h"
@@ -37,7 +38,7 @@ public:
     void activate(PluginContext& ctx) override
     {
         active_ = true;
-        ctx_ = &ctx;
+        ctx_ = ctx;
 
         // Register the feature.toggle.<id> command
         if (ctx.register_command_handler && ctx.feature_registry != nullptr)
@@ -63,14 +64,14 @@ public:
     void deactivate() override
     {
         active_ = false;
-        ctx_ = nullptr;
+        ctx_.reset();
         MARKAMP_LOG_INFO("Built-in plugin deactivated: {}", manifest_.id);
     }
 
 protected:
     PluginManifest manifest_;
     std::string feature_id_;
-    PluginContext* ctx_{nullptr};
+    std::optional<PluginContext> ctx_;
 };
 
 // ── 9.1: Mermaid Diagrams Plugin ──
@@ -495,6 +496,118 @@ public:
     }
 };
 
+// ── Test Panel API Plugin ──
+
+class SamplePanelPlugin final : public BuiltInPlugin
+{
+public:
+    SamplePanelPlugin()
+        : BuiltInPlugin(
+              PluginManifest{.id = "markamp.sample-panel",
+                             .name = "Sample Panel",
+                             .version = "1.0.0",
+                             .description = "Test plugin to demonstrate Panel Contribution API",
+                             .author = "MarkAmp",
+                             .contributes = {}},
+              "sample-panel")
+    {
+    }
+
+    void activate(PluginContext& ctx) override
+    {
+        BuiltInPlugin::activate(ctx);
+
+        if (ctx.panel_service != nullptr)
+        {
+            // Register panel via the Panel Contribution API
+            ctx.panel_service->register_panel(manifest_.id + ".main", manifest_.name, "icon-plug");
+            MARKAMP_LOG_INFO(
+                "SamplePanelPlugin successfully contributed a panel to the bottom area.");
+        }
+        else
+        {
+            MARKAMP_LOG_ERROR("SamplePanelPlugin failed: PanelService is null in PluginContext");
+        }
+    }
+
+    void deactivate() override
+    {
+        if (active_ && ctx_.has_value() && ctx_->panel_service != nullptr)
+        {
+            ctx_->panel_service->unregister_panel(manifest_.id + ".main");
+        }
+        BuiltInPlugin::deactivate();
+    }
+};
+
+class TerminalPanelPlugin final : public BuiltInPlugin
+{
+public:
+    TerminalPanelPlugin()
+        : BuiltInPlugin(PluginManifest{.id = "markamp.terminal-panel",
+                                       .name = "Terminal Panel",
+                                       .version = "1.0.0",
+                                       .description = "Built-in Terminal Panel for MarkAmp",
+                                       .author = "MarkAmp",
+                                       .contributes = {}},
+                        "terminal-panel")
+    {
+    }
+
+    void activate(PluginContext& ctx) override
+    {
+        BuiltInPlugin::activate(ctx);
+        if (ctx.panel_service != nullptr)
+        {
+            ctx.panel_service->register_panel("terminal", manifest_.name, "\xEF\x84\xA0");
+            MARKAMP_LOG_INFO("TerminalPanelPlugin contributed the terminal panel.");
+        }
+    }
+
+    void deactivate() override
+    {
+        if (active_ && ctx_.has_value() && ctx_->panel_service != nullptr)
+        {
+            ctx_->panel_service->unregister_panel("terminal");
+        }
+        BuiltInPlugin::deactivate();
+    }
+};
+
+class DebugConsolePanelPlugin final : public BuiltInPlugin
+{
+public:
+    DebugConsolePanelPlugin()
+        : BuiltInPlugin(PluginManifest{.id = "markamp.debug-console-panel",
+                                       .name = "Debug Console",
+                                       .version = "1.0.0",
+                                       .description = "Built-in Debug Console Panel for MarkAmp",
+                                       .author = "MarkAmp",
+                                       .contributes = {}},
+                        "debug-console-panel")
+    {
+    }
+
+    void activate(PluginContext& ctx) override
+    {
+        BuiltInPlugin::activate(ctx);
+        if (ctx.panel_service != nullptr)
+        {
+            ctx.panel_service->register_panel("debug", manifest_.name, "\xEF\x86\x88");
+            MARKAMP_LOG_INFO("DebugConsolePanelPlugin contributed the debug console panel.");
+        }
+    }
+
+    void deactivate() override
+    {
+        if (active_ && ctx_.has_value() && ctx_->panel_service != nullptr)
+        {
+            ctx_->panel_service->unregister_panel("debug");
+        }
+        BuiltInPlugin::deactivate();
+    }
+};
+
 } // anonymous namespace
 
 // ── Registration ──
@@ -588,6 +701,9 @@ void register_builtin_plugins(PluginManager& plugin_manager, FeatureRegistry& fe
     plugin_manager.register_plugin(std::make_unique<KanbanPlugin>());
     plugin_manager.register_plugin(std::make_unique<MindMapPlugin>());
     plugin_manager.register_plugin(std::make_unique<DiagramLibraryPlugin>());
+    plugin_manager.register_plugin(std::make_unique<SamplePanelPlugin>());
+    plugin_manager.register_plugin(std::make_unique<TerminalPanelPlugin>());
+    plugin_manager.register_plugin(std::make_unique<DebugConsolePanelPlugin>());
 
     MARKAMP_LOG_INFO("Registered {} built-in plugins and {} features", 15, features.size());
 }

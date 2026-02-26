@@ -1,5 +1,21 @@
 # MarkAmp Release History
 
+## v2.11.48 — 2026-02-26
+
+### Highlights
+
+V13 Phase 13 Breadcrumb Bar V2 completion: Replaced the static Breadcrumb string label with a fully interactive vector-graphics segment array. Introduced deep symbol hierarchy extraction natively tracking context and semantic hierarchy, horizontally scrolling layout constraint systems, OS-native Right-Click contextual actions, and workspace Quick Picks routing. Drag and drop file mechanisms directly wired out of UI interaction tiers.
+
+### Added
+
+- **Vector Rendering**: Direct text drawing over `wxAutoBufferedPaintDC` implementing chevrons, rounded accents, and segmented hit-boxes mapping specifically to the `ThemeEngine`.
+- **Keyboard Maneuvering**: Arrow key mappings directly wired to `FocusRingRenderer` natively trapping `BreadcrumbSegment` hit bounds.
+- **Debounced Extraction**: 300ms Native `wxTimer` debouncing preventing ast-scraping lag inside `EditorGroupManager.cpp`.
+- **Drag and Drop**: Safe `wxDropSource` transmission logic piping active `wxFileDataObject` buffers natively allowing external extraction.
+- **Context Menus**: Connected OS-native Finder and Explorer reveals bridging OS capabilities straight to specific segment layers.
+- **Quick Pick Hooks**: Triggering workspace segments fires `CommandPaletteEvent(kQuickOpen)`.
+- **Horizontal Bounds Recomputation**: Handled `wxMOUSE_WHEEL_HORIZONTAL` constraints supporting drifting segment tracking inside collapsed dimensions.
+
 ## v2.10.47 — 2026-02-25
 
 ### Highlights

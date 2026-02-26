@@ -2,7 +2,7 @@
 
 #include "LayoutMetrics.h"
 #include "core/Logger.h"
-#include "ui/FileTypeIconResolver.h"
+#include "ui/FileTypeIconRegistry.h"
 #include "ui/FocusManager.h"
 #include "ui/FocusRingRenderer.h"
 #include "ui/IconManager.h"
@@ -10,6 +10,7 @@
 
 #include <wx/clipbrd.h>
 #include <wx/dcbuffer.h>
+#include <wx/dnd.h>
 #include <wx/graphics.h>
 #include <wx/menu.h>
 #include <wx/msgdlg.h>
@@ -38,6 +39,48 @@ constexpr int kContextPinTab = 11;
 constexpr int kContextUnpinTab = 12;
 constexpr int kContextCloseSaved = 13;   // R4 Fix 8
 constexpr int kContextDuplicateTab = 14; // R19 Fix 4
+constexpr int kContextSortByName = 15;   // Phase 11 Task 16
+constexpr int kContextSortByPath = 16;   // Phase 11 Task 16
+
+// Phase 11 Task 10: Drop Target for tab dragging
+class TabDropTarget : public wxTextDropTarget
+{
+public:
+    explicit TabDropTarget(TabBar* tab_bar)
+        : tab_bar_(tab_bar)
+    {
+    }
+
+    bool OnDropText(wxCoord /*x*/, wxCoord /*y*/, const wxString& data) override
+    {
+        if (data.StartsWith("markamp_tab:"))
+        {
+            wxString remains = data.Mid(12);
+            long source_id = -1;
+            int last_colon = remains.Find(':', true);
+            wxString path = remains;
+            if (last_colon != wxNOT_FOUND)
+            {
+                path = remains.Left(static_cast<size_t>(last_colon));
+                remains.Mid(static_cast<size_t>(last_colon) + 1).ToLong(&source_id);
+            }
+
+            if (static_cast<int>(source_id) != tab_bar_->GetId())
+            {
+                std::filesystem::path p(path.ToStdString());
+                tab_bar_->AddTab(path.ToStdString(), p.filename().string());
+
+                const core::events::TabSwitchedEvent evt(path.ToStdString());
+                tab_bar_->GetEventBus().publish(evt);
+            }
+            return true;
+        }
+        return false;
+    }
+
+private:
+    TabBar* tab_bar_;
+};
 } // namespace
 
 TabBar::TabBar(wxWindow* parent, DesignSystemContext& ds, core::EventBus& event_bus)
@@ -57,6 +100,9 @@ TabBar::TabBar(wxWindow* parent, DesignSystemContext& ds, core::EventBus& event_
 
     SetCanFocus(true);
 
+    // Phase 11 Task 10: Enable drag and drop across tab bars
+    SetDropTarget(new TabDropTarget(this));
+
     Bind(wxEVT_PAINT, &TabBar::OnPaint, this);
     Bind(wxEVT_MOTION, &TabBar::OnMouseMove, this);
     Bind(wxEVT_LEFT_DOWN, &TabBar::OnMouseDown, this);
@@ -71,20 +117,101 @@ TabBar::TabBar(wxWindow* parent, DesignSystemContext& ds, core::EventBus& event_
     Bind(wxEVT_KILL_FOCUS, &TabBar::OnKillFocus, this);
     Bind(wxEVT_KEY_DOWN, &TabBar::OnKeyDown, this);
 
+    // Phase 11 Task 11: Bind pulse timer
+    Bind(wxEVT_TIMER, &TabBar::OnPulseTimer, this);
+
     keyboard_mode_sub_ = event_bus_.subscribe<core::events::KeyboardModeChangedEvent>(
         [this](const core::events::KeyboardModeChangedEvent& /*evt*/) { Refresh(); });
+
+    // Phase 11 Task 12: Saving spinner subscriptions
+    tab_save_req_sub_ = event_bus_.subscribe<core::events::TabSaveRequestEvent>(
+        [this](const core::events::TabSaveRequestEvent& evt)
+        {
+            int t_idx = FindTabIndex(evt.file_path);
+            if (t_idx >= 0)
+            {
+                tabs_[static_cast<size_t>(t_idx)].is_saving = true;
+                UpdatePulseTimer();
+                Refresh();
+            }
+        });
+
+    file_saved_sub_ = event_bus_.subscribe<core::events::FileSavedEvent>(
+        [this](const core::events::FileSavedEvent& evt)
+        {
+            int t_idx = FindTabIndex(evt.file_path);
+            if (t_idx >= 0)
+            {
+                tabs_[static_cast<size_t>(t_idx)].is_saving = false;
+                tabs_[static_cast<size_t>(t_idx)].is_modified = false;
+                UpdatePulseTimer();
+                Refresh();
+            }
+        });
 }
 
 // --- Tab management ---
 
-void TabBar::AddTab(const std::string& file_path, const std::string& display_name)
+void TabBar::SetTabSizeMode(TabSizeMode mode)
+{
+    if (size_mode_ != mode)
+    {
+        size_mode_ = mode;
+        RecalculateTabRects();
+        Refresh();
+    }
+}
+
+void TabBar::AddTab(const std::string& file_path, const std::string& display_name, bool is_preview)
 {
     // If already exists, just activate
     int idx = FindTabIndex(file_path);
     if (idx >= 0)
     {
+        if (!is_preview)
+        {
+            tabs_[static_cast<size_t>(idx)].is_preview = false;
+        }
         SetActiveTab(file_path);
         return;
+    }
+
+    // Phase 11 Task 3: Replace existing preview tab if we are opening a new preview
+    if (is_preview)
+    {
+        for (size_t i = 0; i < tabs_.size(); ++i)
+        {
+            if (tabs_[i].is_preview && !tabs_[i].is_modified && !tabs_[i].is_pinned)
+            {
+                tabs_[i].file_path = file_path;
+                tabs_[i].display_name = display_name;
+                SetActiveTab(file_path);
+                RecalculateTabRects();
+                Refresh();
+
+                // Animate fade-in for replaced preview tab
+                animation::AnimationConfig config;
+                config.duration = std::chrono::milliseconds(160);
+                config.easing_type = animation::EasingType::Linear;
+                std::string anim_name = "tab_fade_" + file_path;
+                transition_manager_.register_transition(anim_name, config);
+                transition_manager_.start<float>(anim_name,
+                                                 0.0F,
+                                                 1.0F,
+                                                 [this, file_path](float op)
+                                                 {
+                                                     int t_idx = FindTabIndex(file_path);
+                                                     if (t_idx >= 0)
+                                                     {
+                                                         tabs_[static_cast<size_t>(t_idx)].opacity =
+                                                             op;
+                                                         Refresh();
+                                                     }
+                                                 });
+
+                return;
+            }
+        }
     }
 
     TabInfo tab;
@@ -92,8 +219,12 @@ void TabBar::AddTab(const std::string& file_path, const std::string& display_nam
     tab.display_name = display_name;
     tab.is_modified = false;
     tab.is_active = false;
+    tab.is_preview = is_preview;
     tab.opacity = 0.0F; // R18 Fix 1: Start transparent for fade-in
     tabs_.push_back(tab);
+
+    UpdateTabGroups();  // Update group assignments
+    UpdatePulseTimer(); // Phase 11 Task 11
 
     SetActiveTab(file_path);
     RecalculateTabRects();
@@ -125,38 +256,112 @@ void TabBar::RemoveTab(const std::string& file_path)
 {
     int idx = FindTabIndex(file_path);
     if (idx < 0)
-    {
         return;
-    }
 
-    bool was_active = tabs_[static_cast<size_t>(idx)].is_active;
-    tabs_.erase(tabs_.begin() + idx);
+    auto& tab_to_close = tabs_[static_cast<size_t>(idx)];
+    if (tab_to_close.is_closing)
+        return;
+
+    bool was_active = tab_to_close.is_active;
+    tab_to_close.is_closing = true;
+    tab_to_close.is_active = false;
 
     // If the closed tab was active, activate an adjacent tab
-    if (was_active && !tabs_.empty())
+    if (was_active)
     {
-        int new_active = std::min(idx, static_cast<int>(tabs_.size()) - 1);
-        tabs_[static_cast<size_t>(new_active)].is_active = true;
+        int new_active = -1;
+        // Search left
+        for (int i = idx - 1; i >= 0; --i)
+        {
+            if (!tabs_[static_cast<size_t>(i)].is_closing)
+            {
+                new_active = i;
+                break;
+            }
+        }
+        // Search right
+        if (new_active < 0)
+        {
+            for (size_t i = static_cast<size_t>(idx + 1); i < tabs_.size(); ++i)
+            {
+                if (!tabs_[i].is_closing)
+                {
+                    new_active = static_cast<int>(i);
+                    break;
+                }
+            }
+        }
 
-        core::events::TabSwitchedEvent evt(tabs_[static_cast<size_t>(new_active)].file_path);
-        event_bus_.publish(evt);
+        if (new_active >= 0)
+        {
+            tabs_[static_cast<size_t>(new_active)].is_active = true;
+            core::events::TabSwitchedEvent evt(tabs_[static_cast<size_t>(new_active)].file_path);
+            event_bus_.publish(evt);
+        }
     }
+
+    // Phase 11 Task 17: Tab close animation fade-out
+    animation::AnimationConfig config;
+    config.duration = std::chrono::milliseconds(180);
+    config.easing_type = animation::EasingType::EaseOutCubic;
+    std::string aname = "tab_close_" + file_path;
+    transition_manager_.register_transition(aname, config);
+
+    transition_manager_.start<float>(
+        aname,
+        tab_to_close.opacity,
+        0.0F,
+        [this, file_path](float op)
+        {
+            int t_idx = -1;
+            for (size_t i = 0; i < tabs_.size(); ++i)
+            {
+                if (tabs_[i].file_path == file_path && tabs_[i].is_closing)
+                {
+                    t_idx = static_cast<int>(i);
+                    break;
+                }
+            }
+
+            if (t_idx >= 0)
+            {
+                tabs_[static_cast<size_t>(t_idx)].opacity = op;
+                if (op <= 0.01F)
+                {
+                    // Animation finished - totally erase
+                    tabs_.erase(tabs_.begin() + static_cast<std::ptrdiff_t>(t_idx));
+                    UpdateTabGroups();
+                    UpdatePulseTimer();
+                    RecalculateTabRects();
+                    hovered_tab_index_ = -1;
+
+                    if (focused_tab_index_ >= static_cast<int>(tabs_.size()))
+                    {
+                        focused_tab_index_ = static_cast<int>(tabs_.size()) - 1;
+                        if (focused_tab_index_ >= 0)
+                        {
+                            FocusManager::get().set_item(focused_tab_index_);
+                        }
+                    }
+
+                    // Clamp scroll offset
+                    if (!tabs_.empty())
+                    {
+                        const int total_width = tabs_.back().rect.GetRight();
+                        const int client_width = GetClientSize().GetWidth();
+                        const int max_scroll = std::max(0, total_width - client_width);
+                        scroll_offset_ = std::clamp(scroll_offset_, 0, max_scroll);
+                    }
+                    else
+                    {
+                        scroll_offset_ = 0;
+                    }
+                }
+                Refresh();
+            }
+        });
 
     RecalculateTabRects();
-
-    // Fix 9: Clamp scroll offset after removing a tab to prevent blank gap
-    if (!tabs_.empty())
-    {
-        const int total_width = tabs_.back().rect.GetRight();
-        const int client_width = GetClientSize().GetWidth();
-        const int max_scroll = std::max(0, total_width - client_width);
-        scroll_offset_ = std::clamp(scroll_offset_, 0, max_scroll);
-    }
-    else
-    {
-        scroll_offset_ = 0;
-    }
-
     Refresh();
 }
 
@@ -190,6 +395,7 @@ void TabBar::SetTabModified(const std::string& file_path, bool modified)
     if (idx >= 0 && tabs_[static_cast<size_t>(idx)].is_modified != modified)
     {
         tabs_[static_cast<size_t>(idx)].is_modified = modified;
+        UpdatePulseTimer();
         Refresh();
     }
 }
@@ -203,6 +409,7 @@ void TabBar::RenameTab(const std::string& old_path,
     {
         tabs_[static_cast<size_t>(idx)].file_path = new_path;
         tabs_[static_cast<size_t>(idx)].display_name = new_display_name;
+        UpdateTabGroups(); // Update group assignments
         RecalculateTabRects();
         Refresh();
     }
@@ -349,6 +556,34 @@ void TabBar::CloseTabsToRight(const std::string& of_path)
     }
 }
 
+// Phase 11 Task 11: Update modified dot pulse timer
+void TabBar::UpdatePulseTimer()
+{
+    bool any_animating = false;
+    for (const auto& tab : tabs_)
+    {
+        if (tab.is_modified || tab.is_saving)
+        {
+            any_animating = true;
+            break;
+        }
+    }
+
+    if (any_animating && !pulse_timer_.IsRunning())
+    {
+        pulse_timer_.Start(32); // ~30fps
+    }
+    else if (!any_animating && pulse_timer_.IsRunning())
+    {
+        pulse_timer_.Stop();
+    }
+}
+
+void TabBar::OnPulseTimer(wxTimerEvent& /*event*/)
+{
+    Refresh();
+}
+
 // --- Painting ---
 
 void TabBar::OnPaint(wxPaintEvent& /*event*/)
@@ -370,6 +605,17 @@ void TabBar::OnPaint(wxPaintEvent& /*event*/)
                     .value_or(theme_engine().color(core::ThemeColorToken::BgPanel)))));
     gc->SetPen(wxNullPen);
     gc->DrawRectangle(0, 0, sz.GetWidth(), sz.GetHeight());
+
+    // Phase 12 Task 7: Group Focus Indicator
+    if (is_group_focused_)
+    {
+        gc->SetPen(gc->CreatePen(
+            wxPen(theme_engine()
+                      .resolve_token("tab.group_focus_border")
+                      .value_or(theme_engine().color(core::ThemeColorToken::AccentPrimary)),
+                  2)));
+        gc->StrokeLine(0, 0, sz.GetWidth(), 0);
+    }
 
     // Bottom border — R16 Fix 40: subtle light border
     gc->SetPen(
@@ -449,6 +695,83 @@ void TabBar::OnPaint(wxPaintEvent& /*event*/)
         }
     }
 
+    // Phase 11 Task 15: Background action area '+' button if there is space
+    int last_tab_right_safe = tabs_.empty() ? 0 : tabs_.back().rect.GetRight() - scroll_offset_;
+    if (last_tab_right_safe + 32 <= sz.GetWidth())
+    {
+        int add_x = last_tab_right_safe + 4;
+        const int kHeight = ds_.metrics.tab_height();
+        int add_y = (kHeight - 24) / 2;
+        wxRect r(add_x, add_y, 24, 24);
+
+        if (new_file_hovered_)
+        {
+            gc->SetBrush(gc->CreateBrush(wxBrush(wxColour(128, 128, 128, 40))));
+            gc->SetPen(wxNullPen);
+            gc->DrawRoundedRectangle(r.x, r.y, r.width, r.height, 4);
+        }
+
+        gc->SetPen(gc->CreatePen(wxPen(theme_engine().color(core::ThemeColorToken::TextMuted), 1)));
+        gc->StrokeLine(add_x + 12, add_y + 6, add_x + 12, add_y + 18);
+        gc->StrokeLine(add_x + 6, add_y + 12, add_x + 18, add_y + 12);
+    }
+
+    // Phase 12 Task 8: Group Action Buttons (Right-aligned)
+    const int kHeight = ds_.metrics.tab_height();
+    int actions_x = sz.GetWidth() - 8;
+
+    // 1. "More Actions" (...) Button
+    actions_x -= 24;
+    wxRect more_actions_rect(actions_x, (kHeight - 24) / 2, 24, 24);
+    if (more_actions_hovered_)
+    {
+        gc->SetBrush(gc->CreateBrush(wxBrush(wxColour(128, 128, 128, 40))));
+        gc->SetPen(wxNullPen);
+        gc->DrawRoundedRectangle(more_actions_rect.x, more_actions_rect.y, 24, 24, 4);
+    }
+
+    gc->SetBrush(gc->CreateBrush(wxBrush(theme_engine().color(core::ThemeColorToken::TextMuted))));
+    gc->SetPen(wxNullPen);
+    int dot_x = more_actions_rect.x + 12;
+    int dot_y = more_actions_rect.y + 12;
+    gc->DrawEllipse(dot_x - 5, dot_y - 1, 2, 2);
+    gc->DrawEllipse(dot_x - 1, dot_y - 1, 2, 2);
+    gc->DrawEllipse(dot_x + 3, dot_y - 1, 2, 2);
+
+    // 2. "Split Right" Button
+    actions_x -= 24;
+    wxRect split_right_rect(actions_x, (kHeight - 24) / 2, 24, 24);
+    if (split_right_hovered_)
+    {
+        gc->SetBrush(gc->CreateBrush(wxBrush(wxColour(128, 128, 128, 40))));
+        gc->SetPen(wxNullPen);
+        gc->DrawRoundedRectangle(split_right_rect.x, split_right_rect.y, 24, 24, 4);
+    }
+
+    gc->SetPen(gc->CreatePen(wxPen(theme_engine().color(core::ThemeColorToken::TextMuted), 1)));
+    gc->StrokeLine(split_right_rect.x + 6,
+                   split_right_rect.y + 6,
+                   split_right_rect.x + 18,
+                   split_right_rect.y + 6);
+    gc->StrokeLine(split_right_rect.x + 6,
+                   split_right_rect.y + 18,
+                   split_right_rect.x + 18,
+                   split_right_rect.y + 18);
+    gc->StrokeLine(split_right_rect.x + 6,
+                   split_right_rect.y + 6,
+                   split_right_rect.x + 6,
+                   split_right_rect.y + 18);
+    gc->StrokeLine(split_right_rect.x + 18,
+                   split_right_rect.y + 6,
+                   split_right_rect.x + 18,
+                   split_right_rect.y + 18);
+    gc->StrokeLine(split_right_rect.x + 12,
+                   split_right_rect.y + 6,
+                   split_right_rect.x + 12,
+                   split_right_rect.y + 18);
+
+    actions_x -= 8; // Padding before the text
+
     // Fix 11: Draw tab count badge right-aligned
     if (!tabs_.empty())
     {
@@ -460,9 +783,8 @@ void TabBar::OnPaint(wxPaintEvent& /*event*/)
         wxDouble count_w = 0;
         wxDouble count_h = 0;
         gc->GetTextExtent(count_text, &count_w, &count_h);
-        const int kHeight = ds_.metrics.tab_height();
         gc->DrawText(count_text,
-                     sz.GetWidth() - static_cast<int>(count_w) - 12,
+                     actions_x - static_cast<int>(count_w),
                      (kHeight - static_cast<int>(count_h)) / 2);
     }
 
@@ -536,9 +858,9 @@ void TabBar::DrawTab(wxGraphicsContext& gc, const TabInfo& tab, const core::Them
     }
 
     // R20 Fix 5: Tint tab background by directory group color
-    if (!tab.is_active)
+    if (!tab.is_active && tab.group_color.IsOk() && tab.group_color.Alpha() > 0)
     {
-        auto tint = GetGroupColorTint(tab.file_path);
+        auto tint = tab.group_color.ChangeLightness(160);
         if (tint.Alpha() > 0)
         {
             // Blend tint into current background at low alpha
@@ -561,22 +883,40 @@ void TabBar::DrawTab(wxGraphicsContext& gc, const TabInfo& tab, const core::Them
     else
     {
         gc.DrawRectangle(tab_x, tab_y, tab_w, tab_h);
+
+        // Phase 11 Task 7: Explicit Tab Groups 2px top border matching the group color
+        if (tab.group_color.IsOk() && tab.group_color.Alpha() > 0)
+        {
+            gc.SetBrush(gc.CreateBrush(wxBrush(tab.group_color)));
+            gc.DrawRectangle(tab_x, tab_y, tab_w, 2);
+        }
     }
 
     // 17. Active indicator — Phase 06 Task 50: Prominent top/bottom borders
     if (tab.is_active)
     {
+        auto top_border_color =
+            theme_engine()
+                .resolve_token("tab.active_border_top")
+                .value_or(theme_engine().color(core::ThemeColorToken::AccentPrimary));
+
+        // Phase 11 Task 14: Tab Group Header Bar
+        if (tab.group_color.IsOk() && tab.group_color.Alpha() > 0)
+        {
+            top_border_color = tab.group_color;
+        }
+
+        gc.SetBrush(gc.CreateBrush(wxBrush(top_border_color)));
+        gc.DrawRectangle(tab_x, tab_y, tab_w, 3); // Top border
+
         gc.SetBrush(gc.CreateBrush(
             wxBrush(theme_engine()
-                        .resolve_token("tab.active_border_top")
+                        .resolve_token("tab.active_border_bottom")
                         .value_or(theme_engine().color(core::ThemeColorToken::AccentPrimary)))));
-        gc.DrawRectangle(tab_x, tab_y, tab_w, 3);             // Top border
-        gc.DrawRectangle(tab_x, tab_y + tab_h - 3, tab_w, 3); // Bottom border
+        gc.DrawRectangle(tab_x, tab_y + tab_h - 3, tab_w, 3); // Bottom border keeping accent
 
         // R20 Fix 3: Active tab top glow (neon-edge beneath indicator)
-        auto accent = theme_engine()
-                          .resolve_token("tab.active_border_top")
-                          .value_or(theme_engine().color(core::ThemeColorToken::AccentPrimary));
+        auto accent = top_border_color;
         for (int glow_row = 0; glow_row < kGlowLineHeight; ++glow_row)
         {
             int glow_alpha = 80 - (glow_row * 40);
@@ -621,8 +961,8 @@ void TabBar::DrawTab(wxGraphicsContext& gc, const TabInfo& tab, const core::Them
     {
         font.SetWeight(wxFONTWEIGHT_SEMIBOLD);
     }
-    // R19 Fix 5: Italic style for modified tabs
-    if (tab.is_modified)
+    // R19 Fix 5: Italic style for modified tabs and preview tabs
+    if (tab.is_modified || tab.is_preview)
     {
         font.SetStyle(wxFONTSTYLE_ITALIC);
     }
@@ -636,7 +976,7 @@ void TabBar::DrawTab(wxGraphicsContext& gc, const TabInfo& tab, const core::Them
                          .value_or(theme_engine().color(core::ThemeColorToken::TabInactiveFg)));
 
     // Build display text with modified indicator
-    std::string display = tab.display_name;
+    std::string display = tab.is_pinned ? "" : tab.display_name;
 
     // Calculate text area (leave room for close button)
     const int kTabPaddingH = ds_.metrics.control_padding_h();
@@ -655,66 +995,18 @@ void TabBar::DrawTab(wxGraphicsContext& gc, const TabInfo& tab, const core::Them
         text_max_w -= static_cast<int>(pin_w) + 2;
     }
 
-    // Modified dot (●) before filename
-    if (tab.is_modified)
-    {
-        int dot_y = tab_y + (tab_h - kModifiedDotSize) / 2;
-        gc.SetBrush(
-            gc.CreateBrush(wxBrush(theme_engine().color(core::ThemeColorToken::AccentSecondary))));
-        gc.SetPen(wxNullPen);
-        gc.DrawEllipse(text_x, dot_y, kModifiedDotSize, kModifiedDotSize);
-        text_x += kModifiedDotSize + 4;
-        text_max_w -= kModifiedDotSize + 4;
-    }
+    // (Redundant indicator before filename removed; now rendered over the X button instead)
 
     // --- Draw File Type Icon ---
-    std::string icon_name = FileTypeIconResolver::GetFileIcon(tab.file_path);
-    if (!icon_name.empty())
+    if (tab_w >= 36)
     {
-        wxColour icon_color = theme_engine().color(core::ThemeColorToken::TextMuted);
+        const int kIconSize = 14;
+        int icon_y = tab_y + (tab_h - kIconSize) / 2;
+        static const FileTypeIconRegistry icon_registry;
+        icon_registry.DrawFileIcon(gc, tab.file_path, text_x, icon_y, kIconSize, theme_engine());
 
-        // Match extension tinting logic used in FileTreeCtrl
-        auto ends_with = [&tab](const char* ext) -> bool
-        {
-            return tab.file_path.size() >= std::strlen(ext) &&
-                   tab.file_path.compare(
-                       tab.file_path.size() - std::strlen(ext), std::strlen(ext), ext) == 0;
-        };
-        if (ends_with(".md") || ends_with(".txt"))
-        {
-            icon_color = theme_engine().color(core::ThemeColorToken::AccentPrimary);
-        }
-        else if (ends_with(".json") || ends_with(".yml") || ends_with(".yaml"))
-        {
-            icon_color = theme_engine().color(core::ThemeColorToken::SyntaxNumber);
-        }
-        else if (ends_with(".cpp") || ends_with(".h") || ends_with(".hpp") || ends_with(".c"))
-        {
-            icon_color = theme_engine().color(core::ThemeColorToken::SyntaxKeyword);
-        }
-        else if (ends_with(".js") || ends_with(".ts") || ends_with(".jsx") || ends_with(".tsx"))
-        {
-            icon_color = theme_engine().color(core::ThemeColorToken::SuccessColor);
-        }
-        else if (ends_with(".html") || ends_with(".htm") || ends_with(".css"))
-        {
-            icon_color = theme_engine().color(core::ThemeColorToken::AccentSecondary);
-        }
-        else if (ends_with(".py") || ends_with(".rb") || ends_with(".go") || ends_with(".rs"))
-        {
-            icon_color = theme_engine().color(core::ThemeColorToken::ErrorColor);
-        }
-
-        const int kIconSize = 14; // Slightly smaller than tree size for tabs
-        auto bmp =
-            IconManager::get().get_icon_bitmap(icon_name, wxSize(kIconSize, kIconSize), icon_color);
-        if (bmp.IsOk())
-        {
-            int icon_y = tab_y + (tab_h - kIconSize) / 2;
-            gc.DrawBitmap(bmp, text_x, icon_y, kIconSize, kIconSize);
-            text_x += kIconSize + 6;
-            text_max_w -= kIconSize + 6;
-        }
+        text_x += kIconSize + 6;
+        text_max_w -= kIconSize + 6;
     }
 
     // Truncate text if necessary
@@ -753,7 +1045,8 @@ void TabBar::DrawTab(wxGraphicsContext& gc, const TabInfo& tab, const core::Them
         gc.DrawText(disambig, text_x + static_cast<int>(text_w) + 4, text_y + 1);
     }
 
-    // Close button (×) — Fix 12: show modified dot (●) instead of × when not hovered
+    // Close button (×) — Fix 12: show modified dot (●) or saving spinner instead of × when not
+    // hovered
     int close_x = tab_x + tab_w - kCloseButtonSize - kCloseButtonMargin;
     int close_y = tab_y + (tab_h - kCloseButtonSize) / 2;
 
@@ -764,18 +1057,45 @@ void TabBar::DrawTab(wxGraphicsContext& gc, const TabInfo& tab, const core::Them
     // Show close button area on hover or if tab is active
     if (tab.is_active || is_tab_hovered)
     {
-        // Fix 12: If modified and close NOT hovered, draw dot instead of ×
-        if (tab.is_modified && !tab.close_hovered)
+        // Fix 12: If modified/saving and close NOT hovered, draw corresponding indicator instead of
+        // ×
+        if ((tab.is_modified || tab.is_saving) && !tab.close_hovered)
         {
-            int dot_cx = close_x + kCloseButtonSize / 2;
-            int dot_cy = close_y + kCloseButtonSize / 2;
-            gc.SetBrush(gc.CreateBrush(
-                wxBrush(theme_engine().color(core::ThemeColorToken::AccentSecondary))));
-            gc.SetPen(wxNullPen);
-            gc.DrawEllipse(dot_cx - kModifiedDotSize / 2,
-                           dot_cy - kModifiedDotSize / 2,
-                           kModifiedDotSize,
-                           kModifiedDotSize);
+            if (tab.is_saving)
+            {
+                double time_ms = static_cast<double>(wxGetLocalTimeMillis().GetValue());
+                double angle = (std::fmod(time_ms, 1200.0) / 1200.0) * 2.0 * M_PI;
+                int dot_cx = close_x + kCloseButtonSize / 2;
+                int dot_cy = close_y + kCloseButtonSize / 2;
+
+                gc.SetPen(gc.CreatePen(
+                    wxPen(theme_engine().color(core::ThemeColorToken::AccentPrimary), 2)));
+                gc.SetBrush(wxNullBrush);
+
+                wxGraphicsPath path = gc.CreatePath();
+                path.AddArc(
+                    dot_cx, dot_cy, kModifiedDotSize / 2.0 + 1.0, angle, angle + M_PI * 1.3, true);
+                gc.StrokePath(path);
+            }
+            else
+            {
+                double time_ms = static_cast<double>(wxGetLocalTimeMillis().GetValue());
+                double pulse_alpha = 0.5 + 0.5 * std::abs(std::sin(time_ms / 400.0));
+                wxColour dot_color = theme_engine().color(core::ThemeColorToken::AccentSecondary);
+                dot_color = wxColour(dot_color.Red(),
+                                     dot_color.Green(),
+                                     dot_color.Blue(),
+                                     static_cast<unsigned char>(255.0 * pulse_alpha));
+
+                int dot_cx = close_x + kCloseButtonSize / 2;
+                int dot_cy = close_y + kCloseButtonSize / 2;
+                gc.SetBrush(gc.CreateBrush(wxBrush(dot_color)));
+                gc.SetPen(wxNullPen);
+                gc.DrawEllipse(dot_cx - kModifiedDotSize / 2,
+                               dot_cy - kModifiedDotSize / 2,
+                               kModifiedDotSize,
+                               kModifiedDotSize);
+            }
         }
         else
         {
@@ -845,6 +1165,32 @@ void TabBar::OnMouseMove(wxMouseEvent& event)
     if (is_dragging_ && drag_tab_index_ >= 0 && event.LeftIsDown())
     {
         const int delta_x = pos.x - drag_start_x_;
+        const int delta_y = pos.y - drag_start_y_;
+
+        // Phase 11 Task 10: Tear-off / Cross-group drag
+        constexpr int kDropThreshold = 20;
+        if (std::abs(delta_y) > kDropThreshold)
+        {
+            std::string path = tabs_[static_cast<size_t>(drag_tab_index_)].file_path;
+
+            is_dragging_ = false;
+            if (HasCapture())
+            {
+                ReleaseMouse();
+            }
+
+            wxTextDataObject drag_data("markamp_tab:" + path + ":" + std::to_string(GetId()));
+            wxDropSource drag_source(this);
+            drag_source.SetData(drag_data);
+
+            wxDragResult result = drag_source.DoDragDrop(wxDrag_AllowMove);
+            if (result == wxDragMove)
+            {
+                RemoveTab(path);
+            }
+            return;
+        }
+
         constexpr int kDragThreshold = 30;
         if (std::abs(delta_x) > kDragThreshold)
         {
@@ -887,11 +1233,41 @@ void TabBar::OnMouseMove(wxMouseEvent& event)
     {
         if (new_hovered >= 0)
         {
-            std::string tip = tabs_[static_cast<size_t>(new_hovered)].file_path;
+            const auto& hover_tab = tabs_[static_cast<size_t>(new_hovered)];
+            std::string tip;
+
             // Provide specific tooltip if hovering the close button
-            if (tabs_[static_cast<size_t>(new_hovered)].close_hovered)
+            if (hover_tab.close_hovered)
             {
-                tip = "Close tab";
+                tip = "Close " + hover_tab.display_name;
+            }
+            else
+            {
+                tip = hover_tab.display_name;
+
+                if (hover_tab.is_preview)
+                {
+                    tip += " [Preview]";
+                }
+                if (hover_tab.is_pinned)
+                {
+                    tip += " [Pinned]";
+                }
+                if (hover_tab.is_saving)
+                {
+                    tip += " (Saving...)";
+                }
+                else if (hover_tab.is_modified)
+                {
+                    tip += " (Modified)";
+                }
+
+                if (!hover_tab.group_id.empty())
+                {
+                    tip += "\nGroup: " + hover_tab.group_id;
+                }
+
+                tip += "\nPath: " + hover_tab.file_path;
             }
             SetToolTip(tip);
         }
@@ -906,11 +1282,80 @@ void TabBar::OnMouseMove(wxMouseEvent& event)
         hovered_tab_index_ = new_hovered;
         Refresh();
     }
+
+    // Phase 11 Task 15: Background action area (+) button hover state
+    bool new_file_btn_hovered = HitTestNewFileButton(pos);
+    if (new_file_btn_hovered != new_file_hovered_)
+    {
+        new_file_hovered_ = new_file_btn_hovered;
+        if (new_file_hovered_)
+        {
+            SetToolTip("New File");
+        }
+        else if (new_hovered < 0)
+        {
+            UnsetToolTip();
+        }
+        Refresh();
+    }
 }
 
 void TabBar::OnMouseDown(wxMouseEvent& event)
 {
     auto pos = event.GetPosition();
+
+    // Phase 11 Task 9: Check overflow chevron click
+    if (HitTestOverflowChevron(pos))
+    {
+        ShowOverflowMenu();
+        return;
+    }
+
+    // Phase 12 Task 8: Group Actions click
+    if (HitTestSplitRightButton(pos))
+    {
+        core::events::EditorGroupSplitRequestEvent evt;
+        evt.source_tabbar_id = GetId();
+        evt.is_horizontal_split = true;
+        event_bus_.publish(evt);
+        return;
+    }
+
+    if (HitTestMoreActionsButton(pos))
+    {
+        core::events::EditorGroupMoreActionsEvent evt;
+        evt.source_tabbar_id = GetId();
+        wxPoint screen_pos = ClientToScreen(pos);
+        evt.screen_x = screen_pos.x;
+        evt.screen_y = screen_pos.y;
+        event_bus_.publish(evt);
+        return;
+    }
+
+    // Phase 11 Task 15: Background action area click
+    if (HitTestNewFileButton(pos))
+    {
+        static int untitled_counter = 1;
+        const std::string untitled_path = "Untitled-" + std::to_string(untitled_counter++) + ".md";
+        AddTab(untitled_path, untitled_path);
+
+        const core::events::TabSwitchedEvent evt(untitled_path);
+        event_bus_.publish(evt);
+        return;
+    }
+
+    // Phase 11 Task 15: Background action area click
+    if (HitTestNewFileButton(pos))
+    {
+        static int untitled_counter = 1;
+        const std::string untitled_path = "Untitled-" + std::to_string(untitled_counter++) + ".md";
+        AddTab(untitled_path, untitled_path);
+
+        const core::events::TabSwitchedEvent evt(untitled_path);
+        event_bus_.publish(evt);
+        return;
+    }
+
     int tab_index = HitTestTab(pos);
 
     if (tab_index < 0)
@@ -996,11 +1441,19 @@ void TabBar::OnMiddleDown(wxMouseEvent& event)
 
 void TabBar::OnDoubleClick(wxMouseEvent& event)
 {
-    // Fix 10: Double-click on empty area (no tab hit) creates a new untitled file
     const int tab_index = HitTestTab(event.GetPosition());
-    if (tab_index < 0)
+    if (tab_index >= 0)
     {
-        // Publish a new-tab event by creating a unique untitled path
+        // Phase 11 Task 3: Lock preview tab on double click
+        if (tabs_[static_cast<size_t>(tab_index)].is_preview)
+        {
+            tabs_[static_cast<size_t>(tab_index)].is_preview = false;
+            Refresh();
+        }
+    }
+    else
+    {
+        // Fix 10: Double-click on empty area (no tab hit) creates a new untitled file
         static int untitled_counter = 1;
         const std::string untitled_path = "Untitled-" + std::to_string(untitled_counter++) + ".md";
         AddTab(untitled_path, untitled_path);
@@ -1081,6 +1534,11 @@ void TabBar::ShowTabContextMenu(int tab_index)
     // R19 Fix 4: Duplicate Tab
     menu.AppendSeparator();
     menu.Append(kContextDuplicateTab, "Duplicate Tab");
+
+    // Phase 11 Task 16: Sort Tabs
+    menu.AppendSeparator();
+    menu.Append(kContextSortByName, "Sort Tabs by Name");
+    menu.Append(kContextSortByPath, "Sort Tabs by Path");
 
     // Disable close to left/right if not applicable
     menu.Enable(kContextCloseToLeft, tab_index > 0);
@@ -1179,10 +1637,95 @@ void TabBar::ShowTabContextMenu(int tab_index)
                       case kContextDuplicateTab:
                           DuplicateTab(target_path);
                           break;
+                      // Phase 11 Task 16: Sort Tabs
+                      case kContextSortByName:
+                      {
+                          std::stable_sort(tabs_.begin(),
+                                           tabs_.end(),
+                                           [](const TabInfo& a, const TabInfo& b)
+                                           {
+                                               if (a.is_pinned != b.is_pinned)
+                                                   return a.is_pinned;
+                                               return a.display_name < b.display_name;
+                                           });
+                          for (size_t i = 0; i < tabs_.size(); ++i)
+                          {
+                              if (tabs_[i].is_active)
+                              {
+                                  EnsureTabVisible(static_cast<int>(i));
+                                  break;
+                              }
+                          }
+                          UpdateTabGroups();
+                          RecalculateTabRects();
+                          Refresh();
+                          break;
+                      }
+                      case kContextSortByPath:
+                      {
+                          std::stable_sort(tabs_.begin(),
+                                           tabs_.end(),
+                                           [](const TabInfo& a, const TabInfo& b)
+                                           {
+                                               if (a.is_pinned != b.is_pinned)
+                                                   return a.is_pinned;
+                                               return a.file_path < b.file_path;
+                                           });
+                          for (size_t i = 0; i < tabs_.size(); ++i)
+                          {
+                              if (tabs_[i].is_active)
+                              {
+                                  EnsureTabVisible(static_cast<int>(i));
+                                  break;
+                              }
+                          }
+                          UpdateTabGroups();
+                          RecalculateTabRects();
+                          Refresh();
+                          break;
+                      }
                   }
               });
 
     PopupMenu(&menu);
+}
+
+// Phase 11 Task 9: Show Overflow Menu
+void TabBar::ShowOverflowMenu()
+{
+    wxMenu menu;
+    const auto sz = GetClientSize();
+    int menu_id = 10000;
+    std::unordered_map<int, std::string> id_to_path;
+
+    for (const auto& tab : tabs_)
+    {
+        if (tab.rect.GetRight() - scroll_offset_ > sz.GetWidth() ||
+            tab.rect.GetLeft() - scroll_offset_ < 0)
+        {
+            menu.Append(menu_id, tab.display_name);
+            id_to_path[menu_id] = tab.file_path;
+            menu_id++;
+        }
+    }
+
+    if (id_to_path.empty())
+    {
+        return;
+    }
+
+    menu.Bind(wxEVT_MENU,
+              [this, id_to_path](wxCommandEvent& cmd_event)
+              {
+                  auto it = id_to_path.find(cmd_event.GetId());
+                  if (it != id_to_path.end())
+                  {
+                      SetActiveTab(it->second);
+                  }
+              });
+
+    wxPoint popup_pos(sz.GetWidth() - 24, sz.GetHeight());
+    PopupMenu(&menu, popup_pos);
 }
 
 // --- Hit testing ---
@@ -1191,6 +1734,9 @@ auto TabBar::HitTestTab(const wxPoint& point) const -> int
 {
     for (size_t idx = 0; idx < tabs_.size(); ++idx)
     {
+        if (tabs_[idx].is_closing)
+            continue;
+
         wxRect adjusted = tabs_[idx].rect;
         adjusted.Offset(-scroll_offset_, 0);
         if (adjusted.Contains(point))
@@ -1218,6 +1764,59 @@ auto TabBar::HitTestCloseButton(const wxPoint& point, int tab_index) const -> bo
     return close_rect.Contains(point);
 }
 
+// Phase 11 Task 9: Hit test for overflow chevron
+auto TabBar::HitTestOverflowChevron(const wxPoint& point) const -> bool
+{
+    if (tabs_.empty())
+    {
+        return false;
+    }
+
+    int last_tab_right = tabs_.back().rect.GetRight() - scroll_offset_;
+    const auto sz = GetClientSize();
+    if (last_tab_right > sz.GetWidth())
+    {
+        constexpr int kFadeWidth = 24;
+        wxRect chevron_rect(sz.GetWidth() - kFadeWidth, 0, kFadeWidth, sz.GetHeight());
+        return chevron_rect.Contains(point);
+    }
+    return false;
+}
+
+// Phase 11 Task 15: Background Add Button
+auto TabBar::HitTestNewFileButton(const wxPoint& point) const -> bool
+{
+    const auto sz = GetClientSize();
+    int last_tab_right = tabs_.empty() ? 0 : tabs_.back().rect.GetRight() - scroll_offset_;
+    if (last_tab_right + 32 <= sz.GetWidth())
+    {
+        const int kHeight = ds_.metrics.tab_height();
+        wxRect r(last_tab_right + 4, (kHeight - 24) / 2, 24, 24);
+        return r.Contains(point);
+    }
+    return false;
+}
+
+// Phase 12 Task 8: Split Right HitTest
+auto TabBar::HitTestSplitRightButton(const wxPoint& point) const -> bool
+{
+    const auto sz = GetClientSize();
+    int actions_x = sz.GetWidth() - 8 - 24 - 24;
+    const int kHeight = ds_.metrics.tab_height();
+    wxRect r(actions_x, (kHeight - 24) / 2, 24, 24);
+    return r.Contains(point);
+}
+
+// Phase 12 Task 8: More Actions HitTest
+auto TabBar::HitTestMoreActionsButton(const wxPoint& point) const -> bool
+{
+    const auto sz = GetClientSize();
+    int actions_x = sz.GetWidth() - 8 - 24;
+    const int kHeight = ds_.metrics.tab_height();
+    wxRect r(actions_x, (kHeight - 24) / 2, 24, 24);
+    return r.Contains(point);
+}
+
 // --- Layout ---
 
 void TabBar::RecalculateTabRects()
@@ -1231,18 +1830,50 @@ void TabBar::RecalculateTabRects()
     const int kCloseButtonSize = ds_.metrics.icon_size_small();
     const int kHeight = ds_.metrics.tab_height();
 
+    int available_width = GetClientSize().GetWidth();
+    int shrink_width = kMaxTabWidth;
+    if (size_mode_ == TabSizeMode::kShrink && !tabs_.empty())
+    {
+        shrink_width = std::max(kMinTabWidth, available_width / static_cast<int>(tabs_.size()));
+    }
+
     int x_offset = 0;
     for (auto& tab : tabs_)
     {
-        auto text_extent = dc.GetTextExtent(tab.display_name);
-        int tab_width =
-            text_extent.GetWidth() + kTabPaddingH * 2 + kCloseButtonSize + kCloseButtonMargin + 4;
+        int tab_width = 0;
 
-        // Add space for modified dot
-        tab_width += kModifiedDotSize + 4;
+        if (tab.is_closing)
+        {
+            tab_width = 0;
+        }
+        else if (tab.is_pinned)
+        {
+            tab_width = 40; // Phase 11 Task 20: Compact Pinned Tabs
+        }
+        else if (size_mode_ == TabSizeMode::kFixedWidth)
+        {
+            tab_width = kFixedWidth;
+        }
+        else
+        {
+            auto text_extent = dc.GetTextExtent(tab.display_name);
+            tab_width = text_extent.GetWidth() + kTabPaddingH * 2 + kCloseButtonSize +
+                        kCloseButtonMargin + 4;
 
-        // Clamp to min/max
-        tab_width = std::clamp(tab_width, kMinTabWidth, kMaxTabWidth);
+            // Add space for modified dot
+            tab_width += kModifiedDotSize + 4;
+
+            if (!tab.is_pinned && size_mode_ == TabSizeMode::kShrink)
+            {
+                tab_width = std::max(kMinTabWidth, std::min(tab_width, shrink_width));
+            }
+        }
+
+        // Clamp to min/max globally just to be safe, except when closing
+        if (!tab.is_closing)
+        {
+            tab_width = std::clamp(tab_width, kMinTabWidth, kMaxTabWidth);
+        }
 
         // R19 Fix 1: Smooth width transition
         tab.target_width = tab_width;
@@ -1316,7 +1947,7 @@ auto TabBar::FindTabIndex(const std::string& file_path) const -> int
 {
     for (size_t idx = 0; idx < tabs_.size(); ++idx)
     {
-        if (tabs_[idx].file_path == file_path)
+        if (tabs_[idx].file_path == file_path && !tabs_[idx].is_closing)
         {
             return static_cast<int>(idx);
         }
@@ -1409,6 +2040,22 @@ void markamp::ui::TabBar::OnKeyDown(wxKeyEvent& event)
             const auto& tab = tabs_[static_cast<size_t>(focused_tab_index_)];
             accessibility::AccessibilityController::get().announce_focus(
                 tab.display_name, "Tab", "Selected");
+        }
+    }
+    else if (key_code == WXK_DELETE || key_code == WXK_BACK)
+    {
+        if (focused_tab_index_ >= 0 && focused_tab_index_ < static_cast<int>(tabs_.size()))
+        {
+            std::string selected_path = tabs_[static_cast<size_t>(focused_tab_index_)].file_path;
+
+            // Phase 11 Task 19: Close focused tab via keyboard
+            core::events::TabCloseRequestEvent evt(selected_path);
+            event_bus_.publish(evt);
+
+            accessibility::AccessibilityController::get().announce_focus(
+                "Closing " + tabs_[static_cast<size_t>(focused_tab_index_)].display_name,
+                "Tab",
+                "");
         }
     }
     else
@@ -1534,59 +2181,56 @@ void markamp::ui::TabBar::DuplicateTab(const std::string& file_path)
     event_bus_.publish(evt);
 }
 
-// R20 Fix 5: Generate a group color tint based on the file's parent directory
-auto markamp::ui::TabBar::GetGroupColorTint(const std::string& file_path) const -> wxColour
+// Phase 11 Task 7: Assign groups based on directory and assign a static color
+void markamp::ui::TabBar::UpdateTabGroups()
 {
-    try
+    std::unordered_map<std::string, int> dir_counts;
+    for (const auto& tab : tabs_)
     {
-        const auto parent = std::filesystem::path(file_path).parent_path().string();
-        if (parent.empty())
+        try
         {
-            return {0, 0, 0, 0}; // No tint for root-level files
-        }
-
-        // Check if more than one tab shares this directory
-        int dir_count = 0;
-        for (const auto& tab : tabs_)
-        {
-            try
+            auto parent = std::filesystem::path(tab.file_path).parent_path().string();
+            if (!parent.empty())
             {
-                if (std::filesystem::path(tab.file_path).parent_path().string() == parent)
-                {
-                    ++dir_count;
-                }
-            }
-            catch (const std::exception& /*ex*/)
-            {
+                dir_counts[parent]++;
             }
         }
-
-        if (dir_count <= 1)
+        catch (...)
         {
-            return {0, 0, 0, 0}; // Only tint when multiple files share a directory
         }
-
-        // Hash the directory path into a hue index
-        const std::size_t hash_val = std::hash<std::string>{}(parent);
-        const int hue_index = static_cast<int>(hash_val % kGroupColorCount);
-
-        // 6 theme-derived tint colors (lightened for pastel effect)
-        const auto& teng = theme_engine();
-        static const auto make_tint = [](const wxColour& col) -> wxColour
-        { return col.ChangeLightness(160); };
-        const std::array<wxColour, kGroupColorCount> kGroupColors = {{
-            make_tint(teng.color(core::ThemeColorToken::AccentPrimary)),
-            make_tint(teng.color(core::ThemeColorToken::SuccessColor)),
-            make_tint(teng.color(core::ThemeColorToken::SyntaxKeyword)),
-            make_tint(teng.color(core::ThemeColorToken::AccentSecondary)),
-            make_tint(teng.color(core::ThemeColorToken::SyntaxType)),
-            make_tint(teng.color(core::ThemeColorToken::SyntaxString)),
-        }};
-
-        return kGroupColors.at(static_cast<size_t>(hue_index));
     }
-    catch (const std::exception& /*ex*/)
+
+    const auto& teng = theme_engine();
+    const std::array<wxColour, kGroupColorCount> kGroupColors = {{
+        teng.color(core::ThemeColorToken::AccentPrimary),
+        teng.color(core::ThemeColorToken::SuccessColor),
+        teng.color(core::ThemeColorToken::SyntaxKeyword),
+        teng.color(core::ThemeColorToken::AccentSecondary),
+        teng.color(core::ThemeColorToken::SyntaxType),
+        teng.color(core::ThemeColorToken::SyntaxString),
+    }};
+
+    for (auto& tab : tabs_)
     {
-        return {0, 0, 0, 0};
+        try
+        {
+            auto parent = std::filesystem::path(tab.file_path).parent_path().string();
+            if (!parent.empty() && dir_counts[parent] > 1)
+            {
+                tab.group_id = parent;
+                const std::size_t hash_val = std::hash<std::string>{}(parent);
+                tab.group_color = kGroupColors.at(hash_val % kGroupColorCount);
+            }
+            else
+            {
+                tab.group_id.clear();
+                tab.group_color = wxColour(0, 0, 0, 0); // Transparent
+            }
+        }
+        catch (...)
+        {
+            tab.group_id.clear();
+            tab.group_color = wxColour(0, 0, 0, 0);
+        }
     }
 }

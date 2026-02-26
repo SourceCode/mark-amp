@@ -23,6 +23,8 @@
 #include "ui/FileTreeCtrl.h"
 #include "ui/GraphSidebarPanel.h"
 #include "ui/IconManager.h"
+#include "ui/PanelAreaModel.h"
+#include "ui/PanelContainer.h"
 #include "ui/SearchSidebarPanel.h"
 #include "ui/SecondarySidebarTabStrip.h"
 #include "ui/SidebarHeader.h"
@@ -52,7 +54,8 @@ LayoutManager::LayoutManager(wxWindow* parent,
                              core::Config* config,
                              core::FeatureRegistry* feature_registry,
                              core::IMermaidRenderer* mermaid_renderer,
-                             core::IMathRenderer* math_renderer)
+                             core::IMathRenderer* math_renderer,
+                             PanelAreaModel* panel_area_model)
     : ThemeAwareWindow(
           parent, theme_engine, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL)
     , event_bus_(event_bus)
@@ -60,6 +63,7 @@ LayoutManager::LayoutManager(wxWindow* parent,
     , feature_registry_(feature_registry)
     , mermaid_renderer_(mermaid_renderer)
     , math_renderer_(math_renderer)
+    , panel_area_model_(panel_area_model)
 {
     design_registry_ = std::make_unique<DesignTokenRegistry>(theme_engine, event_bus_);
     typography_scale_ = std::make_unique<TypographyScale>();
@@ -74,8 +78,8 @@ LayoutManager::LayoutManager(wxWindow* parent,
                                               *elevation_system_,
                                               LayoutMetrics::get()});
 
-    RestoreLayoutState();
     CreateLayout();
+    RestoreLayoutState();
 
     // Subscribe to sidebar toggle events from CustomChrome
     sidebar_toggle_sub_ = event_bus_.subscribe<core::events::SidebarToggleEvent>(
@@ -104,9 +108,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
                 {
                     buf_it->second.content = evt.content;
                     buf_it->second.is_modified = true;
-                    if (tab_bar_ != nullptr)
+                    if (GetActiveTabBar() != nullptr)
                     {
-                        tab_bar_->SetTabModified(active_file_path_, true);
+                        GetActiveTabBar()->SetTabModified(active_file_path_, true);
                     }
                 }
             }
@@ -138,9 +142,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     find_sub_ = event_bus_.subscribe<core::events::FindRequestEvent>(
         [this](const core::events::FindRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->ShowFindBar();
@@ -151,9 +155,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     replace_sub_ = event_bus_.subscribe<core::events::ReplaceRequestEvent>(
         [this](const core::events::ReplaceRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->ShowFindBar();
@@ -164,9 +168,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     dup_line_sub_ = event_bus_.subscribe<core::events::DuplicateLineRequestEvent>(
         [this](const core::events::DuplicateLineRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->GetStyledTextCtrl()->LineDuplicate();
@@ -177,9 +181,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     toggle_comment_sub_ = event_bus_.subscribe<core::events::ToggleCommentRequestEvent>(
         [this](const core::events::ToggleCommentRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     auto* stc = editor->GetStyledTextCtrl();
@@ -202,9 +206,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     delete_line_sub_ = event_bus_.subscribe<core::events::DeleteLineRequestEvent>(
         [this](const core::events::DeleteLineRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->GetStyledTextCtrl()->LineDelete();
@@ -215,9 +219,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     wrap_toggle_sub_ = event_bus_.subscribe<core::events::WrapToggleRequestEvent>(
         [this](const core::events::WrapToggleRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     const auto mode = editor->GetWordWrapMode();
@@ -230,9 +234,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     move_line_up_sub_ = event_bus_.subscribe<core::events::MoveLineUpRequestEvent>(
         [this](const core::events::MoveLineUpRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->MoveLineUp();
@@ -242,9 +246,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     move_line_down_sub_ = event_bus_.subscribe<core::events::MoveLineDownRequestEvent>(
         [this](const core::events::MoveLineDownRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->MoveLineDown();
@@ -254,9 +258,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     join_lines_sub_ = event_bus_.subscribe<core::events::JoinLinesRequestEvent>(
         [this](const core::events::JoinLinesRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->JoinLines();
@@ -266,9 +270,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     sort_asc_sub_ = event_bus_.subscribe<core::events::SortLinesAscRequestEvent>(
         [this](const core::events::SortLinesAscRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->SortLinesAscending();
@@ -278,9 +282,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     sort_desc_sub_ = event_bus_.subscribe<core::events::SortLinesDescRequestEvent>(
         [this](const core::events::SortLinesDescRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->SortLinesDescending();
@@ -290,9 +294,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     transform_upper_sub_ = event_bus_.subscribe<core::events::TransformUpperRequestEvent>(
         [this](const core::events::TransformUpperRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->TransformToUppercase();
@@ -302,9 +306,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     transform_lower_sub_ = event_bus_.subscribe<core::events::TransformLowerRequestEvent>(
         [this](const core::events::TransformLowerRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->TransformToLowercase();
@@ -314,9 +318,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     transform_title_sub_ = event_bus_.subscribe<core::events::TransformTitleRequestEvent>(
         [this](const core::events::TransformTitleRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->TransformToTitleCase();
@@ -326,9 +330,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     select_all_occ_sub_ = event_bus_.subscribe<core::events::SelectAllOccurrencesRequestEvent>(
         [this](const core::events::SelectAllOccurrencesRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->SelectAllOccurrences();
@@ -338,9 +342,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     expand_line_sub_ = event_bus_.subscribe<core::events::ExpandLineSelectionRequestEvent>(
         [this](const core::events::ExpandLineSelectionRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->ExpandLineSelection();
@@ -350,9 +354,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     insert_line_above_sub_ = event_bus_.subscribe<core::events::InsertLineAboveRequestEvent>(
         [this](const core::events::InsertLineAboveRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->InsertLineAbove();
@@ -362,9 +366,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     insert_line_below_sub_ = event_bus_.subscribe<core::events::InsertLineBelowRequestEvent>(
         [this](const core::events::InsertLineBelowRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->InsertLineBelow();
@@ -374,9 +378,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     fold_all_sub_ = event_bus_.subscribe<core::events::FoldAllRequestEvent>(
         [this](const core::events::FoldAllRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->FoldAllRegions();
@@ -386,9 +390,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     unfold_all_sub_ = event_bus_.subscribe<core::events::UnfoldAllRequestEvent>(
         [this](const core::events::UnfoldAllRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->UnfoldAllRegions();
@@ -398,9 +402,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     toggle_line_numbers_sub_ = event_bus_.subscribe<core::events::ToggleLineNumbersRequestEvent>(
         [this](const core::events::ToggleLineNumbersRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->ToggleLineNumbers();
@@ -410,9 +414,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     toggle_whitespace_sub_ = event_bus_.subscribe<core::events::ToggleWhitespaceRequestEvent>(
         [this](const core::events::ToggleWhitespaceRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->ToggleRenderWhitespace();
@@ -424,9 +428,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     copy_line_up_sub_ = event_bus_.subscribe<core::events::CopyLineUpRequestEvent>(
         [this](const core::events::CopyLineUpRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->CopyLineUp();
@@ -436,9 +440,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     copy_line_down_sub_ = event_bus_.subscribe<core::events::CopyLineDownRequestEvent>(
         [this](const core::events::CopyLineDownRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->CopyLineDown();
@@ -448,9 +452,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     delete_all_left_sub_ = event_bus_.subscribe<core::events::DeleteAllLeftRequestEvent>(
         [this](const core::events::DeleteAllLeftRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->DeleteAllLeft();
@@ -460,9 +464,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     delete_all_right_sub_ = event_bus_.subscribe<core::events::DeleteAllRightRequestEvent>(
         [this](const core::events::DeleteAllRightRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->DeleteAllRight();
@@ -472,9 +476,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     reverse_lines_sub_ = event_bus_.subscribe<core::events::ReverseLinesRequestEvent>(
         [this](const core::events::ReverseLinesRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->ReverseSelectedLines();
@@ -484,9 +488,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     delete_dup_lines_sub_ = event_bus_.subscribe<core::events::DeleteDuplicateLinesRequestEvent>(
         [this](const core::events::DeleteDuplicateLinesRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->DeleteDuplicateLines();
@@ -496,9 +500,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     transpose_chars_sub_ = event_bus_.subscribe<core::events::TransposeCharsRequestEvent>(
         [this](const core::events::TransposeCharsRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->TransposeCharacters();
@@ -508,9 +512,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     indent_selection_sub_ = event_bus_.subscribe<core::events::IndentSelectionRequestEvent>(
         [this](const core::events::IndentSelectionRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->IndentSelection();
@@ -520,9 +524,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     outdent_selection_sub_ = event_bus_.subscribe<core::events::OutdentSelectionRequestEvent>(
         [this](const core::events::OutdentSelectionRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->OutdentSelection();
@@ -532,9 +536,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     select_word_sub_ = event_bus_.subscribe<core::events::SelectWordRequestEvent>(
         [this](const core::events::SelectWordRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->SelectWordAtCursor();
@@ -544,9 +548,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     select_paragraph_sub_ = event_bus_.subscribe<core::events::SelectParagraphRequestEvent>(
         [this](const core::events::SelectParagraphRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->SelectCurrentParagraph();
@@ -556,9 +560,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     toggle_read_only_sub_ = event_bus_.subscribe<core::events::ToggleReadOnlyRequestEvent>(
         [this](const core::events::ToggleReadOnlyRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->ToggleReadOnly();
@@ -569,9 +573,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
         event_bus_.subscribe<core::events::ConvertIndentSpacesRequestEvent>(
             [this](const core::events::ConvertIndentSpacesRequestEvent& /*evt*/)
             {
-                if (split_view_ != nullptr)
+                if (GetActiveEditor() != nullptr)
                 {
-                    auto* editor = split_view_->GetEditorPanel();
+                    auto* editor = GetActiveEditor();
                     if (editor != nullptr)
                     {
                         editor->ConvertIndentationToSpaces();
@@ -581,9 +585,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     convert_indent_tabs_sub_ = event_bus_.subscribe<core::events::ConvertIndentTabsRequestEvent>(
         [this](const core::events::ConvertIndentTabsRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->ConvertIndentationToTabs();
@@ -593,9 +597,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     jump_to_bracket_sub_ = event_bus_.subscribe<core::events::JumpToBracketRequestEvent>(
         [this](const core::events::JumpToBracketRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->JumpToMatchingBracket();
@@ -605,9 +609,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     toggle_minimap_sub_ = event_bus_.subscribe<core::events::ToggleMinimapRequestEvent>(
         [this](const core::events::ToggleMinimapRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->ToggleMinimapVisibility();
@@ -617,9 +621,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     fold_current_sub_ = event_bus_.subscribe<core::events::FoldCurrentRequestEvent>(
         [this](const core::events::FoldCurrentRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->FoldCurrentRegion();
@@ -629,9 +633,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     unfold_current_sub_ = event_bus_.subscribe<core::events::UnfoldCurrentRequestEvent>(
         [this](const core::events::UnfoldCurrentRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->UnfoldCurrentRegion();
@@ -641,9 +645,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     add_line_comment_sub_ = event_bus_.subscribe<core::events::AddLineCommentRequestEvent>(
         [this](const core::events::AddLineCommentRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->AddLineComment();
@@ -653,9 +657,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     remove_line_comment_sub_ = event_bus_.subscribe<core::events::RemoveLineCommentRequestEvent>(
         [this](const core::events::RemoveLineCommentRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->RemoveLineComment();
@@ -667,9 +671,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     trim_trailing_ws_sub_ = event_bus_.subscribe<core::events::TrimTrailingWSRequestEvent>(
         [this](const core::events::TrimTrailingWSRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->TrimTrailingWhitespaceNow();
@@ -680,9 +684,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     expand_selection_sub_ = event_bus_.subscribe<core::events::ExpandSelectionRequestEvent>(
         [this](const core::events::ExpandSelectionRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->ExpandSelection();
@@ -693,9 +697,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     shrink_selection_sub_ = event_bus_.subscribe<core::events::ShrinkSelectionRequestEvent>(
         [this](const core::events::ShrinkSelectionRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->ShrinkSelection();
@@ -706,9 +710,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     cursor_undo_sub_ = event_bus_.subscribe<core::events::CursorUndoRequestEvent>(
         [this](const core::events::CursorUndoRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->CursorUndo();
@@ -719,9 +723,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     cursor_redo_sub_ = event_bus_.subscribe<core::events::CursorRedoRequestEvent>(
         [this](const core::events::CursorRedoRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->CursorRedo();
@@ -732,9 +736,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     move_text_left_sub_ = event_bus_.subscribe<core::events::MoveTextLeftRequestEvent>(
         [this](const core::events::MoveTextLeftRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->MoveSelectedTextLeft();
@@ -745,9 +749,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     move_text_right_sub_ = event_bus_.subscribe<core::events::MoveTextRightRequestEvent>(
         [this](const core::events::MoveTextRightRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->MoveSelectedTextRight();
@@ -758,9 +762,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     toggle_auto_indent_sub_ = event_bus_.subscribe<core::events::ToggleAutoIndentRequestEvent>(
         [this](const core::events::ToggleAutoIndentRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->ToggleAutoIndent();
@@ -772,9 +776,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
         event_bus_.subscribe<core::events::ToggleBracketMatchingRequestEvent>(
             [this](const core::events::ToggleBracketMatchingRequestEvent& /*evt*/)
             {
-                if (split_view_ != nullptr)
+                if (GetActiveEditor() != nullptr)
                 {
-                    auto* editor = split_view_->GetEditorPanel();
+                    auto* editor = GetActiveEditor();
                     if (editor != nullptr)
                     {
                         editor->ToggleBracketMatching();
@@ -785,9 +789,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     toggle_code_folding_sub_ = event_bus_.subscribe<core::events::ToggleCodeFoldingRequestEvent>(
         [this](const core::events::ToggleCodeFoldingRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->ToggleCodeFolding();
@@ -798,9 +802,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     toggle_indent_guides_sub_ = event_bus_.subscribe<core::events::ToggleIndentGuidesRequestEvent>(
         [this](const core::events::ToggleIndentGuidesRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->ToggleIndentationGuides();
@@ -811,9 +815,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     select_to_bracket_sub_ = event_bus_.subscribe<core::events::SelectToBracketRequestEvent>(
         [this](const core::events::SelectToBracketRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->SelectToMatchingBracket();
@@ -824,9 +828,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     toggle_block_comment_sub_ = event_bus_.subscribe<core::events::ToggleBlockCommentRequestEvent>(
         [this](const core::events::ToggleBlockCommentRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->ToggleBlockComment();
@@ -837,9 +841,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     insert_datetime_sub_ = event_bus_.subscribe<core::events::InsertDateTimeRequestEvent>(
         [this](const core::events::InsertDateTimeRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->InsertDateTime();
@@ -850,9 +854,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     bold_sub_ = event_bus_.subscribe<core::events::BoldRequestEvent>(
         [this](const core::events::BoldRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->ToggleBold();
@@ -863,9 +867,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     italic_sub_ = event_bus_.subscribe<core::events::ItalicRequestEvent>(
         [this](const core::events::ItalicRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->ToggleItalic();
@@ -876,9 +880,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     inline_code_sub_ = event_bus_.subscribe<core::events::InlineCodeRequestEvent>(
         [this](const core::events::InlineCodeRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->ToggleInlineCode();
@@ -889,9 +893,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     blockquote_sub_ = event_bus_.subscribe<core::events::BlockquoteRequestEvent>(
         [this](const core::events::BlockquoteRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->InsertBlockquote();
@@ -902,9 +906,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     cycle_heading_sub_ = event_bus_.subscribe<core::events::CycleHeadingRequestEvent>(
         [this](const core::events::CycleHeadingRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->CycleHeading();
@@ -915,9 +919,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     insert_table_sub_ = event_bus_.subscribe<core::events::InsertTableRequestEvent>(
         [this](const core::events::InsertTableRequestEvent& /*evt*/)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->InsertTable();
@@ -931,9 +935,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
             [this](
                 [[maybe_unused]] const core::events::ToggleSmartListContinuationRequestEvent& evt)
             {
-                if (split_view_ != nullptr)
+                if (GetActiveEditor() != nullptr)
                 {
-                    auto* editor = split_view_->GetEditorPanel();
+                    auto* editor = GetActiveEditor();
                     if (editor != nullptr)
                     {
                         editor->SetSmartListContinuation(!editor->GetSmartListContinuation());
@@ -944,27 +948,27 @@ LayoutManager::LayoutManager(wxWindow* parent,
     close_other_tabs_sub_ = event_bus_.subscribe<core::events::CloseOtherTabsRequestEvent>(
         [this]([[maybe_unused]] const core::events::CloseOtherTabsRequestEvent& evt)
         {
-            if (tab_bar_ != nullptr && !active_file_path_.empty())
+            if (GetActiveTabBar() != nullptr && !active_file_path_.empty())
             {
-                tab_bar_->CloseOtherTabs(active_file_path_);
+                GetActiveTabBar()->CloseOtherTabs(active_file_path_);
             }
         });
 
     close_saved_tabs_sub_ = event_bus_.subscribe<core::events::CloseSavedTabsRequestEvent>(
         [this]([[maybe_unused]] const core::events::CloseSavedTabsRequestEvent& evt)
         {
-            if (tab_bar_ != nullptr)
+            if (GetActiveTabBar() != nullptr)
             {
-                tab_bar_->CloseSavedTabs();
+                GetActiveTabBar()->CloseSavedTabs();
             }
         });
 
     insert_link_sub_ = event_bus_.subscribe<core::events::InsertLinkRequestEvent>(
         [this]([[maybe_unused]] const core::events::InsertLinkRequestEvent& evt)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->InsertLink();
@@ -975,9 +979,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     add_cursor_below_sub_ = event_bus_.subscribe<core::events::AddCursorBelowRequestEvent>(
         [this]([[maybe_unused]] const core::events::AddCursorBelowRequestEvent& evt)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->AddCursorBelow();
@@ -988,9 +992,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     add_cursor_above_sub_ = event_bus_.subscribe<core::events::AddCursorAboveRequestEvent>(
         [this]([[maybe_unused]] const core::events::AddCursorAboveRequestEvent& evt)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->AddCursorAbove();
@@ -1002,9 +1006,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
         event_bus_.subscribe<core::events::AddCursorNextOccurrenceRequestEvent>(
             [this]([[maybe_unused]] const core::events::AddCursorNextOccurrenceRequestEvent& evt)
             {
-                if (split_view_ != nullptr)
+                if (GetActiveEditor() != nullptr)
                 {
-                    auto* editor = split_view_->GetEditorPanel();
+                    auto* editor = GetActiveEditor();
                     if (editor != nullptr)
                     {
                         editor->AddCursorAtNextOccurrence();
@@ -1016,9 +1020,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
         event_bus_.subscribe<core::events::RemoveSurroundingBracketsRequestEvent>(
             [this]([[maybe_unused]] const core::events::RemoveSurroundingBracketsRequestEvent& evt)
             {
-                if (split_view_ != nullptr)
+                if (GetActiveEditor() != nullptr)
                 {
-                    auto* editor = split_view_->GetEditorPanel();
+                    auto* editor = GetActiveEditor();
                     if (editor != nullptr)
                     {
                         editor->RemoveSurroundingBrackets();
@@ -1030,9 +1034,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
         event_bus_.subscribe<core::events::DuplicateSelectionOrLineRequestEvent>(
             [this]([[maybe_unused]] const core::events::DuplicateSelectionOrLineRequestEvent& evt)
             {
-                if (split_view_ != nullptr)
+                if (GetActiveEditor() != nullptr)
                 {
-                    auto* editor = split_view_->GetEditorPanel();
+                    auto* editor = GetActiveEditor();
                     if (editor != nullptr)
                     {
                         editor->DuplicateSelectionOrLine();
@@ -1043,9 +1047,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     show_table_editor_sub_ = event_bus_.subscribe<core::events::ShowTableEditorRequestEvent>(
         [this]([[maybe_unused]] const core::events::ShowTableEditorRequestEvent& evt)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->ShowTableEditor();
@@ -1057,9 +1061,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
         event_bus_.subscribe<core::events::ToggleScrollBeyondLastLineRequestEvent>(
             [this]([[maybe_unused]] const core::events::ToggleScrollBeyondLastLineRequestEvent& evt)
             {
-                if (split_view_ != nullptr)
+                if (GetActiveEditor() != nullptr)
                 {
-                    auto* editor = split_view_->GetEditorPanel();
+                    auto* editor = GetActiveEditor();
                     if (editor != nullptr)
                     {
                         editor->SetScrollBeyondLastLine(!editor->GetScrollBeyondLastLine());
@@ -1071,9 +1075,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
         event_bus_.subscribe<core::events::ToggleHighlightCurrentLineRequestEvent>(
             [this]([[maybe_unused]] const core::events::ToggleHighlightCurrentLineRequestEvent& evt)
             {
-                if (split_view_ != nullptr)
+                if (GetActiveEditor() != nullptr)
                 {
-                    auto* editor = split_view_->GetEditorPanel();
+                    auto* editor = GetActiveEditor();
                     if (editor != nullptr)
                     {
                         editor->SetHighlightCurrentLine(!editor->GetHighlightCurrentLine());
@@ -1085,9 +1089,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
         event_bus_.subscribe<core::events::ToggleAutoClosingBracketsRequestEvent>(
             [this]([[maybe_unused]] const core::events::ToggleAutoClosingBracketsRequestEvent& evt)
             {
-                if (split_view_ != nullptr)
+                if (GetActiveEditor() != nullptr)
                 {
-                    auto* editor = split_view_->GetEditorPanel();
+                    auto* editor = GetActiveEditor();
                     if (editor != nullptr)
                     {
                         editor->SetAutoClosingBrackets(!editor->GetAutoClosingBrackets());
@@ -1098,9 +1102,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     toggle_sticky_scroll_sub_ = event_bus_.subscribe<core::events::ToggleStickyScrollRequestEvent>(
         [this]([[maybe_unused]] const core::events::ToggleStickyScrollRequestEvent& evt)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->SetStickyScrollEnabled(!editor->GetStickyScrollEnabled());
@@ -1112,9 +1116,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
         event_bus_.subscribe<core::events::ToggleFontLigaturesRequestEvent>(
             [this]([[maybe_unused]] const core::events::ToggleFontLigaturesRequestEvent& evt)
             {
-                if (split_view_ != nullptr)
+                if (GetActiveEditor() != nullptr)
                 {
-                    auto* editor = split_view_->GetEditorPanel();
+                    auto* editor = GetActiveEditor();
                     if (editor != nullptr)
                     {
                         editor->SetFontLigatures(!editor->GetFontLigatures());
@@ -1125,9 +1129,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     toggle_smooth_caret_sub_ = event_bus_.subscribe<core::events::ToggleSmoothCaretRequestEvent>(
         [this]([[maybe_unused]] const core::events::ToggleSmoothCaretRequestEvent& evt)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->SetSmoothCaret(!editor->GetSmoothCaret());
@@ -1139,9 +1143,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
         event_bus_.subscribe<core::events::ToggleInlineColorPreviewRequestEvent>(
             [this]([[maybe_unused]] const core::events::ToggleInlineColorPreviewRequestEvent& evt)
             {
-                if (split_view_ != nullptr)
+                if (GetActiveEditor() != nullptr)
                 {
-                    auto* editor = split_view_->GetEditorPanel();
+                    auto* editor = GetActiveEditor();
                     if (editor != nullptr)
                     {
                         editor->SetInlineColorPreview(!editor->GetInlineColorPreview());
@@ -1152,9 +1156,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     toggle_edge_ruler_sub_ = event_bus_.subscribe<core::events::ToggleEdgeColumnRulerRequestEvent>(
         [this]([[maybe_unused]] const core::events::ToggleEdgeColumnRulerRequestEvent& evt)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->SetShowEdgeColumnRuler(!editor->GetShowEdgeColumnRuler());
@@ -1165,9 +1169,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     ensure_final_newline_sub_ = event_bus_.subscribe<core::events::EnsureFinalNewlineRequestEvent>(
         [this]([[maybe_unused]] const core::events::EnsureFinalNewlineRequestEvent& evt)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->EnsureFinalNewline();
@@ -1178,9 +1182,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     insert_snippet_sub_ = event_bus_.subscribe<core::events::InsertSnippetRequestEvent>(
         [this]([[maybe_unused]] const core::events::InsertSnippetRequestEvent& evt)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     EditorPanel::Snippet default_snippet{"Snippet", "", "$0"};
@@ -1194,9 +1198,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
         event_bus_.subscribe<core::events::ToggleSmoothScrollingRequestEvent>(
             [this]([[maybe_unused]] const core::events::ToggleSmoothScrollingRequestEvent& evt)
             {
-                if (split_view_ != nullptr)
+                if (GetActiveEditor() != nullptr)
                 {
-                    auto* editor = split_view_->GetEditorPanel();
+                    auto* editor = GetActiveEditor();
                     if (editor != nullptr)
                     {
                         editor->SetSmoothScrolling(!editor->GetSmoothScrolling());
@@ -1208,9 +1212,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
         event_bus_.subscribe<core::events::ToggleTrailingWSHighlightRequestEvent>(
             [this]([[maybe_unused]] const core::events::ToggleTrailingWSHighlightRequestEvent& evt)
             {
-                if (split_view_ != nullptr)
+                if (GetActiveEditor() != nullptr)
                 {
-                    auto* editor = split_view_->GetEditorPanel();
+                    auto* editor = GetActiveEditor();
                     if (editor != nullptr)
                     {
                         editor->SetTrailingWhitespace(!editor->GetTrailingWhitespace());
@@ -1221,9 +1225,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     toggle_auto_trim_ws_sub_ = event_bus_.subscribe<core::events::ToggleAutoTrimWSRequestEvent>(
         [this]([[maybe_unused]] const core::events::ToggleAutoTrimWSRequestEvent& evt)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->SetAutoTrimTrailingWhitespace(!editor->GetAutoTrimTrailingWhitespace());
@@ -1235,9 +1239,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
         event_bus_.subscribe<core::events::ToggleGutterSeparatorRequestEvent>(
             [this]([[maybe_unused]] const core::events::ToggleGutterSeparatorRequestEvent& evt)
             {
-                if (split_view_ != nullptr)
+                if (GetActiveEditor() != nullptr)
                 {
-                    auto* editor = split_view_->GetEditorPanel();
+                    auto* editor = GetActiveEditor();
                     if (editor != nullptr)
                     {
                         editor->SetGutterSeparator(!editor->GetGutterSeparator());
@@ -1249,9 +1253,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
         event_bus_.subscribe<core::events::ToggleInsertFinalNewlineRequestEvent>(
             [this]([[maybe_unused]] const core::events::ToggleInsertFinalNewlineRequestEvent& evt)
             {
-                if (split_view_ != nullptr)
+                if (GetActiveEditor() != nullptr)
                 {
-                    auto* editor = split_view_->GetEditorPanel();
+                    auto* editor = GetActiveEditor();
                     if (editor != nullptr)
                     {
                         editor->SetInsertFinalNewline(!editor->GetInsertFinalNewline());
@@ -1263,9 +1267,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
         event_bus_.subscribe<core::events::ToggleWhitespaceBoundaryRequestEvent>(
             [this]([[maybe_unused]] const core::events::ToggleWhitespaceBoundaryRequestEvent& evt)
             {
-                if (split_view_ != nullptr)
+                if (GetActiveEditor() != nullptr)
                 {
-                    auto* editor = split_view_->GetEditorPanel();
+                    auto* editor = GetActiveEditor();
                     if (editor != nullptr)
                     {
                         editor->SetWhitespaceBoundary(!editor->GetWhitespaceBoundary());
@@ -1277,9 +1281,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
         event_bus_.subscribe<core::events::ToggleLinkAutoCompleteRequestEvent>(
             [this]([[maybe_unused]] const core::events::ToggleLinkAutoCompleteRequestEvent& evt)
             {
-                if (split_view_ != nullptr)
+                if (GetActiveEditor() != nullptr)
                 {
-                    auto* editor = split_view_->GetEditorPanel();
+                    auto* editor = GetActiveEditor();
                     if (editor != nullptr)
                     {
                         editor->SetLinkAutoComplete(!editor->GetLinkAutoComplete());
@@ -1290,9 +1294,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     toggle_drag_drop_sub_ = event_bus_.subscribe<core::events::ToggleDragDropRequestEvent>(
         [this]([[maybe_unused]] const core::events::ToggleDragDropRequestEvent& evt)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->SetDragDropEnabled(!editor->GetDragDropEnabled());
@@ -1303,9 +1307,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     toggle_auto_save_sub_ = event_bus_.subscribe<core::events::ToggleAutoSaveRequestEvent>(
         [this]([[maybe_unused]] const core::events::ToggleAutoSaveRequestEvent& evt)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->SetAutoSave(!editor->GetAutoSave());
@@ -1317,9 +1321,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
         event_bus_.subscribe<core::events::ToggleEmptySelClipboardRequestEvent>(
             [this]([[maybe_unused]] const core::events::ToggleEmptySelClipboardRequestEvent& evt)
             {
-                if (split_view_ != nullptr)
+                if (GetActiveEditor() != nullptr)
                 {
-                    auto* editor = split_view_->GetEditorPanel();
+                    auto* editor = GetActiveEditor();
                     if (editor != nullptr)
                     {
                         editor->SetEmptySelectionClipboard(!editor->GetEmptySelectionClipboard());
@@ -1331,9 +1335,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
         event_bus_.subscribe<core::events::CycleRenderWhitespaceRequestEvent>(
             [this]([[maybe_unused]] const core::events::CycleRenderWhitespaceRequestEvent& evt)
             {
-                if (split_view_ != nullptr)
+                if (GetActiveEditor() != nullptr)
                 {
-                    auto* editor = split_view_->GetEditorPanel();
+                    auto* editor = GetActiveEditor();
                     if (editor != nullptr)
                     {
                         editor->ToggleRenderWhitespace();
@@ -1344,9 +1348,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     delete_current_line_sub_ = event_bus_.subscribe<core::events::DeleteLineRequestEvent>(
         [this]([[maybe_unused]] const core::events::DeleteLineRequestEvent& evt)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->DeleteCurrentLine();
@@ -1357,9 +1361,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     copy_line_no_sel_sub_ = event_bus_.subscribe<core::events::CopyLineNoSelRequestEvent>(
         [this]([[maybe_unused]] const core::events::CopyLineNoSelRequestEvent& evt)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->CopyLineIfNoSelection();
@@ -1370,9 +1374,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     add_sel_next_match_sub_ = event_bus_.subscribe<core::events::AddSelNextMatchRequestEvent>(
         [this]([[maybe_unused]] const core::events::AddSelNextMatchRequestEvent& evt)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->AddSelectionToNextFindMatch();
@@ -1383,9 +1387,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     smart_backspace_sub_ = event_bus_.subscribe<core::events::SmartBackspaceRequestEvent>(
         [this]([[maybe_unused]] const core::events::SmartBackspaceRequestEvent& evt)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->SmartBackspace();
@@ -1396,9 +1400,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     hide_table_editor_sub_ = event_bus_.subscribe<core::events::HideTableEditorRequestEvent>(
         [this]([[maybe_unused]] const core::events::HideTableEditorRequestEvent& evt)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->HideTableEditor();
@@ -1409,9 +1413,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     auto_pair_bold_sub_ = event_bus_.subscribe<core::events::AutoPairBoldRequestEvent>(
         [this]([[maybe_unused]] const core::events::AutoPairBoldRequestEvent& evt)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->AutoPairEmphasis('*');
@@ -1422,9 +1426,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     auto_pair_italic_sub_ = event_bus_.subscribe<core::events::AutoPairItalicRequestEvent>(
         [this]([[maybe_unused]] const core::events::AutoPairItalicRequestEvent& evt)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->AutoPairEmphasis('_');
@@ -1435,9 +1439,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     auto_pair_code_sub_ = event_bus_.subscribe<core::events::AutoPairCodeRequestEvent>(
         [this]([[maybe_unused]] const core::events::AutoPairCodeRequestEvent& evt)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->AutoPairEmphasis('`');
@@ -1448,9 +1452,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     toggle_minimap_r11_sub_ = event_bus_.subscribe<core::events::ToggleMinimapRequestEvent>(
         [this]([[maybe_unused]] const core::events::ToggleMinimapRequestEvent& evt)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->ToggleMinimap();
@@ -1462,36 +1466,36 @@ LayoutManager::LayoutManager(wxWindow* parent,
     close_tabs_to_left_sub_ = event_bus_.subscribe<core::events::CloseTabsToLeftRequestEvent>(
         [this]([[maybe_unused]] const core::events::CloseTabsToLeftRequestEvent& evt)
         {
-            if (tab_bar_ != nullptr)
+            if (GetActiveTabBar() != nullptr)
             {
-                tab_bar_->CloseTabsToLeft(active_file_path_);
+                GetActiveTabBar()->CloseTabsToLeft(active_file_path_);
             }
         });
 
     close_tabs_to_right_sub_ = event_bus_.subscribe<core::events::CloseTabsToRightRequestEvent>(
         [this]([[maybe_unused]] const core::events::CloseTabsToRightRequestEvent& evt)
         {
-            if (tab_bar_ != nullptr)
+            if (GetActiveTabBar() != nullptr)
             {
-                tab_bar_->CloseTabsToRight(active_file_path_);
+                GetActiveTabBar()->CloseTabsToRight(active_file_path_);
             }
         });
 
     pin_tab_sub_ = event_bus_.subscribe<core::events::PinTabRequestEvent>(
         [this]([[maybe_unused]] const core::events::PinTabRequestEvent& evt)
         {
-            if (tab_bar_ != nullptr)
+            if (GetActiveTabBar() != nullptr)
             {
-                tab_bar_->PinTab(active_file_path_);
+                GetActiveTabBar()->PinTab(active_file_path_);
             }
         });
 
     unpin_tab_sub_ = event_bus_.subscribe<core::events::UnpinTabRequestEvent>(
         [this]([[maybe_unused]] const core::events::UnpinTabRequestEvent& evt)
         {
-            if (tab_bar_ != nullptr)
+            if (GetActiveTabBar() != nullptr)
             {
-                tab_bar_->UnpinTab(active_file_path_);
+                GetActiveTabBar()->UnpinTab(active_file_path_);
             }
         });
 
@@ -1524,9 +1528,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     zoom_in_sub_ = event_bus_.subscribe<core::events::ZoomInRequestEvent>(
         [this]([[maybe_unused]] const core::events::ZoomInRequestEvent& evt)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->ZoomIn();
@@ -1537,9 +1541,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     zoom_out_sub_ = event_bus_.subscribe<core::events::ZoomOutRequestEvent>(
         [this]([[maybe_unused]] const core::events::ZoomOutRequestEvent& evt)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->ZoomOut();
@@ -1550,9 +1554,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     zoom_reset_sub_ = event_bus_.subscribe<core::events::ZoomResetRequestEvent>(
         [this]([[maybe_unused]] const core::events::ZoomResetRequestEvent& evt)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->ZoomReset();
@@ -1563,9 +1567,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     convert_eol_lf_sub_ = event_bus_.subscribe<core::events::ConvertEolLfRequestEvent>(
         [this]([[maybe_unused]] const core::events::ConvertEolLfRequestEvent& evt)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->ConvertEolToLf();
@@ -1580,9 +1584,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     convert_eol_crlf_sub_ = event_bus_.subscribe<core::events::ConvertEolCrlfRequestEvent>(
         [this]([[maybe_unused]] const core::events::ConvertEolCrlfRequestEvent& evt)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->ConvertEolToCrlf();
@@ -1598,9 +1602,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     fold_current_sub_ = event_bus_.subscribe<core::events::FoldCurrentRequestEvent>(
         [this]([[maybe_unused]] const core::events::FoldCurrentRequestEvent& evt)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->FoldCurrentRegion();
@@ -1611,9 +1615,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     unfold_current_sub_ = event_bus_.subscribe<core::events::UnfoldCurrentRequestEvent>(
         [this]([[maybe_unused]] const core::events::UnfoldCurrentRequestEvent& evt)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->UnfoldCurrentRegion();
@@ -1624,9 +1628,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     jump_to_bracket_sub_ = event_bus_.subscribe<core::events::JumpToBracketRequestEvent>(
         [this]([[maybe_unused]] const core::events::JumpToBracketRequestEvent& evt)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->JumpToMatchingBracket();
@@ -1637,9 +1641,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     transpose_chars_sub_ = event_bus_.subscribe<core::events::TransposeCharsRequestEvent>(
         [this]([[maybe_unused]] const core::events::TransposeCharsRequestEvent& evt)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->TransposeCharacters();
@@ -1650,9 +1654,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     reverse_lines_sub_ = event_bus_.subscribe<core::events::ReverseLinesRequestEvent>(
         [this]([[maybe_unused]] const core::events::ReverseLinesRequestEvent& evt)
         {
-            if (split_view_ != nullptr)
+            if (GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     editor->ReverseSelectedLines();
@@ -1663,9 +1667,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
     file_reload_sub_ = event_bus_.subscribe<core::events::FileReloadRequestEvent>(
         [this]([[maybe_unused]] const core::events::FileReloadRequestEvent& evt)
         {
-            if (!active_file_path_.empty() && split_view_ != nullptr)
+            if (!active_file_path_.empty() && GetActiveEditor() != nullptr)
             {
-                auto* editor = split_view_->GetEditorPanel();
+                auto* editor = GetActiveEditor();
                 if (editor != nullptr)
                 {
                     std::ifstream file_stream(active_file_path_);
@@ -1855,9 +1859,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
         {
             if (evt.feature_id == core::builtin_features::kBreadcrumb)
             {
-                if (breadcrumb_bar_ != nullptr)
+                if (GetActiveBreadcrumbBar() != nullptr)
                 {
-                    breadcrumb_bar_->Show(evt.enabled);
+                    GetActiveBreadcrumbBar()->Show(evt.enabled);
                     if (auto* c = content_container())
                         c->Layout();
                 }
@@ -1865,9 +1869,10 @@ LayoutManager::LayoutManager(wxWindow* parent,
             // Phase 4: Mermaid toggle — forward to SplitView/PreviewPanel
             else if (evt.feature_id == core::builtin_features::kMermaid)
             {
-                if (split_view_ != nullptr)
+                if (GetActiveEditor() != nullptr)
                 {
-                    split_view_->set_mermaid_enabled(evt.enabled);
+                    // TODO: Phase 12 - Broadcast mermaid toggle to all previews
+                    // editor_group_manager_->set_mermaid_enabled(evt.enabled);
                 }
             }
             // Phase 4: ThemeGallery toggle is handled at click-time (no widget to hide)
@@ -1892,13 +1897,50 @@ LayoutManager::LayoutManager(wxWindow* parent,
                 }
             }
         });
+
+    // Phase 10: Panel notifications to Status Bar
+    panel_tabs_sub_ = event_bus_.subscribe<core::events::PanelAreaTabsChangedEvent>(
+        [this](const auto&) { UpdatePanelNotifications(); });
+    panel_badge_sub_ = event_bus_.subscribe<core::events::PanelAreaBadgeChangedEvent>(
+        [this](const auto&) { UpdatePanelNotifications(); });
+
+    toggle_bottom_panel_sub_ = event_bus_.subscribe<core::events::ToggleBottomPanelRequestEvent>(
+        [this](const auto&) { ShowBottomPanel(!is_bottom_panel_visible()); });
 }
+
+LayoutManager::~LayoutManager() = default;
 
 void LayoutManager::SaveFile(const std::string& path)
 {
-    if (split_view_)
+    if (path.empty())
+        return;
+    auto* editor = GetActiveEditor();
+    if (!editor)
+        return;
+
+    bool trim = false;
+    if (config_ != nullptr)
     {
-        split_view_->SaveFile(path);
+        trim = config_->get_bool("editor.trim_trailing_whitespace", false);
+    }
+
+    if (trim)
+    {
+        editor->TrimTrailingWhitespace();
+    }
+
+    std::string content = editor->GetContent();
+
+    std::ofstream out(path);
+    if (out.is_open())
+    {
+        out << content;
+        out.close();
+        MARKAMP_LOG_INFO("Saved file: {}", path);
+    }
+    else
+    {
+        MARKAMP_LOG_ERROR("Failed to save file: {}", path);
     }
 }
 
@@ -2022,29 +2064,18 @@ void LayoutManager::CreateLayout()
         });
     content_sizer->Add(toolbar_, 0, wxEXPAND);
 
-    tab_bar_ = new TabBar(editor_zone, *ds_context_, event_bus_);
-    content_sizer->Add(tab_bar_, 0, wxEXPAND);
+    editor_group_manager_ = new EditorGroupManager(editor_zone,
+                                                   theme_engine(),
+                                                   event_bus_,
+                                                   config_,
+                                                   mermaid_renderer_,
+                                                   math_renderer_,
+                                                   *ds_context_);
 
-    breadcrumb_bar_ = new BreadcrumbBar(editor_zone, *ds_context_);
-    content_sizer->Add(breadcrumb_bar_, 0, wxEXPAND);
+    // Optionally handle breadcrumb visibility via feature toggle
+    // This could also be pushed inside EditorGroupManager
 
-    if (feature_registry_ != nullptr &&
-        !feature_registry_->is_enabled(core::builtin_features::kBreadcrumb))
-    {
-        breadcrumb_bar_->Hide();
-    }
-
-    split_view_ = new SplitView(
-        editor_zone, *ds_context_, event_bus_, config_, mermaid_renderer_, math_renderer_);
-
-    if (feature_registry_ != nullptr)
-    {
-        split_view_->set_feature_registry(feature_registry_);
-        split_view_->set_mermaid_enabled(
-            feature_registry_->is_enabled(core::builtin_features::kMermaid));
-    }
-
-    content_sizer->Add(split_view_, 1, wxEXPAND);
+    content_sizer->Add(editor_group_manager_, 1, wxEXPAND);
     editor_zone->SetSizer(content_sizer);
 
     // --- Status bar ---
@@ -2054,21 +2085,27 @@ void LayoutManager::CreateLayout()
     statusbar_sizer->Add(statusbar_panel_, 1, wxEXPAND);
     statusbar_zone->SetSizer(statusbar_sizer);
 
-    // --- Panel Area (Task 12) ---
+    // --- Panel Area (Task 10/12) ---
     auto* panel_zone = shell_->get_zone_container(layout::WorkbenchZoneId::kPanelArea);
     auto* panel_sizer = new wxBoxSizer(wxVERTICAL);
-    bottom_panel_notebook_ =
-        new wxNotebook(panel_zone, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxNB_TOP);
 
-    output_panel_ = new OutputPanel(bottom_panel_notebook_, nullptr);
-    problems_panel_ = new ProblemsPanel(bottom_panel_notebook_, nullptr);
-    walkthrough_panel_ = new WalkthroughPanel(bottom_panel_notebook_);
+    panel_container_ = new PanelContainer(panel_zone, *ds_context_, event_bus_, *panel_area_model_);
 
-    bottom_panel_notebook_->AddPage(output_panel_, "Output");
-    bottom_panel_notebook_->AddPage(problems_panel_, "Problems");
-    bottom_panel_notebook_->AddPage(walkthrough_panel_, "Walkthrough");
+    auto* content_area = panel_container_->GetContentArea();
+    output_panel_ = new OutputPanel(content_area, nullptr);
+    problems_panel_ = new ProblemsPanel(content_area, nullptr);
 
-    panel_sizer->Add(bottom_panel_notebook_, 1, wxEXPAND);
+    panel_container_->RegisterPanelWindow("markamp.panel.output", output_panel_);
+    panel_container_->RegisterPanelWindow("markamp.panel.problems", problems_panel_);
+
+    panel_container_->RegisterDeferredPanel("markamp.panel.walkthrough",
+                                            [this](wxWindow* parent)
+                                            {
+                                                walkthrough_panel_ = new WalkthroughPanel(parent);
+                                                return walkthrough_panel_;
+                                            });
+
+    panel_sizer->Add(panel_container_, 1, wxEXPAND);
     panel_zone->SetSizer(panel_sizer);
 
     // --- Secondary Sidebar (Task 11) ---
@@ -2348,7 +2385,14 @@ void LayoutManager::SaveLayoutState()
     {
         return;
     }
-    config_->set("layout.workbench_state", shell_->save_state_to_json().dump());
+
+    nlohmann::json system_state = shell_->save_state_to_json();
+    if (editor_group_manager_)
+    {
+        system_state["editor_groups"] = editor_group_manager_->SerializeState();
+    }
+
+    config_->set("layout.workbench_state", system_state.dump());
 
     // Phase 06 Task 9: Persist active sidebar mode
     config_->set("layout.sidebar_mode", sidebar_mode_);
@@ -2368,7 +2412,13 @@ void LayoutManager::RestoreLayoutState()
     {
         try
         {
-            shell_->load_state_from_json(nlohmann::json::parse(state_str));
+            auto system_state = nlohmann::json::parse(state_str);
+            shell_->load_state_from_json(system_state);
+
+            if (editor_group_manager_ && system_state.contains("editor_groups"))
+            {
+                editor_group_manager_->RestoreState(system_state["editor_groups"]);
+            }
         }
         catch (...)
         {
@@ -2382,9 +2432,9 @@ void LayoutManager::RestoreLayoutState()
 
 void LayoutManager::ToggleEditorMinimap()
 {
-    if (split_view_ != nullptr)
+    if (GetActiveEditor() != nullptr)
     {
-        auto* editor = split_view_->GetEditorPanel();
+        auto* editor = GetActiveEditor();
         if (editor != nullptr)
         {
             editor->ToggleMinimap();
@@ -3345,19 +3395,19 @@ auto LayoutManager::GetWorkbenchMode() const -> core::events::WorkbenchMode
 void LayoutManager::OpenFileInTab(const std::string& path)
 {
     // If file is already open, just switch to it
-    if (tab_bar_ != nullptr && tab_bar_->HasTab(path))
+    if (GetActiveTabBar() != nullptr && GetActiveTabBar()->HasTab(path))
     {
         SwitchToTab(path);
         return;
     }
 
     // Save current editor state before switching
-    if (!active_file_path_.empty() && split_view_ != nullptr)
+    if (!active_file_path_.empty() && GetActiveEditor() != nullptr)
     {
         auto buf_it = file_buffers_.find(active_file_path_);
         if (buf_it != file_buffers_.end())
         {
-            auto* editor = split_view_->GetEditorPanel();
+            auto* editor = GetActiveEditor();
             if (editor != nullptr)
             {
                 buf_it->second.content = editor->GetContent();
@@ -3410,16 +3460,16 @@ void LayoutManager::OpenFileInTab(const std::string& path)
     const std::string display_name = std::filesystem::path(path).filename().string();
 
     // Add tab
-    if (tab_bar_ != nullptr)
+    if (GetActiveTabBar() != nullptr)
     {
-        tab_bar_->AddTab(path, display_name);
+        GetActiveTabBar()->AddTab(path, display_name);
     }
 
     // Load content into editor
     active_file_path_ = path;
-    if (split_view_ != nullptr)
+    if (GetActiveEditor() != nullptr)
     {
-        auto* editor = split_view_->GetEditorPanel();
+        auto* editor = GetActiveEditor();
         if (editor != nullptr)
         {
             editor->SetContent(content);
@@ -3501,9 +3551,9 @@ void LayoutManager::CloseTab(const std::string& path)
     if (buf_it == file_buffers_.end())
     {
         // Not in our buffers, just remove the tab
-        if (tab_bar_ != nullptr)
+        if (GetActiveTabBar() != nullptr)
         {
-            tab_bar_->RemoveTab(path);
+            GetActiveTabBar()->RemoveTab(path);
         }
         return;
     }
@@ -3532,17 +3582,17 @@ void LayoutManager::CloseTab(const std::string& path)
     file_buffers_.erase(buf_it);
 
     // Remove tab (TabBar handles activating adjacent tab)
-    if (tab_bar_ != nullptr)
+    if (GetActiveTabBar() != nullptr)
     {
-        tab_bar_->RemoveTab(path);
+        GetActiveTabBar()->RemoveTab(path);
     }
 
     // Update active path
     if (active_file_path_ == path)
     {
-        if (tab_bar_ != nullptr)
+        if (GetActiveTabBar() != nullptr)
         {
-            active_file_path_ = tab_bar_->GetActiveTabPath();
+            active_file_path_ = GetActiveTabBar()->GetActiveTabPath();
         }
         else
         {
@@ -3554,10 +3604,10 @@ void LayoutManager::CloseTab(const std::string& path)
         {
             SwitchToTab(active_file_path_);
         }
-        else if (split_view_ != nullptr)
+        else if (GetActiveEditor() != nullptr)
         {
             // Fix 12: Show empty-state placeholder when last tab closes
-            auto* editor = split_view_->GetEditorPanel();
+            auto* editor = GetActiveEditor();
             if (editor != nullptr)
             {
                 editor->SetContent("");
@@ -3581,12 +3631,12 @@ void LayoutManager::SwitchToTab(const std::string& path)
     }
 
     // Save current editor state
-    if (!active_file_path_.empty() && split_view_ != nullptr)
+    if (!active_file_path_.empty() && GetActiveEditor() != nullptr)
     {
         auto buf_it = file_buffers_.find(active_file_path_);
         if (buf_it != file_buffers_.end())
         {
-            auto* editor = split_view_->GetEditorPanel();
+            auto* editor = GetActiveEditor();
             if (editor != nullptr)
             {
                 buf_it->second.content = editor->GetContent();
@@ -3608,15 +3658,15 @@ void LayoutManager::SwitchToTab(const std::string& path)
     active_file_path_ = path;
 
     // Update tab bar
-    if (tab_bar_ != nullptr)
+    if (GetActiveTabBar() != nullptr)
     {
-        tab_bar_->SetActiveTab(path);
+        GetActiveTabBar()->SetActiveTab(path);
     }
 
     // Load content
-    if (split_view_ != nullptr)
+    if (GetActiveEditor() != nullptr)
     {
-        auto* editor = split_view_->GetEditorPanel();
+        auto* editor = GetActiveEditor();
         if (editor != nullptr)
         {
             editor->SetContent(buf_it->second.content);
@@ -3645,7 +3695,7 @@ void LayoutManager::SwitchToTab(const std::string& path)
 
     // R3 Fix 14: Update breadcrumb bar with file path segments
     // R4 Fix 19: Handle Untitled files in breadcrumb
-    if (breadcrumb_bar_ != nullptr)
+    if (GetActiveBreadcrumbBar() != nullptr)
     {
         namespace fs = std::filesystem;
         std::vector<std::string> segments;
@@ -3657,19 +3707,7 @@ void LayoutManager::SwitchToTab(const std::string& path)
             const auto untitled_name = path.substr(9);
             segments.push_back(untitled_name.empty() ? "Untitled.md" : untitled_name);
         }
-        else
-        {
-            fs::path file_path(path);
-            for (const auto& part : file_path)
-            {
-                std::string part_str = part.string();
-                if (!part_str.empty() && part_str != "/")
-                {
-                    segments.push_back(part_str);
-                }
-            }
-        }
-        breadcrumb_bar_->SetFilePath(segments);
+        GetActiveBreadcrumbBar()->SetFilePath(path, "");
     }
 
     // Fix 13: Publish content changed event to refresh preview panel
@@ -3758,9 +3796,9 @@ void LayoutManager::SaveActiveFile()
             {
             }
         }
-        if (tab_bar_ != nullptr)
+        if (GetActiveTabBar() != nullptr)
         {
-            tab_bar_->SetTabModified(active_file_path_, false);
+            GetActiveTabBar()->SetTabModified(active_file_path_, false);
         }
     }
 }
@@ -3782,9 +3820,9 @@ void LayoutManager::SaveActiveFileAs()
     const std::string new_path = dialog.GetPath().ToStdString();
 
     // Save content to new path
-    if (split_view_ != nullptr)
+    if (GetActiveEditor() != nullptr)
     {
-        split_view_->SaveFile(new_path);
+        SaveFile(new_path);
     }
 
     // Update buffer
@@ -3800,11 +3838,11 @@ void LayoutManager::SaveActiveFileAs()
         }
 
         // Update tab
-        if (tab_bar_ != nullptr)
+        if (GetActiveTabBar() != nullptr)
         {
             const std::string display_name = std::filesystem::path(new_path).filename().string();
-            tab_bar_->RenameTab(active_file_path_, new_path, display_name);
-            tab_bar_->SetTabModified(new_path, false);
+            GetActiveTabBar()->RenameTab(active_file_path_, new_path, display_name);
+            GetActiveTabBar()->SetTabModified(new_path, false);
         }
 
         active_file_path_ = new_path;
@@ -3818,9 +3856,9 @@ auto LayoutManager::GetActiveFilePath() const -> std::string
 
 auto LayoutManager::GetActiveFileContent() const -> std::string
 {
-    if (split_view_ != nullptr)
+    if (GetActiveEditor() != nullptr)
     {
-        auto* editor = split_view_->GetEditorPanel();
+        auto* editor = GetActiveEditor();
         if (editor != nullptr)
         {
             return editor->GetContent();
@@ -3831,7 +3869,34 @@ auto LayoutManager::GetActiveFileContent() const -> std::string
 
 auto LayoutManager::GetTabBar() -> TabBar*
 {
-    return tab_bar_;
+    return GetActiveTabBar();
+}
+
+auto LayoutManager::GetActiveTabBar() const -> TabBar*
+{
+    if (editor_group_manager_)
+    {
+        return editor_group_manager_->GetFocusedTabBar();
+    }
+    return nullptr;
+}
+
+auto LayoutManager::GetActiveEditor() const -> EditorPanel*
+{
+    if (editor_group_manager_)
+    {
+        return editor_group_manager_->GetFocusedEditor();
+    }
+    return nullptr;
+}
+
+auto LayoutManager::GetActiveBreadcrumbBar() const -> BreadcrumbBar*
+{
+    if (editor_group_manager_)
+    {
+        return editor_group_manager_->GetFocusedBreadcrumbBar();
+    }
+    return nullptr;
 }
 
 // --- Auto-save ---
@@ -3914,9 +3979,9 @@ void LayoutManager::CheckExternalFileChanges()
                     buf_it->second.is_modified = false;
                     buf_it->second.last_write_time = current_write_time;
 
-                    if (split_view_ != nullptr)
+                    if (GetActiveEditor() != nullptr)
                     {
-                        auto* editor = split_view_->GetEditorPanel();
+                        auto* editor = GetActiveEditor();
                         if (editor != nullptr)
                         {
                             editor->SetContent(content);
@@ -3924,9 +3989,9 @@ void LayoutManager::CheckExternalFileChanges()
                         }
                     }
 
-                    if (tab_bar_ != nullptr)
+                    if (GetActiveTabBar() != nullptr)
                     {
-                        tab_bar_->SetTabModified(active_file_path_, false);
+                        GetActiveTabBar()->SetTabModified(active_file_path_, false);
                     }
 
                     MARKAMP_LOG_INFO("Reloaded file from disk: {}", active_file_path_);
@@ -4004,9 +4069,9 @@ void LayoutManager::RevertActiveFile()
         buf_it->second.is_modified = false;
 
         // Reload into editor
-        if (split_view_ != nullptr)
+        if (GetActiveEditor() != nullptr)
         {
-            auto* editor = split_view_->GetEditorPanel();
+            auto* editor = GetActiveEditor();
             if (editor != nullptr)
             {
                 editor->SetContent(content);
@@ -4015,9 +4080,9 @@ void LayoutManager::RevertActiveFile()
         }
 
         // Update tab modified state
-        if (tab_bar_ != nullptr)
+        if (GetActiveTabBar() != nullptr)
         {
-            tab_bar_->SetTabModified(active_file_path_, false);
+            GetActiveTabBar()->SetTabModified(active_file_path_, false);
         }
     }
     catch (const std::exception& ex)
@@ -4029,13 +4094,13 @@ void LayoutManager::RevertActiveFile()
 // R2 Fix 17: Close all open tabs
 void LayoutManager::CloseAllTabs()
 {
-    if (tab_bar_ == nullptr)
+    if (GetActiveTabBar() == nullptr)
     {
         return;
     }
 
     // Copy paths because CloseTab mutates the container
-    const auto all_paths = tab_bar_->GetAllTabPaths();
+    const auto all_paths = GetActiveTabBar()->GetAllTabPaths();
     for (const auto& path : all_paths)
     {
         CloseTab(path);
@@ -4043,14 +4108,37 @@ void LayoutManager::CloseAllTabs()
 }
 void LayoutManager::FocusEditor()
 {
-    if (split_view_ != nullptr)
+    if (GetActiveEditor() != nullptr)
     {
-        auto* editor = split_view_->GetEditorPanel();
+        auto* editor = GetActiveEditor();
         if (editor != nullptr)
         {
             editor->SetFocus();
         }
     }
+}
+
+// Phase 10: Panel Area
+void LayoutManager::UpdatePanelNotifications()
+{
+    if (!panel_area_model_ || !statusbar_container())
+        return;
+
+    int errors = 0;
+    int warnings = 0;
+    int infos = 0;
+
+    for (const auto& panel : panel_area_model_->panels())
+    {
+        if (panel.badge == core::events::BadgeState::kError)
+            errors += (panel.badge_count > 0) ? panel.badge_count : 1;
+        else if (panel.badge == core::events::BadgeState::kWarning)
+            warnings += (panel.badge_count > 0) ? panel.badge_count : 1;
+        else if (panel.badge == core::events::BadgeState::kInfo)
+            infos += (panel.badge_count > 0) ? panel.badge_count : 1;
+    }
+
+    statusbar_container()->set_panel_notifications(errors, warnings, infos);
 }
 
 } // namespace markamp::ui

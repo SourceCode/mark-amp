@@ -40,7 +40,7 @@ wxBEGIN_EVENT_TABLE(PanelHeader, ThemeAwareWindow) EVT_PAINT(PanelHeader::OnPain
 {
     SetBackgroundStyle(wxBG_STYLE_PAINT);
 
-    breadcrumb_ = new BreadcrumbBar(this, ds);
+    breadcrumb_ = new BreadcrumbBar(this, ds, event_bus_);
     breadcrumb_->Hide();
 
     breadcrumb_sub_ = event_bus_.subscribe<core::events::SidebarBreadcrumbUpdateEvent>(
@@ -94,7 +94,16 @@ void PanelHeader::set_display_mode(PanelHeaderMode mode)
 
 void PanelHeader::set_breadcrumb(const std::vector<std::string>& path)
 {
-    breadcrumb_->SetFilePath(path);
+    std::string full_path;
+    for (size_t i = 0; i < path.size(); ++i)
+    {
+        if (i > 0)
+        {
+            full_path += "/";
+        }
+        full_path += path[i];
+    }
+    breadcrumb_->SetFilePath(full_path, "");
 }
 
 void PanelHeader::set_actions(const std::vector<ActionIcon>& actions)

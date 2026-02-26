@@ -7,6 +7,8 @@
 #include "core/Events.h"
 #include "core/ThemeEngine.h"
 
+#include <wx/timer.h>
+
 #include <functional>
 #include <string>
 #include <vector>
@@ -20,11 +22,26 @@ namespace markamp::ui
 /// Height: 32px, integrates between Toolbar and SplitView.
 class TabBar : public ThemeAwareWindow
 {
+    friend class TabDropTarget;
+
 public:
     TabBar(wxWindow* parent, DesignSystemContext& ds, core::EventBus& event_bus);
 
+    enum class TabSizeMode
+    {
+        kShrink,
+        kFixedWidth
+    };
+
+    void SetTabSizeMode(TabSizeMode mode);
+    [[nodiscard]] auto GetTabSizeMode() const -> TabSizeMode
+    {
+        return size_mode_;
+    }
+
     // Tab management
-    void AddTab(const std::string& file_path, const std::string& display_name);
+    void
+    AddTab(const std::string& file_path, const std::string& display_name, bool is_preview = false);
     void RemoveTab(const std::string& file_path);
     void SetActiveTab(const std::string& file_path);
     void SetTabModified(const std::string& file_path, bool modified);
@@ -66,6 +83,7 @@ public:
     // Constants
     static constexpr int kMaxTabWidth = 200;
     static constexpr int kMinTabWidth = 100;
+    static constexpr int kFixedWidth = 160; // Phase 11 Task 5
     static constexpr int kCloseButtonMargin = 6;
     static constexpr int kPinnedStripeWidth = 2;    // R19 Fix 2
     static constexpr float kWidthAnimSpeed = 0.15F; // R19 Fix 1: interpolation factor
@@ -83,10 +101,15 @@ public:
         bool is_modified{false};
         bool is_active{false};
         bool close_hovered{false};
-        bool is_pinned{false}; // R3 Fix 7: Pinned tabs
-        float opacity{1.0F};   // R18 Fix 1: Fade-in animation opacity
-        int target_width{0};   // R19 Fix 1: animated target width
-        int anim_width{0};     // R19 Fix 1: current interpolated width
+        bool is_pinned{false};  // R3 Fix 7: Pinned tabs
+        bool is_preview{false}; // Phase 11 Task 3: Preview tab mode
+        bool is_saving{false};  // Phase 11 Task 12: Saving spinner
+        bool is_closing{false}; // Phase 11 Task 17: Close animation
+        std::string group_id;   // Phase 11 Task 7: Tab Groups
+        wxColour group_color;   // Phase 11 Task 7: Tab Groups
+        float opacity{1.0F};    // R18 Fix 1: Fade-in animation opacity
+        int target_width{0};    // R19 Fix 1: animated target width
+        int anim_width{0};      // R19 Fix 1: current interpolated width
         wxRect rect;
         wxRect close_rect;
     };
@@ -94,6 +117,17 @@ public:
     [[nodiscard]] auto tabs() const -> const std::vector<TabInfo>&
     {
         return tabs_;
+    }
+
+    void set_group_focused(bool focused)
+    {
+        is_group_focused_ = focused;
+        Refresh();
+    }
+
+    [[nodiscard]] auto GetEventBus() -> core::EventBus&
+    {
+        return event_bus_;
     }
 
 protected:
@@ -110,8 +144,15 @@ private:
 
     // Interaction state
     int hovered_tab_index_{-1};
+    bool new_file_hovered_{false};     // Phase 11 Task 15
+    bool split_right_hovered_{false};  // Phase 12 Task 8
+    bool more_actions_hovered_{false}; // Phase 12 Task 8
+    bool is_group_focused_{false};     // Phase 12 Task 7
+    TabSizeMode size_mode_{TabSizeMode::kShrink};
 
     core::Subscription keyboard_mode_sub_; // Phase 05 Task 3
+    core::Subscription tab_save_req_sub_;  // Phase 11 Task 12
+    core::Subscription file_saved_sub_;    // Phase 11 Task 12
 
     // R18 Fix 1: Fade-in transition manager
     animation::TransitionManager transition_manager_{this};
@@ -119,10 +160,19 @@ private:
     // R18 Fix 4: Parent folder disambiguation for duplicate display names
     [[nodiscard]] auto GetDisambiguationSuffix(const TabInfo& tab) const -> std::string;
 
+    // Phase 11 Task 7: Assign groups based on directory and assign a static color
+    void UpdateTabGroups();
+
     // R3 Fix 5: Drag reorder state
     int drag_start_x_{0};
+    int drag_start_y_{0};
     int drag_tab_index_{-1};
     bool is_dragging_{false};
+
+    // Phase 11 Task 11: Pulsing modified dot
+    wxTimer pulse_timer_;
+    void OnPulseTimer(wxTimerEvent& event);
+    void UpdatePulseTimer();
 
     // Painting
     void OnPaint(wxPaintEvent& event);
@@ -146,10 +196,18 @@ private:
 
     // Context menu
     void ShowTabContextMenu(int tab_index);
+    void ShowOverflowMenu(); // Phase 11 Task 9
 
     // Hit testing
     [[nodiscard]] auto HitTestTab(const wxPoint& point) const -> int;
     [[nodiscard]] auto HitTestCloseButton(const wxPoint& point, int tab_index) const -> bool;
+    [[nodiscard]] auto HitTestOverflowChevron(const wxPoint& point) const
+        -> bool;                                                                 // Phase 11 Task 9
+    [[nodiscard]] auto HitTestNewFileButton(const wxPoint& point) const -> bool; // Phase 11 Task 15
+    [[nodiscard]] auto HitTestSplitRightButton(const wxPoint& point) const
+        -> bool; // Phase 12 Task 8
+    [[nodiscard]] auto HitTestMoreActionsButton(const wxPoint& point) const
+        -> bool; // Phase 12 Task 8
 
     // Layout
     void RecalculateTabRects();

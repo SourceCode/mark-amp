@@ -7,6 +7,8 @@
 #include "../core/DiffTypes.h"
 
 #include <wx/panel.h>
+#include <wx/splitter.h>
+#include <wx/stc/stc.h>
 
 #include <string>
 
@@ -19,12 +21,17 @@ class BlockDiffEngine;
 namespace markamp::ui
 {
 
-/// Stub panel for displaying block-level diffs between
-/// two document versions, with inline and side-by-side modes.
+/// Diff viewer panel containing two wxStyledTextCtrl instances
+/// for side-by-side comparison with synchronized scrolling.
 class DiffPanel : public wxPanel
 {
 public:
     DiffPanel(wxWindow* parent, core::EventBus& event_bus);
+
+    /// Open diff view
+    void open_diff(const std::string& left_path, const std::string& right_path);
+
+    /// Display a diff result (legacy struct support for inline mode)
 
     /// Display a diff result.
     void show_diff(const core::BlockDiffResult& diff_result);
@@ -43,11 +50,22 @@ public:
 
 private:
     core::EventBus& event_bus_;
-    core::DiffViewMode view_mode_{core::DiffViewMode::Inline};
+    core::DiffViewMode view_mode_{core::DiffViewMode::SideBySide};
     int current_change_index_{-1};
     int total_changes_{0};
 
-    void on_paint(wxPaintEvent& evt);
+    wxSplitterWindow* splitter_{nullptr};
+    wxStyledTextCtrl* left_editor_{nullptr};
+    wxStyledTextCtrl* right_editor_{nullptr};
+
+    void SyncScroll(wxStyledTextCtrl* source, wxStyledTextCtrl* target);
+    void OnLeftScroll(wxStyledTextEvent& evt);
+    void OnRightScroll(wxStyledTextEvent& evt);
+
+    void InitializeEditor(wxStyledTextCtrl* editor, bool read_only);
+    void LoadFileSide(wxStyledTextCtrl* editor, const std::string& path);
+
+    bool is_syncing_scroll_{false};
 
     wxDECLARE_EVENT_TABLE();
 };

@@ -1,5 +1,7 @@
 #include "ProblemsPanel.h"
 
+#include "PanelContainer.h"
+
 #include <wx/sizer.h>
 
 namespace markamp::ui
@@ -18,13 +20,34 @@ ProblemsPanel::ProblemsPanel(wxWindow* parent, core::DiagnosticsService* service
     : wxPanel(parent, wxID_ANY)
     , service_(service)
 {
-    CreateLayout();
+    CreateLayout(parent);
     RefreshContent();
 }
 
-void ProblemsPanel::CreateLayout()
+void ProblemsPanel::CreateLayout(wxWindow* parent)
 {
     auto* sizer = new wxBoxSizer(wxVERTICAL);
+
+    auto* panel_container = dynamic_cast<PanelContainer*>(parent->GetParent());
+    wxWindow* toolbar_parent = panel_container ? panel_container->GetActionToolbarArea() : this;
+
+    toolbar_ = new wxWindow(toolbar_parent, wxID_ANY);
+    auto* top_bar = new wxBoxSizer(wxHORIZONTAL);
+
+    // ── Summary bar (now in toolbar) ──
+    summary_label_ = new wxStaticText(toolbar_, wxID_ANY, "0 Errors, 0 Warnings, 0 Info");
+    top_bar->Add(summary_label_, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
+
+    toolbar_->SetSizer(top_bar);
+
+    if (panel_container)
+    {
+        panel_container->RegisterActionToolbar("problems", toolbar_);
+    }
+    else
+    {
+        sizer->Add(toolbar_, 0, wxEXPAND | wxALL, 4);
+    }
 
     // ── Problem list ──
     list_ctrl_ = new wxListCtrl(this,
@@ -39,10 +62,6 @@ void ProblemsPanel::CreateLayout()
     list_ctrl_->InsertColumn(4, "Source", wxLIST_FORMAT_LEFT, 100);
 
     sizer->Add(list_ctrl_, 1, wxEXPAND);
-
-    // ── Summary bar ──
-    summary_label_ = new wxStaticText(this, wxID_ANY, "0 Errors, 0 Warnings, 0 Info");
-    sizer->Add(summary_label_, 0, wxEXPAND | wxALL, 4);
 
     SetSizer(sizer);
 }

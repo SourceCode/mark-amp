@@ -1,5 +1,7 @@
 #include "OutputPanel.h"
 
+#include "PanelContainer.h"
+
 #include <wx/button.h>
 #include <wx/sizer.h>
 
@@ -19,7 +21,7 @@ OutputPanel::OutputPanel(wxWindow* parent, core::OutputChannelService* service)
     : wxPanel(parent, wxID_ANY)
     , service_(service)
 {
-    CreateLayout();
+    CreateLayout(parent);
     if (service_ != nullptr)
     {
         auto names = service_->channel_names();
@@ -31,29 +33,41 @@ OutputPanel::OutputPanel(wxWindow* parent, core::OutputChannelService* service)
     RefreshContent();
 }
 
-void OutputPanel::CreateLayout()
+void OutputPanel::CreateLayout(wxWindow* parent)
 {
     auto* sizer = new wxBoxSizer(wxVERTICAL);
 
-    // ── Top bar: channel selector + buttons ──
+    auto* panel_container = dynamic_cast<PanelContainer*>(parent->GetParent());
+    wxWindow* toolbar_parent = panel_container ? panel_container->GetActionToolbarArea() : this;
+
+    toolbar_ = new wxWindow(toolbar_parent, wxID_ANY);
     auto* top_bar = new wxBoxSizer(wxHORIZONTAL);
 
-    channel_selector_ = new wxChoice(this, wxID_ANY);
-    top_bar->Add(channel_selector_, 1, wxEXPAND | wxRIGHT, 4);
+    channel_selector_ = new wxChoice(toolbar_, wxID_ANY);
+    top_bar->Add(channel_selector_, 1, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
 
     auto* clear_btn =
-        new wxButton(this, wxID_ANY, "Clear", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+        new wxButton(toolbar_, wxID_ANY, "Clear", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
     clear_btn->SetToolTip("Clear output console");
     clear_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent& /*evt*/) { clear_active_channel(); });
-    top_bar->Add(clear_btn, 0, wxRIGHT, 4);
+    top_bar->Add(clear_btn, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
 
     auto* lock_btn =
-        new wxButton(this, wxID_ANY, "Lock", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+        new wxButton(toolbar_, wxID_ANY, "Lock", wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
     lock_btn->SetToolTip("Toggle auto-scroll lock");
     lock_btn->Bind(wxEVT_BUTTON, [this](wxCommandEvent& /*evt*/) { auto_scroll_ = !auto_scroll_; });
-    top_bar->Add(lock_btn, 0);
+    top_bar->Add(lock_btn, 0, wxALIGN_CENTER_VERTICAL);
 
-    sizer->Add(top_bar, 0, wxEXPAND | wxALL, 4);
+    toolbar_->SetSizer(top_bar);
+
+    if (panel_container)
+    {
+        panel_container->RegisterActionToolbar("output", toolbar_);
+    }
+    else
+    {
+        sizer->Add(toolbar_, 0, wxEXPAND | wxALL, 4);
+    }
 
     // ── Text display area ──
     text_area_ = new wxTextCtrl(this,

@@ -12,6 +12,8 @@
 namespace markamp::ui
 {
 
+class PanelContainer;
+
 /// Display item in the problems panel.
 struct ProblemItem
 {
@@ -59,12 +61,13 @@ public:
     void ApplyTheme(const wxColour& bg_colour, const wxColour& fg_colour);
 
 private:
-    void CreateLayout();
+    void CreateLayout(wxWindow* parent);
 
     core::DiagnosticsService* service_{nullptr};
     core::DiagnosticSeverity filter_{core::DiagnosticSeverity::kHint};
 
     // UI controls (null in data-only / test mode)
+    wxWindow* toolbar_{nullptr};
     wxListCtrl* list_ctrl_{nullptr};
     wxStaticText* summary_label_{nullptr};
 };

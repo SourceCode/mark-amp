@@ -217,6 +217,16 @@ void WorkbenchShell::set_zone_width(WorkbenchZoneId id, int width)
     }
 }
 
+void WorkbenchShell::set_zone_height(WorkbenchZoneId id, int height)
+{
+    if (layout_model_.is_zone_visible(id))
+    {
+        const auto& state = layout_model_.get_state(id);
+        layout_model_.set_zone_size_override(id, state.current_width, height);
+        trigger_layout();
+    }
+}
+
 void WorkbenchShell::OnThemeChanged(const core::Theme& new_theme)
 {
     ThemeAwareWindow::OnThemeChanged(new_theme);

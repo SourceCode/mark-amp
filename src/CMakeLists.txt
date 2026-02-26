@@ -81,8 +81,10 @@ add_executable(markamp
     ui/StatusBarPanel.cpp
     ui/FileTreeCtrl.cpp
     ui/EditorPanel.cpp
+    ui/DiffPanel.cpp
     ui/PreviewPanel.cpp
     ui/SplitView.cpp
+    ui/EditorGroupManager.cpp
     ui/Toolbar.cpp
     ui/TooltipWindow.cpp
     ui/ThemeGallery.cpp
@@ -94,11 +96,13 @@ add_executable(markamp
     ui/CommandPalette.cpp
     ui/StartupPanel.cpp
     ui/BreadcrumbBar.cpp
+    ui/BreadcrumbDropdown.cpp
     ui/FloatingFormatBar.cpp
     ui/LinkPreviewPopover.cpp
     ui/ImagePreviewPopover.cpp
     ui/TableEditorOverlay.cpp
     ui/TabBar.cpp
+    ui/FileTypeIconRegistry.cpp
     ui/SettingsPanel.cpp
     ui/SettingsDialog.cpp
     ui/SettingsJsonEditor.cpp
@@ -121,6 +125,11 @@ add_executable(markamp
     ui/ExtensionCard.cpp
     ui/ExtensionDetailPanel.cpp
     ui/OutputPanel.cpp
+    ui/PanelAreaModel.cpp
+    ui/PanelTabBar.cpp
+    ui/PanelContainer.cpp
+    ui/TerminalPanel.cpp
+    ui/DebugConsolePanel.cpp
     ui/ProblemsPanel.cpp
     ui/TreeViewHost.cpp
     ui/WebviewHostPanel.cpp
@@ -727,6 +736,7 @@ add_executable(markamp
     core/FileTreeModel.cpp
     core/WorkspaceSettings.cpp
     core/FileTemplateEngine.cpp
+    core/PanelService.cpp
     core/TrashManager.cpp
     core/MultiRootWorkspace.cpp
 )
@@ -826,10 +836,13 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "Src" FILES
     ui/FileTreeCtrl.cpp
     ui/EditorPanel.h
     ui/EditorPanel.cpp
+    ui/DiffPanel.cpp
     ui/PreviewPanel.h
     ui/PreviewPanel.cpp
     ui/SplitView.h
     ui/SplitView.cpp
+    ui/EditorGroupManager.h
+    ui/EditorGroupManager.cpp
     ui/Toolbar.cpp
     ui/TooltipWindow.h
     ui/TooltipWindow.cpp
