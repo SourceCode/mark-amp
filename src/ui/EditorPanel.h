@@ -1,5 +1,6 @@
 #pragma once
 
+#include "GutterDecorationProvider.h"
 #include "ThemeAwareWindow.h"
 #include "core/DiagnosticsService.h"
 #include "core/EventBus.h"
@@ -9,11 +10,15 @@
 #include <wx/stc/stc.h>
 #include <wx/timer.h>
 
+#include <array>
 #include <filesystem>
 #include <functional>
 #include <optional>
+#include <set>
 #include <string>
+#include <unordered_map>
 #include <utility>
+#include <vector>
 
 class wxTextCtrl;
 class wxStaticText;
@@ -52,7 +57,9 @@ enum class EditorStateLayer
 /// V8 Phase 10: Per-line diagnostic state for gutter indicators.
 struct DiagnosticIndicator
 {
-    int line{0}; ///< Source line (0-based)
+    int line{0};         ///< Source line (0-based)
+    int column_start{0}; ///< Start column for squiggle
+    int length{0};       ///< Length of squiggle (0 = whole line)
     core::DiagnosticSeverity severity{core::DiagnosticSeverity::kError};
     std::string message;             ///< Primary diagnostic message
     bool quick_fix_available{false}; ///< Show lightbulb affordance
@@ -492,7 +499,35 @@ public:
     static constexpr int kMinGutterDigits = 3;
     static constexpr int kDefaultEdgeColumn = 80;
     static constexpr int kFoldMarginWidth = 14;
-    static constexpr int kFoldMarginIndex = 2;
+
+    // ── Phase 14: Editor Gutter Architecture ──
+    static constexpr int kMarginLineNumbers = 0; // Absolute/Relative Line numbers
+    static constexpr int kMarginFolding = 1;     // Fold markers (+/- or triangles)
+    static constexpr int kMarginBreakpoints = 2; // Breakpoints (red dots) and Diagnostics
+    static constexpr int kMarginGitChanges = 3;  // Git change indicators
+    static constexpr int kMarginBookmarks = 4;   // Bookmark flags
+
+    struct MarginConfig
+    {
+        bool visible{false};
+        int width{0};
+    };
+
+    // Scintilla Marker Constants
+    static constexpr int kMarkerBreakpoint = 1;
+    static constexpr int kMarkerBookmark = 2;
+    static constexpr int kMarkerError = 3;
+    static constexpr int kMarkerWarning = 4;
+    static constexpr int kMarkerInfo = 5;
+    static constexpr int kMarkerQuickFix = 6;
+
+    // Indicators (Indices > 7)
+    static constexpr int kIndicatorSelectionLine = 8;
+    static constexpr int kIndicatorError = 9;
+    static constexpr int kIndicatorWarning = 10;
+    static constexpr int kIndicatorInfo = 11;
+    static constexpr int kIndicatorHint = 12;
+    static constexpr int kIndicatorFoldRegion = 13;
 
     // Phase 2: Indicator indices for overlay syntax highlighting
     static constexpr int kIndicatorFind = 0;            // find/replace highlights
@@ -509,7 +544,7 @@ protected:
 
 private:
     wxStyledTextCtrl* editor_{nullptr};
-    core::EventBus& event_bus_;
+    std::reference_wrapper<core::EventBus> event_bus_;
     core::FeatureRegistry* feature_registry_{nullptr};
 
     // ── Find bar widgets ──
@@ -539,6 +574,22 @@ private:
     int edge_column_{kDefaultEdgeColumn};
     int large_file_threshold_{kLargeFileThreshold};
 
+    // ── Phase 14: Gutter State ──
+    std::array<MarginConfig, 5> margin_configs_{};
+    std::set<int> bookmarks_;
+    std::unordered_map<std::string, std::vector<int>> breakpoints_;
+
+    std::vector<std::unique_ptr<IGutterDecorationProvider>> gutter_providers_;
+    void RenderGutterDecorations();
+
+    struct MergeConflict
+    {
+        int start_line;
+        int separator_line;
+        int end_line;
+    };
+    std::vector<MergeConflict> conflicts_;
+
     // ── Setup ──
     void CreateEditor();
     void CreateFindBar();
@@ -547,9 +598,9 @@ private:
     void SetupMarkdownLexer();
     void ApplyThemeToEditor();
     void ApplyVSCodeSettings();
-    void UpdateLineNumberMargin();
+    void UpdateMarginWidths();
     void ConfigureBracketMatching();
-    void ConfigureFoldMargin();
+    void SetupFoldMarkers();
     void ConfigureEdgeColumn();
     void ConfigureWhitespace();
     void ConfigureIndentGuides();
@@ -559,6 +610,7 @@ private:
     void SetupSyntaxIndicators();
     void ApplySyntaxOverlays();
     void ClearSyntaxOverlays();
+    void OnMarginClick(wxStyledTextEvent& event);
     void HighlightYamlFrontmatter();
     void HighlightTaskCheckboxes();
     void HighlightFootnoteReferences();

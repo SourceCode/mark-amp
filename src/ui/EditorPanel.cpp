@@ -1,5 +1,6 @@
 #include "EditorPanel.h"
 
+#include "CodeLensProvider.h"
 #include "FloatingFormatBar.h"
 #include "ImagePreviewPopover.h"
 #include "LinkPreviewPopover.h"
@@ -56,6 +57,9 @@ EditorPanel::EditorPanel(wxWindow* parent,
     Bind(wxEVT_TIMER, &EditorPanel::OnFormatBarTimer, this, format_bar_timer_.GetId());
 
     ApplyThemeToEditor();
+
+    // Phase 14: Register Providers
+    gutter_providers_.push_back(std::make_unique<CodeLensProvider>());
 }
 
 EditorPanel::~EditorPanel()
@@ -81,6 +85,13 @@ void EditorPanel::SetContent(const std::string& content)
     editor_->GotoPos(0);
     editor_->EnsureCaretVisible();
     UpdateLineNumberMargin();
+
+    // Phase 14: Refresh provider AST / Line scans
+    const auto content_str = editor_->GetText().ToStdString();
+    for (const auto& provider : gutter_providers_)
+    {
+        provider->UpdateContent(content_str);
+    }
 
     // Apply large file optimizations based on content size
     int line_count = editor_->GetLineCount();
@@ -608,27 +619,54 @@ void EditorPanel::RefreshInlineDiagnostics()
     }
 
     editor_->AnnotationClearAll();
+
+    // Clear all existing diagnostic indicators
+    auto doc_len = editor_->GetLength();
+    for (int ind = kIndicatorError; ind <= kIndicatorHint; ++ind)
+    {
+        editor_->SetIndicatorCurrent(ind);
+        editor_->IndicatorClearRange(0, doc_len);
+    }
+
     for (const auto& diag : diagnostic_indicators_)
     {
         std::string prefix;
+        int indicator_id = kIndicatorInfo;
+
         switch (diag.severity)
         {
             case core::DiagnosticSeverity::kError:
                 prefix = "\u274C ";
+                indicator_id = kIndicatorError;
                 break;
             case core::DiagnosticSeverity::kWarning:
                 prefix = "\u26A0\uFE0F ";
+                indicator_id = kIndicatorWarning;
                 break;
             case core::DiagnosticSeverity::kInformation:
                 prefix = "\u2139\uFE0F ";
+                indicator_id = kIndicatorInfo;
                 break;
             case core::DiagnosticSeverity::kHint:
                 prefix = "\U0001F4A1 ";
+                indicator_id = kIndicatorHint;
                 break;
         }
+
+        // Task 17: Show diagnostic message text inline
         const std::string annotation_text = prefix + diag.message;
         editor_->AnnotationSetText(diag.line, wxString::FromUTF8(annotation_text));
         editor_->AnnotationSetStyle(diag.line, wxSTC_STYLE_DEFAULT);
+
+        // Task 16: Render inline diagnostic squiggles
+        if (diag.length > 0)
+        {
+            int line_start_pos = editor_->PositionFromLine(diag.line);
+            int start_pos = line_start_pos + diag.column_start;
+
+            editor_->SetIndicatorCurrent(indicator_id);
+            editor_->IndicatorFillRange(start_pos, diag.length);
+        }
     }
 }
 
@@ -1370,6 +1408,23 @@ void EditorPanel::SetupSyntaxIndicators()
 
     // Phase 3 — Indicator 7: Trailing whitespace — squiggle underline
     editor_->IndicatorSetStyle(kIndicatorTrailingWS, wxSTC_INDIC_SQUIGGLE);
+
+    // Phase 14: Diagnostic Squiggles
+    editor_->IndicatorSetStyle(kIndicatorError, wxSTC_INDIC_SQUIGGLE);
+    editor_->IndicatorSetForeground(kIndicatorError,
+                                    theme_engine().color(core::ThemeColorToken::EditorGutterError));
+
+    editor_->IndicatorSetStyle(kIndicatorWarning, wxSTC_INDIC_SQUIGGLE);
+    editor_->IndicatorSetForeground(kIndicatorWarning,
+                                    theme_engine().color(core::ThemeColorToken::EditorGutterWarn));
+
+    editor_->IndicatorSetStyle(kIndicatorInfo, wxSTC_INDIC_SQUIGGLE);
+    editor_->IndicatorSetForeground(kIndicatorInfo,
+                                    theme_engine().color(core::ThemeColorToken::EditorGutterInfo));
+
+    editor_->IndicatorSetStyle(kIndicatorHint, wxSTC_INDIC_DOTS);
+    editor_->IndicatorSetForeground(kIndicatorHint,
+                                    theme_engine().color(core::ThemeColorToken::TextMuted));
 }
 
 void EditorPanel::ClearSyntaxOverlays()
@@ -2207,7 +2262,8 @@ void EditorPanel::ApplyThemeToEditor()
     // --- Caret — accent-colored (Item 4) ---
     editor_->SetCaretForeground(accent);
     editor_->SetSelBackground(true, sel_bg);
-    editor_->SetSelAlpha(80); // R16 Fix 18: more opaque selection for readability
+    editor_->SetSelEOLFilled(true); // Task 11: Highlight all lines in the current selection
+    editor_->SetSelAlpha(80);       // R16 Fix 18: more opaque selection for readability
 
     // R18 Fix 7: Cursor style configuration (line | block | underline)
     // SCI_SETCARETSTYLE: 1=line, 2=block, 0=invisible — using line as default
@@ -2219,8 +2275,9 @@ void EditorPanel::ApplyThemeToEditor()
     editor_->SetAdditionalCaretForeground(accent);
 
     editor_->SetCaretLineVisible(true);
+    editor_->SetCaretLineVisibleAlways(true); // Task 10: Full-width band
     editor_->SetCaretLineBackground(active_line_bg);
-    editor_->SetCaretLineBackAlpha(40); // R16 Fix 15: subtle current line highlight
+    editor_->SetCaretLineBackAlpha(50); // Slightly more visible for the full band
 
     // --- Bracket matching styles ---
     editor_->StyleSetForeground(wxSTC_STYLE_BRACELIGHT, accent2);
@@ -2254,6 +2311,11 @@ void EditorPanel::ApplyThemeToEditor()
     {
         editor_->SetFoldMarginColour(true, app_bg);
         editor_->SetFoldMarginHiColour(true, app_bg);
+
+        // --- Task 20: Fold Display Text styling ---
+        editor_->FoldDisplayTextSetStyle(wxSTC_FOLDDISPLAYTEXT_BOXED);
+        editor_->StyleSetForeground(wxSTC_STYLE_FOLDDISPLAYTEXT, accent);
+        editor_->StyleSetBackground(wxSTC_STYLE_FOLDDISPLAYTEXT, active_line_bg);
 
         // Themed fold markers
         for (int i = wxSTC_MARKNUM_FOLDEREND; i <= wxSTC_MARKNUM_FOLDEROPEN; ++i)
