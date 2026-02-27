@@ -284,13 +284,92 @@ auto GitCommandRunner::GetLog(const std::string& file, int count, bool with_grap
     return log_entries;
 }
 
-auto GitCommandRunner::GetBlame(const std::string& file) -> std::vector<BlameLine>
+auto GitCommandRunner::ParseBlameOutput(const std::string& output) -> std::vector<BlameLine>
 {
     std::vector<BlameLine> blame;
-    std::string cmd = "git -C \"" + workspace_root_ + "\" blame --porcelain -- " + file;
-    auto result = RunSync(cmd);
-    // Parsing deferred
+    if (output.empty())
+        return blame;
+
+    std::istringstream stream(output);
+    std::string line;
+
+    // Context map to store commit details (hash -> BlameLine data)
+    std::unordered_map<std::string, BlameLine> commit_map;
+
+    std::string current_hash;
+    int current_original_line = 0;
+    int current_final_line = 0;
+
+    while (std::getline(stream, line))
+    {
+        if (line.empty())
+        {
+            continue;
+        }
+
+        if (line[0] == '\t')
+        {
+            // Source line content, marks the end of a block for a single line
+            // Make sure we have enough elements in our vector, blame lines are 1-indexed.
+            if (current_final_line > 0)
+            {
+                if (blame.size() < static_cast<size_t>(current_final_line))
+                {
+                    blame.resize(static_cast<size_t>(current_final_line));
+                }
+                if (commit_map.find(current_hash) != commit_map.end())
+                {
+                    BlameLine b_line = commit_map[current_hash];
+                    b_line.original_line = current_original_line;
+                    blame[static_cast<size_t>(current_final_line) - 1] = b_line;
+                }
+            }
+        }
+        else
+        {
+            // Check if this is the start of a block: <hash> <original line> <final line> [group
+            // size] For a 40-char hash
+            if (line.length() >= 40 && line.find(' ') == 40)
+            {
+                std::istringstream hdr(line);
+                std::string hash;
+                hdr >> hash >> current_original_line >> current_final_line;
+                current_hash = hash;
+
+                if (commit_map.find(hash) == commit_map.end())
+                {
+                    BlameLine new_commit;
+                    new_commit.commit_hash = hash;
+                    commit_map[hash] = new_commit;
+                }
+            }
+            else if (!current_hash.empty())
+            {
+                if (line.find("author ") == 0)
+                {
+                    commit_map[current_hash].author = line.substr(7);
+                }
+                else if (line.find("author-time ") == 0)
+                {
+                    commit_map[current_hash].date = line.substr(12);
+                }
+            }
+        }
+    }
     return blame;
+}
+
+auto GitCommandRunner::GetBlame(const std::string& file) -> std::vector<BlameLine>
+{
+    const std::string cmd_str =
+        "git -C \"" + workspace_root_ + "\" blame --line-porcelain -- \"" + file + "\"";
+    const auto cmd_result = RunSync(cmd_str);
+
+    if (cmd_result.success() && !cmd_result.stdout_text.empty())
+    {
+        return ParseBlameOutput(cmd_result.stdout_text);
+    }
+    return {};
 }
 
 auto GitCommandRunner::GetDiff(const std::string& file, bool staged) -> std::string

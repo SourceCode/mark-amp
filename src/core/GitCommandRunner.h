@@ -84,6 +84,7 @@ public:
     std::vector<GitLogEntry>
     GetLog(const std::string& file = "", int count = 0, bool with_graph = false);
     auto GetBlame(const std::string& file) -> std::vector<BlameLine>;
+    static auto ParseBlameOutput(const std::string& output) -> std::vector<BlameLine>;
     auto GetDiff(const std::string& file, bool staged) -> std::string;
     auto GetFileContentAtHEAD(const std::string& file) -> std::string;
     auto GetFileContentFromIndex(const std::string& file) -> std::string;

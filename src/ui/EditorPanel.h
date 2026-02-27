@@ -114,6 +114,12 @@ public:
     // ── Content management ──
     void SetContent(const std::string& content);
     [[nodiscard]] auto GetContent() const -> std::string;
+
+    void SetFilePath(const std::string& path);
+    [[nodiscard]] auto GetFilePath() const -> std::string
+    {
+        return current_file_path_;
+    }
     [[nodiscard]] auto IsModified() const -> bool;
     void ClearModified();
 
@@ -697,6 +703,7 @@ private:
     TableEditorOverlay* table_overlay_{nullptr};
     wxTimer format_bar_timer_;
     std::filesystem::path document_base_path_;
+    std::string current_file_path_;
 
     void ShowFormatBar();
     void HideFormatBar();

@@ -2,6 +2,7 @@
 
 #include "CodeLensProvider.h"
 #include "FloatingFormatBar.h"
+#include "GitGutterProvider.h"
 #include "ImagePreviewPopover.h"
 #include "LinkPreviewPopover.h"
 #include "MinimapPanel.h"
@@ -61,6 +62,9 @@ EditorPanel::EditorPanel(wxWindow* parent,
 
     // Phase 14: Register Providers
     gutter_providers_.push_back(std::make_unique<CodeLensProvider>());
+
+    // We pass an empty string down down for now; or we can derive workspace later
+    gutter_providers_.push_back(std::make_unique<GitGutterProvider>());
 }
 
 EditorPanel::~EditorPanel()
@@ -113,6 +117,15 @@ auto EditorPanel::IsModified() const -> bool
 void EditorPanel::ClearModified()
 {
     editor_->SetSavePoint();
+}
+
+void EditorPanel::SetFilePath(const std::string& path)
+{
+    current_file_path_ = path;
+    for (const auto& provider : gutter_providers_)
+    {
+        provider->SetFilePath(path);
+    }
 }
 
 void EditorPanel::SetFocus()

@@ -292,6 +292,7 @@ target_sources(markamp_core PRIVATE
     # V4 Phase 35: Git Service
     ${CMAKE_SOURCE_DIR}/src/core/GitService.cpp
     # Phase 25: Version Control Integration
+    ${CMAKE_SOURCE_DIR}/src/core/GitCommandRunner.cpp
     ${CMAKE_SOURCE_DIR}/src/core/GitStashService.cpp
     ${CMAKE_SOURCE_DIR}/src/core/GitBlameEngine.cpp
     ${CMAKE_SOURCE_DIR}/src/core/GitRemoteService.cpp
@@ -1709,6 +1710,16 @@ target_link_libraries(test_git_service PRIVATE
     markamp_core
 )
 add_test(NAME test_git_service COMMAND test_git_service)
+
+add_executable(test_git_command_runner
+    unit/test_git_command_runner.cpp
+)
+target_include_directories(test_git_command_runner PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_git_command_runner PRIVATE
+    Catch2::Catch2WithMain
+    markamp_core
+)
+add_test(NAME test_git_command_runner COMMAND test_git_command_runner)
 
 # ============================================================================
 # V4 Phase 36: Local Graph Engine test

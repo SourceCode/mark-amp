@@ -801,7 +801,10 @@ void EditorGroupManager::OpenFileInGroup(int group_id, const std::string& path)
         target->leaf->git_log_panel->Hide();
 
     if (target->leaf->editor && !target->leaf->editor->IsShown())
+    {
+        target->leaf->editor->SetFilePath(path);
         target->leaf->editor->Show();
+    }
 
     if (target->leaf->tab_bar)
     {

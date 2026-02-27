@@ -1987,27 +1987,8 @@ void LayoutManager::CreateLayout()
                                         IconManager::get());
     explorer_sizer->Add(explorer_panel_, 1, wxEXPAND | wxALL, 0);
 
-    search_field_ = explorer_panel_->GetSearchField();
+    search_field_ = nullptr; // ExplorerPanel doesn't have a search field right now
     file_tree_ = explorer_panel_->GetFileTree();
-
-    search_field_->Bind(wxEVT_TEXT,
-                        [this](wxCommandEvent& /*evt*/)
-                        {
-                            if (file_tree_ != nullptr)
-                            {
-                                file_tree_->ApplyFilter(search_field_->GetValue().ToStdString());
-                            }
-                        });
-
-    search_field_->Bind(wxEVT_SEARCHCTRL_CANCEL_BTN,
-                        [this](wxCommandEvent& /*evt*/)
-                        {
-                            search_field_->Clear();
-                            if (file_tree_ != nullptr)
-                            {
-                                file_tree_->ApplyFilter("");
-                            }
-                        });
 
     file_tree_->SetOnFileOpen(
         [this](const core::FileNode& node)

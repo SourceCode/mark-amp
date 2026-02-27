@@ -15,6 +15,7 @@ struct GutterDecoration
     int margin_index{0};
     int marker_index{0};
     std::string tooltip;
+    std::string text; // For text-based margins like git blame
 };
 
 /**
@@ -42,6 +43,11 @@ public:
      * @brief Update the provider with the latest buffer content.
      */
     virtual void UpdateContent(const std::string& content) = 0;
+
+    /**
+     * @brief Set the file path associated with the editor panel.
+     */
+    virtual void SetFilePath(const std::string& /*path*/) {}
 
     /**
      * @brief Build and return the set of decorations to render.
