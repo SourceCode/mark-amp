@@ -10,6 +10,44 @@
 namespace markamp::ui
 {
 
+namespace
+{
+wxColour GetLineColor(core::ThemeEngine& theme_engine,
+                      const std::vector<SyntaxToken>& tokens,
+                      size_t start_pos,
+                      size_t end_pos)
+{
+    wxColour color = theme_engine.color(core::ThemeColorToken::TextMuted);
+
+    // Map Scintilla Styles to ThemeTokens (simplified for MVP)
+    for (const auto& token : tokens)
+    {
+        if (static_cast<size_t>(token.position) >= start_pos &&
+            static_cast<size_t>(token.position) < end_pos)
+        {
+            if (token.style == wxSTC_MARKDOWN_CODE || token.style == wxSTC_MARKDOWN_CODE2)
+            {
+                color = theme_engine.color(core::ThemeColorToken::SyntaxType);
+            }
+            else if (token.style == wxSTC_MARKDOWN_STRONG1)
+            {
+                color = theme_engine.color(core::ThemeColorToken::SyntaxKeyword);
+            }
+            else if (token.style == wxSTC_MARKDOWN_EM1)
+            {
+                color = theme_engine.color(core::ThemeColorToken::SyntaxString);
+            }
+            else if (token.style == wxSTC_MARKDOWN_HEADER1)
+            {
+                color = theme_engine.color(core::ThemeColorToken::RenderHeading);
+            }
+            break;
+        }
+    }
+    return color;
+}
+} // namespace
+
 MinimapPanel::MinimapPanel(wxWindow* parent,
                            core::ThemeEngine& theme_engine,
                            wxStyledTextCtrl* editor)
@@ -90,52 +128,26 @@ void MinimapPanel::RenderToBuffer()
     {
         // Simple "block" representation: Render each line as a tiny bar
         int block_y = 0;
-        size_t startPos = 0;
+        size_t start_pos = 0;
         const int kCharWidth = 1;
         const int kLineHeight = 2; // 2px per line to fit thousands of lines compactly
 
-        while (startPos < content_.length())
+        while (start_pos < content_.length())
         {
-            size_t endPos = content_.find('\n', startPos);
-            if (endPos == std::string::npos)
+            size_t end_pos = content_.find('\n', start_pos);
+            if (end_pos == std::string::npos)
             {
-                endPos = content_.length();
+                end_pos = content_.length();
             }
 
-            const int kLengthChars = static_cast<int>(endPos - startPos);
+            const int kLengthChars = static_cast<int>(end_pos - start_pos);
             if (kLengthChars > 0)
             {
                 // Find dominant token color for this line
-                wxColour line_color = theme_engine().color(core::ThemeColorToken::TextMuted);
+                const wxColour kLineColor =
+                    GetLineColor(theme_engine(), tokens_, start_pos, end_pos);
 
-                // Map Scintilla Styles to ThemeTokens (simplified for MVP)
-                for (const auto& token : tokens_)
-                {
-                    if (static_cast<size_t>(token.position) >= startPos &&
-                        static_cast<size_t>(token.position) < endPos)
-                    {
-                        if (token.style == wxSTC_MARKDOWN_CODE ||
-                            token.style == wxSTC_MARKDOWN_CODE2)
-                        {
-                            line_color = theme_engine().color(core::ThemeColorToken::SyntaxType);
-                        }
-                        else if (token.style == wxSTC_MARKDOWN_STRONG1)
-                        {
-                            line_color = theme_engine().color(core::ThemeColorToken::SyntaxKeyword);
-                        }
-                        else if (token.style == wxSTC_MARKDOWN_EM1)
-                        {
-                            line_color = theme_engine().color(core::ThemeColorToken::SyntaxString);
-                        }
-                        else if (token.style == wxSTC_MARKDOWN_HEADER1)
-                        {
-                            line_color = theme_engine().color(core::ThemeColorToken::RenderHeading);
-                        }
-                        break;
-                    }
-                }
-
-                gc->SetBrush(wxBrush(line_color));
+                gc->SetBrush(wxBrush(kLineColor));
                 gc->SetPen(*wxTRANSPARENT_PEN);
 
                 // Draw a rectangle representing the line length (capped at 100px width)
@@ -144,7 +156,7 @@ void MinimapPanel::RenderToBuffer()
             }
 
             block_y += kLineHeight;
-            startPos = endPos + 1;
+            start_pos = end_pos + 1;
         }
     }
 
@@ -169,27 +181,27 @@ void MinimapPanel::OnPaint(wxPaintEvent& /*event*/)
     // Phase 15 Task 3: Draw Viewport Slider
     if (total_lines_ > 0)
     {
-        const int minimap_height = GetClientSize().GetHeight();
-        const int minimap_width = GetClientSize().GetWidth();
+        const int kMinimapHeight = GetClientSize().GetHeight();
+        const int kMinimapWidth = GetClientSize().GetWidth();
 
-        const double visible_fraction = static_cast<double>(lines_on_screen_) / total_lines_;
-        const int slider_height = std::max(20, static_cast<int>(minimap_height * visible_fraction));
+        const double kVisibleFraction = static_cast<double>(lines_on_screen_) / total_lines_;
+        const int kSliderHeight = std::max(20, static_cast<int>(kMinimapHeight * kVisibleFraction));
 
-        const double scroll_fraction = static_cast<double>(first_visible_line_) / total_lines_;
-        const int slider_y = static_cast<int>(minimap_height * scroll_fraction);
+        const double kScrollFraction = static_cast<double>(first_visible_line_) / total_lines_;
+        const int kSliderY = static_cast<int>(kMinimapHeight * kScrollFraction);
 
         std::unique_ptr<wxGraphicsContext> graphics_context(wxGraphicsContext::Create(paint_dc));
         if (graphics_context)
         {
             auto accent = theme_engine().color(core::ThemeColorToken::AccentPrimary);
-            const wxColour slider_color(
+            const wxColour kSliderColor(
                 accent.Red(), accent.Green(), accent.Blue(), 40); // Semi-transparent
-            const wxColour border_color(accent.Red(), accent.Green(), accent.Blue(), 80);
+            const wxColour kBorderColor(accent.Red(), accent.Green(), accent.Blue(), 80);
 
-            graphics_context->SetBrush(wxBrush(slider_color));
-            graphics_context->SetPen(wxPen(border_color, 1));
+            graphics_context->SetBrush(wxBrush(kSliderColor));
+            graphics_context->SetPen(wxPen(kBorderColor, 1));
             graphics_context->DrawRoundedRectangle(
-                1, slider_y, minimap_width - 2, slider_height, 2);
+                1, kSliderY, kMinimapWidth - 2, kSliderHeight, 2);
         }
     }
 }
@@ -237,22 +249,22 @@ void MinimapPanel::ScrollEditorToCoordinate(int y_pos)
         return;
     }
 
-    const int minimap_height = GetClientSize().GetHeight();
-    if (minimap_height <= 0)
+    const int kMinimapHeight = GetClientSize().GetHeight();
+    if (kMinimapHeight <= 0)
     {
         return;
     }
 
     // Determine the target absolute line fraction from Y pos
-    const double fraction = static_cast<double>(y_pos) / static_cast<double>(minimap_height);
+    const double kFraction = static_cast<double>(y_pos) / static_cast<double>(kMinimapHeight);
 
-    const int target_line =
-        std::clamp(static_cast<int>(fraction * total_lines_), 0, std::max(0, total_lines_ - 1));
+    const int kTargetLine =
+        std::clamp(static_cast<int>(kFraction * total_lines_), 0, std::max(0, total_lines_ - 1));
 
     // Center the target line on screen
-    const int first_line = std::max(0, target_line - (lines_on_screen_ / 2));
+    const int kFirstLine = std::max(0, kTargetLine - (lines_on_screen_ / 2));
 
-    editor_->SetFirstVisibleLine(first_line);
+    editor_->SetFirstVisibleLine(kFirstLine);
 }
 
 } // namespace markamp::ui

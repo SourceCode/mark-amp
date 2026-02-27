@@ -1155,6 +1155,10 @@ void EditorPanel::CreateEditor()
     // R4 Fix 1: Editor right-click context menu
     editor_->Bind(wxEVT_RIGHT_DOWN, &EditorPanel::OnRightDown, this);
 
+    // R22 Task 13: Drag and drop
+    editor_->DragAcceptFiles(drag_drop_enabled_);
+    editor_->Bind(wxEVT_DROP_FILES, &EditorPanel::OnFileDrop, this);
+
     // Phase 5: Dwell events for link/image preview
     editor_->SetMouseDwellTime(500);
     editor_->Bind(wxEVT_STC_DWELLSTART, &EditorPanel::OnDwellStart, this);
@@ -4683,20 +4687,19 @@ void EditorPanel::ToggleMinimap()
         minimap_->Show();
         GetSizer()->Layout();
 
-        transition_manager_->start<int>(
-            "minimap_slide",
-            0,
-            100,
-            [this, target_ruler_width, target_minimap_width](const int& pct)
-            {
-                int r_w = (target_ruler_width * pct) / 100;
-                int m_w = (target_minimap_width * pct) / 100;
-                overview_ruler_->SetMinSize(wxSize(r_w, -1));
-                overview_ruler_->SetMaxSize(wxSize(r_w, -1));
-                minimap_->SetMinSize(wxSize(m_w, -1));
-                minimap_->SetMaxSize(wxSize(m_w, -1));
-                GetSizer()->Layout();
-            });
+        transition_manager_->start<int>("minimap_slide",
+                                        0,
+                                        100,
+                                        [this, target_minimap_width](const int& pct)
+                                        {
+                                            int r_w = (target_ruler_width * pct) / 100;
+                                            int m_w = (target_minimap_width * pct) / 100;
+                                            overview_ruler_->SetMinSize(wxSize(r_w, -1));
+                                            overview_ruler_->SetMaxSize(wxSize(r_w, -1));
+                                            minimap_->SetMinSize(wxSize(m_w, -1));
+                                            minimap_->SetMaxSize(wxSize(m_w, -1));
+                                            GetSizer()->Layout();
+                                        });
     }
     else
     {
@@ -4704,7 +4707,7 @@ void EditorPanel::ToggleMinimap()
             "minimap_slide",
             100,
             0,
-            [this, target_ruler_width, target_minimap_width](const int& pct)
+            [this, target_minimap_width](const int& pct)
             {
                 int r_w = (target_ruler_width * pct) / 100;
                 int m_w = (target_minimap_width * pct) / 100;

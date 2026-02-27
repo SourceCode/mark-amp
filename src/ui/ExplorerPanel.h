@@ -6,6 +6,7 @@
 #include "core/EventBus.h"
 #include "core/FileNode.h"
 #include "core/ThemeEngine.h"
+#include "ui/FileTypeIconRegistry.h"
 
 #include <wx/panel.h>
 #include <wx/sizer.h>
@@ -58,6 +59,7 @@ private:
     core::Config* config_{nullptr};
     std::string persistence_id_;
     std::function<void(const core::FileNode&)> on_file_open_;
+    FileTypeIconRegistry icon_registry_;
 
     SidebarSection* open_editors_section_{nullptr};
     SidebarSection* folders_section_{nullptr};

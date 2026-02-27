@@ -730,6 +730,8 @@ enum MenuId : int
     kMenuTrimTrailingWS,
     kMenuExpandSelection,
     kMenuShrinkSelection,
+    kMenuSearchNextMatch,
+    kMenuSearchPrevMatch,
     kMenuCursorUndo,
     kMenuCursorRedo,
     kMenuMoveTextLeft,
@@ -1012,6 +1014,8 @@ void MainFrame::createMenuBar()
     // R6 Fix 1: Find & Replace
     edit_menu->Append(kMenuFind, "&Find...\tCtrl+F");
     edit_menu->Append(kMenuReplace, "Find and &Replace...\tCtrl+H");
+    edit_menu->Append(kMenuSearchNextMatch, "Search Next &Match\tF4");
+    edit_menu->Append(kMenuSearchPrevMatch, "Search &Previous Match\tShift+F4");
     edit_menu->AppendSeparator();
     // R6 Fix 6: Duplicate Line
     edit_menu->Append(kMenuDuplicateLine, "&Duplicate Line\tCtrl+Shift+D");
@@ -1335,6 +1339,30 @@ void MainFrame::createMenuBar()
             }
         },
         kMenuFind);
+
+    Bind(
+        wxEVT_MENU,
+        [this]([[maybe_unused]] wxCommandEvent& evt)
+        {
+            if (event_bus_ != nullptr)
+            {
+                const core::events::SearchNextMatchRequestEvent next_match_evt;
+                event_bus_->publish(next_match_evt);
+            }
+        },
+        kMenuSearchNextMatch);
+
+    Bind(
+        wxEVT_MENU,
+        [this]([[maybe_unused]] wxCommandEvent& evt)
+        {
+            if (event_bus_ != nullptr)
+            {
+                const core::events::SearchPrevMatchRequestEvent prev_match_evt;
+                event_bus_->publish(prev_match_evt);
+            }
+        },
+        kMenuSearchPrevMatch);
 
     // R6 Fix 1: Replace
     Bind(

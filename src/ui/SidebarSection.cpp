@@ -218,6 +218,23 @@ void SidebarSection::set_content(wxWindow* content_window)
     Layout();
 }
 
+void SidebarSection::add_header_widget(wxWindow* widget)
+{
+    if (header_ && widget)
+    {
+        auto* sizer = header_->GetSizer();
+        if (!sizer)
+        {
+            sizer = new wxBoxSizer(wxHORIZONTAL);
+            sizer->AddStretchSpacer(1);
+            header_->SetSizer(sizer);
+        }
+        widget->Reparent(header_);
+        sizer->Add(widget, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
+        header_->Layout();
+    }
+}
+
 void SidebarSection::set_expanded(bool expanded)
 {
     if (is_expanded_ != expanded)

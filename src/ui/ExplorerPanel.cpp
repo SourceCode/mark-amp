@@ -6,7 +6,9 @@
 #include "SidebarFooter.h"
 #include "core/Events.h"
 #include "ui/DesignSystemContext.h"
+#include "ui/ExplorerToolbar.h"
 #include "ui/IconManager.h"
+#include "ui/OpenEditorsSection.h"
 
 #include <wx/stattext.h>
 
@@ -90,16 +92,7 @@ void ExplorerPanel::CreateLayout(DesignSystemContext& ds, IconManager& icon_mana
     std::string prefix = persistence_id_.empty() ? "" : persistence_id_ + "_";
 
     // "Open Editors"
-    open_editors_section_ = new SidebarSection(
-        this, ds, icon_manager, event_bus_, config_, "OPEN EDITORS", prefix + "open_editors");
-    auto* empty_editors = new wxPanel(open_editors_section_);
-    auto* empty_editors_sizer = new wxBoxSizer(wxVERTICAL);
-    auto* empty_label = new wxStaticText(empty_editors, wxID_ANY, "No editors open.");
-    empty_label->SetForegroundColour(theme_engine().color(core::ThemeColorToken::TextMuted));
-    empty_label->SetFont(theme_engine().font(core::ThemeFontToken::MonoRegular));
-    empty_editors_sizer->Add(empty_label, 1, wxALIGN_CENTER | wxALL, 10);
-    empty_editors->SetSizer(empty_editors_sizer);
-    open_editors_section_->set_content(empty_editors);
+    open_editors_section_ = new OpenEditorsSection(this, ds, icon_manager, event_bus_, config_);
     open_editors_section_->set_expanded(false); // Collapsed by default
 
     // "Folders" (Workspace)
@@ -112,7 +105,38 @@ void ExplorerPanel::CreateLayout(DesignSystemContext& ds, IconManager& icon_mana
     auto* workspace_sizer = new wxBoxSizer(wxVERTICAL);
     workspace_container->SetSizer(workspace_sizer);
 
-    file_tree_ = new FileTreeCtrl(workspace_container, theme_engine(), event_bus_);
+    // Explorer Toolbar (Task 3)
+    auto* explorer_toolbar =
+        new ExplorerToolbar(folders_section_->get_header_window(), theme_engine(), icon_manager);
+    explorer_toolbar->SetActionCallback(
+        [this](ExplorerToolbar::Action action)
+        {
+            if (action == ExplorerToolbar::Action::kCollapseAll && file_tree_)
+            {
+                file_tree_->CollapseAllNodes();
+            }
+            // Other actions: kNewFile, kNewFolder, kRefresh, kFilter
+            else if (action == ExplorerToolbar::Action::kNewFile)
+            {
+                if (file_tree_)
+                    file_tree_->CreateNewFile();
+            }
+            else if (action == ExplorerToolbar::Action::kNewFolder)
+            {
+                if (file_tree_)
+                    file_tree_->CreateNewFolder();
+            }
+            else if (action == ExplorerToolbar::Action::kRefresh)
+            {
+                core::events::WorkspaceRefreshRequestEvent evt;
+                event_bus_.publish(evt);
+            }
+            // kFilter would toggle search_field_ or something similar
+        });
+
+    folders_section_->add_header_widget(explorer_toolbar);
+
+    file_tree_ = new FileTreeCtrl(workspace_container, theme_engine(), event_bus_, icon_registry_);
     workspace_sizer->Add(file_tree_, 1, wxEXPAND);
 
     empty_state_ = new EmptyPanelState(workspace_container, ds, icon_manager);

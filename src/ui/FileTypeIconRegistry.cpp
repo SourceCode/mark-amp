@@ -82,6 +82,30 @@ auto FileTypeIconRegistry::GetIconId(const std::string& filename) const -> FileT
     return FileTypeIconId::kUnknown;
 }
 
+auto FileTypeIconRegistry::GetFolderIconType(const std::string& folder_name) -> FolderIconType
+{
+    std::string name = folder_name;
+    std::transform(
+        name.begin(), name.end(), name.begin(), [](unsigned char c) { return std::tolower(c); });
+
+    if (name == ".git")
+        return FolderIconType::kGit;
+    if (name == "node_modules")
+        return FolderIconType::kNodeModules;
+    if (name == "build" || name == "out" || name == "dist")
+        return FolderIconType::kBuild;
+    if (name == "src" || name == "source" || name == "include")
+        return FolderIconType::kSrc;
+    if (name == "docs" || name == "doc")
+        return FolderIconType::kDocs;
+    if (name == "tests" || name == "test")
+        return FolderIconType::kTests;
+    if (name == ".vscode" || name == ".idea" || name == "config" || name == ".config")
+        return FolderIconType::kConfig;
+
+    return FolderIconType::kNormal;
+}
+
 void FileTypeIconRegistry::DrawFileIcon(wxGraphicsContext& gc,
                                         const std::string& filename,
                                         double x,
@@ -417,6 +441,146 @@ void FileTypeIconRegistry::DrawGenericTextIcon(
     gc.StrokeLine(x + size * 0.3, y + size * 0.3, x + size * 0.7, y + size * 0.3);
     gc.StrokeLine(x + size * 0.3, y + size * 0.5, x + size * 0.7, y + size * 0.5);
     gc.StrokeLine(x + size * 0.3, y + size * 0.7, x + size * 0.5, y + size * 0.7);
+}
+
+static auto GetFolderColor(FolderIconType type, const core::ThemeEngine& theme) -> wxColour
+{
+    switch (type)
+    {
+        case FolderIconType::kGit:
+            return theme.color(core::ThemeColorToken::ErrorColor); // Red
+        case FolderIconType::kNodeModules:
+        case FolderIconType::kTests:
+            return theme.color(core::ThemeColorToken::SyntaxString); // Green
+        case FolderIconType::kSrc:
+            return theme.color(core::ThemeColorToken::SyntaxKeyword); // Blue
+        case FolderIconType::kDocs:
+            return theme.color(core::ThemeColorToken::SyntaxType); // Purple
+        case FolderIconType::kBuild:
+        case FolderIconType::kConfig:
+        case FolderIconType::kNormal:
+        default:
+            return theme.color(core::ThemeColorToken::TextMuted);
+    }
+}
+
+static void DrawFolderSymbol(
+    wxGraphicsContext& ctx, FolderIconType type, double pos_x, double pos_y, double size)
+{
+    if (type == FolderIconType::kNormal || type == FolderIconType::kNodeModules)
+    {
+        return;
+    }
+
+    if (type == FolderIconType::kGit)
+    {
+        // Draw a small lock
+        ctx.DrawRectangle(pos_x + size * 0.4, pos_y + size * 0.55, size * 0.2, size * 0.15);
+        auto p = ctx.CreatePath();
+        p.AddArc(pos_x + size * 0.5, pos_y + size * 0.55, size * 0.08, M_PI, 0, false);
+        ctx.StrokePath(p);
+    }
+    else if (type == FolderIconType::kSrc)
+    {
+        // Draw braces { }
+        ctx.StrokeLine(
+            pos_x + size * 0.45, pos_y + size * 0.45, pos_x + size * 0.4, pos_y + size * 0.5);
+        ctx.StrokeLine(
+            pos_x + size * 0.4, pos_y + size * 0.5, pos_x + size * 0.45, pos_y + size * 0.55);
+        ctx.StrokeLine(
+            pos_x + size * 0.55, pos_y + size * 0.45, pos_x + size * 0.6, pos_y + size * 0.5);
+        ctx.StrokeLine(
+            pos_x + size * 0.6, pos_y + size * 0.5, pos_x + size * 0.55, pos_y + size * 0.55);
+    }
+    else if (type == FolderIconType::kTests)
+    {
+        // Draw a small flask
+        ctx.StrokeLine(pos_x + size * 0.45,
+                       pos_y + size * 0.45,
+                       pos_x + size * 0.55,
+                       pos_y + size * 0.45); // top
+        ctx.StrokeLine(pos_x + size * 0.5,
+                       pos_y + size * 0.45,
+                       pos_x + size * 0.5,
+                       pos_y + size * 0.55);                                              // neck
+        ctx.DrawEllipse(pos_x + size * 0.4, pos_y + size * 0.55, size * 0.2, size * 0.2); // base
+    }
+    else if (type == FolderIconType::kBuild || type == FolderIconType::kConfig)
+    {
+        // Draw a small gear
+        ctx.DrawEllipse(pos_x + size * 0.45, pos_y + size * 0.5, size * 0.1, size * 0.1);
+        ctx.StrokeLine(
+            pos_x + size * 0.5, pos_y + size * 0.45, pos_x + size * 0.5, pos_y + size * 0.65);
+        ctx.StrokeLine(
+            pos_x + size * 0.4, pos_y + size * 0.55, pos_x + size * 0.6, pos_y + size * 0.55);
+    }
+    else if (type == FolderIconType::kDocs)
+    {
+        // Draw a small document line
+        ctx.StrokeLine(
+            pos_x + size * 0.4, pos_y + size * 0.5, pos_x + size * 0.6, pos_y + size * 0.5);
+        ctx.StrokeLine(
+            pos_x + size * 0.4, pos_y + size * 0.6, pos_x + size * 0.6, pos_y + size * 0.6);
+    }
+}
+
+void FileTypeIconRegistry::DrawClosedFolderIcon(wxGraphicsContext& ctx,
+                                                FolderIconType type,
+                                                double pos_x,
+                                                double pos_y,
+                                                double size,
+                                                const core::ThemeEngine& theme) const
+{
+    wxColour color = GetFolderColor(type, theme);
+    ctx.SetPen(wxPen(color, 1));
+    ctx.SetBrush(wxNullBrush);
+
+    // Folder tab
+    auto tab_path = ctx.CreatePath();
+    tab_path.MoveToPoint(pos_x + size * 0.1, pos_y + size * 0.2);
+    tab_path.AddLineToPoint(pos_x + size * 0.4, pos_y + size * 0.2);
+    tab_path.AddLineToPoint(pos_x + size * 0.5, pos_y + size * 0.3);
+    tab_path.AddLineToPoint(pos_x + size * 0.9, pos_y + size * 0.3);
+    tab_path.AddLineToPoint(pos_x + size * 0.9, pos_y + size * 0.8);
+    tab_path.AddLineToPoint(pos_x + size * 0.1, pos_y + size * 0.8);
+    tab_path.CloseSubpath();
+    ctx.StrokePath(tab_path);
+
+    // Folder body line (top of the front part)
+    ctx.StrokeLine(pos_x + size * 0.1, pos_y + size * 0.3, pos_x + size * 0.4, pos_y + size * 0.3);
+
+    DrawFolderSymbol(ctx, type, pos_x, pos_y, size);
+}
+
+void FileTypeIconRegistry::DrawOpenFolderIcon(wxGraphicsContext& ctx,
+                                              FolderIconType type,
+                                              double pos_x,
+                                              double pos_y,
+                                              double size,
+                                              const core::ThemeEngine& theme) const
+{
+    wxColour color = GetFolderColor(type, theme);
+    ctx.SetPen(wxPen(color, 1));
+    ctx.SetBrush(wxNullBrush);
+
+    // Back part and tab
+    ctx.StrokeLine(pos_x + size * 0.1, pos_y + size * 0.3, pos_x + size * 0.1, pos_y + size * 0.2);
+    ctx.StrokeLine(pos_x + size * 0.1, pos_y + size * 0.2, pos_x + size * 0.4, pos_y + size * 0.2);
+    ctx.StrokeLine(pos_x + size * 0.4, pos_y + size * 0.2, pos_x + size * 0.5, pos_y + size * 0.3);
+    ctx.StrokeLine(pos_x + size * 0.5, pos_y + size * 0.3, pos_x + size * 0.8, pos_y + size * 0.3);
+
+    // Symbol drawn on the inside back layer before the front flap
+    DrawFolderSymbol(ctx, type, pos_x, pos_y, size);
+
+    // Front flap (angled open)
+    auto front_path = ctx.CreatePath();
+    front_path.MoveToPoint(pos_x + size * 0.05,
+                           pos_y + size * 0.85); // Bottom left (extended lower)
+    front_path.AddLineToPoint(pos_x + size * 0.2, pos_y + size * 0.4);   // Top left (angled in)
+    front_path.AddLineToPoint(pos_x + size * 0.9, pos_y + size * 0.4);   // Top right
+    front_path.AddLineToPoint(pos_x + size * 0.75, pos_y + size * 0.85); // Bottom right
+    front_path.CloseSubpath();
+    ctx.StrokePath(front_path);
 }
 
 } // namespace markamp::ui

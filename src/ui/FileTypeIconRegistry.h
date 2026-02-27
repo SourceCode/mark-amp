@@ -35,6 +35,18 @@ enum class FileTypeIconId
     kText
 };
 
+enum class FolderIconType
+{
+    kNormal,
+    kGit,
+    kNodeModules,
+    kBuild,
+    kSrc,
+    kDocs,
+    kTests,
+    kConfig
+};
+
 /// Maps file extensions to small 14x14 themed icon rendering routines.
 class FileTypeIconRegistry
 {
@@ -42,14 +54,33 @@ public:
     FileTypeIconRegistry();
 
     /// Draw the icon corresponding to the filename's extension.
-    void DrawFileIcon(wxGraphicsContext& gc,
+    void DrawFileIcon(wxGraphicsContext& ctx,
                       const std::string& filename,
-                      double x,
-                      double y,
+                      double pos_x,
+                      double pos_y,
                       double size,
                       const core::ThemeEngine& theme) const;
 
     [[nodiscard]] auto GetIconId(const std::string& filename) const -> FileTypeIconId;
+
+    /// Get the specific folder icon type based on the folder name.
+    [[nodiscard]] static auto GetFolderIconType(const std::string& folder_name) -> FolderIconType;
+
+    /// Draw the icon for an open folder.
+    void DrawOpenFolderIcon(wxGraphicsContext& ctx,
+                            FolderIconType type,
+                            double pos_x,
+                            double pos_y,
+                            double size,
+                            const core::ThemeEngine& theme) const;
+
+    /// Draw the icon for a closed folder.
+    void DrawClosedFolderIcon(wxGraphicsContext& ctx,
+                              FolderIconType type,
+                              double pos_x,
+                              double pos_y,
+                              double size,
+                              const core::ThemeEngine& theme) const;
 
 private:
     std::unordered_map<std::string, FileTypeIconId> extension_map_;
@@ -57,85 +88,85 @@ private:
     void RegisterExtensions();
 
     // Individual drawing routines
-    void DrawCppIcon(wxGraphicsContext& gc,
-                     double x,
-                     double y,
+    void DrawCppIcon(wxGraphicsContext& ctx,
+                     double pos_x,
+                     double pos_y,
                      double size,
                      const core::ThemeEngine& theme) const;
-    void DrawHeaderIcon(wxGraphicsContext& gc,
-                        double x,
-                        double y,
+    void DrawHeaderIcon(wxGraphicsContext& ctx,
+                        double pos_x,
+                        double pos_y,
                         double size,
                         const core::ThemeEngine& theme) const;
-    void DrawPythonIcon(wxGraphicsContext& gc,
-                        double x,
-                        double y,
+    void DrawPythonIcon(wxGraphicsContext& ctx,
+                        double pos_x,
+                        double pos_y,
                         double size,
                         const core::ThemeEngine& theme) const;
-    void DrawJsTsIcon(wxGraphicsContext& gc,
-                      double x,
-                      double y,
+    void DrawJsTsIcon(wxGraphicsContext& ctx,
+                      double pos_x,
+                      double pos_y,
                       double size,
                       const core::ThemeEngine& theme,
                       bool is_ts) const;
-    void DrawMarkdownIcon(wxGraphicsContext& gc,
-                          double x,
-                          double y,
+    void DrawMarkdownIcon(wxGraphicsContext& ctx,
+                          double pos_x,
+                          double pos_y,
                           double size,
                           const core::ThemeEngine& theme) const;
-    void DrawJsonIcon(wxGraphicsContext& gc,
-                      double x,
-                      double y,
+    void DrawJsonIcon(wxGraphicsContext& ctx,
+                      double pos_x,
+                      double pos_y,
                       double size,
                       const core::ThemeEngine& theme) const;
-    void DrawYamlIcon(wxGraphicsContext& gc,
-                      double x,
-                      double y,
+    void DrawYamlIcon(wxGraphicsContext& ctx,
+                      double pos_x,
+                      double pos_y,
                       double size,
                       const core::ThemeEngine& theme) const;
-    void DrawWebIcon(wxGraphicsContext& gc,
-                     double x,
-                     double y,
+    void DrawWebIcon(wxGraphicsContext& ctx,
+                     double pos_x,
+                     double pos_y,
                      double size,
                      const core::ThemeEngine& theme) const; // HTML/XML
-    void DrawStyleIcon(wxGraphicsContext& gc,
-                       double x,
-                       double y,
+    void DrawStyleIcon(wxGraphicsContext& ctx,
+                       double pos_x,
+                       double pos_y,
                        double size,
                        const core::ThemeEngine& theme) const; // CSS
-    void DrawRustIcon(wxGraphicsContext& gc,
-                      double x,
-                      double y,
+    void DrawRustIcon(wxGraphicsContext& ctx,
+                      double pos_x,
+                      double pos_y,
                       double size,
                       const core::ThemeEngine& theme) const;
-    void DrawGoIcon(wxGraphicsContext& gc,
-                    double x,
-                    double y,
+    void DrawGoIcon(wxGraphicsContext& ctx,
+                    double pos_x,
+                    double pos_y,
                     double size,
                     const core::ThemeEngine& theme) const;
-    void DrawJavaIcon(wxGraphicsContext& gc,
-                      double x,
-                      double y,
+    void DrawJavaIcon(wxGraphicsContext& ctx,
+                      double pos_x,
+                      double pos_y,
                       double size,
                       const core::ThemeEngine& theme) const;
-    void DrawRubyIcon(wxGraphicsContext& gc,
-                      double x,
-                      double y,
+    void DrawRubyIcon(wxGraphicsContext& ctx,
+                      double pos_x,
+                      double pos_y,
                       double size,
                       const core::ThemeEngine& theme) const;
-    void DrawShellIcon(wxGraphicsContext& gc,
-                       double x,
-                       double y,
+    void DrawShellIcon(wxGraphicsContext& ctx,
+                       double pos_x,
+                       double pos_y,
                        double size,
                        const core::ThemeEngine& theme) const;
-    void DrawConfigIcon(wxGraphicsContext& gc,
-                        double x,
-                        double y,
+    void DrawConfigIcon(wxGraphicsContext& ctx,
+                        double pos_x,
+                        double pos_y,
                         double size,
                         const core::ThemeEngine& theme) const; // TOML/CMake
-    void DrawGenericTextIcon(wxGraphicsContext& gc,
-                             double x,
-                             double y,
+    void DrawGenericTextIcon(wxGraphicsContext& ctx,
+                             double pos_x,
+                             double pos_y,
                              double size,
                              const core::ThemeEngine& theme) const;
 

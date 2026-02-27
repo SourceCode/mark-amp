@@ -124,10 +124,14 @@ add_executable(markamp
     ui/SidebarSkeletonPlaceholder.cpp
     ui/EmptyPanelState.cpp
     ui/SearchSidebarPanel.cpp
+    ui/SearchResultsTree.cpp
     ui/SecondarySidebarTabStrip.cpp
     ui/GraphSidebarPanel.cpp
     ui/ExtensionsBrowserPanel.cpp
+    ui/ExplorerToolbar.cpp
     ui/ExplorerPanel.cpp
+    ui/OpenEditorsSection.cpp
+    ui/GitStatusProvider.cpp
     ui/ExtensionCard.cpp
     ui/ExtensionDetailPanel.cpp
     ui/OutputPanel.cpp
@@ -438,6 +442,9 @@ add_executable(markamp
     core/TagService.cpp
     # V4 Phase 05: Full-Text Search Engine
     core/SearchEngine.cpp
+    core/SearchEngine.h
+    core/WorkspaceSearchEngine.cpp
+    core/WorkspaceSearchEngine.h
     # V4 Phase 07: Graph Engine
     core/GraphEngine.cpp
     # V4 Phase 06: Backlinks Panel

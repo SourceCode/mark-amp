@@ -793,6 +793,12 @@ MARKAMP_DECLARE_EVENT_WITH_FIELDS(SearchResultCountEvent)
 int count{0};
 MARKAMP_DECLARE_EVENT_END;
 
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SearchProgressEvent)
+int files_scanned{0};
+int total_files{0};
+int matches_found{0};
+MARKAMP_DECLARE_EVENT_END;
+
 MARKAMP_DECLARE_EVENT_WITH_FIELDS(DiagnosticsCountChangedEvent)
 int error_count{0};
 int warning_count{0};
@@ -815,6 +821,8 @@ MARKAMP_DECLARE_EVENT(ShowStartupRequestEvent);
 
 MARKAMP_DECLARE_EVENT(FindRequestEvent);
 MARKAMP_DECLARE_EVENT(ReplaceRequestEvent);
+MARKAMP_DECLARE_EVENT(SearchNextMatchRequestEvent);
+MARKAMP_DECLARE_EVENT(SearchPrevMatchRequestEvent);
 MARKAMP_DECLARE_EVENT(DuplicateLineRequestEvent);
 MARKAMP_DECLARE_EVENT(ToggleCommentRequestEvent);
 MARKAMP_DECLARE_EVENT(DeleteLineRequestEvent);

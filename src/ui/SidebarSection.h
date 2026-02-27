@@ -33,6 +33,12 @@ public:
     {
         return content_;
     }
+
+    [[nodiscard]] auto get_header_window() const -> wxWindow*
+    {
+        return header_;
+    }
+    void add_header_widget(wxWindow* widget);
     void set_expanded(bool expanded);
     [[nodiscard]] auto is_expanded() const -> bool
     {

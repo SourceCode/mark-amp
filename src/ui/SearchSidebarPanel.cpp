@@ -1,6 +1,7 @@
 #include "SearchSidebarPanel.h"
 
 #include "core/Logger.h"
+#include "core/WorkspaceSearchEngine.h"
 #include "ui/DesignSystemContext.h"
 #include "ui/EmptyPanelState.h"
 #include "ui/IconManager.h"
@@ -9,6 +10,7 @@
 #include "ui/SidebarSection.h"
 #include "ui/ThemedScrollbar.h"
 
+#include <wx/app.h>
 #include <wx/button.h>
 #include <wx/checkbox.h>
 #include <wx/dcbuffer.h>
@@ -37,29 +39,30 @@ public:
 protected:
     void OnPaint(wxPaintEvent& /*event*/)
     {
-        wxAutoBufferedPaintDC dc(this);
+        wxAutoBufferedPaintDC paint_dc(this);
         auto& theme = theme_engine();
-        dc.SetBackground(
+        paint_dc.SetBackground(
             wxBrush(theme.resolve_token("sidebar.bg")
                         .value_or(theme.color(markamp::core::ThemeColorToken::BgPanel))));
-        dc.Clear();
+        paint_dc.Clear();
 
         wxSize size = GetClientSize();
 
-        std::string text = count_ == 1 ? "1 result" : std::to_string(count_) + " results";
+        const std::string kText = count_ == 1 ? "1 result" : std::to_string(count_) + " results";
 
-        dc.SetFont(theme.font(markamp::core::ThemeFontToken::MonoRegular).Scaled(0.8f));
+        paint_dc.SetFont(theme.font(markamp::core::ThemeFontToken::MonoRegular).Scaled(0.8f));
 
-        wxCoord tw, th;
-        dc.GetTextExtent(text, &tw, &th);
+        wxCoord text_width = 0;
+        wxCoord text_height = 0;
+        paint_dc.GetTextExtent(kText, &text_width, &text_height);
 
-        int padding_x = 8;
-        int padding_y = 2;
-        int rect_w = tw + padding_x * 2;
-        int rect_h = th + padding_y * 2;
+        const int kPaddingX = 8;
+        const int kPaddingY = 2;
+        const int kRectW = text_width + kPaddingX * 2;
+        const int kRectH = text_height + kPaddingY * 2;
 
-        int x = 0;
-        int y = (size.GetHeight() - rect_h) / 2;
+        const int kX = 0;
+        const int kY = (size.GetHeight() - kRectH) / 2;
 
         auto bg_color = theme.color(markamp::core::ThemeColorToken::ActivityBarBadgeBg);
         auto fg_color = theme.color(markamp::core::ThemeColorToken::ActivityBarBadgeFg);
@@ -70,19 +73,19 @@ protected:
             fg_color = theme.color(markamp::core::ThemeColorToken::TextMuted);
         }
 
-        std::unique_ptr<wxGraphicsContext> gc(wxGraphicsContext::Create(dc));
-        if (gc)
+        std::unique_ptr<wxGraphicsContext> graphics_context(wxGraphicsContext::Create(paint_dc));
+        if (graphics_context)
         {
-            gc->SetBrush(wxBrush(bg_color));
-            gc->SetPen(*wxTRANSPARENT_PEN);
-            gc->DrawRoundedRectangle(x, y, rect_w, rect_h, rect_h / 2.0);
+            graphics_context->SetBrush(wxBrush(bg_color));
+            graphics_context->SetPen(*wxTRANSPARENT_PEN);
+            graphics_context->DrawRoundedRectangle(kX, kY, kRectW, kRectH, kRectH / 2.0);
 
-            gc->SetFont(theme.font(markamp::core::ThemeFontToken::MonoRegular).Scaled(0.8f),
-                        fg_color);
-            gc->DrawText(text, x + padding_x, y + padding_y);
+            graphics_context->SetFont(
+                theme.font(markamp::core::ThemeFontToken::MonoRegular).Scaled(0.8F), fg_color);
+            graphics_context->DrawText(kText, kX + kPaddingX, kY + kPaddingY);
         }
 
-        SetMinSize(wxSize(rect_w, rect_h));
+        SetMinSize(wxSize(kRectW, kRectH));
     }
 
     void OnThemeChanged(const markamp::core::Theme& /*new_theme*/) override
@@ -92,39 +95,214 @@ protected:
 
 private:
     int count_{0};
+    // NOLINTBEGIN
     wxDECLARE_EVENT_TABLE();
+    // NOLINTEND
 };
 
+// NOLINTBEGIN
 wxBEGIN_EVENT_TABLE(MatchBadge, ThemeAwareWindow) EVT_PAINT(MatchBadge::OnPaint) wxEND_EVENT_TABLE()
+    // NOLINTEND
 
-    SearchSidebarPanel::SearchSidebarPanel(wxWindow* parent,
-                                           core::ThemeEngine& theme_engine,
-                                           core::EventBus& event_bus,
-                                           core::Config* config,
-                                           DesignSystemContext& ds,
-                                           IconManager& icon_manager,
-                                           const std::string& persistence_id)
+    namespace
+{
+
+    class ToggleTextButton : public ThemeAwareWindow
+    {
+    public:
+        ToggleTextButton(wxWindow* parent,
+                         markamp::core::ThemeEngine& theme_engine,
+                         const std::string& text,
+                         bool initial_state)
+            : ThemeAwareWindow(
+                  parent, theme_engine, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE)
+            , text_(text)
+            , is_toggled_(initial_state)
+        {
+            SetBackgroundStyle(wxBG_STYLE_PAINT);
+            SetMinSize(wxSize(24, 24));
+        }
+
+        void set_on_toggle(std::function<void(bool)> callback)
+        {
+            on_toggle_ = std::move(callback);
+        }
+        [[nodiscard]] auto is_toggled() const -> bool
+        {
+            return is_toggled_;
+        }
+        void set_toggled(bool state)
+        {
+            is_toggled_ = state;
+            Refresh();
+        }
+        void set_text(const std::string& text)
+        {
+            text_ = text;
+            Refresh();
+        }
+
+    protected:
+        void OnPaint(wxPaintEvent& /*event*/)
+        {
+            wxAutoBufferedPaintDC paint_dc(this);
+            auto& theme = theme_engine();
+            const wxSize size = GetClientSize();
+
+            auto bg_color = theme.resolve_token("sidebar.bg")
+                                .value_or(theme.color(markamp::core::ThemeColorToken::BgPanel));
+            if (is_toggled_)
+            {
+                bg_color = theme.color(markamp::core::ThemeColorToken::ControlBgSelected);
+            }
+            else if (is_hovered_)
+            {
+                bg_color = theme.color(markamp::core::ThemeColorToken::ControlBgHover);
+            }
+
+            paint_dc.SetBackground(wxBrush(bg_color));
+            paint_dc.Clear();
+
+            std::unique_ptr<wxGraphicsContext> graphics_context(
+                wxGraphicsContext::Create(paint_dc));
+            if (graphics_context)
+            {
+                graphics_context->SetBrush(wxBrush(bg_color));
+                if (is_toggled_)
+                {
+                    graphics_context->SetPen(
+                        wxPen(theme.color(markamp::core::ThemeColorToken::ControlBorderFocus), 1));
+                }
+                else
+                {
+                    graphics_context->SetPen(*wxTRANSPARENT_PEN);
+                }
+                graphics_context->DrawRoundedRectangle(
+                    0, 0, size.GetWidth(), size.GetHeight(), 3.0);
+
+                auto fg_color = theme.color(markamp::core::ThemeColorToken::TextMain);
+                if (is_toggled_)
+                {
+                    fg_color = theme.color(markamp::core::ThemeColorToken::ControlFgNormal);
+                }
+                else if (!is_hovered_)
+                {
+                    fg_color = theme.color(markamp::core::ThemeColorToken::TextMuted);
+                }
+
+                graphics_context->SetFont(
+                    theme.font(markamp::core::ThemeFontToken::MonoRegular).Scaled(0.85F), fg_color);
+                double text_width = 0;
+                double text_height = 0;
+                double text_descent = 0;
+                double text_ext_leading = 0;
+                graphics_context->GetTextExtent(
+                    text_, &text_width, &text_height, &text_descent, &text_ext_leading);
+                graphics_context->DrawText(text_,
+                                           (size.GetWidth() - text_width) / 2.0,
+                                           (size.GetHeight() - text_height) / 2.0);
+            }
+        }
+
+        void OnMouseLeftDown(wxMouseEvent& /*event*/)
+        {
+            is_toggled_ = !is_toggled_;
+            Refresh();
+            if (on_toggle_)
+            {
+                on_toggle_(is_toggled_);
+            }
+        }
+
+        void OnMouseEnter(wxMouseEvent& /*event*/)
+        {
+            is_hovered_ = true;
+            Refresh();
+        }
+        void OnMouseLeave(wxMouseEvent& /*event*/)
+        {
+            is_hovered_ = false;
+            Refresh();
+        }
+
+        void OnThemeChanged(const markamp::core::Theme& /*new_theme*/) override
+        {
+            Refresh();
+        }
+
+    private:
+        std::string text_;
+        bool is_toggled_{false};
+        bool is_hovered_{false};
+        std::function<void(bool)> on_toggle_;
+
+        // NOLINTBEGIN
+        wxDECLARE_EVENT_TABLE();
+        // NOLINTEND
+    };
+
+    // NOLINTBEGIN
+    wxBEGIN_EVENT_TABLE(ToggleTextButton, ThemeAwareWindow) EVT_PAINT(ToggleTextButton::OnPaint)
+        EVT_LEFT_DOWN(ToggleTextButton::OnMouseLeftDown)
+            EVT_ENTER_WINDOW(ToggleTextButton::OnMouseEnter)
+                EVT_LEAVE_WINDOW(ToggleTextButton::OnMouseLeave) wxEND_EVENT_TABLE()
+    // NOLINTEND
+
+} // namespace
+
+SearchSidebarPanel::SearchSidebarPanel(wxWindow* parent,
+                                       core::ThemeEngine& theme_engine,
+                                       core::EventBus& event_bus,
+                                       core::Config* config,
+                                       DesignSystemContext& design_system,
+                                       IconManager& icon_manager,
+                                       const std::string& persistence_id)
     : ThemeAwareWindow(
           parent, theme_engine, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_NONE)
     , event_bus_(event_bus)
     , config_(config)
-    , ds_(ds)
+    , ds_(design_system)
     , icon_manager_(icon_manager)
     , persistence_id_(persistence_id)
 {
     SetBackgroundColour(theme_engine.resolve_token("sidebar.bg")
                             .value_or(theme_engine.color(core::ThemeColorToken::BgPanel)));
 
+    // Engine setup
+    search_engine_ = std::make_unique<core::WorkspaceSearchEngine>();
+    search_engine_->SetProgressCallback(
+        [this](int scanned, int total, int matches)
+        {
+            wxTheApp->CallAfter(
+                [this, scanned, total, matches]()
+                {
+                    if (footer_ != nullptr)
+                    {
+                        footer_->set_text("Scanned " + std::to_string(scanned) + "/" +
+                                          std::to_string(total) + " files (" +
+                                          std::to_string(matches) + " matches)");
+                    }
+                    if (match_badge_ != nullptr)
+                    {
+                        match_count_ = matches;
+                        match_badge_->SetMatchCount(match_count_);
+                    }
+                });
+        });
+
+    search_debounce_timer_.SetOwner(this);
+    Bind(wxEVT_TIMER, &SearchSidebarPanel::OnDebouncedSearch, this, search_debounce_timer_.GetId());
+
     auto* main_sizer = new wxBoxSizer(wxVERTICAL);
 
     // 1. Panel Header
     auto* header = new PanelHeader(this, ds_, icon_manager_, event_bus_);
     header->set_title("SEARCH");
-    const std::vector<PanelHeader::ActionIcon> actions = {
+    const std::vector<PanelHeader::ActionIcon> kActions = {
         {"search.refresh", "refresh", "Refresh Search"},
         {"search.clear", "clear-all", "Clear Search Results"},
         {"search.collapse", "panel-collapse", "Collapse All"}};
-    header->set_actions(actions);
+    header->set_actions(kActions);
     main_sizer->Add(header, 0, wxEXPAND);
 
     // Toolbar container for inputs
@@ -133,64 +311,168 @@ wxBEGIN_EVENT_TABLE(MatchBadge, ThemeAwareWindow) EVT_PAINT(MatchBadge::OnPaint)
     auto* toolbar_sizer = new wxBoxSizer(wxVERTICAL);
     toolbar_panel->SetSizer(toolbar_sizer);
 
-    // Search input
-    search_input_ = new wxSearchCtrl(toolbar_panel,
-                                     wxID_ANY,
-                                     wxEmptyString,
-                                     wxDefaultPosition,
-                                     wxSize(-1, 28),
-                                     wxTE_PROCESS_ENTER);
-    search_input_->SetDescriptiveText("Search files\u2026");
-    search_input_->ShowCancelButton(true);
-    search_input_->SetBackgroundColour(
-        theme_engine.resolve_token("sidebar.bg")
-            .value_or(theme_engine.color(core::ThemeColorToken::BgPanel))
-            .ChangeLightness(115));
-    search_input_->SetForegroundColour(
-        theme_engine.resolve_token("text.main")
-            .value_or(theme_engine.color(core::ThemeColorToken::TextMain)));
-    search_input_->SetFont(theme_engine.font(core::ThemeFontToken::MonoRegular));
-    toolbar_sizer->Add(search_input_, 0, wxEXPAND | wxALL, 0);
+    auto input_bg = theme_engine.resolve_token("sidebar.bg")
+                        .value_or(theme_engine.color(core::ThemeColorToken::BgPanel))
+                        .ChangeLightness(115);
 
-    // Replace input
-    replace_input_ = new wxTextCtrl(toolbar_panel,
+    // --- Search Input Row ---
+    auto* search_row = new wxPanel(toolbar_panel, wxID_ANY);
+    search_row->SetBackgroundColour(input_bg);
+    auto* search_row_sizer = new wxBoxSizer(wxHORIZONTAL);
+
+    auto* btn_toggle_replace = new ToggleTextButton(search_row, theme_engine, ">", false);
+    search_row_sizer->Add(btn_toggle_replace, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, 2);
+
+    // Load persisted state to initialize toggles correctly
+    if (config_ != nullptr)
+    {
+        const std::string kPrefix =
+            "sidebar." + (persistence_id_.empty() ? "" : persistence_id_ + ".") + "search.state.";
+        use_regex_ = config_->get_bool(kPrefix + "regex", false);
+        match_case_ = config_->get_bool(kPrefix + "case_sensitive", false);
+        match_word_ = config_->get_bool(kPrefix + "whole_word", false);
+        preserve_case_ = config_->get_bool(kPrefix + "preserve_case", false);
+    }
+
+    search_input_ = new wxTextCtrl(search_row,
+                                   wxID_ANY,
+                                   wxEmptyString,
+                                   wxDefaultPosition,
+                                   wxSize(-1, 28),
+                                   wxTE_PROCESS_ENTER | wxBORDER_NONE);
+    search_input_->SetHint("Search files...");
+    search_input_->SetBackgroundColour(input_bg);
+    search_input_->SetForegroundColour(theme_engine.color(core::ThemeColorToken::TextMain));
+    search_input_->SetFont(theme_engine.font(core::ThemeFontToken::MonoRegular));
+    search_row_sizer->Add(search_input_, 1, wxEXPAND | wxALIGN_CENTER_VERTICAL | wxLEFT, 4);
+
+    auto* btn_regex = new ToggleTextButton(search_row, theme_engine, ".*", use_regex_);
+    auto* btn_case = new ToggleTextButton(search_row, theme_engine, "Aa", match_case_);
+    auto* btn_word = new ToggleTextButton(search_row, theme_engine, "\\b", match_word_);
+
+    btn_toggle_replace->set_on_toggle(
+        [this, btn_toggle_replace](bool state)
+        {
+            if (replace_row_ != nullptr)
+            {
+                replace_row_->Show(state);
+                btn_toggle_replace->set_text(state ? "v" : ">");
+                this->Layout();
+            }
+        });
+
+    auto toggle_cb = [this](bool) { OnSearchOptionsChanged(); };
+    btn_regex->set_on_toggle(
+        [this, toggle_cb](bool state)
+        {
+            use_regex_ = state;
+            toggle_cb(state);
+        });
+    btn_case->set_on_toggle(
+        [this, toggle_cb](bool state)
+        {
+            match_case_ = state;
+            toggle_cb(state);
+        });
+    btn_word->set_on_toggle(
+        [this, toggle_cb](bool state)
+        {
+            match_word_ = state;
+            toggle_cb(state);
+        });
+
+    search_row_sizer->Add(btn_regex, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 2);
+    search_row_sizer->Add(btn_case, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 2);
+    search_row_sizer->Add(btn_word, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
+
+    search_row->SetSizer(search_row_sizer);
+    toolbar_sizer->Add(search_row, 0, wxEXPAND | wxALL, 0);
+
+    // --- Replace Input Row ---
+    replace_row_ = new wxPanel(toolbar_panel, wxID_ANY);
+    replace_row_->SetBackgroundColour(input_bg);
+    auto* replace_row_sizer = new wxBoxSizer(wxHORIZONTAL);
+
+    replace_input_ = new wxTextCtrl(replace_row_,
                                     wxID_ANY,
                                     wxEmptyString,
                                     wxDefaultPosition,
                                     wxSize(-1, 28),
-                                    wxTE_PROCESS_ENTER);
-    replace_input_->SetHint("Replace\u2026");
-    replace_input_->SetBackgroundColour(
-        theme_engine.resolve_token("sidebar.bg")
-            .value_or(theme_engine.color(core::ThemeColorToken::BgPanel))
-            .ChangeLightness(115));
-    replace_input_->SetForegroundColour(
-        theme_engine.resolve_token("text.main")
-            .value_or(theme_engine.color(core::ThemeColorToken::TextMain)));
+                                    wxTE_PROCESS_ENTER | wxBORDER_NONE);
+    replace_input_->SetHint("Replace...");
+    replace_input_->SetBackgroundColour(input_bg);
+    replace_input_->SetForegroundColour(theme_engine.color(core::ThemeColorToken::TextMain));
     replace_input_->SetFont(theme_engine.font(core::ThemeFontToken::MonoRegular));
-    toolbar_sizer->Add(replace_input_, 0, wxEXPAND | wxTOP, 4);
+    replace_row_sizer->Add(replace_input_, 1, wxEXPAND | wxALIGN_CENTER_VERTICAL | wxLEFT, 4);
 
-    // Options bar
-    auto* opts = new wxBoxSizer(wxHORIZONTAL);
-    auto tick_color = theme_engine.resolve_token("text.muted")
-                          .value_or(theme_engine.color(core::ThemeColorToken::TextMuted));
-    auto tick_font = theme_engine.font(core::ThemeFontToken::MonoRegular).Scaled(0.75f);
+    auto* btn_preserve = new ToggleTextButton(replace_row_, theme_engine, "AB", preserve_case_);
+    btn_preserve->set_on_toggle([this](bool state) { preserve_case_ = state; });
+    replace_row_sizer->Add(btn_preserve, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
 
-    regex_cb_ = new wxCheckBox(toolbar_panel, wxID_ANY, "Regex");
-    regex_cb_->SetForegroundColour(tick_color);
-    regex_cb_->SetFont(tick_font);
-    opts->Add(regex_cb_, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
+    auto* btn_replace = new ToggleTextButton(replace_row_, theme_engine, "R", false);
+    btn_replace->SetToolTip("Replace Matches");
+    replace_row_sizer->Add(btn_replace, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 2);
 
-    case_cb_ = new wxCheckBox(toolbar_panel, wxID_ANY, "Case");
-    case_cb_->SetForegroundColour(tick_color);
-    case_cb_->SetFont(tick_font);
-    opts->Add(case_cb_, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
+    auto* btn_replace_all = new ToggleTextButton(replace_row_, theme_engine, "All", false);
+    btn_replace_all->SetToolTip("Replace All");
+    replace_row_sizer->Add(btn_replace_all, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
 
-    word_cb_ = new wxCheckBox(toolbar_panel, wxID_ANY, "Word");
-    word_cb_->SetForegroundColour(tick_color);
-    word_cb_->SetFont(tick_font);
-    opts->Add(word_cb_, 0, wxALIGN_CENTER_VERTICAL);
-    toolbar_sizer->Add(opts, 0, wxEXPAND | wxTOP | wxBOTTOM, 6);
+    auto do_replace = [this, btn_replace_all, btn_replace](bool all)
+    {
+        if (all)
+            btn_replace_all->set_toggled(false);
+        else
+            btn_replace->set_toggled(false);
+
+        if (!search_engine_ || !results_list_)
+            return;
+
+        const std::string replacement = replace_input_->GetValue().ToStdString();
+        // Since we don't have WorkspaceRoot reliably accessible here outside ExecuteSearch,
+        // we use "." to test just like ExecuteSearch does. In the future this comes from
+        // WorkspaceService.
+        const std::string kWorkspaceRoot = ".";
+
+        int replaced_count = 0;
+
+        if (all)
+        {
+            auto current_result = results_list_->GetCurrentResult();
+            replaced_count =
+                search_engine_->ReplaceMatches(current_result.matches, replacement, kWorkspaceRoot);
+        }
+        else
+        {
+            auto opt_match = results_list_->GetSelectedMatch();
+            if (opt_match.has_value())
+            {
+                if (search_engine_->ReplaceSingleMatch(
+                        opt_match.value(), replacement, kWorkspaceRoot))
+                {
+                    replaced_count = 1;
+                }
+            }
+        }
+
+        if (replaced_count > 0)
+        {
+            MARKAMP_LOG_INFO("SearchSidebarPanel: Replaced {} occurrences", replaced_count);
+            core::events::SearchReplaceCompletedEvent replace_evt;
+            replace_evt.replace_text = replacement;
+            replace_evt.replaced_count = replaced_count;
+            event_bus_.publish(replace_evt);
+
+            // Re-trigger search to update matches
+            ExecuteSearch();
+        }
+    };
+
+    btn_replace->set_on_toggle([do_replace](bool /*state*/) { do_replace(false); });
+    btn_replace_all->set_on_toggle([do_replace](bool /*state*/) { do_replace(true); });
+
+    replace_row_->SetSizer(replace_row_sizer);
+    replace_row_->Hide(); // Hidden by default
+    toolbar_sizer->Add(replace_row_, 0, wxEXPAND | wxTOP, 4);
 
     header->set_toolbar(toolbar_panel);
 
@@ -203,52 +485,54 @@ wxBEGIN_EVENT_TABLE(MatchBadge, ThemeAwareWindow) EVT_PAINT(MatchBadge::OnPaint)
         config_,
         "Search Details",
         (persistence_id_.empty() ? "" : persistence_id_ + "_") + "search_details");
-    auto* details_panel = new wxPanel(details_section, wxID_ANY);
-    details_panel->SetBackgroundColour(GetBackgroundColour());
+    filters_panel_ = new wxPanel(details_section, wxID_ANY);
+    filters_panel_->SetBackgroundColour(GetBackgroundColour());
     auto* details_sizer = new wxBoxSizer(wxVERTICAL);
 
     auto lbl_font = theme_engine.font(core::ThemeFontToken::UISmall);
     auto lbl_color = theme_engine.color(core::ThemeColorToken::TextMuted);
 
-    auto* inc_lbl = new wxStaticText(details_panel, wxID_ANY, "files to include");
+    auto* inc_lbl = new wxStaticText(filters_panel_, wxID_ANY, "files to include");
     inc_lbl->SetFont(lbl_font);
     inc_lbl->SetForegroundColour(lbl_color);
     details_sizer->Add(inc_lbl, 0, wxLEFT | wxRIGHT | wxTOP, 4);
 
     files_include_input_ =
-        new wxTextCtrl(details_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(-1, 24));
-    files_include_input_->SetBackgroundColour(replace_input_->GetBackgroundColour());
-    files_include_input_->SetForegroundColour(replace_input_->GetForegroundColour());
+        new wxTextCtrl(filters_panel_, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(-1, 24));
+    files_include_input_->SetBackgroundColour(input_bg);
+    files_include_input_->SetForegroundColour(theme_engine.color(core::ThemeColorToken::TextMain));
     files_include_input_->SetFont(theme_engine.font(core::ThemeFontToken::MonoRegular));
     details_sizer->Add(files_include_input_, 0, wxEXPAND | wxALL, 4);
 
-    auto* exc_lbl = new wxStaticText(details_panel, wxID_ANY, "files to exclude");
+    auto* exc_lbl = new wxStaticText(filters_panel_, wxID_ANY, "files to exclude");
     exc_lbl->SetFont(lbl_font);
     exc_lbl->SetForegroundColour(lbl_color);
     details_sizer->Add(exc_lbl, 0, wxLEFT | wxRIGHT | wxTOP, 4);
 
     files_exclude_input_ =
-        new wxTextCtrl(details_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(-1, 24));
-    files_exclude_input_->SetBackgroundColour(replace_input_->GetBackgroundColour());
-    files_exclude_input_->SetForegroundColour(replace_input_->GetForegroundColour());
+        new wxTextCtrl(filters_panel_, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(-1, 24));
+    files_exclude_input_->SetBackgroundColour(input_bg);
+    files_exclude_input_->SetForegroundColour(theme_engine.color(core::ThemeColorToken::TextMain));
     files_exclude_input_->SetFont(theme_engine.font(core::ThemeFontToken::MonoRegular));
     details_sizer->Add(files_exclude_input_, 0, wxEXPAND | wxALL, 4);
 
-    details_panel->SetSizer(details_sizer);
-    details_section->set_content(details_panel);
+    filters_panel_->SetSizer(details_sizer);
+    details_section->set_content(filters_panel_);
     details_section->set_expanded(false); // collapsed by default
 
     main_sizer->Add(details_section, 0, wxEXPAND | wxBOTTOM, 8);
 
     // Results container
-    // Match count label (Stylized Badge)
     match_badge_ = new MatchBadge(this, theme_engine);
     main_sizer->Add(match_badge_, 0, wxLEFT | wxRIGHT | wxBOTTOM, 8);
 
-    // Results list
-    results_list_ = new wxListBox(this, wxID_ANY);
-    results_list_->SetBackgroundColour(GetBackgroundColour());
-    results_list_->SetForegroundColour(theme_engine.color(core::ThemeColorToken::TextMain));
+    results_list_ = new SearchResultsTree(this, theme_engine);
+    results_list_->SetOnResultSelected(
+        [](const std::string& file_path, int line, int col)
+        {
+            MARKAMP_LOG_INFO("SearchSidebarPanel: Result selected {} {}:{}", file_path, line, col);
+            // Handle opening file
+        });
     main_sizer->Add(results_list_, 1, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 8);
 
     // Empty state
@@ -266,23 +550,20 @@ wxBEGIN_EVENT_TABLE(MatchBadge, ThemeAwareWindow) EVT_PAINT(MatchBadge::OnPaint)
     SetSizer(main_sizer);
 
     // Load persisted state
-    if (config_)
+    if (config_ != nullptr)
     {
-        std::string prefix =
+        const std::string kPrefix =
             "sidebar." + (persistence_id_.empty() ? "" : persistence_id_ + ".") + "search.state.";
-        search_input_->SetValue(config_->get_string(prefix + "query"));
-        replace_input_->SetValue(config_->get_string(prefix + "replace"));
-        files_include_input_->SetValue(config_->get_string(prefix + "include"));
-        files_exclude_input_->SetValue(config_->get_string(prefix + "exclude"));
-        regex_cb_->SetValue(config_->get_bool(prefix + "regex"));
-        case_cb_->SetValue(config_->get_bool(prefix + "case_sensitive"));
-        word_cb_->SetValue(config_->get_bool(prefix + "whole_word"));
+        search_input_->SetValue(config_->get_string(kPrefix + "query"));
+        replace_input_->SetValue(config_->get_string(kPrefix + "replace"));
+        files_include_input_->SetValue(config_->get_string(kPrefix + "include"));
+        files_exclude_input_->SetValue(config_->get_string(kPrefix + "exclude"));
     }
 
-    // Bind events
-    search_input_->Bind(wxEVT_SEARCHCTRL_SEARCH_BTN, &SearchSidebarPanel::OnSearch, this);
+    search_input_->Bind(wxEVT_TEXT, &SearchSidebarPanel::OnSearch, this);
     search_input_->Bind(wxEVT_TEXT_ENTER, &SearchSidebarPanel::OnSearch, this);
-    results_list_->Bind(wxEVT_LISTBOX, &SearchSidebarPanel::OnResultSelected, this);
+    files_include_input_->Bind(wxEVT_TEXT, &SearchSidebarPanel::OnSearch, this);
+    files_exclude_input_->Bind(wxEVT_TEXT, &SearchSidebarPanel::OnSearch, this);
 
     // ThemedScrollbar overlaying results list
     scrollbar_ = new ThemedScrollbar(this, theme_engine, this);
@@ -292,7 +573,16 @@ wxBEGIN_EVENT_TABLE(MatchBadge, ThemeAwareWindow) EVT_PAINT(MatchBadge::OnPaint)
         [this](const core::events::PanelHeaderActionEvent& evt)
         {
             if (evt.action_id == "search.clear")
+            {
                 ClearResults();
+            }
+            else if (evt.action_id == "search.collapse")
+            {
+                if (results_list_ != nullptr)
+                {
+                    results_list_->CollapseAll();
+                }
+            }
         });
 
     Bind(wxEVT_SCROLLWIN_THUMBTRACK, &SearchSidebarPanel::OnScrollbarDrag, this);
@@ -307,11 +597,11 @@ wxBEGIN_EVENT_TABLE(MatchBadge, ThemeAwareWindow) EVT_PAINT(MatchBadge::OnPaint)
          {
              if (scrollbar_ != nullptr && results_list_ != nullptr)
              {
-                 auto list_rect = results_list_->GetRect();
-                 scrollbar_->SetSize(list_rect.GetRight() - ThemedScrollbar::kWidth,
-                                     list_rect.GetTop(),
+                 const auto kListRect = results_list_->GetRect();
+                 scrollbar_->SetSize(kListRect.GetRight() - ThemedScrollbar::kWidth,
+                                     kListRect.GetTop(),
                                      ThemedScrollbar::kWidth,
-                                     list_rect.GetHeight());
+                                     kListRect.GetHeight());
                  UpdateScrollbar();
              }
              event.Skip();
@@ -320,9 +610,10 @@ wxBEGIN_EVENT_TABLE(MatchBadge, ThemeAwareWindow) EVT_PAINT(MatchBadge::OnPaint)
 
 void SearchSidebarPanel::ClearResults()
 {
+    search_engine_->Cancel();
     if (results_list_ != nullptr)
     {
-        results_list_->Clear();
+        results_list_->ClearResults();
         results_list_->Hide();
     }
     match_count_ = 0;
@@ -334,7 +625,27 @@ void SearchSidebarPanel::ClearResults()
     {
         empty_state_->Show();
     }
+    if (footer_ != nullptr)
+    {
+        footer_->set_text("Search cleared");
+    }
     Layout();
+}
+
+void SearchSidebarPanel::SelectNextMatch()
+{
+    if (results_list_ != nullptr)
+    {
+        results_list_->SelectNextMatch();
+    }
+}
+
+void SearchSidebarPanel::SelectPreviousMatch()
+{
+    if (results_list_ != nullptr)
+    {
+        results_list_->SelectPreviousMatch();
+    }
 }
 
 void SearchSidebarPanel::SetQuery(const std::string& query)
@@ -343,6 +654,11 @@ void SearchSidebarPanel::SetQuery(const std::string& query)
     {
         search_input_->SetValue(query);
     }
+}
+
+void SearchSidebarPanel::OnSearchOptionsChanged()
+{
+    ExecuteSearch();
 }
 
 void SearchSidebarPanel::OnThemeChanged(const core::Theme& /*new_theme*/)
@@ -366,11 +682,11 @@ void SearchSidebarPanel::OnScrollSyncTimer(wxTimerEvent& /*event*/)
 
 void SearchSidebarPanel::OnScrollbarDrag(wxScrollWinEvent& event)
 {
-    int pos = event.GetPosition();
+    const int kPos = event.GetPosition();
     if (results_list_ != nullptr && results_list_->GetCount() > 0)
     {
-        int item_height = results_list_->GetCharHeight() + 4; // approximate row height
-        int top_item = pos / item_height;
+        const int kItemHeight = results_list_->GetCharHeight() + 4; // approximate row height
+        int top_item = kPos / kItemHeight;
         top_item = std::clamp(top_item, 0, static_cast<int>(results_list_->GetCount()) - 1);
         results_list_->SetFirstItem(top_item);
     }
@@ -379,7 +695,9 @@ void SearchSidebarPanel::OnScrollbarDrag(wxScrollWinEvent& event)
 void SearchSidebarPanel::UpdateScrollbar()
 {
     if (scrollbar_ == nullptr || results_list_ == nullptr)
+    {
         return;
+    }
 
     if (!results_list_->IsShown() || results_list_->GetCount() == 0)
     {
@@ -387,20 +705,20 @@ void SearchSidebarPanel::UpdateScrollbar()
         return;
     }
 
-    int item_height = results_list_->GetCharHeight() + 4;
-    int total_range = static_cast<int>(results_list_->GetCount()) * item_height;
-    int visible_range = results_list_->GetClientSize().GetHeight();
+    const int kItemHeight = results_list_->GetCharHeight() + 4;
+    const int kTotalRange = static_cast<int>(results_list_->GetCount()) * kItemHeight;
+    const int kVisibleRange = results_list_->GetClientSize().GetHeight();
 
-    int top_item = results_list_->HitTest(wxPoint(5, 5));
-    if (top_item == wxNOT_FOUND)
+    int top_item = results_list_->HitTestItem(wxPoint(5, 5));
+    if (top_item == -1)
     {
         top_item = 0;
     }
 
-    int position = top_item * item_height;
-    scrollbar_->UpdateScrollPosition(position, visible_range, total_range);
+    const int kPosition = top_item * kItemHeight;
+    scrollbar_->UpdateScrollPosition(kPosition, kVisibleRange, kTotalRange);
 
-    if (total_range > visible_range)
+    if (kTotalRange > kVisibleRange)
     {
         if (!scrollbar_->IsShown())
         {
@@ -416,49 +734,143 @@ void SearchSidebarPanel::UpdateScrollbar()
 
 void SearchSidebarPanel::OnSearch(wxCommandEvent& /*event*/)
 {
-    const auto query = search_input_->GetValue().ToStdString();
-    if (query.empty())
+    search_debounce_timer_.StartOnce(300);
+}
+
+void SearchSidebarPanel::OnDebouncedSearch(wxTimerEvent& /*event*/)
+{
+    ExecuteSearch();
+}
+
+void SearchSidebarPanel::ExecuteSearch()
+{
+    const auto kQuery = search_input_->GetValue().ToStdString();
+    if (kQuery.empty())
     {
         ClearResults();
         return;
     }
 
-    MARKAMP_LOG_INFO("SearchSidebarPanel: Searching for '{}'", query);
+    MARKAMP_LOG_INFO("SearchSidebarPanel: Executing search for '{}'", kQuery);
 
-    // Publish search request event — FindRequestEvent triggers editor search
-    core::events::FindRequestEvent find_evt;
-    event_bus_.publish(find_evt);
+    // Setup search options
+    core::WorkspaceSearchEngine::SearchOptions options;
+    options.query = kQuery;
+    options.regex_mode = use_regex_;
+    options.case_sensitive = match_case_;
+    options.whole_word = match_word_;
 
-    // Publish search result count for badge
-    core::events::SearchResultCountEvent count_evt;
-    count_evt.count = 0; // Will be updated by search engine response
-    event_bus_.publish(count_evt);
+    auto ParseAndAddPatterns = [](const std::string& input, std::vector<std::string>& patterns)
+    {
+        std::string text = input;
+        if (!text.empty())
+        {
+            size_t delim_pos = 0;
+            while ((delim_pos = text.find(',')) != std::string::npos)
+            {
+                patterns.push_back(text.substr(0, delim_pos));
+                text.erase(0, delim_pos + 1);
+            }
+            if (!text.empty())
+            {
+                patterns.push_back(text);
+            }
+        }
+    };
+
+    // Parse includes
+    ParseAndAddPatterns(files_include_input_->GetValue().ToStdString(), options.include_patterns);
+
+    // Parse excludes
+    ParseAndAddPatterns(files_exclude_input_->GetValue().ToStdString(), options.exclude_patterns);
+
+    // Note: To truly integrate, we should get the workspace root from core::WorkspaceService
+    // For now, using a placeholder string or current working directory if available.
+    const std::string kWorkspaceRoot = ".";
+
+    // Cancel any existing search
+    search_engine_->Cancel();
+
+    if (search_future_.valid())
+    {
+        search_future_.wait();
+    }
+
+    // Spin up new search task (Temporary placeholder for proper async task management)
+    search_future_ = std::async(
+        std::launch::async,
+        [this, options, kWorkspaceRoot]()
+        {
+            auto result = search_engine_->Search(options, kWorkspaceRoot);
+
+            wxTheApp->CallAfter(
+                [this, result]()
+                {
+                    if (results_list_ != nullptr)
+                    {
+                        results_list_->ClearResults();
+                        if (result.matches.empty())
+                        {
+                            results_list_->Hide();
+                            if (empty_state_ != nullptr)
+                            {
+                                empty_state_->Show();
+                            }
+                        }
+                        else
+                        {
+                            if (empty_state_ != nullptr)
+                            {
+                                empty_state_->Hide();
+                            }
+                            results_list_->SetResults(result);
+                            results_list_->Show();
+                        }
+                        Layout();
+                    }
+                    if (match_badge_ != nullptr)
+                    {
+                        match_count_ = static_cast<int>(result.matches.size());
+                        match_badge_->SetMatchCount(match_count_);
+                    }
+                    if (footer_ != nullptr)
+                    {
+                        footer_->set_text("Found " + std::to_string(result.matches.size()) +
+                                          " matches in " +
+                                          std::to_string(result.files_with_matches) + " files");
+                    }
+                });
+        });
 }
 
 void SearchSidebarPanel::OnResultSelected(wxCommandEvent& /*event*/)
 {
-    const int sel = results_list_->GetSelection();
-    if (sel == wxNOT_FOUND)
-    {
-        return;
-    }
-
-    MARKAMP_LOG_INFO("SearchSidebarPanel: Result selected at index {}", sel);
+    // Deprecated for SearchResultsTree, using SetOnResultSelected callback.
 }
 
 SearchSidebarPanel::~SearchSidebarPanel()
 {
-    if (config_)
+    if (search_engine_)
     {
-        std::string prefix =
+        search_engine_->Cancel();
+    }
+    if (search_future_.valid())
+    {
+        search_future_.wait();
+    }
+
+    if (config_ != nullptr)
+    {
+        const std::string kPrefix =
             "sidebar." + (persistence_id_.empty() ? "" : persistence_id_ + ".") + "search.state.";
-        config_->set(prefix + "query", search_input_->GetValue().ToStdString());
-        config_->set(prefix + "replace", replace_input_->GetValue().ToStdString());
-        config_->set(prefix + "include", files_include_input_->GetValue().ToStdString());
-        config_->set(prefix + "exclude", files_exclude_input_->GetValue().ToStdString());
-        config_->set(prefix + "regex", regex_cb_->GetValue());
-        config_->set(prefix + "case_sensitive", case_cb_->GetValue());
-        config_->set(prefix + "whole_word", word_cb_->GetValue());
+        config_->set(kPrefix + "query", search_input_->GetValue().ToStdString());
+        config_->set(kPrefix + "replace", replace_input_->GetValue().ToStdString());
+        config_->set(kPrefix + "include", files_include_input_->GetValue().ToStdString());
+        config_->set(kPrefix + "exclude", files_exclude_input_->GetValue().ToStdString());
+        config_->set(kPrefix + "regex", use_regex_);
+        config_->set(kPrefix + "case_sensitive", match_case_);
+        config_->set(kPrefix + "whole_word", match_word_);
+        config_->set(kPrefix + "preserve_case", preserve_case_);
         auto result = config_->save();
         if (!result)
         {
