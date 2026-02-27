@@ -78,7 +78,106 @@ auto GitCommandRunner::GetStatus() -> std::vector<GitChangeEntry>
         return changes;
     }
 
-    // Parsing logic for v2 porcelain output deferred per Task 2
+    auto map_status = [](char c) -> GitChangeStatus
+    {
+        switch (c)
+        {
+            case 'M':
+                return GitChangeStatus::Modified;
+            case 'A':
+                return GitChangeStatus::Added;
+            case 'D':
+                return GitChangeStatus::Deleted;
+            case 'R':
+                return GitChangeStatus::Renamed;
+            case 'C':
+                return GitChangeStatus::Copied;
+            case 'U':
+                return GitChangeStatus::Unmerged;
+            case '?':
+                return GitChangeStatus::Untracked;
+            default:
+                return GitChangeStatus::None;
+        }
+    };
+
+    std::istringstream stream(result.stdout_text);
+    std::string line;
+    while (std::getline(stream, line))
+    {
+        if (line.empty())
+        {
+            continue;
+        }
+
+        const char type_char = line[0];
+        if (type_char == '1') // Normal tracked
+        {
+            std::istringstream line_stream(line);
+            std::string type_str, status_str, sub_str, mode_head, mode_index, mode_work, hash_head,
+                hash_index, path_str;
+            line_stream >> type_str >> status_str >> sub_str >> mode_head >> mode_index >>
+                mode_work >> hash_head >> hash_index;
+            std::getline(line_stream >> std::ws, path_str);
+
+            if (status_str.length() >= 2)
+            {
+                GitChangeEntry entry;
+                entry.index_status = map_status(status_str[0]);
+                entry.working_status = map_status(status_str[1]);
+                entry.path = path_str;
+                changes.push_back(entry);
+            }
+        }
+        else if (type_char == '2') // Renamed or copied
+        {
+            std::istringstream line_stream(line);
+            std::string type_str, status_str, sub_str, mode_head, mode_index, mode_work, hash_head,
+                hash_index, score_str, paths_str;
+            line_stream >> type_str >> status_str >> sub_str >> mode_head >> mode_index >>
+                mode_work >> hash_head >> hash_index >> score_str;
+            std::getline(line_stream >> std::ws, paths_str);
+
+            const size_t tab_pos = paths_str.find('\t');
+            if (tab_pos != std::string::npos)
+            {
+                GitChangeEntry entry;
+                if (status_str.length() >= 2)
+                {
+                    entry.index_status = map_status(status_str[0]);
+                    entry.working_status = map_status(status_str[1]);
+                }
+                entry.path = paths_str.substr(0, tab_pos);
+                entry.original_path = paths_str.substr(tab_pos + 1);
+                changes.push_back(entry);
+            }
+        }
+        else if (type_char == 'u') // Unmerged
+        {
+            std::istringstream line_stream(line);
+            std::string type_str, status_str, sub_str, mode_1, mode_2, mode_3, mode_work, hash_1,
+                hash_2, hash_3, path_str;
+            line_stream >> type_str >> status_str >> sub_str >> mode_1 >> mode_2 >> mode_3 >>
+                mode_work >> hash_1 >> hash_2 >> hash_3;
+            std::getline(line_stream >> std::ws, path_str);
+
+            GitChangeEntry entry;
+            entry.index_status = GitChangeStatus::Unmerged;
+            entry.working_status = GitChangeStatus::Unmerged;
+            entry.path = path_str;
+            changes.push_back(entry);
+        }
+        else if (type_char == '?') // Untracked
+        {
+            const std::string path_str = line.substr(2);
+            GitChangeEntry entry;
+            entry.index_status = GitChangeStatus::Untracked;
+            entry.working_status = GitChangeStatus::Untracked;
+            entry.path = path_str;
+            changes.push_back(entry);
+        }
+    }
+
     return changes;
 }
 
@@ -118,15 +217,70 @@ auto GitCommandRunner::GetBranches() -> std::vector<std::string>
     return branches;
 }
 
-auto GitCommandRunner::GetLog(const std::string& file, int count) -> std::vector<GitLogEntry>
+auto GitCommandRunner::GetLog(const std::string& file, int count, bool with_graph)
+    -> std::vector<GitLogEntry>
 {
     std::vector<GitLogEntry> log_entries;
-    std::string limit = count > 0 ? " -n " + std::to_string(count) : "";
-    std::string target = file.empty() ? "" : " -- " + file;
+    const std::string limit = count > 0 ? " -n " + std::to_string(count) : "";
+    const std::string target = file.empty() ? "" : " -- " + file;
 
-    std::string cmd = "git -C \"" + workspace_root_ + "\" log --oneline" + limit + target;
+    // Use null bytes to separate fields. If with_graph is true, the graph comes before the first
+    // null byte.
+    const std::string graph_flag = with_graph ? "--graph " : "";
+    const std::string format_str =
+        with_graph ? "%x00%h%x00%an%x00%cr%x00%s" : "%h%x00%an%x00%cr%x00%s";
+    const std::string cmd = "git -C \"" + workspace_root_ + "\" log " + graph_flag + "--format=\"" +
+                            format_str + "\"" + limit + target;
     auto result = RunSync(cmd);
-    // Parsing deferred
+
+    if (result.success() && !result.stdout_text.empty())
+    {
+        std::istringstream stream(result.stdout_text);
+        std::string line;
+        while (std::getline(stream, line))
+        {
+            if (line.empty())
+            {
+                continue;
+            }
+
+            GitLogEntry entry;
+            size_t pos_zero = 0;
+            if (with_graph)
+            {
+                pos_zero = line.find('\0');
+                if (pos_zero != std::string::npos)
+                {
+                    entry.graph = line.substr(0, pos_zero);
+                    pos_zero++; // Move past the null byte
+                }
+            }
+
+            const size_t pos_one = line.find('\0', pos_zero);
+            if (pos_one != std::string::npos)
+            {
+                entry.hash = line.substr(pos_zero, pos_one - pos_zero);
+                const size_t pos_two = line.find('\0', pos_one + 1);
+                if (pos_two != std::string::npos)
+                {
+                    entry.author = line.substr(pos_one + 1, pos_two - pos_one - 1);
+                    const size_t pos_three = line.find('\0', pos_two + 1);
+                    if (pos_three != std::string::npos)
+                    {
+                        entry.date = line.substr(pos_two + 1, pos_three - pos_two - 1);
+                        entry.message = line.substr(pos_three + 1);
+                    }
+                }
+            }
+            // Add if we got a hash, or if we got a graph fragment without a commit (e.g. padding
+            // lines in complex merges)
+            if (!entry.hash.empty() || (!entry.graph.empty() && with_graph))
+            {
+                log_entries.push_back(entry);
+            }
+        }
+    }
+
     return log_entries;
 }
 
@@ -214,6 +368,21 @@ void GitCommandRunner::Stash(const std::string& message)
 void GitCommandRunner::StashPop()
 {
     RunSync("git -C \"" + workspace_root_ + "\" stash pop");
+}
+
+void GitCommandRunner::Discard(const std::string& path)
+{
+    // Discard unstaged changes in working directory
+    RunSync("git -C \"" + workspace_root_ + "\" restore -- \"" + path + "\"");
+}
+
+void GitCommandRunner::ResolveConflict(const std::string& path, bool accept_current)
+{
+    std::string checkout_flag = accept_current ? "--ours" : "--theirs";
+    RunSync("git -C \"" + workspace_root_ + "\" checkout " + checkout_flag + " -- \"" + path +
+            "\"");
+    // After resolving, stage the file to mark conflict as resolved
+    Stage(path);
 }
 
 } // namespace markamp::core

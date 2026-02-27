@@ -310,6 +310,57 @@ void GitStatusProvider::RunGitStatus()
         pos = next_null + 1;
     }
 
+    // Now fetch diff stats
+    auto parse_numstat = [&](const std::string& cmd, bool is_staged)
+    {
+        auto stat_res = runner.RunSync(cmd);
+        if (stat_res.success() && !stat_res.stdout_text.empty())
+        {
+            std::istringstream stream(stat_res.stdout_text);
+            std::string line;
+            while (std::getline(stream, line))
+            {
+                if (line.empty())
+                    continue;
+                std::istringstream ls(line);
+                std::string add_str, del_str, rel_path;
+                ls >> add_str >> del_str;
+                std::getline(ls, rel_path);
+
+                // Trim leading whitespace
+                size_t first = rel_path.find_first_not_of(" \t");
+                if (first != std::string::npos)
+                    rel_path = rel_path.substr(first);
+
+                // Handle binary files which report '-'
+                int adds = (add_str != "-") ? std::stoi(add_str) : 0;
+                int dels = (del_str != "-") ? std::stoi(del_str) : 0;
+                std::string full_path = BuildAbsolutePath(rel_path);
+
+                for (auto& entry : new_entries)
+                {
+                    if (entry.path == full_path)
+                    {
+                        if (is_staged)
+                        {
+                            entry.staged_additions = adds;
+                            entry.staged_deletions = dels;
+                        }
+                        else
+                        {
+                            entry.unstaged_additions = adds;
+                            entry.unstaged_deletions = dels;
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+    };
+
+    parse_numstat("git diff --numstat", false);
+    parse_numstat("git diff --cached --numstat", true);
+
     {
         std::lock_guard<std::mutex> lock(status_mutex_);
         cached_changes_ = std::move(new_entries);

@@ -72,6 +72,9 @@ EditorGroupManager::EditorGroupManager(wxWindow* parent,
     breadcrumb_nav_sub_ = event_bus_.subscribe<core::events::BreadcrumbNavigateEvent>(
         [this](const auto& evt) { OnBreadcrumbNavigate(evt); });
 
+    open_git_log_sub_ = event_bus_.subscribe<core::events::OpenGitLogRequestEvent>(
+        [this](const auto& evt) { OnOpenGitLogRequest(evt); });
+
     cursor_pos_sub_ = event_bus_.subscribe<core::events::CursorPositionChangedEvent>(
         [this](const auto& evt) { OnCursorPositionChanged(evt); });
 
@@ -89,8 +92,10 @@ auto EditorGroupManager::CreateGroupLeaf(int group_id) -> std::unique_ptr<Editor
     leaf->breadcrumb = new BreadcrumbBar(leaf->container, ds_context_, event_bus_);
     leaf->editor = new EditorPanel(leaf->container, theme_engine(), event_bus_);
     leaf->diff_panel = new DiffPanel(leaf->container, event_bus_);
+    leaf->git_log_panel = new GitLogPanel(leaf->container, theme_engine(), event_bus_, "");
 
     leaf->diff_panel->Hide();
+    leaf->git_log_panel->Hide();
 
     // Phase 12 Task 19: Group Focus Follows Mouse
     auto on_enter = [this, group_id](wxMouseEvent& e)
@@ -107,11 +112,13 @@ auto EditorGroupManager::CreateGroupLeaf(int group_id) -> std::unique_ptr<Editor
     leaf->breadcrumb->Bind(wxEVT_ENTER_WINDOW, on_enter);
     leaf->editor->Bind(wxEVT_ENTER_WINDOW, on_enter);
     leaf->diff_panel->Bind(wxEVT_ENTER_WINDOW, on_enter);
+    leaf->git_log_panel->Bind(wxEVT_ENTER_WINDOW, on_enter);
 
     sizer->Add(leaf->tab_bar, 0, wxEXPAND);
     sizer->Add(leaf->breadcrumb, 0, wxEXPAND);
     sizer->Add(leaf->editor, 1, wxEXPAND);
     sizer->Add(leaf->diff_panel, 1, wxEXPAND);
+    sizer->Add(leaf->git_log_panel, 1, wxEXPAND);
     leaf->container->SetSizer(sizer);
 
     // Phase 12 Task 25: Editor Group Events
@@ -787,6 +794,15 @@ void EditorGroupManager::OpenFileInGroup(int group_id, const std::string& path)
         display_name = std::filesystem::path(path).filename().string();
     }
 
+    if (target->leaf->diff_panel && target->leaf->diff_panel->IsShown())
+        target->leaf->diff_panel->Hide();
+
+    if (target->leaf->git_log_panel && target->leaf->git_log_panel->IsShown())
+        target->leaf->git_log_panel->Hide();
+
+    if (target->leaf->editor && !target->leaf->editor->IsShown())
+        target->leaf->editor->Show();
+
     if (target->leaf->tab_bar)
     {
         target->leaf->tab_bar->AddTab(path, display_name);
@@ -839,6 +855,9 @@ void EditorGroupManager::OpenDiffInGroup(int group_id,
     if (target->leaf->editor)
         target->leaf->editor->Hide();
 
+    if (target->leaf->git_log_panel && target->leaf->git_log_panel->IsShown())
+        target->leaf->git_log_panel->Hide();
+
     if (target->leaf->diff_panel)
     {
         target->leaf->diff_panel->Show();
@@ -853,6 +872,43 @@ void EditorGroupManager::OpenDiffInGroup(int group_id,
     }
 
     target->leaf->container->Layout();
+}
+
+void EditorGroupManager::OnOpenGitLogRequest(const core::events::OpenGitLogRequestEvent& evt)
+{
+    OpenGitLogInGroup(focused_group_id_, evt.workspace_root);
+}
+
+void EditorGroupManager::OpenGitLogInGroup(int group_id, const std::string& workspace_root)
+{
+    EditorGroupNode* target = FindNode(root_.get(), group_id);
+    if (target == nullptr || target->leaf == nullptr)
+        return;
+
+    if (target->leaf->tab_bar)
+    {
+        target->leaf->tab_bar->Show();
+        std::string log_id = "git-log:" + workspace_root;
+        target->leaf->tab_bar->AddTab(log_id, "Git Log");
+        target->leaf->tab_bar->SetActiveTab(log_id);
+    }
+
+    if (target->leaf->editor)
+        target->leaf->editor->Hide();
+
+    if (target->leaf->diff_panel && target->leaf->diff_panel->IsShown())
+        target->leaf->diff_panel->Hide();
+
+    if (target->leaf->git_log_panel)
+    {
+        target->leaf->git_log_panel->SetWorkspaceRoot(workspace_root);
+        target->leaf->git_log_panel->Show();
+    }
+
+    if (target->leaf->container)
+    {
+        target->leaf->container->Layout();
+    }
 }
 
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static)

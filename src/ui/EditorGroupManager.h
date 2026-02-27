@@ -7,6 +7,7 @@
 #include "ui/DesignSystemContext.h"
 #include "ui/DiffPanel.h"
 #include "ui/EditorPanel.h"
+#include "ui/GitLogPanel.h"
 #include "ui/TabBar.h"
 #include "ui/ThemeAwareWindow.h"
 
@@ -49,6 +50,7 @@ struct EditorGroupLeaf
     BreadcrumbBar* breadcrumb{nullptr};
     EditorPanel* editor{nullptr};
     DiffPanel* diff_panel{nullptr};
+    GitLogPanel* git_log_panel{nullptr};
     wxPanel* container{nullptr};
     std::vector<std::string> open_files;
     std::string active_file;
@@ -104,13 +106,15 @@ public:
     void OpenFileInGroup(int group_id, const std::string& path);
     void OpenFileInFocusedGroup(const std::string& path);
 
-    // Diff routing
+    // Diff / Log routing
     void OpenDiffInGroup(int group_id,
                          const std::string& left_path,
                          const std::string& right_path,
                          const std::string& left_content = "",
                          const std::string& right_content = "",
                          const std::string& title = "");
+
+    void OpenGitLogInGroup(int group_id, const std::string& workspace_root);
 
     // Navigation
     void FocusNextGroup();
@@ -162,6 +166,7 @@ private:
     core::Subscription focus_req_sub_;
     core::Subscription toggle_max_sub_;
     core::Subscription open_diff_sub_;
+    core::Subscription open_git_log_sub_;
     core::Subscription breadcrumb_nav_sub_;
     core::Subscription cursor_pos_sub_;
 
@@ -169,6 +174,7 @@ private:
     void OnMoreActions(const core::events::EditorGroupMoreActionsEvent& evt);
     void OnFocusGroupRequest(const core::events::EditorGroupFocusRequestEvent& evt);
     void OnToggleMaximizeEvent(const core::events::EditorGroupToggleMaximizeEvent& evt);
+    void OnOpenGitLogRequest(const core::events::OpenGitLogRequestEvent& evt);
     void OnBreadcrumbNavigate(const core::events::BreadcrumbNavigateEvent& evt);
     void OnCursorPositionChanged(const core::events::CursorPositionChangedEvent& evt);
 

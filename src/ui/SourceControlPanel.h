@@ -8,6 +8,7 @@
 #include "ui/GitStatusProvider.h"
 
 #include <wx/button.h>
+#include <wx/choice.h>
 #include <wx/listctrl.h>
 #include <wx/panel.h>
 #include <wx/sizer.h>
@@ -43,6 +44,9 @@ private:
     void CreateLayout(DesignSystemContext& design_system, IconManager& icon_manager);
     void UpdateDynamicUI();
     void OnItemActivated(wxListEvent& event);
+    void OnItemRightClicked(wxListEvent& event);
+    void OnCommitButtonClicked(wxCommandEvent& event);
+    void OnBranchSelected(wxCommandEvent& event);
 
     core::EventBus& event_bus_;
     core::Config* config_{nullptr};
@@ -51,6 +55,7 @@ private:
 
     std::unique_ptr<GitStatusProvider> git_provider_;
 
+    wxChoice* branch_choice_{nullptr};
     wxTextCtrl* commit_message_input_{nullptr};
     wxButton* commit_button_{nullptr};
 
@@ -61,6 +66,7 @@ private:
     wxListCtrl* changes_list_{nullptr};
 
     SidebarSection* timeline_section_{nullptr};
+    wxListCtrl* timeline_list_{nullptr};
 
     SidebarFooter* footer_{nullptr};
 

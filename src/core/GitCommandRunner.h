@@ -29,6 +29,10 @@ struct GitChangeEntry
     std::string original_path;                             // For renames (from -> to)
     GitChangeStatus index_status{GitChangeStatus::None};   // Staged
     GitChangeStatus working_status{GitChangeStatus::None}; // Unstaged
+    int staged_additions{0};
+    int staged_deletions{0};
+    int unstaged_additions{0};
+    int unstaged_deletions{0};
 };
 
 // Blame annotation line (Task 12)
@@ -43,6 +47,7 @@ struct BlameLine
 // File History Log (Tasks 13, 24)
 struct GitLogEntry
 {
+    std::string graph;
     std::string hash;
     std::string message;
     std::string author;
@@ -76,7 +81,8 @@ public:
     auto GetStatus() -> std::vector<GitChangeEntry>;
     auto GetBranch() -> std::string;
     auto GetBranches() -> std::vector<std::string>;
-    auto GetLog(const std::string& file, int count) -> std::vector<GitLogEntry>;
+    std::vector<GitLogEntry>
+    GetLog(const std::string& file = "", int count = 0, bool with_graph = false);
     auto GetBlame(const std::string& file) -> std::vector<BlameLine>;
     auto GetDiff(const std::string& file, bool staged) -> std::string;
     auto GetFileContentAtHEAD(const std::string& file) -> std::string;
@@ -93,6 +99,8 @@ public:
     void CreateBranch(const std::string& name);
     void Stash(const std::string& message);
     void StashPop();
+    void Discard(const std::string& path);
+    void ResolveConflict(const std::string& path, bool accept_current);
 
 private:
     std::string workspace_root_;

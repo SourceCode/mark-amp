@@ -133,6 +133,7 @@ add_executable(markamp
     ui/OpenEditorsSection.cpp
     ui/GitStatusProvider.cpp
     ui/SourceControlPanel.cpp
+    ui/GitLogPanel.cpp
     ui/ExtensionCard.cpp
     ui/ExtensionDetailPanel.cpp
     ui/OutputPanel.cpp
