@@ -2755,6 +2755,30 @@ void MainFrame::RegisterPaletteCommands()
          }});
 
     command_palette_->RegisterCommand(
+        {"Navigate to Next Git Change",
+         "View",
+         "",
+         [this]()
+         {
+             if (event_bus_)
+             {
+                 event_bus_->publish(core::events::NavigateToNextGitChangeRequestEvent{});
+             }
+         }});
+
+    command_palette_->RegisterCommand(
+        {"Navigate to Previous Git Change",
+         "View",
+         "",
+         [this]()
+         {
+             if (event_bus_)
+             {
+                 event_bus_->publish(core::events::NavigateToPreviousGitChangeRequestEvent{});
+             }
+         }});
+
+    command_palette_->RegisterCommand(
         {"Open in Secondary Sidebar...",
          "View",
          shortcut_manager_.get_shortcut_text("workbench.action.openInSecondarySidebar"),

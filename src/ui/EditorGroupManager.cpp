@@ -78,6 +78,13 @@ EditorGroupManager::EditorGroupManager(wxWindow* parent,
     cursor_pos_sub_ = event_bus_.subscribe<core::events::CursorPositionChangedEvent>(
         [this](const auto& evt) { OnCursorPositionChanged(evt); });
 
+    next_git_change_sub_ = event_bus_.subscribe<core::events::NavigateToNextGitChangeRequestEvent>(
+        [this](const auto& evt) { OnNavigateToNextGitChangeRequest(evt); });
+
+    prev_git_change_sub_ =
+        event_bus_.subscribe<core::events::NavigateToPreviousGitChangeRequestEvent>(
+            [this](const auto& evt) { OnNavigateToPreviousGitChangeRequest(evt); });
+
     SetDropTarget(new EditorGroupDropTarget(this));
 }
 
@@ -1382,6 +1389,24 @@ bool EditorGroupDropTarget::OnDropText(wxCoord coord_x, wxCoord coord_y, const w
     manager_->OpenFileInFocusedGroup(path.ToStdString());
 
     return true; // Returns true to trigger RemoveTab on source
+}
+
+void EditorGroupManager::OnNavigateToNextGitChangeRequest(
+    const core::events::NavigateToNextGitChangeRequestEvent& /*evt*/)
+{
+    if (auto* editor = GetFocusedEditor())
+    {
+        editor->NavigateToNextGitChange();
+    }
+}
+
+void EditorGroupManager::OnNavigateToPreviousGitChangeRequest(
+    const core::events::NavigateToPreviousGitChangeRequestEvent& /*evt*/)
+{
+    if (auto* editor = GetFocusedEditor())
+    {
+        editor->NavigateToPreviousGitChange();
+    }
 }
 
 // ----------------------------------------------------------------------------

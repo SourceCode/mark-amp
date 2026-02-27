@@ -840,6 +840,8 @@ MARKAMP_DECLARE_EVENT(MoveLineDownRequestEvent);
 MARKAMP_DECLARE_EVENT_WITH_FIELDS(OpenGitLogRequestEvent)
 std::string workspace_root;
 MARKAMP_DECLARE_EVENT_END;
+MARKAMP_DECLARE_EVENT(NavigateToNextGitChangeRequestEvent);
+MARKAMP_DECLARE_EVENT(NavigateToPreviousGitChangeRequestEvent);
 MARKAMP_DECLARE_EVENT(JoinLinesRequestEvent);
 MARKAMP_DECLARE_EVENT(SortLinesAscRequestEvent);
 MARKAMP_DECLARE_EVENT(SortLinesDescRequestEvent);

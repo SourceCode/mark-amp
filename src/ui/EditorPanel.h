@@ -237,6 +237,10 @@ public:
     // ── Phase 6D: Minimap ──
     void ToggleMinimap();
 
+    // ── Diff Navigation ──
+    void NavigateToNextGitChange();
+    void NavigateToPreviousGitChange();
+
     // ── VS Code-Inspired Editor Improvements (20 items) ──
 
     // #1 Auto-closing brackets/quotes

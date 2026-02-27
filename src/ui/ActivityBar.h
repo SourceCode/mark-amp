@@ -92,6 +92,7 @@ public:
     core::Subscription keyboard_mode_sub_;     // Phase 05 Task 3
     core::Subscription custom_panel_sub_;      // Phase 07 Task 18
     core::Subscription custom_panel_unsub_;    // Phase 07 Task 18
+    core::Subscription git_status_sub_;        // Phase 18 Task 16
 
     core::Subscription density_sub_;
 

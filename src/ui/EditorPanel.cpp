@@ -6942,4 +6942,77 @@ void EditorPanel::ShowEditorContextMenu()
     PopupMenu(&menu);
 }
 
+void EditorPanel::NavigateToNextGitChange()
+{
+    if (editor_ == nullptr)
+        return;
+
+    int current_line = editor_->LineFromPosition(editor_->GetCurrentPos());
+    int mask = (1 << kMarkerGitAdded) | (1 << kMarkerGitModified) | (1 << kMarkerGitDeleted);
+    int line_count = editor_->GetLineCount();
+
+    // If current line has a marker, find the end of the current contiguous block first
+    int search_start = current_line + 1;
+    if ((editor_->MarkerGet(current_line) & mask) != 0)
+    {
+        while (search_start < line_count && (editor_->MarkerGet(search_start) & mask) != 0)
+        {
+            search_start++;
+        }
+    }
+
+    int next_line = editor_->MarkerNext(search_start, mask);
+    if (next_line < 0)
+    {
+        // Wrap around to the beginning
+        next_line = editor_->MarkerNext(0, mask);
+        // If the very first changes are connected to where we wrapped around,
+        // we might just land in the same block. For simplicity, just jump to next_line.
+    }
+
+    if (next_line >= 0 && next_line != current_line)
+    {
+        editor_->GotoLine(next_line);
+    }
+}
+
+void EditorPanel::NavigateToPreviousGitChange()
+{
+    if (editor_ == nullptr)
+        return;
+
+    int current_line = editor_->LineFromPosition(editor_->GetCurrentPos());
+    int mask = (1 << kMarkerGitAdded) | (1 << kMarkerGitModified) | (1 << kMarkerGitDeleted);
+
+    // If current line has a marker, we want to jump to the start of the *previous* block.
+    // So first we find the line before the start of the *current* block.
+    int search_start = current_line - 1;
+    if ((editor_->MarkerGet(current_line) & mask) != 0)
+    {
+        while (search_start >= 0 && (editor_->MarkerGet(search_start) & mask) != 0)
+        {
+            search_start--;
+        }
+    }
+
+    int prev_line = editor_->MarkerPrevious(search_start, mask);
+    if (prev_line < 0)
+    {
+        // Wrap around to the end
+        prev_line = editor_->MarkerPrevious(editor_->GetLineCount() - 1, mask);
+    }
+
+    if (prev_line >= 0)
+    {
+        // prev_line is somewhere inside the previous block.
+        // Let's find the *start* of that block so we land at the top of the hunk.
+        int block_start = prev_line;
+        while (block_start > 0 && (editor_->MarkerGet(block_start - 1) & mask) != 0)
+        {
+            block_start--;
+        }
+        editor_->GotoLine(block_start);
+    }
+}
+
 } // namespace markamp::ui

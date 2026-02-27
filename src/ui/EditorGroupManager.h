@@ -169,6 +169,8 @@ private:
     core::Subscription open_git_log_sub_;
     core::Subscription breadcrumb_nav_sub_;
     core::Subscription cursor_pos_sub_;
+    core::Subscription next_git_change_sub_;
+    core::Subscription prev_git_change_sub_;
 
     void OnSplitRequest(const core::events::EditorGroupSplitRequestEvent& evt);
     void OnMoreActions(const core::events::EditorGroupMoreActionsEvent& evt);
@@ -177,6 +179,10 @@ private:
     void OnOpenGitLogRequest(const core::events::OpenGitLogRequestEvent& evt);
     void OnBreadcrumbNavigate(const core::events::BreadcrumbNavigateEvent& evt);
     void OnCursorPositionChanged(const core::events::CursorPositionChangedEvent& evt);
+    void
+    OnNavigateToNextGitChangeRequest(const core::events::NavigateToNextGitChangeRequestEvent& evt);
+    void OnNavigateToPreviousGitChangeRequest(
+        const core::events::NavigateToPreviousGitChangeRequestEvent& evt);
 
     void OnPaint(wxPaintEvent& evt);
     void OnMouseEvent(wxMouseEvent& evt);

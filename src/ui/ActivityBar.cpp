@@ -124,6 +124,14 @@ ActivityBar::ActivityBar(wxWindow* parent,
     keyboard_mode_sub_ = event_bus_.subscribe<core::events::KeyboardModeChangedEvent>(
         [this](const core::events::KeyboardModeChangedEvent& /*evt*/) { Refresh(); });
 
+    // Phase 18 Task 16: Subscribe to Git status changes
+    git_status_sub_ = event_bus_.subscribe<core::events::GitStatusChangedEvent>(
+        [this](const core::events::GitStatusChangedEvent& evt)
+        {
+            int total_changes = evt.modified + evt.staged + evt.untracked;
+            SetBadge(core::events::ActivityBarItemId::kGit, total_changes);
+        });
+
     // Phase 07 Task 18: Extension-contributed panels
     custom_panel_sub_ = event_bus_.subscribe<core::events::CustomPanelRegisteredEvent>(
         [this](const core::events::CustomPanelRegisteredEvent& evt)
