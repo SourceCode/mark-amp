@@ -26,6 +26,8 @@ public:
         std::string limit_file_path; // if empty, scan all
         int limit_start_line{0};     // 1-based, inclusive
         int limit_end_line{0};       // 1-based, inclusive
+
+        int context_lines{0}; // Number of lines of context before and after match
     };
 
     struct SearchMatch
@@ -35,8 +37,8 @@ public:
         int column{1};
         int match_length{0};
         std::string line_content;
-        std::string context_before;
-        std::string context_after;
+        std::vector<std::string> context_before;
+        std::vector<std::string> context_after;
     };
 
     struct SearchResult

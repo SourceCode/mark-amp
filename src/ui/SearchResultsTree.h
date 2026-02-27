@@ -21,6 +21,7 @@ class ThemedScrollbar;
 struct SearchResultItem
 {
     bool is_file{false};
+    bool is_context{false};
     bool expanded{true};
     std::string file_path;
     std::string file_name;
@@ -28,6 +29,9 @@ struct SearchResultItem
 
     // For match item
     core::WorkspaceSearchEngine::SearchMatch match;
+    std::string context_line_content;
+    int context_line_number{0};
+
     bool is_selected{false};
     bool is_hovered{false};
 };

@@ -332,6 +332,7 @@ SearchSidebarPanel::SearchSidebarPanel(wxWindow* parent,
         match_case_ = config_->get_bool(kPrefix + "case_sensitive", false);
         match_word_ = config_->get_bool(kPrefix + "whole_word", false);
         preserve_case_ = config_->get_bool(kPrefix + "preserve_case", false);
+        show_context_ = config_->get_bool(kPrefix + "show_context", false);
     }
 
     search_input_ = new wxTextCtrl(search_row,
@@ -349,6 +350,9 @@ SearchSidebarPanel::SearchSidebarPanel(wxWindow* parent,
     auto* btn_regex = new ToggleTextButton(search_row, theme_engine, ".*", use_regex_);
     auto* btn_case = new ToggleTextButton(search_row, theme_engine, "Aa", match_case_);
     auto* btn_word = new ToggleTextButton(search_row, theme_engine, "\\b", match_word_);
+
+    auto* btn_context = new ToggleTextButton(search_row, theme_engine, "C", show_context_);
+    btn_context->SetToolTip("Show Context Lines (1 line)");
 
     btn_toggle_replace->set_on_toggle(
         [this, btn_toggle_replace](bool state)
@@ -380,10 +384,17 @@ SearchSidebarPanel::SearchSidebarPanel(wxWindow* parent,
             match_word_ = state;
             toggle_cb(state);
         });
+    btn_context->set_on_toggle(
+        [this, toggle_cb](bool state)
+        {
+            show_context_ = state;
+            toggle_cb(state);
+        });
 
     search_row_sizer->Add(btn_regex, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 2);
     search_row_sizer->Add(btn_case, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 2);
-    search_row_sizer->Add(btn_word, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
+    search_row_sizer->Add(btn_word, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 2);
+    search_row_sizer->Add(btn_context, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
 
     search_row->SetSizer(search_row_sizer);
     toolbar_sizer->Add(search_row, 0, wxEXPAND | wxALL, 0);
@@ -759,6 +770,7 @@ void SearchSidebarPanel::ExecuteSearch()
     options.regex_mode = use_regex_;
     options.case_sensitive = match_case_;
     options.whole_word = match_word_;
+    options.context_lines = show_context_ ? 1 : 0;
 
     auto ParseAndAddPatterns = [](const std::string& input, std::vector<std::string>& patterns)
     {

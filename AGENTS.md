@@ -478,6 +478,7 @@ Mermaid, Table Editor, Format Bar, Theme Gallery, Link Preview, Image Preview, B
 | Component               | Purpose                      |
 | ----------------------- | ---------------------------- |
 | `SearchEngine`          | Core full-text search        |
+| `SearchContext`         | Dynamic pre/post match context buffer |
 | `SearchService`         | Search orchestration         |
 | `SearchQueryParser`     | Query syntax parser          |
 | `ContentIndexer`        | Document content indexing    |

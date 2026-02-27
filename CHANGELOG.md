@@ -1,5 +1,19 @@
 # MarkAmp Release History
 
+## v2.12.52 — 2026-02-27
+
+### Highlights
+
+Phase 17 V2 Search Panel search context improvements. The workspace search engine now captures and presents context lines before and after matches within the file search results tree. Context lines can be toggled on directly from the search sidebar interface.
+
+### Added
+
+- **Context Lines**: `WorkspaceSearchEngine` now yields context lines bounding a core match (Task 15).
+- **Interface Options**: Added `Context Lines` toggle button in `SearchSidebarPanel`, mapping state logic and UI behaviors cleanly across components.
+- **Render Hierarchies**: Search context lines display independently alongside match highlights natively integrated inside `SearchResultsTree`.
+
+# MarkAmp Release History
+
 ## v2.11.50 — 2026-02-26
 
 ### Highlights

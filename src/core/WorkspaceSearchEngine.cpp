@@ -133,11 +133,12 @@ void WorkspaceSearchEngine::SearchInFile(const std::string& full_path,
         }
     }
 
-    std::string prev_line;
+    std::deque<std::string> prev_lines;
     bool found_in_file = false;
 
     // Buffer for context_after tracking
-    std::vector<SearchMatch*> matches_needing_after_context;
+    // Pair of (pointer to match, lines remaining to capture)
+    std::vector<std::pair<SearchMatch*, int>> matches_needing_after_context;
 
     while (std::getline(file, line) && !is_cancelled_ && !result.truncated)
     {
@@ -150,11 +151,20 @@ void WorkspaceSearchEngine::SearchInFile(const std::string& full_path,
         bool match_found_this_line = false;
 
         // Fulfill context_after for previous matches
-        for (auto* m : matches_needing_after_context)
+        for (auto it = matches_needing_after_context.begin();
+             it != matches_needing_after_context.end();)
         {
-            m->context_after = line;
+            it->first->context_after.push_back(line);
+            it->second--;
+            if (it->second <= 0)
+            {
+                it = matches_needing_after_context.erase(it);
+            }
+            else
+            {
+                ++it;
+            }
         }
-        matches_needing_after_context.clear();
 
         // Scope check
         bool in_scope = true;
@@ -178,10 +188,17 @@ void WorkspaceSearchEngine::SearchInFile(const std::string& full_path,
                     match.column = static_cast<int>(m.position() + 1);
                     match.match_length = static_cast<int>(m.length());
                     match.line_content = line;
-                    match.context_before = prev_line;
+                    match.context_before =
+                        std::vector<std::string>(prev_lines.begin(), prev_lines.end());
 
                     result.matches.push_back(match);
-                    matches_needing_after_context.push_back(&result.matches.back());
+
+                    if (options.context_lines > 0)
+                    {
+                        matches_needing_after_context.push_back(
+                            {&result.matches.back(), options.context_lines});
+                    }
+
                     match_found_this_line = true;
 
                     if (result.matches.size() >= static_cast<size_t>(options.max_results))
@@ -220,10 +237,17 @@ void WorkspaceSearchEngine::SearchInFile(const std::string& full_path,
                         match.column = static_cast<int>(pos + 1);
                         match.match_length = static_cast<int>(query.length());
                         match.line_content = line;
-                        match.context_before = prev_line;
+                        match.context_before =
+                            std::vector<std::string>(prev_lines.begin(), prev_lines.end());
 
                         result.matches.push_back(match);
-                        matches_needing_after_context.push_back(&result.matches.back());
+
+                        if (options.context_lines > 0)
+                        {
+                            matches_needing_after_context.push_back(
+                                {&result.matches.back(), options.context_lines});
+                        }
+
                         match_found_this_line = true;
 
                         if (result.matches.size() >= static_cast<size_t>(options.max_results))
@@ -242,7 +266,17 @@ void WorkspaceSearchEngine::SearchInFile(const std::string& full_path,
             found_in_file = true;
         }
 
-        prev_line = line;
+        prev_lines.push_back(line);
+        if (options.context_lines > 0 &&
+            prev_lines.size() > static_cast<size_t>(options.context_lines))
+        {
+            prev_lines.pop_front();
+        }
+        else if (options.context_lines == 0)
+        {
+            prev_lines.clear();
+        }
+
         line_num++;
     }
 

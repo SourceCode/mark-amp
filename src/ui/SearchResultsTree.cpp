@@ -103,10 +103,49 @@ void SearchResultsTree::RebuildItems()
             current_file_node->match_count++;
         }
 
+        int last_added_line = -1;
+        // Add context before
+        for (size_t i = 0; i < match.context_before.size(); ++i)
+        {
+            int ctx_line = match.line_number - static_cast<int>(match.context_before.size()) +
+                           static_cast<int>(i);
+
+            // Avoid duplicate context lines if matches are close
+            // Since we add matches and context sequentially, last_added_line works
+            if (ctx_line > last_added_line)
+            {
+                SearchResultItem ctx_node;
+                ctx_node.is_file = false;
+                ctx_node.is_context = true;
+                ctx_node.context_line_content = match.context_before[i];
+                ctx_node.context_line_number = ctx_line;
+                items_.push_back(ctx_node);
+                last_added_line = ctx_line;
+            }
+        }
+
         SearchResultItem match_node;
         match_node.is_file = false;
+        match_node.is_context = false;
         match_node.match = match;
         items_.push_back(match_node);
+        last_added_line = match.line_number;
+
+        // Add context after
+        for (size_t i = 0; i < match.context_after.size(); ++i)
+        {
+            int ctx_line = match.line_number + 1 + static_cast<int>(i);
+            if (ctx_line > last_added_line)
+            {
+                SearchResultItem ctx_node;
+                ctx_node.is_file = false;
+                ctx_node.is_context = true;
+                ctx_node.context_line_content = match.context_after[i];
+                ctx_node.context_line_number = ctx_line;
+                items_.push_back(ctx_node);
+                last_added_line = ctx_line;
+            }
+        }
     }
 
     UpdateVirtualHeight();
@@ -257,7 +296,10 @@ void SearchResultsTree::OnPaint(wxPaintEvent& /*event*/)
             {
                 // Draw line number and match content
                 graphics_context->SetFont(match_font, fg_muted);
-                const wxString kLineStr = wxString::Format("%d  ", item->match.line_number);
+
+                int line_number =
+                    item->is_context ? item->context_line_number : item->match.line_number;
+                const wxString kLineStr = wxString::Format("%d  ", line_number);
                 double text_width = 0;
                 double text_height = 0;
                 double text_descent = 0;
@@ -268,7 +310,8 @@ void SearchResultsTree::OnPaint(wxPaintEvent& /*event*/)
                     kLineStr, 20, item_y + (kItemHeight - text_height) / 2.0);
 
                 // Highlight match
-                const wxString kContext = item->match.line_content;
+                const wxString kContext =
+                    item->is_context ? item->context_line_content : item->match.line_content;
                 double context_width = 0;
                 double context_height = 0;
                 if (!kContext.empty())
@@ -278,21 +321,37 @@ void SearchResultsTree::OnPaint(wxPaintEvent& /*event*/)
                     // matches highlighted. To do properly, we need precise text extent logic. Let's
                     // just draw context for now and a rough highlight.
 
-                    graphics_context->SetFont(match_font, fg_main);
-                    graphics_context->GetTextExtent(kContext,
-                                                    &context_width,
-                                                    &context_height,
-                                                    &text_descent,
-                                                    &text_ext_leading);
+                    if (item->is_context)
+                    {
+                        graphics_context->SetFont(match_font, fg_muted);
+                    }
+                    else
+                    {
+                        graphics_context->SetFont(match_font, fg_main);
+                        graphics_context->GetTextExtent(kContext,
+                                                        &context_width,
+                                                        &context_height,
+                                                        &text_descent,
+                                                        &text_ext_leading);
 
-                    // Simple highlight box representation
-                    graphics_context->SetBrush(wxBrush(hl_bg));
-                    graphics_context->SetPen(*wxTRANSPARENT_PEN);
-                    graphics_context->DrawRectangle(
-                        20 + text_width,
-                        item_y + (kItemHeight - context_height) / 2.0,
-                        context_width,
-                        context_height); // Rough highlight over the whole line for preview
+                        // Simple highlight box representation
+                        graphics_context->SetBrush(wxBrush(hl_bg));
+                        graphics_context->SetPen(*wxTRANSPARENT_PEN);
+                        graphics_context->DrawRectangle(
+                            20 + text_width,
+                            item_y + (kItemHeight - context_height) / 2.0,
+                            context_width,
+                            context_height); // Rough highlight over the whole line for preview
+                    }
+
+                    if (item->is_context)
+                    {
+                        graphics_context->GetTextExtent(kContext,
+                                                        &context_width,
+                                                        &context_height,
+                                                        &text_descent,
+                                                        &text_ext_leading);
+                    }
 
                     graphics_context->DrawText(
                         kContext, 20 + text_width, item_y + (kItemHeight - context_height) / 2.0);
@@ -322,7 +381,7 @@ void SearchResultsTree::OnMouseLeftDown(wxMouseEvent& event)
             item->expanded = !item->expanded;
             UpdateVirtualHeight();
         }
-        else if (on_result_selected_)
+        else if (!item->is_context && on_result_selected_)
         {
             on_result_selected_(item->match.file_path, item->match.line_number, item->match.column);
         }
@@ -336,7 +395,7 @@ auto SearchResultsTree::GetSelectedMatch() const
     if (selected_idx_ >= 0 && selected_idx_ < static_cast<int>(visible_items_.size()))
     {
         auto* item = visible_items_[static_cast<size_t>(selected_idx_)];
-        if (!item->is_file)
+        if (!item->is_file && !item->is_context)
         {
             return item->match;
         }
@@ -355,7 +414,8 @@ void SearchResultsTree::SelectNextMatch()
 
     for (int i = start_idx; i < static_cast<int>(visible_items_.size()); ++i)
     {
-        if (!visible_items_[static_cast<size_t>(i)]->is_file)
+        if (!visible_items_[static_cast<size_t>(i)]->is_file &&
+            !visible_items_[static_cast<size_t>(i)]->is_context)
         {
             selected_idx_ = i;
             SetFirstItem(std::max(0, i - 1)); // Scroll into view roughly
@@ -373,7 +433,8 @@ void SearchResultsTree::SelectNextMatch()
     // Wrap around
     for (int i = 0; i < selected_idx_ && i < static_cast<int>(visible_items_.size()); ++i)
     {
-        if (!visible_items_[static_cast<size_t>(i)]->is_file)
+        if (!visible_items_[static_cast<size_t>(i)]->is_file &&
+            !visible_items_[static_cast<size_t>(i)]->is_context)
         {
             selected_idx_ = i;
             SetFirstItem(std::max(0, i - 1));
@@ -401,7 +462,8 @@ void SearchResultsTree::SelectPreviousMatch()
 
     for (int i = start_idx; i >= 0; --i)
     {
-        if (!visible_items_[static_cast<size_t>(i)]->is_file)
+        if (!visible_items_[static_cast<size_t>(i)]->is_file &&
+            !visible_items_[static_cast<size_t>(i)]->is_context)
         {
             selected_idx_ = i;
             SetFirstItem(std::max(0, i - 1));
@@ -419,7 +481,8 @@ void SearchResultsTree::SelectPreviousMatch()
     // Wrap around
     for (int i = static_cast<int>(visible_items_.size()) - 1; i > selected_idx_; --i)
     {
-        if (!visible_items_[static_cast<size_t>(i)]->is_file)
+        if (!visible_items_[static_cast<size_t>(i)]->is_file &&
+            !visible_items_[static_cast<size_t>(i)]->is_context)
         {
             selected_idx_ = i;
             SetFirstItem(std::max(0, i - 1));

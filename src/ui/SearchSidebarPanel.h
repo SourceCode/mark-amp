@@ -99,6 +99,7 @@ private:
     bool match_case_{false};
     bool match_word_{false};
     bool preserve_case_{false};
+    bool show_context_{false};
 
     core::Subscription action_sub_;
     core::Subscription progress_sub_;
