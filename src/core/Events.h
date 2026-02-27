@@ -162,6 +162,9 @@ MARKAMP_DECLARE_EVENT_END;
 MARKAMP_DECLARE_EVENT_WITH_FIELDS(OpenDiffRequestEvent)
 std::string left_path;
 std::string right_path;
+std::string left_content;
+std::string right_content;
+std::string title;
 MARKAMP_DECLARE_EVENT_END;
 
 // ============================================================================

@@ -82,6 +82,7 @@ FileTreeCtrl::FileTreeCtrl(wxWindow* parent,
           parent, theme_engine, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxNO_BORDER)
     , event_bus_(event_bus)
     , icon_registry_(icon_registry)
+    , git_status_()
 {
     SetBackgroundStyle(wxBG_STYLE_PAINT);
 

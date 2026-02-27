@@ -28,6 +28,8 @@ public:
                    const std::string& title,
                    const std::string& persistence_id = "");
 
+    void set_title(const std::string& title);
+
     void set_content(wxWindow* content_window);
     [[nodiscard]] auto get_content() const -> wxWindow*
     {
@@ -63,6 +65,12 @@ private:
         [[nodiscard]] auto get_title() const -> const std::string&
         {
             return title_;
+        }
+
+        void set_title(const std::string& title)
+        {
+            title_ = title;
+            Refresh();
         }
 
         bool AcceptsFocus() const override

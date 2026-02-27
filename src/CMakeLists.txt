@@ -132,6 +132,7 @@ add_executable(markamp
     ui/ExplorerPanel.cpp
     ui/OpenEditorsSection.cpp
     ui/GitStatusProvider.cpp
+    ui/SourceControlPanel.cpp
     ui/ExtensionCard.cpp
     ui/ExtensionDetailPanel.cpp
     ui/OutputPanel.cpp
@@ -505,6 +506,8 @@ add_executable(markamp
     core/NotebookCellManager.cpp
     # V4 Phase 35: Git Service
     core/GitService.cpp
+    core/GitCommandRunner.cpp
+    core/GitCommandRunner.h
     # Phase 25: Version Control Integration
     core/GitStashService.cpp
     core/GitBlameEngine.cpp

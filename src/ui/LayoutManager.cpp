@@ -28,6 +28,7 @@
 #include "ui/SearchSidebarPanel.h"
 #include "ui/SecondarySidebarTabStrip.h"
 #include "ui/SidebarHeader.h"
+#include "ui/SourceControlPanel.h"
 
 #include <nlohmann/json.hpp>
 #include <wx/button.h>

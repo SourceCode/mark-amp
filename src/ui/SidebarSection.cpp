@@ -198,6 +198,14 @@ SidebarSection::SidebarSection(wxWindow* parent,
     SetSizer(main_sizer_);
 }
 
+void SidebarSection::set_title(const std::string& title)
+{
+    if (header_)
+    {
+        header_->set_title(title);
+    }
+}
+
 void SidebarSection::set_content(wxWindow* content_window)
 {
     if (content_)

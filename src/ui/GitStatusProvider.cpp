@@ -1,9 +1,9 @@
 #include "ui/GitStatusProvider.h"
 
-#include <array>
-#include <cstdio>
+#include <wx/app.h>
+#include <wx/log.h>
+
 #include <filesystem>
-#include <memory>
 #include <sstream>
 #include <thread>
 
@@ -18,7 +18,7 @@ wxBEGIN_EVENT_TABLE(GitStatusProvider, wxEvtHandler) EVT_TIMER(wxID_ANY, GitStat
         GitStatusProvider::GitStatusProvider()
     : refresh_timer_(this)
 {
-    // Check every 5 seconds
+    // Auto-refresh every 5 seconds for status polling.
     refresh_timer_.Start(5000);
 }
 
@@ -31,7 +31,8 @@ void GitStatusProvider::SetWorkspaceRoot(const std::string& root_path)
 {
     std::lock_guard<std::mutex> lock(status_mutex_);
     workspace_root_ = root_path;
-    file_statuses_.clear();
+    cached_changes_.clear();
+    file_status_map_.clear();
 
     if (!workspace_root_.empty())
     {
@@ -39,18 +40,24 @@ void GitStatusProvider::SetWorkspaceRoot(const std::string& root_path)
     }
 }
 
-GitFileStatus GitStatusProvider::GetFileStatus(const std::string& absolute_path) const
+core::GitChangeStatus GitStatusProvider::GetFileStatus(const std::string& absolute_path) const
 {
     std::lock_guard<std::mutex> lock(status_mutex_);
-    auto it = file_statuses_.find(absolute_path);
-    return it != file_statuses_.end() ? it->second : GitFileStatus::None;
+    auto it = file_status_map_.find(absolute_path);
+    return it != file_status_map_.end() ? it->second : core::GitChangeStatus::None;
+}
+
+std::vector<core::GitChangeEntry> GitStatusProvider::GetChanges() const
+{
+    std::lock_guard<std::mutex> lock(status_mutex_);
+    return cached_changes_;
 }
 
 auto GitStatusProvider::ProvideDecoration(const core::FileNode& node) const
     -> std::optional<FileTreeDecoration>
 {
-    GitFileStatus status = GetFileStatus(node.id);
-    if (status == GitFileStatus::None || status == GitFileStatus::Ignored)
+    core::GitChangeStatus status = GetFileStatus(node.id);
+    if (status == core::GitChangeStatus::None)
     {
         if (node.is_folder())
         {
@@ -70,13 +77,13 @@ auto GitStatusProvider::ProvideDecoration(const core::FileNode& node) const
     FileTreeDecoration dec;
     dec.priority = 10;
 
-    if (status == GitFileStatus::Untracked || status == GitFileStatus::Added)
+    if (status == core::GitChangeStatus::Untracked || status == core::GitChangeStatus::Added)
     {
         dec.badge_text = "U";
         dec.badge_color = wxColour(115, 201, 145);
         dec.text_color = wxColour(115, 201, 145);
     }
-    else if (status == GitFileStatus::Deleted)
+    else if (status == core::GitChangeStatus::Deleted)
     {
         dec.badge_text = "D";
         dec.badge_color = wxColour(238, 83, 83);
@@ -88,6 +95,7 @@ auto GitStatusProvider::ProvideDecoration(const core::FileNode& node) const
         dec.badge_color = wxColour(226, 192, 141);
         dec.text_color = wxColour(226, 192, 141);
     }
+
     return dec;
 }
 
@@ -100,6 +108,7 @@ size_t GitStatusProvider::GetModifiedCountInDirectory(const std::string& absolut
 #else
     char sep = '/';
 #endif
+
     std::string prefix = absolute_dir_path;
     if (!prefix.empty() && prefix.back() != sep)
     {
@@ -107,9 +116,9 @@ size_t GitStatusProvider::GetModifiedCountInDirectory(const std::string& absolut
     }
 
     size_t count = 0;
-    for (const auto& [path, status] : file_statuses_)
+    for (const auto& [path, status] : file_status_map_)
     {
-        if (status != GitFileStatus::None && status != GitFileStatus::Ignored)
+        if (status != core::GitChangeStatus::None)
         {
             if (path.starts_with(prefix))
             {
@@ -127,7 +136,6 @@ void GitStatusProvider::Refresh()
 
     if (is_running_.exchange(true))
     {
-        // Already running
         return;
     }
 
@@ -145,83 +153,176 @@ void GitStatusProvider::OnTimer(wxTimerEvent&)
     Refresh();
 }
 
-std::string GitStatusProvider::ProcessGitPath(const std::string& relative_path) const
+std::string GitStatusProvider::BuildAbsolutePath(const std::string& relative_path) const
 {
     auto path = fs::path(workspace_root_) / relative_path;
     return path.string();
 }
 
+core::GitChangeStatus GitStatusProvider::ParseStatusCode(char code)
+{
+    switch (code)
+    {
+        case 'M':
+            return core::GitChangeStatus::Modified;
+        case 'A':
+            return core::GitChangeStatus::Added;
+        case 'D':
+            return core::GitChangeStatus::Deleted;
+        case 'R':
+            return core::GitChangeStatus::Renamed;
+        case 'C':
+            return core::GitChangeStatus::Copied;
+        case 'U':
+            return core::GitChangeStatus::Unmerged;
+        case '?':
+            return core::GitChangeStatus::Untracked;
+        default:
+            return core::GitChangeStatus::None;
+    }
+}
+
 void GitStatusProvider::RunGitStatus()
 {
-    std::string cmd = "git -C \"" + workspace_root_ + "\" status --porcelain -z 2>/dev/null";
+    core::GitCommandRunner runner{workspace_root_};
 
-    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd.c_str(), "r"), pclose);
-    if (!pipe)
-        return;
-
-    std::vector<char> buffer(4096);
-    std::string output;
-
-    size_t bytes_read = 0;
-    while ((bytes_read = fread(buffer.data(), 1, buffer.size(), pipe.get())) > 0)
+    // v2 porcelain with -z emits machine readable null-terminated strings
+    auto result = runner.RunSync("git status --porcelain=v2 -z");
+    if (!result.success() || result.stdout_text.empty())
     {
-        output.append(buffer.data(), bytes_read);
+        return;
     }
 
-    std::unordered_map<std::string, GitFileStatus> new_statuses;
+    std::vector<core::GitChangeEntry> new_entries;
+    std::unordered_map<std::string, core::GitChangeStatus> new_map;
 
+    const std::string& output = result.stdout_text;
     size_t pos = 0;
+
+    // v2 porcelain lines start with '1' (ordinary), '2' (renames), 'u' (unmerged), '?' (untracked)
+    // Detailed docs: https://git-scm.com/docs/git-status#_porcelain_format_version_2
+
     while (pos < output.size())
     {
-        if (pos + 2 >= output.size())
+        size_t next_null = output.find('\0', pos);
+        if (next_null == std::string::npos)
             break;
 
-        char x = output[pos];
-        char y = output[pos + 1];
+        std::string line = output.substr(pos, next_null - pos);
+        if (line.empty())
+        {
+            pos = next_null + 1;
+            continue;
+        }
 
-        size_t path_start = pos + 3;
-        size_t path_end = output.find('\0', path_start);
+        std::istringstream stream(line);
+        std::string type, codes;
+        stream >> type;
 
-        if (path_end == std::string::npos)
-            break;
+        core::GitChangeEntry entry;
+        std::string rel_path;
 
-        std::string rel_path = output.substr(path_start, path_end - path_start);
-        std::string abs_path = ProcessGitPath(rel_path);
+        if (type == "1") // Ordinary (1 <XY> <sub> <mH> <mI> <mW> <hH> <hI> <path>)
+        {
+            stream >> codes; // XY
+            entry.index_status = ParseStatusCode(codes[0]);
+            entry.working_status = ParseStatusCode(codes[1]);
 
-        GitFileStatus status = GitFileStatus::None;
+            // Extract path (remainder of the string after fixed metadata width)
+            // Example: 1 .M N... 100644 100644 100644 cccd... cccd... src/ui/TabBar.cpp
 
-        if (x == '?' && y == '?')
-            status = GitFileStatus::Untracked;
-        else if (x == '!' && y == '!')
-            status = GitFileStatus::Ignored;
-        else if (x == 'M' || y == 'M')
-            status = GitFileStatus::Modified;
-        else if (x == 'A' || y == 'A')
-            status = GitFileStatus::Added;
-        else if (x == 'D' || y == 'D')
-            status = GitFileStatus::Deleted;
-        else if (x == 'R' || y == 'R')
-            status = GitFileStatus::Renamed;
-        else if (x == 'C' || y == 'C')
-            status = GitFileStatus::Copied;
+            // Fast leap to the paths by jumping past 8 spaces
+            int spaces_seen = 0;
+            size_t token_cursor = 0;
+            while (spaces_seen < 8 && token_cursor < line.length())
+            {
+                if (line[token_cursor] == ' ')
+                    spaces_seen++;
+                token_cursor++;
+            }
+            rel_path = line.substr(token_cursor);
+        }
+        else if (type == "2") // Rename (2 <XY> <sub> <mH> <mI> <mW> <hH> <hI> <X><score>
+                              // <path><sep><origPath>)
+        {
+            stream >> codes; // XY
+            entry.index_status = ParseStatusCode(codes[0]);
+            entry.working_status = ParseStatusCode(codes[1]);
+
+            int spaces_seen = 0;
+            size_t token_cursor = 0;
+            while (spaces_seen < 9 && token_cursor < line.length())
+            {
+                if (line[token_cursor] == ' ')
+                    spaces_seen++;
+                token_cursor++;
+            }
+            rel_path = line.substr(token_cursor); // Extract to end
+
+            // v2 with -z outputs the <path> null terminated, followed by <original_path> null
+            // terminated
+            pos = next_null + 1; // move past path
+            size_t orig_null = output.find('\0', pos);
+            if (orig_null != std::string::npos)
+            {
+                entry.original_path = BuildAbsolutePath(output.substr(pos, orig_null - pos));
+                next_null = orig_null; // Advance outer loop's horizon
+            }
+        }
+        else if (type == "u") // Unmerged
+        {
+            stream >> codes;
+            entry.index_status = ParseStatusCode(codes[0]);
+            entry.working_status = ParseStatusCode(codes[1]);
+            // Format: u <xy> <sub> <m1> <m2> <m3> <mW> <h1> <h2> <h3> <path>
+            int spaces_seen = 0;
+            size_t token_cursor = 0;
+            while (spaces_seen < 10 && token_cursor < line.length())
+            {
+                if (line[token_cursor] == ' ')
+                    spaces_seen++;
+                token_cursor++;
+            }
+            rel_path = line.substr(token_cursor);
+        }
+        else if (type == "?") // Untracked (? <path>)
+        {
+            entry.working_status = core::GitChangeStatus::Untracked;
+            rel_path = line.substr(2); // Skip "? "
+        }
         else
-            status = GitFileStatus::Modified;
+        {
+            // Ignore (e.g., '!')
+            pos = next_null + 1;
+            continue;
+        }
 
-        new_statuses[abs_path] = status;
+        entry.path = BuildAbsolutePath(rel_path);
+        new_entries.push_back(entry);
 
-        pos = path_end + 1; // Move past null byte
+        // Overall logic mapped to simpler file_status_map_ enum for fast UI decoration matching
+        core::GitChangeStatus overall = entry.working_status != core::GitChangeStatus::None
+                                            ? entry.working_status
+                                            : entry.index_status;
+
+        new_map[entry.path] = overall;
+
+        pos = next_null + 1;
     }
 
     {
         std::lock_guard<std::mutex> lock(status_mutex_);
-        file_statuses_ = std::move(new_statuses);
+        cached_changes_ = std::move(new_entries);
+        file_status_map_ = std::move(new_map);
     }
 
     if (on_status_changed_)
     {
-        // Must be called on main thread, but RunGitStatus is background thread.
-        // We'll use CallAfter or a custom event to notify the UI.
-        this->CallAfter(on_status_changed_);
+        // Safe UI thread callback
+        if (wxTheApp)
+        {
+            wxTheApp->CallAfter(on_status_changed_);
+        }
     }
 }
 

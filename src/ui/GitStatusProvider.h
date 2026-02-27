@@ -1,6 +1,9 @@
 #pragma once
 
 #include "IFileTreeDecorationProvider.h"
+#include "core/Config.h"
+#include "core/GitCommandRunner.h"
+#include "core/ThemeEngine.h"
 
 #include <wx/event.h>
 #include <wx/timer.h>
@@ -9,21 +12,10 @@
 #include <mutex>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace markamp::ui
 {
-
-enum class GitFileStatus
-{
-    None,
-    Modified,
-    Added,
-    Deleted,
-    Untracked,
-    Renamed,
-    Copied,
-    Ignored
-};
 
 class GitStatusProvider : public wxEvtHandler, public IFileTreeDecorationProvider
 {
@@ -32,8 +24,16 @@ public:
     ~GitStatusProvider() override;
 
     void SetWorkspaceRoot(const std::string& root_path);
-    [[nodiscard]] GitFileStatus GetFileStatus(const std::string& absolute_path) const;
+
+    // Legacy API mappings
+    [[nodiscard]] core::GitChangeStatus GetFileStatus(const std::string& absolute_path) const;
     [[nodiscard]] size_t GetModifiedCountInDirectory(const std::string& absolute_dir_path) const;
+
+    // Rich API for source control
+    [[nodiscard]] std::vector<core::GitChangeEntry> GetChanges() const;
+
+    // Run a git status check
+    void RunGitStatus();
 
     void Refresh();
 
@@ -48,13 +48,17 @@ public:
 
 private:
     void OnTimer(wxTimerEvent& event);
-    void RunGitStatus();
 
-    [[nodiscard]] std::string ProcessGitPath(const std::string& relative_path) const;
+    [[nodiscard]] std::string BuildAbsolutePath(const std::string& relative_path) const;
+    static core::GitChangeStatus ParseStatusCode(char code);
 
     std::string workspace_root_;
+
+    // Synchronization for concurrent access by UI / Timer threads
     mutable std::mutex status_mutex_;
-    std::unordered_map<std::string, GitFileStatus> file_statuses_;
+    std::vector<core::GitChangeEntry> cached_changes_;
+    // Fast path for directory lookup / file lookup
+    std::unordered_map<std::string, core::GitChangeStatus> file_status_map_;
 
     std::function<void()> on_status_changed_;
 

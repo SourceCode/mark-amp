@@ -105,7 +105,12 @@ public:
     void OpenFileInFocusedGroup(const std::string& path);
 
     // Diff routing
-    void OpenDiffInGroup(int group_id, const std::string& left_path, const std::string& right_path);
+    void OpenDiffInGroup(int group_id,
+                         const std::string& left_path,
+                         const std::string& right_path,
+                         const std::string& left_content = "",
+                         const std::string& right_content = "",
+                         const std::string& title = "");
 
     // Navigation
     void FocusNextGroup();

@@ -49,6 +49,17 @@ EditorGroupManager::EditorGroupManager(wxWindow* parent,
     split_req_sub_ = event_bus_.subscribe<core::events::EditorGroupSplitRequestEvent>(
         [this](const auto& evt) { OnSplitRequest(evt); });
 
+    open_diff_sub_ = event_bus_.subscribe<core::events::OpenDiffRequestEvent>(
+        [this](const auto& evt)
+        {
+            OpenDiffInGroup(focused_group_id_,
+                            evt.left_path,
+                            evt.right_path,
+                            evt.left_content,
+                            evt.right_content,
+                            evt.title);
+        });
+
     more_actions_sub_ = event_bus_.subscribe<core::events::EditorGroupMoreActionsEvent>(
         [this](const auto& evt) { OnMoreActions(evt); });
 
@@ -801,21 +812,44 @@ void EditorGroupManager::OpenFileInFocusedGroup(const std::string& path)
 
 void EditorGroupManager::OpenDiffInGroup(int group_id,
                                          const std::string& left_path,
-                                         const std::string& right_path)
+                                         const std::string& right_path,
+                                         const std::string& left_content,
+                                         const std::string& right_content,
+                                         const std::string& title)
 {
     EditorGroupNode* target = FindNode(root_.get(), group_id);
     if (target == nullptr || target->leaf == nullptr)
         return;
 
+    std::string display_name = title;
+    if (display_name.empty())
+    {
+        display_name = std::filesystem::path(left_path).filename().string() + " (Diff)";
+    }
+
     if (target->leaf->tab_bar)
-        target->leaf->tab_bar->Hide();
+    {
+        // Don't hide the tab bar, add a diff tab instead
+        target->leaf->tab_bar->Show();
+        std::string diff_id = "diff:" + left_path + ":" + right_path;
+        target->leaf->tab_bar->AddTab(diff_id, display_name);
+        target->leaf->tab_bar->SetActiveTab(diff_id);
+    }
+
     if (target->leaf->editor)
         target->leaf->editor->Hide();
 
     if (target->leaf->diff_panel)
     {
         target->leaf->diff_panel->Show();
-        target->leaf->diff_panel->open_diff(left_path, right_path);
+        if (!left_content.empty() || !right_content.empty())
+        {
+            target->leaf->diff_panel->open_diff_content(left_content, right_content);
+        }
+        else
+        {
+            target->leaf->diff_panel->open_diff(left_path, right_path);
+        }
     }
 
     target->leaf->container->Layout();

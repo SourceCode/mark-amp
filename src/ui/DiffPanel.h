@@ -31,6 +31,9 @@ public:
     /// Open diff view
     void open_diff(const std::string& left_path, const std::string& right_path);
 
+    /// Open diff view using literal content strings instead of files on disk
+    void open_diff_content(const std::string& left_content, const std::string& right_content);
+
     /// Display a diff result (legacy struct support for inline mode)
 
     /// Display a diff result.

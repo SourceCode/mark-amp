@@ -1,5 +1,18 @@
 # MarkAmp Release History
 
+## v2.13.53 — 2026-02-27
+
+### Highlights
+
+Implemented Phase 18 Source Control Panel features. Added a full Git status and diff preview interface. The new `SourceControlPanel` integrates `GitStatusProvider` for real-time file status (staged/unstaged) using precise Git commands. A new `IconManager` draws VS Code-style color-coded status badges for added, modified, and deleted files. Double-clicking any file directly triggers an inline diff preview, passing memory-buffered content directly via `OpenDiffRequestEvent` without requiring physical temp files.
+
+### Added
+
+- **SourceControlPanel**: Complete sidebar panel housing Staged Changes and Changes lists.
+- **GitStatusProvider**: Background async Git status polling utilizing porcelain v2 formatting.
+- **File Status Badges**: VS Code-equivalent color-coded `IconManager` badges (M, A, D, U).
+- **Inline Diff Preview**: In-memory diff tab rendering (Staged vs HEAD or Working vs Index) generated transparently via `GitCommandRunner`.
+
 ## v2.12.52 — 2026-02-27
 
 ### Highlights

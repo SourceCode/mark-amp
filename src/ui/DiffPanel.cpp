@@ -62,7 +62,20 @@ void DiffPanel::open_diff(const std::string& left_path, const std::string& right
     LoadFileSide(left_editor_, left_path);
     left_editor_->SetReadOnly(true);
 
+    right_editor_->SetReadOnly(false);
     LoadFileSide(right_editor_, right_path);
+    right_editor_->SetReadOnly(true);
+}
+
+void DiffPanel::open_diff_content(const std::string& left_content, const std::string& right_content)
+{
+    left_editor_->SetReadOnly(false);
+    left_editor_->SetText(left_content);
+    left_editor_->SetReadOnly(true);
+
+    right_editor_->SetReadOnly(false);
+    right_editor_->SetText(right_content);
+    right_editor_->SetReadOnly(true);
 }
 
 void DiffPanel::LoadFileSide(wxStyledTextCtrl* editor, const std::string& path)
