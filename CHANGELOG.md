@@ -12,6 +12,10 @@ Implemented Phase 18 Source Control Panel features. Added a full Git status and 
 - **GitStatusProvider**: Background async Git status polling utilizing porcelain v2 formatting.
 - **File Status Badges**: VS Code-equivalent color-coded `IconManager` badges (M, A, D, U).
 - **Inline Diff Preview**: In-memory diff tab rendering (Staged vs HEAD or Working vs Index) generated transparently via `GitCommandRunner`.
+- **Git Commit message templates (Phase 20)**: Conventional commit message templates accessible directly from a new `Template` button within the Source Control panel.
+- **Git Initialization State**: Safe fallback `EmptyPanelState` presented when workspace does not contain a valid `.git` repository, featuring a 1-click `Initialize Repository` action.
+- **SourceControlPanel Theme Integration**: Foreground and background colors now correctly listen to dynamic theme adjustments across all internal list views and input forms.
+- **SourceControlPanel Accessibility**: `Name` and `HelpText` properties populated across all lists, inputs, and buttons for full screen reader support.
 
 ## v2.12.52 — 2026-02-27
 

@@ -118,6 +118,7 @@ FileTreeCtrl::FileTreeCtrl(wxWindow* parent,
     scrollbar_ = new ThemedScrollbar(this, theme_engine, this);
     scrollbar_->Hide();
 
+    git_status_.SetEventBus(&event_bus_);
     git_status_.SetRefreshCallback([this]() { this->Refresh(); });
 
     LoadIcons();

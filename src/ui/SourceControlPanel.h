@@ -14,6 +14,7 @@
 #include <wx/sizer.h>
 #include <wx/textctrl.h>
 
+#include <chrono>
 #include <string>
 
 namespace markamp::ui
@@ -46,6 +47,7 @@ private:
     void OnItemActivated(wxListEvent& event);
     void OnItemRightClicked(wxListEvent& event);
     void OnCommitButtonClicked(wxCommandEvent& event);
+    void OnTemplateButtonClicked(wxCommandEvent& event);
     void OnBranchSelected(wxCommandEvent& event);
 
     core::EventBus& event_bus_;
@@ -56,8 +58,11 @@ private:
     std::unique_ptr<GitStatusProvider> git_provider_;
 
     wxChoice* branch_choice_{nullptr};
+    wxButton* template_button_{nullptr};
     wxTextCtrl* commit_message_input_{nullptr};
     wxButton* commit_button_{nullptr};
+    wxPanel* commit_panel_{nullptr};
+    EmptyPanelState* empty_state_{nullptr};
 
     SidebarSection* staged_changes_section_{nullptr};
     wxListCtrl* staged_list_{nullptr};
@@ -72,6 +77,9 @@ private:
 
     // Core event subscriptions
     core::Subscription action_sub_;
+    core::Subscription app_activate_sub_;
+    core::Subscription file_saved_sub_;
+    std::chrono::steady_clock::time_point last_refresh_time_;
 };
 
 } // namespace markamp::ui

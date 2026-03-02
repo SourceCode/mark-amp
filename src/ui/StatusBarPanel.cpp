@@ -173,6 +173,11 @@ StatusBarPanel::StatusBarPanel(wxWindow* parent,
                 set_active_group(evt.group_id);
             }
         });
+
+    // Phase 19: Git Status Event
+    git_status_sub_ = event_bus_.subscribe<core::events::GitStatusChangedEvent>(
+        [this](const core::events::GitStatusChangedEvent& evt)
+        { set_git_branch(evt.branch_name, evt.ahead, evt.behind); });
 }
 
 // --- State setters ---
@@ -349,9 +354,11 @@ void StatusBarPanel::set_progress(bool active, const std::string& label)
 }
 
 // R18 Fix 13: Git branch display
-void StatusBarPanel::set_git_branch(const std::string& branch)
+void StatusBarPanel::set_git_branch(const std::string& branch, int ahead, int behind)
 {
     git_branch_ = branch;
+    git_ahead_ = ahead;
+    git_behind_ = behind;
     RebuildItems();
     Refresh();
 }
@@ -530,12 +537,44 @@ void StatusBarPanel::RebuildItems()
         left_items_.push_back({branch_text,
                                {},
                                false,
-                               false,
-                               nullptr,
-                               "Current git branch",
+                               true,
+                               [this]()
+                               {
+                                   core::events::CommandPaletteEvent cmd_evt;
+                                   cmd_evt.mode = "commands";
+                                   event_bus_.publish(cmd_evt);
+                               },
+                               "Current git branch (Click to open command palette)",
                                false,
                                false,
                                "status-git"});
+
+        if (git_ahead_ > 0 || git_behind_ > 0)
+        {
+            std::string sync_text;
+            if (git_behind_ > 0)
+                sync_text += fmt::format("{}\xE2\x86\x93 ", git_behind_); // ↓
+            if (git_ahead_ > 0)
+                sync_text += fmt::format("{}\xE2\x86\x91 ", git_ahead_); // ↑
+
+            if (!sync_text.empty() && sync_text.back() == ' ')
+                sync_text.pop_back();
+
+            left_items_.push_back({sync_text,
+                                   {},
+                                   false,
+                                   true,
+                                   [this]()
+                                   {
+                                       core::events::CommandPaletteEvent cmd_evt;
+                                       cmd_evt.mode = "commands";
+                                       event_bus_.publish(cmd_evt);
+                                   },
+                                   "Git sync status (Click to open command palette)",
+                                   false,
+                                   false,
+                                   ""});
+        }
     }
 
     // Phase 10: Panel notifications

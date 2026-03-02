@@ -77,6 +77,7 @@ private:
     // Event handlers
     void onClose(wxCloseEvent& event);
     void onSize(wxSizeEvent& event);
+    void OnActivate(wxActivateEvent& event);
 
     // Edge resize
     static constexpr int kResizeZone = 5;

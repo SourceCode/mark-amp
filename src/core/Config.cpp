@@ -639,6 +639,36 @@ auto Config::key_count() const -> std::size_t
     return 0;
 }
 
+auto Config::get_commit_templates() const -> std::vector<std::string>
+{
+    auto key_str = std::string("git.commit_templates");
+    if (data_[key_str] && data_[key_str].IsSequence())
+    {
+        std::vector<std::string> templates;
+        for (const auto& tmpl : data_[key_str])
+        {
+            if (tmpl.IsScalar())
+            {
+                templates.push_back(tmpl.as<std::string>());
+            }
+        }
+        return templates;
+    }
+
+    // Default conventional commits
+    return {"feat: ",
+            "fix: ",
+            "docs: ",
+            "style: ",
+            "refactor: ",
+            "perf: ",
+            "test: ",
+            "build: ",
+            "ci: ",
+            "chore: ",
+            "revert: "};
+}
+
 // ── New Batch 9: Config profile support implementations (#55-58) ──
 
 void Config::export_to_json(const std::filesystem::path& path) const

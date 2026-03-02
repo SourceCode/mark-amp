@@ -146,6 +146,9 @@ public:
     /// Return the total number of stored config keys.
     [[nodiscard]] auto key_count() const -> std::size_t;
 
+    /// Return the list of git commit templates
+    [[nodiscard]] auto get_commit_templates() const -> std::vector<std::string>;
+
     // ── New Batch 9: Config profile support (#55-58) ──
 
     /// Export current config to a JSON file.

@@ -44,7 +44,7 @@ public:
     void set_progress(bool active, const std::string& label);
 
     // R18 Fix 13: Git branch
-    void set_git_branch(const std::string& branch);
+    void set_git_branch(const std::string& branch, int ahead = 0, int behind = 0);
 
     // Phase 10: Panel notifications
     void set_panel_notifications(int error_count, int warning_count, int info_count);
@@ -139,6 +139,7 @@ private:
     core::Subscription view_mode_sub_;
     core::Subscription encoding_sub_;
     core::Subscription mermaid_sub_;
+    core::Subscription git_status_sub_;
 
     // State
     std::string ready_state_{"READY"};
@@ -173,6 +174,8 @@ private:
 
     // R18 Fix 13: Git branch
     std::string git_branch_;
+    int git_ahead_{0};
+    int git_behind_{0};
 
     // Phase 06 Task 15: Sidebar mode indicator
     std::string sidebar_mode_name_{"EXPLORER"};

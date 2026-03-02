@@ -2,6 +2,7 @@
 
 #include "IFileTreeDecorationProvider.h"
 #include "core/Config.h"
+#include "core/EventBus.h"
 #include "core/GitCommandRunner.h"
 #include "core/ThemeEngine.h"
 
@@ -24,6 +25,9 @@ public:
     ~GitStatusProvider() override;
 
     void SetWorkspaceRoot(const std::string& root_path);
+
+    // Set the event bus for publishing global Git events
+    void SetEventBus(core::EventBus* event_bus);
 
     // Legacy API mappings
     [[nodiscard]] core::GitChangeStatus GetFileStatus(const std::string& absolute_path) const;
@@ -61,6 +65,7 @@ private:
     std::unordered_map<std::string, core::GitChangeStatus> file_status_map_;
 
     std::function<void()> on_status_changed_;
+    core::EventBus* event_bus_{nullptr};
 
     wxTimer refresh_timer_;
     std::atomic<bool> is_running_{false};

@@ -99,6 +99,7 @@ public:
     void SwitchBranch(const std::string& branch);
     void CreateBranch(const std::string& name);
     void Stash(const std::string& message);
+    void StashFile(const std::string& path, const std::string& message = "");
     void StashPop();
     void Discard(const std::string& path);
     void ResolveConflict(const std::string& path, bool accept_current);

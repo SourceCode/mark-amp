@@ -223,6 +223,7 @@ MainFrame::MainFrame(const wxString& title,
     // Bind UI events
     Bind(wxEVT_CLOSE_WINDOW, &MainFrame::onClose, this);
     Bind(wxEVT_SIZE, &MainFrame::onSize, this);
+    Bind(wxEVT_ACTIVATE, &MainFrame::OnActivate, this);
 
     if (event_bus_ != nullptr)
     {
@@ -433,6 +434,16 @@ void MainFrame::onSize(wxSizeEvent& event)
     if (chrome_ != nullptr && platform_ != nullptr)
     {
         chrome_->set_maximized(platform_->is_maximized(this));
+    }
+    event.Skip();
+}
+
+void MainFrame::OnActivate(wxActivateEvent& event)
+{
+    if (event.GetActive() && event_bus_ != nullptr)
+    {
+        core::events::AppActivatedEvent activated_evt;
+        event_bus_->publish(activated_evt);
     }
     event.Skip();
 }

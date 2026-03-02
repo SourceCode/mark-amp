@@ -444,6 +444,12 @@ void GitCommandRunner::Stash(const std::string& message)
     RunSync("git -C \"" + workspace_root_ + "\" stash push -m \"" + message + "\"");
 }
 
+void GitCommandRunner::StashFile(const std::string& path, const std::string& message)
+{
+    std::string msg_arg = message.empty() ? "" : "-m \"" + message + "\" ";
+    RunSync("git -C \"" + workspace_root_ + "\" stash push " + msg_arg + "-- \"" + path + "\"");
+}
+
 void GitCommandRunner::StashPop()
 {
     RunSync("git -C \"" + workspace_root_ + "\" stash pop");

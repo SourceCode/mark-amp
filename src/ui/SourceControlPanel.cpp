@@ -7,6 +7,8 @@
 #include "ui/DesignSystemContext.h"
 #include "ui/IconManager.h"
 
+#include <wx/clipbrd.h>
+#include <wx/filename.h>
 #include <wx/menu.h>
 #include <wx/stattext.h>
 
@@ -34,6 +36,7 @@ SourceControlPanel::SourceControlPanel(wxWindow* parent,
     , git_provider_(std::make_unique<ui::GitStatusProvider>())
 {
     SetBackgroundColour(theme_engine.color(core::ThemeColorToken::BgPanel));
+    git_provider_->SetEventBus(&event_bus_);
     git_provider_->SetWorkspaceRoot(workspace_root_);
     CreateLayout(design_system, icon_manager);
     RefreshStatus();
@@ -111,30 +114,71 @@ void SourceControlPanel::CreateLayout(DesignSystemContext& design_system, IconMa
             }
         });
 
+    app_activate_sub_ = event_bus_.subscribe<core::events::AppActivatedEvent>(
+        [this](const core::events::AppActivatedEvent& /*evt*/)
+        {
+            auto now = std::chrono::steady_clock::now();
+            if (std::chrono::duration_cast<std::chrono::milliseconds>(now - last_refresh_time_)
+                    .count() > 1000)
+            {
+                last_refresh_time_ = now;
+                RefreshStatus();
+            }
+        });
+
+    file_saved_sub_ = event_bus_.subscribe<core::events::FileSavedEvent>(
+        [this](const core::events::FileSavedEvent& /*evt*/)
+        {
+            auto now = std::chrono::steady_clock::now();
+            if (std::chrono::duration_cast<std::chrono::milliseconds>(now - last_refresh_time_)
+                    .count() > 500)
+            {
+                last_refresh_time_ = now;
+                RefreshStatus();
+            }
+        });
+
     // 2. Sections Container
     auto* sections_sizer = new wxBoxSizer(wxVERTICAL);
     const std::string prefix = persistence_id_.empty() ? "scm_" : persistence_id_ + "_scm_";
 
     // 3. Commit Input area
-    auto* commit_panel = new wxPanel(this);
-    commit_panel->SetBackgroundColour(GetBackgroundColour());
+    commit_panel_ = new wxPanel(this);
+    commit_panel_->SetBackgroundColour(GetBackgroundColour());
     auto* commit_sizer = new wxBoxSizer(wxVERTICAL);
 
-    branch_choice_ = new wxChoice(commit_panel, wxID_ANY);
+    branch_choice_ = new wxChoice(commit_panel_, wxID_ANY);
+    branch_choice_->SetName("Branch Selector");
+    branch_choice_->SetHelpText("Select the branch to work on");
     branch_choice_->Bind(wxEVT_CHOICE, &SourceControlPanel::OnBranchSelected, this);
     commit_sizer->Add(branch_choice_, 0, wxEXPAND | wxALL, 8);
 
     commit_message_input_ = new wxTextCtrl(
-        commit_panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE);
+        commit_panel_, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE);
     commit_message_input_->SetHint("Message (Cmd+Enter to commit)");
+    commit_message_input_->SetName("Commit Message Input");
+    commit_message_input_->SetHelpText("Enter the message for your commit here");
     commit_sizer->Add(commit_message_input_, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 8);
 
-    commit_button_ = new wxButton(commit_panel, wxID_ANY, "Commit");
-    commit_button_->Bind(wxEVT_BUTTON, &SourceControlPanel::OnCommitButtonClicked, this);
-    commit_sizer->Add(commit_button_, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 8);
+    auto* buttons_sizer = new wxBoxSizer(wxHORIZONTAL);
 
-    commit_panel->SetSizer(commit_sizer);
-    sections_sizer->Add(commit_panel, 0, wxEXPAND);
+    template_button_ = new wxButton(commit_panel_, wxID_ANY, "Template");
+    template_button_->SetToolTip("Insert Commit Message Template");
+    template_button_->SetName("Template Button");
+    template_button_->SetHelpText("Insert a conventional commit template");
+    template_button_->Bind(wxEVT_BUTTON, &SourceControlPanel::OnTemplateButtonClicked, this);
+    buttons_sizer->Add(template_button_, 0, wxRIGHT, 8);
+
+    commit_button_ = new wxButton(commit_panel_, wxID_ANY, "Commit");
+    commit_button_->SetName("Commit Button");
+    commit_button_->SetHelpText("Commit your staged changes");
+    commit_button_->Bind(wxEVT_BUTTON, &SourceControlPanel::OnCommitButtonClicked, this);
+    buttons_sizer->Add(commit_button_, 1, wxEXPAND, 0);
+
+    commit_sizer->Add(buttons_sizer, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 8);
+
+    commit_panel_->SetSizer(commit_sizer);
+    sections_sizer->Add(commit_panel_, 0, wxEXPAND);
 
     // 4. Staged Changes Section
     staged_changes_section_ = new SidebarSection(this,
@@ -154,7 +198,8 @@ void SourceControlPanel::CreateLayout(DesignSystemContext& design_system, IconMa
     staged_list_->InsertColumn(2, "Stats", wxLIST_FORMAT_RIGHT, 50);
     staged_list_->SetBackgroundColour(GetBackgroundColour());
     staged_list_->Bind(wxEVT_LIST_ITEM_ACTIVATED, &SourceControlPanel::OnItemActivated, this);
-    staged_list_->Bind(wxEVT_LIST_ITEM_RIGHT_CLICK, &SourceControlPanel::OnItemRightClicked, this);
+    staged_list_->SetName("Staged Changes List");
+    staged_list_->SetHelpText("Files ready to be committed");
     staged_changes_section_->set_content(staged_list_);
     staged_changes_section_->set_expanded(true);
     sections_sizer->Add(staged_changes_section_, 1, wxEXPAND); // Flex height based on layout
@@ -172,7 +217,8 @@ void SourceControlPanel::CreateLayout(DesignSystemContext& design_system, IconMa
     changes_list_->InsertColumn(2, "Stats", wxLIST_FORMAT_RIGHT, 50);
     changes_list_->SetBackgroundColour(GetBackgroundColour());
     changes_list_->Bind(wxEVT_LIST_ITEM_ACTIVATED, &SourceControlPanel::OnItemActivated, this);
-    changes_list_->Bind(wxEVT_LIST_ITEM_RIGHT_CLICK, &SourceControlPanel::OnItemRightClicked, this);
+    changes_list_->SetName("Unstaged Changes List");
+    changes_list_->SetHelpText("Modified workspace files");
     all_changes_section_->set_content(changes_list_);
     all_changes_section_->set_expanded(true);
     sections_sizer->Add(all_changes_section_, 1, wxEXPAND);
@@ -188,11 +234,27 @@ void SourceControlPanel::CreateLayout(DesignSystemContext& design_system, IconMa
     timeline_list_->InsertColumn(0, "Message", wxLIST_FORMAT_LEFT, 200);
     timeline_list_->InsertColumn(1, "Date", wxLIST_FORMAT_RIGHT, 60);
     timeline_list_->SetBackgroundColour(GetBackgroundColour());
+    timeline_list_->SetName("Timeline List");
+    timeline_list_->SetHelpText("Recent commits history");
     timeline_section_->set_content(timeline_list_);
     timeline_section_->set_expanded(false);
     sections_sizer->Add(timeline_section_, 0, wxEXPAND);
 
     main_sizer->Add(sections_sizer, 1, wxEXPAND);
+
+    // 6b. Empty State
+    empty_state_ = new EmptyPanelState(this, design_system, icon_manager);
+    empty_state_->set_icon("git-branch");
+    empty_state_->set_message("No Source Control Providers Registered");
+    empty_state_->set_action("Initialize Repository",
+                             [this]()
+                             {
+                                 core::GitCommandRunner runner(workspace_root_);
+                                 runner.RunSync("init");
+                                 RefreshStatus();
+                             });
+    main_sizer->Add(empty_state_, 1, wxEXPAND | wxALL, 16);
+    empty_state_->Hide();
 
     // 7. Footer
     footer_ = new SidebarFooter(this, design_system, event_bus_);
@@ -225,6 +287,37 @@ void SourceControlPanel::UpdateDynamicUI()
         return;
 
     core::GitCommandRunner runner(workspace_root_);
+    bool is_git = runner.RunSync("rev-parse --is-inside-work-tree").success();
+
+    if (!is_git)
+    {
+        if (empty_state_)
+            empty_state_->Show(true);
+        if (commit_panel_)
+            commit_panel_->Show(false);
+        if (staged_changes_section_)
+            staged_changes_section_->Show(false);
+        if (all_changes_section_)
+            all_changes_section_->Show(false);
+        if (timeline_section_)
+            timeline_section_->Show(false);
+        Layout();
+        if (footer_ != nullptr)
+            footer_->set_text("");
+        return;
+    }
+
+    if (empty_state_)
+        empty_state_->Show(false);
+    if (commit_panel_)
+        commit_panel_->Show(true);
+    if (staged_changes_section_)
+        staged_changes_section_->Show(true);
+    if (all_changes_section_)
+        all_changes_section_->Show(true);
+    if (timeline_section_)
+        timeline_section_->Show(true);
+
     auto branches = runner.GetBranches();
     auto current_branch = runner.GetBranch();
 
@@ -412,8 +505,36 @@ void SourceControlPanel::OnItemActivated(wxListEvent& event)
 
 void SourceControlPanel::OnThemeChanged(const core::Theme& /*new_theme*/)
 {
-    SetBackgroundColour(theme_engine().color(core::ThemeColorToken::BgPanel));
-    // Additional coloring logic if needed
+    auto bg = theme_engine().color(core::ThemeColorToken::BgPanel);
+    auto fg = theme_engine().color(core::ThemeColorToken::TextMain);
+    SetBackgroundColour(bg);
+
+    if (staged_list_)
+    {
+        staged_list_->SetBackgroundColour(bg);
+        staged_list_->SetTextColour(fg);
+    }
+    if (changes_list_)
+    {
+        changes_list_->SetBackgroundColour(bg);
+        changes_list_->SetTextColour(fg);
+    }
+    if (timeline_list_)
+    {
+        timeline_list_->SetBackgroundColour(bg);
+        timeline_list_->SetTextColour(fg);
+    }
+    if (commit_message_input_)
+    {
+        commit_message_input_->SetBackgroundColour(bg);
+        commit_message_input_->SetForegroundColour(fg);
+    }
+    if (commit_panel_)
+    {
+        commit_panel_->SetBackgroundColour(bg);
+    }
+
+    Refresh();
 }
 
 void SourceControlPanel::OnBranchSelected(wxCommandEvent& /*event*/)
@@ -452,6 +573,10 @@ void SourceControlPanel::OnItemRightClicked(wxListEvent& event)
     bool is_staged = (list == staged_list_);
 
     wxMenu menu;
+    menu.Append(3004, "Open File");
+    menu.Append(3005, "Open Changes (Diff)");
+    menu.AppendSeparator();
+
     if (is_staged)
     {
         menu.Append(3001, "Unstage Changes");
@@ -463,8 +588,21 @@ void SourceControlPanel::OnItemRightClicked(wxListEvent& event)
         // Could also add Accept Current etc for Unmerged files here
     }
 
+    menu.AppendSeparator();
+    menu.Append(3006, "Stash File");
+    menu.AppendSeparator();
+    menu.Append(3007, "Copy Path");
+    menu.Append(3008, "Copy Relative Path");
+    menu.AppendSeparator();
+
+#if defined(__WXOSX__)
+    menu.Append(3009, "Reveal in Finder");
+#else
+    menu.Append(3009, "Reveal in Explorer");
+#endif
+
     menu.Bind(wxEVT_MENU,
-              [this, file_path](wxCommandEvent& menu_evt)
+              [this, file_path, is_staged](wxCommandEvent& menu_evt)
               {
                   core::GitCommandRunner runner(workspace_root_);
                   int id = menu_evt.GetId();
@@ -480,7 +618,147 @@ void SourceControlPanel::OnItemRightClicked(wxListEvent& event)
                   {
                       runner.Discard(file_path);
                   }
-                  RefreshStatus();
+                  else if (id == 3004) // Open File
+                  {
+                      std::string full_path =
+                          (std::filesystem::path(workspace_root_) / file_path).string();
+                      core::events::FileOpenRequestEvent open_evt;
+                      open_evt.file_path = full_path;
+                      event_bus_.publish(open_evt);
+                  }
+                  else if (id == 3005) // Open Changes (Diff)
+                  {
+                      std::string full_path =
+                          (std::filesystem::path(workspace_root_) / file_path).string();
+                      core::events::OpenDiffRequestEvent diff_evt;
+                      diff_evt.left_path = full_path;
+                      diff_evt.right_path = full_path;
+
+                      if (is_staged)
+                      {
+                          diff_evt.title = file_path + " (Staged vs HEAD)";
+                          diff_evt.left_content = runner.GetFileContentAtHEAD(file_path);
+                          diff_evt.right_content = runner.GetFileContentFromIndex(file_path);
+                      }
+                      else
+                      {
+                          diff_evt.title = file_path + " (Working vs Staged)";
+                          diff_evt.left_content = runner.GetFileContentFromIndex(file_path);
+
+                          std::ifstream file_stream(full_path);
+                          if (file_stream.is_open())
+                          {
+                              diff_evt.right_content.assign(
+                                  std::istreambuf_iterator<char>(file_stream),
+                                  std::istreambuf_iterator<char>());
+                          }
+                          else
+                          {
+                              diff_evt.right_content = "";
+                          }
+                      }
+                      event_bus_.publish(diff_evt);
+                  }
+                  else if (id == 3006) // Stash File
+                  {
+                      runner.StashFile(file_path, "Stashed from UI");
+                  }
+                  else if (id == 3007) // Copy Path
+                  {
+                      std::string full_path =
+                          (std::filesystem::path(workspace_root_) / file_path).string();
+                      if (wxTheClipboard->Open())
+                      {
+                          wxTheClipboard->SetData(new wxTextDataObject(full_path));
+                          wxTheClipboard->Close();
+                      }
+                  }
+                  else if (id == 3008) // Copy Relative Path
+                  {
+                      if (wxTheClipboard->Open())
+                      {
+                          wxTheClipboard->SetData(new wxTextDataObject(file_path));
+                          wxTheClipboard->Close();
+                      }
+                  }
+                  else if (id == 3009) // Reveal in Explorer
+                  {
+                      std::string full_path =
+                          (std::filesystem::path(workspace_root_) / file_path).string();
+                      if (wxFileName::FileExists(full_path) || wxFileName::DirExists(full_path))
+                      {
+#if defined(__WXOSX__)
+                          wxString cmd = wxString::Format("open -R \"%s\"", full_path);
+                          wxExecute(cmd);
+#elif defined(__WXMSW__)
+                          wxString cmd = wxString::Format("explorer /select,\"%s\"", full_path);
+                          wxExecute(cmd);
+#else
+                          wxLaunchDefaultApplication(wxFileName(full_path).GetPath());
+#endif
+                      }
+                  }
+
+                  if (id == 3001 || id == 3002 || id == 3003 || id == 3006)
+                  {
+                      RefreshStatus();
+                  }
+              });
+
+    PopupMenu(&menu);
+}
+
+void SourceControlPanel::OnTemplateButtonClicked(wxCommandEvent& /*event*/)
+{
+    if (!config_)
+        return;
+
+    auto templates = config_->get_commit_templates();
+    if (templates.empty())
+        return;
+
+    wxMenu menu;
+    int id = 4001; // Base id for template items
+    for (const auto& tmpl : templates)
+    {
+        menu.Append(id++, tmpl);
+    }
+
+    menu.Bind(wxEVT_MENU,
+              [this, templates](wxCommandEvent& menu_evt)
+              {
+                  int idx = menu_evt.GetId() - 4001;
+                  if (idx >= 0 && idx < static_cast<int>(templates.size()))
+                  {
+                      std::string tmpl = templates[static_cast<std::size_t>(idx)];
+                      wxString current = commit_message_input_->GetValue();
+
+                      if (current.Trim().IsEmpty())
+                      {
+                          commit_message_input_->SetValue(tmpl);
+                      }
+                      else
+                      {
+                          bool replaced = false;
+                          for (const auto& t : templates)
+                          {
+                              if (current.StartsWith(t))
+                              {
+                                  wxString new_msg = tmpl + current.Mid(t.length());
+                                  commit_message_input_->SetValue(new_msg);
+                                  replaced = true;
+                                  break;
+                              }
+                          }
+                          if (!replaced)
+                          {
+                              commit_message_input_->SetValue(tmpl + current);
+                          }
+                      }
+
+                      commit_message_input_->SetInsertionPointEnd();
+                      commit_message_input_->SetFocus();
+                  }
               });
 
     PopupMenu(&menu);

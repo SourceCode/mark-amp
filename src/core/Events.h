@@ -247,6 +247,7 @@ MARKAMP_DECLARE_EVENT_END;
 
 MARKAMP_DECLARE_EVENT(AppReadyEvent);
 MARKAMP_DECLARE_EVENT(AppShutdownEvent);
+MARKAMP_DECLARE_EVENT(AppActivatedEvent);
 
 // ============================================================================
 // Scroll sync events
@@ -2315,6 +2316,9 @@ MARKAMP_DECLARE_EVENT_WITH_FIELDS(GitStatusChangedEvent)
 int modified{0};
 int staged{0};
 int untracked{0};
+std::string branch_name;
+int ahead{0};
+int behind{0};
 MARKAMP_DECLARE_EVENT_END;
 
 MARKAMP_DECLARE_EVENT_WITH_FIELDS(GitCommitCreatedEvent)

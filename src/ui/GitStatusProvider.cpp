@@ -1,5 +1,8 @@
 #include "ui/GitStatusProvider.h"
 
+#include "core/EventBus.h"
+#include "core/Events.h"
+
 #include <wx/app.h>
 #include <wx/log.h>
 
@@ -38,6 +41,11 @@ void GitStatusProvider::SetWorkspaceRoot(const std::string& root_path)
     {
         Refresh();
     }
+}
+
+void GitStatusProvider::SetEventBus(core::EventBus* event_bus)
+{
+    event_bus_ = event_bus;
 }
 
 core::GitChangeStatus GitStatusProvider::GetFileStatus(const std::string& absolute_path) const
@@ -187,7 +195,7 @@ void GitStatusProvider::RunGitStatus()
     core::GitCommandRunner runner{workspace_root_};
 
     // v2 porcelain with -z emits machine readable null-terminated strings
-    auto result = runner.RunSync("git status --porcelain=v2 -z");
+    auto result = runner.RunSync("git status --porcelain=v2 --branch -z");
     if (!result.success() || result.stdout_text.empty())
     {
         return;
@@ -310,6 +318,40 @@ void GitStatusProvider::RunGitStatus()
         pos = next_null + 1;
     }
 
+    // Branch state tracking (for event publishing)
+    std::string branch_name;
+    int ahead = 0;
+    int behind = 0;
+
+    // Reset loop for branch headers parsing using newline (git status --branch -z headers)
+    pos = 0;
+    while (pos < output.size())
+    {
+        size_t next_null = output.find('\0', pos);
+        if (next_null == std::string::npos)
+            break;
+
+        std::string line = output.substr(pos, next_null - pos);
+        if (line.starts_with("# branch.head "))
+        {
+            branch_name = line.substr(14); // Skip "# branch.head "
+        }
+        else if (line.starts_with("# branch.ab "))
+        {
+            // e.g., "# branch.ab +0 -0"
+            std::string stats = line.substr(12);
+            std::istringstream stream(stats);
+            std::string a, b;
+            stream >> a >> b;
+            if (!a.empty() && a[0] == '+')
+                ahead = std::stoi(a.substr(1));
+            if (!b.empty() && b[0] == '-')
+                behind = std::stoi(b.substr(1));
+        }
+
+        pos = next_null + 1;
+    }
+
     // Now fetch diff stats
     auto parse_numstat = [&](const std::string& cmd, bool is_staged)
     {
@@ -373,6 +415,37 @@ void GitStatusProvider::RunGitStatus()
         if (wxTheApp)
         {
             wxTheApp->CallAfter(on_status_changed_);
+        }
+    }
+
+    if (event_bus_ != nullptr)
+    {
+        int modified = 0, staged = 0, untracked = 0;
+        for (const auto& entry : new_entries)
+        {
+            if (entry.working_status == core::GitChangeStatus::Untracked)
+                untracked++;
+            else if (entry.working_status != core::GitChangeStatus::None)
+                modified++;
+            if (entry.index_status != core::GitChangeStatus::None)
+                staged++;
+        }
+
+        auto* app = wxTheApp; // capture for thread context safety
+        if (app)
+        {
+            app->CallAfter(
+                [this, branch_name, ahead, behind, modified, staged, untracked]()
+                {
+                    core::events::GitStatusChangedEvent evt;
+                    evt.branch_name = branch_name;
+                    evt.ahead = ahead;
+                    evt.behind = behind;
+                    evt.modified = modified;
+                    evt.staged = staged;
+                    evt.untracked = untracked;
+                    event_bus_->publish(evt);
+                });
         }
     }
 }
