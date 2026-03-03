@@ -13,6 +13,7 @@
 #include <wx/srchctrl.h>
 #include <wx/stattext.h>
 
+#include <chrono>
 #include <string>
 #include <vector>
 
@@ -64,6 +65,14 @@ private:
     SidebarSection* installed_section_{nullptr};
     SidebarSection* recommended_section_{nullptr};
     SidebarSection* search_section_{nullptr};
+    SidebarSection* trending_section_{nullptr}; // Task 16: trending/popular
+
+    // Phase 20 Task 18: View tab bar
+    [[maybe_unused]] wxPanel* view_tab_bar_{nullptr};
+    wxButton* tab_installed_{nullptr};
+    wxButton* tab_marketplace_{nullptr};
+    wxButton* tab_recommended_{nullptr};
+    int active_view_tab_{0}; // 0=installed, 1=marketplace, 2=recommended
 
     wxBoxSizer* installed_card_sizer_{nullptr};
     wxBoxSizer* recommended_card_sizer_{nullptr};
@@ -79,6 +88,15 @@ private:
     std::vector<core::LocalExtension> installed_extensions_;
     core::GallerySortBy gallery_sort_{core::GallerySortBy::kInstallCount};
     std::string gallery_category_;
+    int focused_card_index_{-1};                  // Phase 20 Task 23: keyboard nav
+    [[maybe_unused]] bool workspace_mode_{false}; // Task 10: workspace-specific extensions
+    std::string active_profile_;                  // Task 19: extension profile name
+    std::vector<ExtensionCard*> trending_cards_;  // Task 16
+    wxBoxSizer* trending_card_sizer_{nullptr};    // Task 16
+
+    // Phase 20 Task 22: Marketplace cache
+    std::vector<core::GalleryExtension> marketplace_cache_;
+    std::chrono::steady_clock::time_point cache_timestamp_;
 
     // Subscriptions
     core::Subscription install_sub_;
@@ -99,7 +117,20 @@ private:
     void ShowDetailView(const std::string& extension_id);
     void ShowFilterMenu();
 
+    // Phase 20 Task 18: Switch view tab
+    void SwitchViewTab(int tab_index);
+
+    // Phase 20 Task 16: Populate trending section
+    void PopulateTrendingSection();
+
+    // Phase 20 Task 16: Clear trending cards
+    void ClearTrendingCards();
+
     [[nodiscard]] auto IsExtensionInstalled(const std::string& extension_id) const -> bool;
+
+    // Phase 20 Task 23: Keyboard navigation
+    void OnKeyDown(wxKeyEvent& event);
+    [[nodiscard]] auto GetVisibleCards() const -> const std::vector<ExtensionCard*>&;
 
     static constexpr int kSearchBarHeight = 28;
 };

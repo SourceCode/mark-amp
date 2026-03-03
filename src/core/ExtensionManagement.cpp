@@ -5,6 +5,7 @@
 #include "Logger.h"
 
 #include <algorithm>
+#include <unordered_map>
 
 namespace markamp::core
 {
@@ -233,6 +234,138 @@ auto ExtensionManagementService::find_dependents(const std::string& extension_id
     }
 
     return dependents;
+}
+
+// ── Phase 20 Task 5: Enable/Disable ──
+
+auto ExtensionManagementService::enable(const std::string& extension_id)
+    -> std::expected<void, std::string>
+{
+    refresh_cache();
+    auto found =
+        std::find_if(installed_cache_.begin(),
+                     installed_cache_.end(),
+                     [&extension_id](const LocalExtension& ext) {
+                         return (ext.manifest.publisher + "." + ext.manifest.name) == extension_id;
+                     });
+    if (found == installed_cache_.end())
+    {
+        return std::unexpected("Extension not found: " + extension_id);
+    }
+    found->enabled = true;
+    MARKAMP_LOG_INFO("Extension enabled: {}", extension_id);
+    return {};
+}
+
+auto ExtensionManagementService::disable(const std::string& extension_id)
+    -> std::expected<void, std::string>
+{
+    refresh_cache();
+    auto found =
+        std::find_if(installed_cache_.begin(),
+                     installed_cache_.end(),
+                     [&extension_id](const LocalExtension& ext) {
+                         return (ext.manifest.publisher + "." + ext.manifest.name) == extension_id;
+                     });
+    if (found == installed_cache_.end())
+    {
+        return std::unexpected("Extension not found: " + extension_id);
+    }
+    found->enabled = false;
+    MARKAMP_LOG_INFO("Extension disabled: {}", extension_id);
+    return {};
+}
+
+auto ExtensionManagementService::is_enabled(const std::string& extension_id) const -> bool
+{
+    auto found =
+        std::find_if(installed_cache_.begin(),
+                     installed_cache_.end(),
+                     [&extension_id](const LocalExtension& ext) {
+                         return (ext.manifest.publisher + "." + ext.manifest.name) == extension_id;
+                     });
+    return found != installed_cache_.end() && found->enabled;
+}
+
+// ── Phase 20 Task 20: Conflict Detection ──
+
+auto ExtensionManagementService::detect_conflicts() -> std::vector<ExtensionConflict>
+{
+    refresh_cache();
+    std::vector<ExtensionConflict> conflicts;
+
+    // Build maps: resource → owning extension ID
+    std::unordered_map<std::string, std::string> command_owners;
+    std::unordered_map<std::string, std::string> grammar_owners;
+    std::unordered_map<std::string, std::string> language_owners;
+
+    for (const auto& ext : installed_cache_)
+    {
+        if (!ext.enabled)
+        {
+            continue;
+        }
+        const auto ext_id = ext.manifest.publisher + "." + ext.manifest.name;
+
+        // Check command collisions
+        for (const auto& cmd : ext.manifest.contributes.commands)
+        {
+            auto it = command_owners.find(cmd.command);
+            if (it != command_owners.end() && it->second != ext_id)
+            {
+                ExtensionConflict conflict;
+                conflict.extension_a = it->second;
+                conflict.extension_b = ext_id;
+                conflict.conflict_type = "command";
+                conflict.detail = "Both register command: " + cmd.command;
+                conflicts.push_back(std::move(conflict));
+            }
+            else
+            {
+                command_owners[cmd.command] = ext_id;
+            }
+        }
+
+        // Check grammar scope collisions
+        for (const auto& grammar : ext.manifest.contributes.grammars)
+        {
+            auto it = grammar_owners.find(grammar.scope_name);
+            if (it != grammar_owners.end() && it->second != ext_id)
+            {
+                ExtensionConflict conflict;
+                conflict.extension_a = it->second;
+                conflict.extension_b = ext_id;
+                conflict.conflict_type = "grammar";
+                conflict.detail = "Both provide grammar scope: " + grammar.scope_name;
+                conflicts.push_back(std::move(conflict));
+            }
+            else
+            {
+                grammar_owners[grammar.scope_name] = ext_id;
+            }
+        }
+
+        // Check language contribution overlaps
+        for (const auto& lang : ext.manifest.contributes.languages)
+        {
+            auto it = language_owners.find(lang.language_id);
+            if (it != language_owners.end() && it->second != ext_id)
+            {
+                ExtensionConflict conflict;
+                conflict.extension_a = it->second;
+                conflict.extension_b = ext_id;
+                conflict.conflict_type = "language";
+                conflict.detail = "Both contribute language: " + lang.language_id;
+                conflicts.push_back(std::move(conflict));
+            }
+            else
+            {
+                language_owners[lang.language_id] = ext_id;
+            }
+        }
+    }
+
+    return conflicts;
 }
 
 // ── Auto-update scheduler (#43) ──

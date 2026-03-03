@@ -42,6 +42,7 @@ namespace markamp::core
 class IExtensionManagementService;
 class IExtensionGalleryService;
 class PanelService;
+class TerminalService;
 } // namespace markamp::core
 
 namespace markamp::ui::animation
@@ -165,6 +166,9 @@ public:
     void SetExtensionServices(core::IExtensionManagementService* mgmt_service,
                               core::IExtensionGalleryService* gallery_service);
 
+    /// Phase 21: Set terminal service for lazy terminal panel creation
+    void SetTerminalService(core::TerminalService* terminal_service);
+
     /// Phase 06 Task 2/4: Lazy panel registry for sidebar modes
     [[nodiscard]] auto sidebar_panel_registry() -> SidebarPanelRegistry&;
 
@@ -246,6 +250,7 @@ private:
     ExtensionsBrowserPanel* extensions_panel_{nullptr};
     core::IExtensionManagementService* ext_mgmt_service_{nullptr};
     core::IExtensionGalleryService* ext_gallery_service_{nullptr};
+    core::TerminalService* terminal_service_{nullptr};
     core::Subscription show_extensions_sub_;
     core::Subscription show_explorer_sub_;
     core::Subscription feature_toggled_sub_;

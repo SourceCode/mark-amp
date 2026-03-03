@@ -86,6 +86,7 @@ add_executable(markamp
     ui/GutterDecorationProvider.cpp
     ui/CodeLensProvider.cpp
     ui/GitGutterProvider.cpp
+    ui/GitBlameGutterProvider.cpp
     ui/MergeConflictResolver.cpp
     ui/DiffPanel.cpp
     ui/PreviewPanel.cpp
@@ -142,6 +143,23 @@ add_executable(markamp
     ui/PanelContainer.cpp
     ui/TerminalPanel.cpp
     ui/DebugConsolePanel.cpp
+    # Phase 19: Run and Debug Panel
+    ui/RunDebugPanel.cpp
+    ui/DebugToolbar.cpp
+    core/LaunchConfig.cpp
+    core/DebugSessionManager.cpp
+    core/DebugAdapterClient.cpp
+    core/TaskRunner.cpp
+    core/ProcessRunner.cpp
+    core/CompilerOutputParser.cpp
+    # Phase 20: Extensions Panel V2
+    core/MarketplaceCache.cpp
+    core/ExtensionIconCache.cpp
+    # Phase 21: Integrated Terminal Panel
+    core/AnsiParser.cpp
+    core/TerminalBuffer.cpp
+    core/PtyProcess.cpp
+    ui/TerminalTabBar.cpp
     ui/ProblemsPanel.cpp
     ui/TreeViewHost.cpp
     ui/WebviewHostPanel.cpp

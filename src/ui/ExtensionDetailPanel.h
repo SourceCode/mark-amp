@@ -73,6 +73,20 @@ private:
     wxStaticText* deps_header_{nullptr};
     wxStaticText* deps_text_{nullptr};
 
+    // Phase 20 Task 4: Tab bar
+    wxPanel* tab_bar_{nullptr};
+    wxButton* tab_overview_{nullptr};
+    wxButton* tab_changelog_{nullptr};
+    wxButton* tab_deps_{nullptr};
+    int active_tab_{0};
+
+    // Changelog content
+    wxStaticText* changelog_text_{nullptr};
+    wxStaticText* runtime_info_text_{nullptr}; // Task 15: runtime info
+    wxPanel* overview_panel_{nullptr};
+    wxPanel* changelog_panel_{nullptr};
+    wxPanel* deps_panel_{nullptr};
+
     // Callbacks
     std::function<void()> on_back_;
     std::function<void(const std::string&)> on_install_;

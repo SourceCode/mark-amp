@@ -1,4 +1,5 @@
 #include "core/EnvironmentService.h"
+#include "core/EventBus.h"
 #include "core/ExtensionEvents.h"
 #include "core/GrammarEngine.h"
 #include "core/IPlugin.h"
@@ -532,16 +533,17 @@ TEST_CASE("GrammarEngine: stub returns defaults", "[p3][grammar]")
 // P4: Terminal Stub (Gap 9)
 // ══════════════════════════════════════════
 
-TEST_CASE("TerminalService: stub returns empty", "[p4][terminal]")
+TEST_CASE("TerminalService: construction and empty state", "[p4][terminal]")
 {
-    TerminalService svc;
+    EventBus event_bus;
+    TerminalService svc(event_bus);
 
-    auto terminal = svc.create_terminal("bash", "/bin/bash");
-    REQUIRE_FALSE(terminal.has_value());
-
-    REQUIRE_FALSE(svc.send_text(0, "echo hello"));
-    REQUIRE_FALSE(svc.close_terminal(0));
+    // Service starts with no terminals
     REQUIRE(svc.terminals().empty());
+
+    // Operations on non-existent terminals return false
+    REQUIRE_FALSE(svc.send_text(999, "echo hello"));
+    REQUIRE_FALSE(svc.close_terminal(999));
 }
 
 // ══════════════════════════════════════════
@@ -572,7 +574,8 @@ TEST_CASE("PluginContext: wire up all P1-P4 services", "[integration]")
     ExtensionEventBus event_bus;
     EnvironmentService env_svc;
     GrammarEngine grammar_engine;
-    TerminalService terminal_svc;
+    EventBus core_event_bus;
+    TerminalService terminal_svc(core_event_bus);
     TaskRunnerService task_runner_svc;
 
     // Wire into PluginContext

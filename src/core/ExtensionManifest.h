@@ -416,6 +416,9 @@ struct ExtensionManifest
     std::optional<RepositoryInfo> repository;
     std::string bugs_url;
 
+    // Phase 20 Task 13: Raw changelog text (from CHANGELOG.md or manifest)
+    std::string changelog;
+
     // -- V8 Phase 8: Canvas app contributions --
     CanvasAppManifest canvas_app;
 

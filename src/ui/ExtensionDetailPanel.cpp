@@ -101,7 +101,80 @@ void ExtensionDetailPanel::CreateLayout()
     action_sizer->Add(uninstall_button_, 0, wxRIGHT, 6);
     action_sizer->Add(update_button_, 0);
 
-    main_sizer->Add(action_sizer, 0, wxEXPAND | wxBOTTOM, 12);
+    main_sizer->Add(action_sizer, 0, wxEXPAND | wxBOTTOM, 8);
+
+    // Phase 20 Task 4: Tab bar
+    tab_bar_ = new wxPanel(this, wxID_ANY);
+    tab_bar_->SetBackgroundColour(
+        theme_engine_.color(core::ThemeColorToken::BgPanel).ChangeLightness(95));
+    auto* tab_sizer = new wxBoxSizer(wxHORIZONTAL);
+
+    auto make_tab = [this](const std::string& label, int tab_index) -> wxButton*
+    {
+        auto* btn = new wxButton(tab_bar_,
+                                 wxID_ANY,
+                                 label,
+                                 wxDefaultPosition,
+                                 wxDefaultSize,
+                                 wxBORDER_NONE | wxBU_EXACTFIT);
+        btn->SetFont(theme_engine_.font(core::ThemeFontToken::UISmall));
+        btn->SetMinSize(wxSize(-1, 28));
+        btn->Bind(wxEVT_BUTTON,
+                  [this, tab_index](wxCommandEvent& /*evt*/)
+                  {
+                      active_tab_ = tab_index;
+                      // Show/hide panels based on active tab
+                      if (overview_panel_ != nullptr)
+                      {
+                          overview_panel_->Show(active_tab_ == 0);
+                      }
+                      if (changelog_panel_ != nullptr)
+                      {
+                          changelog_panel_->Show(active_tab_ == 1);
+                      }
+                      if (deps_panel_ != nullptr)
+                      {
+                          deps_panel_->Show(active_tab_ == 2);
+                      }
+
+                      // Update tab button styling
+                      auto accent = theme_engine_.color(core::ThemeColorToken::AccentPrimary);
+                      auto muted = theme_engine_.color(core::ThemeColorToken::TextMuted);
+                      if (tab_overview_ != nullptr)
+                      {
+                          tab_overview_->SetForegroundColour(active_tab_ == 0 ? accent : muted);
+                      }
+                      if (tab_changelog_ != nullptr)
+                      {
+                          tab_changelog_->SetForegroundColour(active_tab_ == 1 ? accent : muted);
+                      }
+                      if (tab_deps_ != nullptr)
+                      {
+                          tab_deps_->SetForegroundColour(active_tab_ == 2 ? accent : muted);
+                      }
+
+                      if (content_scroll_ != nullptr)
+                      {
+                          content_scroll_->Layout();
+                          content_scroll_->FitInside();
+                      }
+                      Layout();
+                      Refresh();
+                  });
+        return btn;
+    };
+
+    tab_overview_ = make_tab("Overview", 0);
+    tab_changelog_ = make_tab("Changelog", 1);
+    tab_deps_ = make_tab("Dependencies", 2);
+
+    tab_sizer->AddSpacer(12);
+    tab_sizer->Add(tab_overview_, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 16);
+    tab_sizer->Add(tab_changelog_, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 16);
+    tab_sizer->Add(tab_deps_, 0, wxALIGN_CENTER_VERTICAL);
+    tab_bar_->SetSizer(tab_sizer);
+
+    main_sizer->Add(tab_bar_, 0, wxEXPAND | wxBOTTOM, 2);
 
     // Separator line
     auto* separator = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(-1, 1));
@@ -114,22 +187,56 @@ void ExtensionDetailPanel::CreateLayout()
     content_scroll_->SetScrollRate(0, 10);
     auto* scroll_sizer = new wxBoxSizer(wxVERTICAL);
 
-    // Description
+    // ── Overview panel (tab 0) ──
+    overview_panel_ = new wxPanel(content_scroll_, wxID_ANY);
+    auto* overview_sizer = new wxBoxSizer(wxVERTICAL);
     description_text_ = new wxStaticText(
-        content_scroll_, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, wxST_NO_AUTORESIZE);
+        overview_panel_, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, wxST_NO_AUTORESIZE);
     description_text_->SetFont(theme_engine_.font(core::ThemeFontToken::MonoRegular).Scaled(0.90F));
     description_text_->Wrap(300);
-    scroll_sizer->Add(description_text_, 0, wxEXPAND | wxALL, 12);
+    overview_sizer->Add(description_text_, 0, wxEXPAND | wxALL, 12);
 
-    // Dependencies section
-    deps_header_ = new wxStaticText(content_scroll_, wxID_ANY, "Dependencies");
+    // Phase 20 Task 15: Runtime info section
+    runtime_info_text_ = new wxStaticText(
+        overview_panel_, wxID_ANY, "", wxDefaultPosition, wxDefaultSize, wxST_NO_AUTORESIZE);
+    runtime_info_text_->SetFont(theme_engine_.font(core::ThemeFontToken::UISmall));
+    runtime_info_text_->SetForegroundColour(theme_engine_.color(core::ThemeColorToken::TextMuted));
+    overview_sizer->Add(runtime_info_text_, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 12);
+
+    overview_panel_->SetSizer(overview_sizer);
+    scroll_sizer->Add(overview_panel_, 0, wxEXPAND);
+
+    // ── Changelog panel (tab 1) ──
+    changelog_panel_ = new wxPanel(content_scroll_, wxID_ANY);
+    auto* changelog_sizer = new wxBoxSizer(wxVERTICAL);
+    changelog_text_ = new wxStaticText(changelog_panel_,
+                                       wxID_ANY,
+                                       "No changelog available.",
+                                       wxDefaultPosition,
+                                       wxDefaultSize,
+                                       wxST_NO_AUTORESIZE);
+    changelog_text_->SetFont(theme_engine_.font(core::ThemeFontToken::MonoRegular).Scaled(0.85F));
+    changelog_text_->Wrap(300);
+    changelog_sizer->Add(changelog_text_, 0, wxEXPAND | wxALL, 12);
+    changelog_panel_->SetSizer(changelog_sizer);
+    changelog_panel_->Hide(); // Initially hidden
+    scroll_sizer->Add(changelog_panel_, 0, wxEXPAND);
+
+    // ── Dependencies panel (tab 2) ──
+    deps_panel_ = new wxPanel(content_scroll_, wxID_ANY);
+    auto* deps_sizer = new wxBoxSizer(wxVERTICAL);
+    deps_header_ = new wxStaticText(deps_panel_, wxID_ANY, "Dependencies");
     deps_header_->SetFont(
         theme_engine_.font(core::ThemeFontToken::MonoRegular).Bold().Scaled(0.95F));
-    scroll_sizer->Add(deps_header_, 0, wxLEFT | wxTOP, 12);
+    deps_sizer->Add(deps_header_, 0, wxLEFT | wxTOP, 12);
 
-    deps_text_ = new wxStaticText(content_scroll_, wxID_ANY, "None");
+    deps_text_ = new wxStaticText(deps_panel_, wxID_ANY, "None");
     deps_text_->SetFont(theme_engine_.font(core::ThemeFontToken::MonoRegular).Scaled(0.85F));
-    scroll_sizer->Add(deps_text_, 0, wxLEFT | wxTOP | wxBOTTOM, 12);
+    deps_sizer->Add(deps_text_, 0, wxLEFT | wxTOP | wxBOTTOM, 12);
+
+    deps_panel_->SetSizer(deps_sizer);
+    deps_panel_->Hide(); // Initially hidden
+    scroll_sizer->Add(deps_panel_, 0, wxEXPAND);
 
     content_scroll_->SetSizer(scroll_sizer);
     main_sizer->Add(content_scroll_, 1, wxEXPAND);
@@ -140,6 +247,11 @@ void ExtensionDetailPanel::CreateLayout()
     install_button_->Hide();
     uninstall_button_->Hide();
     update_button_->Hide();
+
+    // Set initial tab styling
+    tab_overview_->SetForegroundColour(theme_engine_.color(core::ThemeColorToken::AccentPrimary));
+    tab_changelog_->SetForegroundColour(theme_engine_.color(core::ThemeColorToken::TextMuted));
+    tab_deps_->SetForegroundColour(theme_engine_.color(core::ThemeColorToken::TextMuted));
 }
 
 void ExtensionDetailPanel::ShowExtension(const core::LocalExtension& extension, bool has_update)
@@ -154,7 +266,31 @@ void ExtensionDetailPanel::ShowExtension(const core::LocalExtension& extension, 
     description_text_->SetLabel(extension.manifest.description);
     description_text_->Wrap(GetClientSize().GetWidth() - 24);
 
-    // Dependencies
+    // Phase 20 Task 15: Runtime info for installed extensions
+    if (runtime_info_text_ != nullptr)
+    {
+        std::string info;
+        info += "Runtime Information\n";
+        info += "  Status: ";
+        info += extension.enabled ? "Active" : "Disabled";
+        info += "\n";
+        info += "  Location: " + extension.location.string() + "\n";
+        info += "  Built-in: ";
+        info += extension.is_builtin ? "Yes" : "No";
+        info += "\n";
+        if (!extension.manifest.main.empty())
+        {
+            info += "  Entry Point: " + extension.manifest.main + "\n";
+        }
+        if (!extension.manifest.engines_vscode.empty())
+        {
+            info += "  Engine: " + extension.manifest.engines_vscode + "\n";
+        }
+        runtime_info_text_->SetLabel(info);
+        runtime_info_text_->Show();
+    }
+
+    // Dependencies tab
     if (extension.manifest.extension_dependencies.empty())
     {
         deps_text_->SetLabel("None");
@@ -168,9 +304,47 @@ void ExtensionDetailPanel::ShowExtension(const core::LocalExtension& extension, 
             {
                 deps_str += "\n";
             }
-            deps_str += "  • " + dep;
+            deps_str += "  \xE2\x80\xA2 " + dep; // bullet
         }
         deps_text_->SetLabel(deps_str);
+    }
+
+    // Phase 20 Task 13: Changelog tab
+    if (changelog_text_ != nullptr)
+    {
+        if (extension.manifest.changelog.empty())
+        {
+            changelog_text_->SetLabel("No changelog available.");
+        }
+        else
+        {
+            changelog_text_->SetLabel(extension.manifest.changelog);
+            changelog_text_->Wrap(GetClientSize().GetWidth() - 24);
+        }
+    }
+
+    // Phase 20 Task 21: Contributed commands — append to dependencies panel
+    if (!extension.manifest.contributes.commands.empty())
+    {
+        std::string cmds_str = "\n\nCONTRIBUTED COMMANDS\n";
+        for (const auto& cmd : extension.manifest.contributes.commands)
+        {
+            cmds_str += "  \xE2\x80\xA2 ";
+            if (!cmd.category.empty())
+            {
+                cmds_str += cmd.category + ": ";
+            }
+            cmds_str += cmd.title;
+            if (!cmd.command.empty())
+            {
+                cmds_str += "  (" + cmd.command + ")";
+            }
+            cmds_str += "\n";
+        }
+        if (deps_text_ != nullptr)
+        {
+            deps_text_->SetLabel(deps_text_->GetLabel().ToStdString() + cmds_str);
+        }
     }
 
     UpdateActionButtons();
@@ -193,6 +367,12 @@ void ExtensionDetailPanel::ShowGalleryExtension(const core::GalleryExtension& ex
     description_text_->Wrap(GetClientSize().GetWidth() - 24);
 
     deps_text_->SetLabel("None");
+
+    // Phase 20 Task 13: Changelog tab (no changelog for gallery extensions)
+    if (changelog_text_ != nullptr)
+    {
+        changelog_text_->SetLabel("No changelog available for gallery extensions.");
+    }
 
     UpdateActionButtons();
     Layout();
@@ -300,6 +480,27 @@ void ExtensionDetailPanel::ApplyTheme()
     if (deps_text_ != nullptr)
     {
         deps_text_->SetForegroundColour(theme_engine_.color(core::ThemeColorToken::TextMuted));
+    }
+    if (changelog_text_ != nullptr)
+    {
+        changelog_text_->SetForegroundColour(theme_engine_.color(core::ThemeColorToken::TextMuted));
+    }
+    if (tab_bar_ != nullptr)
+    {
+        tab_bar_->SetBackgroundColour(
+            theme_engine_.color(core::ThemeColorToken::BgPanel).ChangeLightness(95));
+    }
+    if (overview_panel_ != nullptr)
+    {
+        overview_panel_->SetBackgroundColour(bg_color);
+    }
+    if (changelog_panel_ != nullptr)
+    {
+        changelog_panel_->SetBackgroundColour(bg_color);
+    }
+    if (deps_panel_ != nullptr)
+    {
+        deps_panel_->SetBackgroundColour(bg_color);
     }
 
     // Style action buttons

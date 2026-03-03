@@ -704,6 +704,83 @@ int screen_y{0};
 MARKAMP_DECLARE_EVENT_END;
 
 // ============================================================================
+// Phase 19: Debug events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DebugStateChangedEvent)
+std::string session_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DebugStoppedEvent)
+std::string file;
+int line{0};
+std::string reason; // "breakpoint", "step", "exception"
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DebugOutputEvent)
+std::string category; // "console", "stdout", "stderr"
+std::string text;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── Phase 20: Extension lifecycle events ──
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ExtensionEnabledEvent)
+std::string extension_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ExtensionDisabledEvent)
+std::string extension_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ExtensionInstallProgressEvent)
+std::string extension_id;
+int percent{0};
+std::string status; // "downloading", "installing", "complete", "error"
+MARKAMP_DECLARE_EVENT_END;
+
+// ── Phase 21: Terminal events ──
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TerminalCreatedEvent)
+int terminal_id{0};
+std::string name;
+std::string shell_path;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TerminalDestroyedEvent)
+int terminal_id{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TerminalDataOutputEvent)
+int terminal_id{0};
+std::string data;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TerminalDataInputEvent)
+int terminal_id{0};
+std::string data;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TerminalTitleChangedEvent)
+int terminal_id{0};
+std::string title;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TerminalCwdChangedEvent)
+int terminal_id{0};
+std::string cwd;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TerminalBellEvent)
+int terminal_id{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TerminalResizedEvent)
+int terminal_id{0};
+int cols{80};
+int rows{24};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
 // Notification events
 // ============================================================================
 

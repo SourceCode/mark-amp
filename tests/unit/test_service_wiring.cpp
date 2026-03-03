@@ -55,7 +55,8 @@ TEST_CASE("ServiceWiring: all extension services instantiate", "[integration][wi
     ExtensionEventBus ext_events;
     EnvironmentService environment;
     GrammarEngine grammar;
-    TerminalService terminal;
+    EventBus terminal_event_bus;
+    TerminalService terminal(terminal_event_bus);
     TaskRunnerService task_runner;
     InputBoxService input_box;
     QuickPickService quick_pick;
@@ -91,7 +92,8 @@ TEST_CASE("ServiceWiring: PluginManager receives all ExtensionServices", "[integ
     ProgressService progress;
     EnvironmentService environment;
     GrammarEngine grammar;
-    TerminalService terminal;
+    EventBus terminal_event_bus;
+    TerminalService terminal(terminal_event_bus);
     TaskRunnerService task_runner;
     InputBoxService input_box;
     QuickPickService quick_pick;

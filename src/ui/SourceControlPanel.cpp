@@ -204,6 +204,26 @@ void SourceControlPanel::CreateLayout(DesignSystemContext& design_system, IconMa
     staged_changes_section_->set_expanded(true);
     sections_sizer->Add(staged_changes_section_, 1, wxEXPAND); // Flex height based on layout
 
+    // 4b. Merge Changes Section (shown only when unmerged files exist)
+    merge_changes_section_ = new SidebarSection(
+        this, design_system, icon_manager, event_bus_, config_, "MERGE CHANGES", prefix + "merge");
+    merge_list_ = new wxListCtrl(merge_changes_section_,
+                                 wxID_ANY,
+                                 wxDefaultPosition,
+                                 wxDefaultSize,
+                                 wxLC_REPORT | wxLC_SINGLE_SEL | wxBORDER_NONE | wxLC_NO_HEADER);
+    merge_list_->InsertColumn(0, "File", wxLIST_FORMAT_LEFT, 210);
+    merge_list_->InsertColumn(1, "Status", wxLIST_FORMAT_RIGHT, 20);
+    merge_list_->SetBackgroundColour(GetBackgroundColour());
+    merge_list_->Bind(
+        wxEVT_LIST_ITEM_RIGHT_CLICK, &SourceControlPanel::OnMergeItemRightClicked, this);
+    merge_list_->SetName("Merge Conflicts List");
+    merge_list_->SetHelpText("Files with merge conflicts requiring resolution");
+    merge_changes_section_->set_content(merge_list_);
+    merge_changes_section_->set_expanded(true);
+    merge_changes_section_->Show(false); // Hidden until conflicts detected
+    sections_sizer->Add(merge_changes_section_, 0, wxEXPAND);
+
     // 5. All Changes Section
     all_changes_section_ = new SidebarSection(
         this, design_system, icon_manager, event_bus_, config_, "CHANGES", prefix + "changes");
@@ -352,10 +372,13 @@ void SourceControlPanel::UpdateDynamicUI()
 
     if (staged_list_)
         staged_list_->DeleteAllItems();
+    if (merge_list_)
+        merge_list_->DeleteAllItems();
     if (changes_list_)
         changes_list_->DeleteAllItems();
 
     int staged_count = 0;
+    int merge_count = 0;
     int unstaged_count = 0;
 
     auto format_status = [](core::GitChangeStatus status) -> wxString
@@ -399,6 +422,20 @@ void SourceControlPanel::UpdateDynamicUI()
 
     for (const auto& change : changes)
     {
+        // Task 10: Detect unmerged (conflicted) files and display in merge section
+        bool is_conflict = (change.index_status == core::GitChangeStatus::Unmerged ||
+                            change.working_status == core::GitChangeStatus::Unmerged);
+
+        if (is_conflict && merge_list_ != nullptr)
+        {
+            long row = merge_list_->InsertItem(merge_list_->GetItemCount(), change.path);
+            merge_list_->SetItem(row, 1, "C");
+            merge_list_->SetItemTextColour(row, {235, 87, 87}); // Red for conflicts
+            merge_list_->SetItemData(row, merge_count);
+            merge_count++;
+            continue; // Conflicts go only in the merge section
+        }
+
         if (change.index_status != core::GitChangeStatus::None && staged_list_ != nullptr)
         {
             long row = staged_list_->InsertItem(staged_list_->GetItemCount(), change.path);
@@ -440,6 +477,18 @@ void SourceControlPanel::UpdateDynamicUI()
         staged_changes_section_->set_title(
             wxString::Format("STAGED CHANGES (%d)", staged_count).ToStdString());
     }
+
+    // Task 10: Show/hide merge changes section
+    if (merge_changes_section_ != nullptr)
+    {
+        merge_changes_section_->Show(merge_count > 0);
+        if (merge_count > 0)
+        {
+            merge_changes_section_->set_title(
+                wxString::Format("MERGE CHANGES (%d)", merge_count).ToStdString());
+        }
+    }
+
     if (all_changes_section_ != nullptr)
     {
         all_changes_section_->set_title(
@@ -448,8 +497,12 @@ void SourceControlPanel::UpdateDynamicUI()
 
     if (footer_ != nullptr)
     {
-        const int total = staged_count + unstaged_count;
-        const std::string text = std::to_string(total) + " pending change(s)";
+        const int total = staged_count + merge_count + unstaged_count;
+        std::string text = std::to_string(total) + " pending change(s)";
+        if (merge_count > 0)
+        {
+            text += " \xE2\x80\x94 " + std::to_string(merge_count) + " conflict(s)";
+        }
         footer_->set_text(text);
     }
 }
@@ -518,6 +571,11 @@ void SourceControlPanel::OnThemeChanged(const core::Theme& /*new_theme*/)
     {
         changes_list_->SetBackgroundColour(bg);
         changes_list_->SetTextColour(fg);
+    }
+    if (merge_list_)
+    {
+        merge_list_->SetBackgroundColour(bg);
+        merge_list_->SetTextColour(fg);
     }
     if (timeline_list_)
     {
@@ -758,6 +816,53 @@ void SourceControlPanel::OnTemplateButtonClicked(wxCommandEvent& /*event*/)
 
                       commit_message_input_->SetInsertionPointEnd();
                       commit_message_input_->SetFocus();
+                  }
+              });
+
+    PopupMenu(&menu);
+}
+
+void SourceControlPanel::OnMergeItemRightClicked(wxListEvent& event)
+{
+    if (merge_list_ == nullptr || git_provider_ == nullptr)
+    {
+        return;
+    }
+
+    const long item_idx = event.GetIndex();
+    const std::string file_path = merge_list_->GetItemText(item_idx).ToStdString();
+
+    wxMenu menu;
+    menu.Append(5001, "Accept Current Change");
+    menu.Append(5002, "Accept Incoming Change");
+    menu.AppendSeparator();
+    menu.Append(5003, "Open File");
+
+    menu.Bind(wxEVT_MENU,
+              [this, file_path](wxCommandEvent& menu_evt)
+              {
+                  core::GitCommandRunner runner(workspace_root_);
+                  const int menu_id = menu_evt.GetId();
+                  if (menu_id == 5001) // Accept Current
+                  {
+                      runner.ResolveConflict(file_path, /*accept_current=*/true);
+                  }
+                  else if (menu_id == 5002) // Accept Incoming
+                  {
+                      runner.ResolveConflict(file_path, /*accept_current=*/false);
+                  }
+                  else if (menu_id == 5003) // Open File
+                  {
+                      const std::string full_path =
+                          (std::filesystem::path(workspace_root_) / file_path).string();
+                      core::events::FileOpenRequestEvent open_evt;
+                      open_evt.file_path = full_path;
+                      event_bus_.publish(open_evt);
+                  }
+
+                  if (menu_id == 5001 || menu_id == 5002)
+                  {
+                      RefreshStatus();
                   }
               });
 

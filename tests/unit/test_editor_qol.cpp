@@ -20,9 +20,33 @@ public:
 class TestApp : public wxApp
 {
 public:
-    virtual bool OnInit()
+    virtual bool OnInit() override
     {
         return true;
+    }
+
+    virtual void OnAssertFailure(const wxChar* file,
+                                 int line,
+                                 const wxChar* func,
+                                 const wxChar* cond,
+                                 const wxChar* msg) override
+    {
+        wxString funcStr = func ? wxString(func) : wxT("");
+        wxString condStr = cond ? wxString(cond) : wxT("");
+
+        // Ignore known harmless wxStyledTextCtrl macOS assertion
+        if (funcStr == wxT("DragAcceptFiles") && condStr.Contains(wxT("GetDropTarget")))
+        {
+            return;
+        }
+
+        fprintf(stderr,
+                "wxWidgets Assert Failure in %s at line %d (in %s): %s\n",
+                (const char*)wxString(file).utf8_str(),
+                line,
+                (const char*)wxString(func).utf8_str(),
+                (const char*)wxString(msg).utf8_str());
+        abort();
     }
 };
 

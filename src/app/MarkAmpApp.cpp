@@ -189,7 +189,7 @@ bool MarkAmpApp::OnInit()
     input_box_service_ = std::make_unique<core::InputBoxService>();
     quick_pick_service_ = std::make_unique<core::QuickPickService>();
     grammar_engine_ = std::make_unique<core::GrammarEngine>();
-    terminal_service_ = std::make_unique<core::TerminalService>();
+    terminal_service_ = std::make_unique<core::TerminalService>(*event_bus_);
     task_runner_service_ = std::make_unique<core::TaskRunnerService>();
     MARKAMP_LOG_INFO("Extension API services initialized (21 services)");
     startup_timer.checkpoint("extension_services_initialized");

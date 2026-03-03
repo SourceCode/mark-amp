@@ -29,6 +29,7 @@
 #include "ui/SecondarySidebarTabStrip.h"
 #include "ui/SidebarHeader.h"
 #include "ui/SourceControlPanel.h"
+#include "ui/TerminalPanel.h"
 
 #include <nlohmann/json.hpp>
 #include <wx/button.h>
@@ -2087,6 +2088,20 @@ void LayoutManager::CreateLayout()
                                                 return walkthrough_panel_;
                                             });
 
+    // Phase 21: Terminal panel (deferred — requires TerminalService injection)
+    panel_container_->RegisterDeferredPanel(
+        "markamp.panel.terminal",
+        [this](wxWindow* parent)
+        {
+            if (terminal_service_ == nullptr)
+            {
+                return static_cast<wxWindow*>(nullptr);
+            }
+            terminal_panel_ =
+                new TerminalPanel(parent, theme_engine(), event_bus_, *terminal_service_);
+            return static_cast<wxWindow*>(terminal_panel_);
+        });
+
     panel_sizer->Add(panel_container_, 1, wxEXPAND);
     panel_zone->SetSizer(panel_sizer);
 
@@ -3265,6 +3280,11 @@ void LayoutManager::SetExtensionServices(core::IExtensionManagementService* mgmt
 {
     ext_mgmt_service_ = mgmt_service;
     ext_gallery_service_ = gallery_service;
+}
+
+void LayoutManager::SetTerminalService(core::TerminalService* terminal_service)
+{
+    terminal_service_ = terminal_service;
 }
 
 // --- V8 Phase 6: Canvas mode switching ---

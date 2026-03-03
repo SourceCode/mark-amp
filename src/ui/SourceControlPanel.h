@@ -46,6 +46,7 @@ private:
     void UpdateDynamicUI();
     void OnItemActivated(wxListEvent& event);
     void OnItemRightClicked(wxListEvent& event);
+    void OnMergeItemRightClicked(wxListEvent& event);
     void OnCommitButtonClicked(wxCommandEvent& event);
     void OnTemplateButtonClicked(wxCommandEvent& event);
     void OnBranchSelected(wxCommandEvent& event);
@@ -66,6 +67,9 @@ private:
 
     SidebarSection* staged_changes_section_{nullptr};
     wxListCtrl* staged_list_{nullptr};
+
+    SidebarSection* merge_changes_section_{nullptr};
+    wxListCtrl* merge_list_{nullptr};
 
     SidebarSection* all_changes_section_{nullptr};
     wxListCtrl* changes_list_{nullptr};

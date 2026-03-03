@@ -15,6 +15,7 @@ struct LocalExtension
     ExtensionManifest manifest;
     std::filesystem::path location; // Directory containing the extension
     bool is_builtin{false};         // True for bundled built-in extensions
+    bool enabled{true};             // Phase 20 Task 5: per-extension enable/disable
 };
 
 /// Interface for scanning the filesystem for installed extensions.

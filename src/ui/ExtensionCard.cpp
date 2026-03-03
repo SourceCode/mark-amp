@@ -4,6 +4,8 @@
 
 #include <wx/dcbuffer.h>
 
+#include <cstdio>
+
 namespace markamp::ui
 {
 
@@ -74,7 +76,17 @@ void ExtensionCard::CreateLayout(const std::string& name,
     // Row 2: Publisher
     publisher_label_ = new wxStaticText(info_panel_, wxID_ANY, publisher);
     publisher_label_->SetFont(theme_engine_.font(core::ThemeFontToken::MonoRegular).Scaled(0.85F));
-    info_sizer->Add(publisher_label_, 0, wxEXPAND | wxBOTTOM, 4);
+    info_sizer->Add(publisher_label_, 0, wxEXPAND | wxBOTTOM, 2);
+
+    // Row 2b: Rating and downloads (Phase 20 Task 2)
+    auto* rating_sizer = new wxBoxSizer(wxHORIZONTAL);
+    rating_label_ = new wxStaticText(info_panel_, wxID_ANY, "");
+    rating_label_->SetFont(theme_engine_.font(core::ThemeFontToken::UISmall));
+    downloads_label_ = new wxStaticText(info_panel_, wxID_ANY, "");
+    downloads_label_->SetFont(theme_engine_.font(core::ThemeFontToken::UISmall));
+    rating_sizer->Add(rating_label_, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 12);
+    rating_sizer->Add(downloads_label_, 0, wxALIGN_CENTER_VERTICAL);
+    info_sizer->Add(rating_sizer, 0, wxEXPAND | wxBOTTOM, 2);
 
     // Row 3: Description (truncated)
     auto truncated_desc = description;
@@ -108,6 +120,22 @@ void ExtensionCard::CreateLayout(const std::string& name,
                              }
                          });
 
+    // Phase 20 Task 8: Settings gear button (visible for installed extensions)
+    gear_button_ = new wxButton(
+        this, wxID_ANY, "\xE2\x9A\x99", wxDefaultPosition, wxSize(28, 28), wxBORDER_NONE);
+    gear_button_->SetFont(theme_engine_.font(core::ThemeFontToken::MonoRegular).Scaled(1.0F));
+    gear_button_->SetToolTip("Extension Settings");
+    gear_button_->Bind(wxEVT_BUTTON,
+                       [this](wxCommandEvent& /*evt*/)
+                       {
+                           if (on_settings_)
+                           {
+                               on_settings_(extension_id_);
+                           }
+                       });
+    gear_button_->Show(state_ == State::Installed || state_ == State::UpdateAvailable);
+
+    main_sizer->Add(gear_button_, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
     main_sizer->Add(action_button_, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, kCardPadding);
 
     action_button_->Bind(wxEVT_SET_FOCUS,
@@ -158,6 +186,16 @@ void ExtensionCard::UpdateActionButton()
             action_button_->SetForegroundColour(wxColour(255, 255, 255));
             break;
         }
+        case State::Installing:
+        {
+            action_button_->SetLabel("Installing");
+            action_button_->SetBackgroundColour(
+                theme_engine_.color(core::ThemeColorToken::BgPanel).ChangeLightness(100));
+            action_button_->SetForegroundColour(
+                theme_engine_.color(core::ThemeColorToken::TextMuted));
+            action_button_->Disable();
+            break;
+        }
     }
 }
 
@@ -205,6 +243,33 @@ void ExtensionCard::ApplyTheme(core::ThemeEngine& theme_engine)
             theme_engine.color(core::ThemeColorToken::TextMuted));
     }
 
+    // Phase 20 Task 24: Theme gear button and rating/downloads labels
+    if (gear_button_ != nullptr)
+    {
+        gear_button_->SetBackgroundColour(bg_color);
+        gear_button_->SetForegroundColour(theme_engine.color(core::ThemeColorToken::TextMuted));
+    }
+    if (rating_label_ != nullptr)
+    {
+        rating_label_->SetForegroundColour(
+            theme_engine.color(core::ThemeColorToken::AccentPrimary));
+    }
+    if (downloads_label_ != nullptr)
+    {
+        downloads_label_->SetForegroundColour(theme_engine.color(core::ThemeColorToken::TextMuted));
+    }
+
+    // Phase 20 Task 25: Accessibility names for screen readers
+    SetName("Extension: " + extension_id_);
+    if (action_button_ != nullptr)
+    {
+        action_button_->SetName("Action for " + extension_id_);
+    }
+    if (gear_button_ != nullptr)
+    {
+        gear_button_->SetName("Settings for " + extension_id_);
+    }
+
     UpdateActionButton();
     Refresh();
 }
@@ -249,6 +314,105 @@ void ExtensionCard::OnClick(wxMouseEvent& /*event*/)
     {
         on_click_(extension_id_);
     }
+}
+
+void ExtensionCard::SetRatingAndDownloads(double rating, int download_count)
+{
+    if (rating_label_ != nullptr)
+    {
+        // Build star string: ★ for filled, ☆ for empty
+        std::string stars;
+        for (int i = 1; i <= 5; ++i)
+        {
+            if (static_cast<double>(i) <= rating)
+            {
+                stars += "\xE2\x98\x85"; // ★
+            }
+            else
+            {
+                stars += "\xE2\x98\x86"; // ☆
+            }
+        }
+        // Show numeric rating too
+        char buf[8];
+        std::snprintf(buf, sizeof(buf), " %.1f", rating);
+        stars += buf;
+        rating_label_->SetLabel(stars);
+        rating_label_->SetForegroundColour(wxColour(255, 193, 7)); // Gold/amber
+    }
+
+    if (downloads_label_ != nullptr)
+    {
+        std::string dl_text;
+        if (download_count >= 1000000)
+        {
+            char buf[16];
+            std::snprintf(
+                buf, sizeof(buf), "%.1fM", static_cast<double>(download_count) / 1000000.0);
+            dl_text = buf;
+        }
+        else if (download_count >= 1000)
+        {
+            char buf[16];
+            std::snprintf(buf, sizeof(buf), "%.1fK", static_cast<double>(download_count) / 1000.0);
+            dl_text = buf;
+        }
+        else
+        {
+            dl_text = std::to_string(download_count);
+        }
+        dl_text = "\xE2\x87\xA9 " + dl_text; // ⇩ prefix
+        downloads_label_->SetLabel(dl_text);
+    }
+}
+
+void ExtensionCard::SetUpdateVersion(const std::string& current_ver, const std::string& new_ver)
+{
+    if (update_version_label_ == nullptr)
+    {
+        update_version_label_ = new wxStaticText(info_panel_, wxID_ANY, "");
+        update_version_label_->SetFont(theme_engine_.font(core::ThemeFontToken::UISmall));
+        update_version_label_->SetForegroundColour(
+            theme_engine_.color(core::ThemeColorToken::AccentPrimary));
+        auto* sizer = info_panel_->GetSizer();
+        if (sizer != nullptr)
+        {
+            sizer->Add(update_version_label_, 0, wxEXPAND | wxBOTTOM, 2);
+            info_panel_->Layout();
+        }
+    }
+
+    std::string text = "v";
+    text += current_ver;
+    text += " \xE2\x86\x92 v"; // → arrow
+    text += new_ver;
+    update_version_label_->SetLabel(text);
+    update_version_label_->Show();
+}
+
+void ExtensionCard::SetInstallProgress(int percent, const std::string& status_text)
+{
+    if (progress_gauge_ == nullptr)
+    {
+        progress_gauge_ = new wxGauge(this, wxID_ANY, 100, wxDefaultPosition, wxSize(-1, 6));
+        progress_label_ = new wxStaticText(this, wxID_ANY, "");
+        progress_label_->SetFont(theme_engine_.font(core::ThemeFontToken::UISmall));
+        progress_label_->SetForegroundColour(theme_engine_.color(core::ThemeColorToken::TextMuted));
+
+        auto* sizer = GetSizer();
+        if (sizer != nullptr)
+        {
+            sizer->Add(progress_label_, 0, wxEXPAND | wxLEFT | wxRIGHT, kCardPadding);
+            sizer->Add(progress_gauge_, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, kCardPadding);
+            Layout();
+        }
+    }
+
+    progress_gauge_->SetValue(percent);
+    progress_label_->SetLabel(status_text);
+    progress_gauge_->Show();
+    progress_label_->Show();
+    Layout();
 }
 
 } // namespace markamp::ui

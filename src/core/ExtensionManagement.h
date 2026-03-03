@@ -25,6 +25,15 @@ struct ExtensionUpdateInfo
     GalleryExtension gallery_entry;
 };
 
+/// Phase 20 Task 20: Represents a conflict between extensions.
+struct ExtensionConflict
+{
+    std::string extension_a;   // First extension ID
+    std::string extension_b;   // Second extension ID
+    std::string conflict_type; // "grammar", "command", "language", "keybinding"
+    std::string detail;        // Human-readable conflict description
+};
+
 /// Interface for the extension management service.
 /// Orchestrates install/uninstall/update flows combining gallery,
 /// VSIX, scanner, and enablement services.
@@ -62,6 +71,20 @@ public:
     [[nodiscard]] virtual auto update(const std::string& extension_id)
         -> std::expected<LocalExtension, std::string> = 0;
 
+    /// Phase 20 Task 5: Enable a previously disabled extension.
+    [[nodiscard]] virtual auto enable(const std::string& extension_id)
+        -> std::expected<void, std::string> = 0;
+
+    /// Phase 20 Task 5: Disable an extension without uninstalling.
+    [[nodiscard]] virtual auto disable(const std::string& extension_id)
+        -> std::expected<void, std::string> = 0;
+
+    /// Phase 20 Task 5: Check if an extension is enabled.
+    [[nodiscard]] virtual auto is_enabled(const std::string& extension_id) const -> bool = 0;
+
+    /// Phase 20 Task 20: Detect conflicts between installed extensions.
+    [[nodiscard]] virtual auto detect_conflicts() -> std::vector<ExtensionConflict> = 0;
+
 protected:
     IExtensionManagementService() = default;
 };
@@ -91,6 +114,14 @@ public:
 
     auto update(const std::string& extension_id)
         -> std::expected<LocalExtension, std::string> override;
+
+    auto enable(const std::string& extension_id) -> std::expected<void, std::string> override;
+
+    auto disable(const std::string& extension_id) -> std::expected<void, std::string> override;
+
+    [[nodiscard]] auto is_enabled(const std::string& extension_id) const -> bool override;
+
+    auto detect_conflicts() -> std::vector<ExtensionConflict> override;
 
     // ── Auto-update scheduler (#43) ──
 

@@ -33,6 +33,9 @@ ExtensionsBrowserPanel::ExtensionsBrowserPanel(wxWindow* parent,
     CreateLayout();
     ApplyTheme();
 
+    // Phase 20 Task 23: Keyboard navigation
+    Bind(wxEVT_CHAR_HOOK, &ExtensionsBrowserPanel::OnKeyDown, this);
+
     // Subscribe to extension events to auto-refresh
     install_sub_ = event_bus_.subscribe<core::events::ExtensionInstalledEvent>(
         [this]([[maybe_unused]] const core::events::ExtensionInstalledEvent& evt)
@@ -107,6 +110,71 @@ void ExtensionsBrowserPanel::CreateLayout()
                        });
 
     toolbar_sizer->Add(search_ctrl_, 0, wxEXPAND | wxALL, 0);
+
+    // Phase 20 Task 1: Category chip bar
+    auto* chip_scroll = new wxScrolledWindow(
+        toolbar_panel, wxID_ANY, wxDefaultPosition, wxSize(-1, 28), wxHSCROLL | wxBORDER_NONE);
+    chip_scroll->SetScrollRate(10, 0);
+    chip_scroll->SetBackgroundColour(GetBackgroundColour());
+    auto* chip_sizer = new wxBoxSizer(wxHORIZONTAL);
+    chip_scroll->SetSizer(chip_sizer);
+
+    static const std::vector<std::string> kCategories = {"All",
+                                                         "Themes",
+                                                         "Languages",
+                                                         "Debuggers",
+                                                         "Linters",
+                                                         "Formatters",
+                                                         "Snippets",
+                                                         "Testing",
+                                                         "Notebooks",
+                                                         "Visualization",
+                                                         "Keymaps",
+                                                         "Other"};
+
+    for (const auto& cat : kCategories)
+    {
+        auto* chip = new wxButton(chip_scroll,
+                                  wxID_ANY,
+                                  cat,
+                                  wxDefaultPosition,
+                                  wxDefaultSize,
+                                  wxBORDER_NONE | wxBU_EXACTFIT);
+        auto font = theme_engine_.font(core::ThemeFontToken::UISmall);
+        chip->SetFont(font);
+        chip->SetMinSize(wxSize(-1, 22));
+
+        bool is_active = (cat == "All" && gallery_category_.empty()) || (cat == gallery_category_);
+        if (is_active)
+        {
+            chip->SetBackgroundColour(theme_engine_.color(core::ThemeColorToken::AccentPrimary));
+            chip->SetForegroundColour(*wxWHITE);
+        }
+        else
+        {
+            chip->SetBackgroundColour(
+                theme_engine_.color(core::ThemeColorToken::BgPanel).ChangeLightness(105));
+            chip->SetForegroundColour(theme_engine_.color(core::ThemeColorToken::TextMuted));
+        }
+
+        chip->Bind(wxEVT_BUTTON,
+                   [this, cat](wxCommandEvent& /*evt*/)
+                   {
+                       gallery_category_ = (cat == "All") ? "" : cat;
+                       if (search_ctrl_ && !search_ctrl_->GetValue().empty())
+                       {
+                           SearchExtensions(search_ctrl_->GetValue().ToStdString());
+                       }
+                       // Recreate layout to update chip styling
+                       Layout();
+                   });
+
+        chip_sizer->Add(chip, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 4);
+    }
+    chip_sizer->AddSpacer(4);
+
+    toolbar_sizer->Add(chip_scroll, 0, wxEXPAND | wxTOP, 4);
+
     header->set_toolbar(toolbar_panel);
 
     // Scrollable section list
@@ -382,6 +450,121 @@ void ExtensionsBrowserPanel::PopulateSearchSection(
 void ExtensionsBrowserPanel::OnSearchChanged(wxCommandEvent& /*event*/)
 {
     auto query = search_ctrl_->GetValue().ToStdString();
+
+    // Phase 20 Task 11: @filter prefix parsing
+    if (query == "@installed")
+    {
+        ShowInstalledExtensions();
+        return;
+    }
+    if (query == "@enabled")
+    {
+        // Show only enabled installed extensions
+        ClearSearchCards();
+        ClearInstalledCards();
+        installed_extensions_ = mgmt_service_.get_installed();
+        for (const auto& ext : installed_extensions_)
+        {
+            if (!ext.enabled)
+            {
+                continue;
+            }
+            const auto ext_id = ext.manifest.publisher + "." + ext.manifest.name;
+            auto* card = new ExtensionCard(card_scroll_,
+                                           theme_engine_,
+                                           icon_manager_,
+                                           ext_id,
+                                           ext.manifest.name,
+                                           ext.manifest.publisher,
+                                           ext.manifest.version,
+                                           ext.manifest.description,
+                                           ExtensionCard::State::Installed);
+            card->SetOnClick([this](const std::string& cid) { OnCardClicked(cid); });
+            card->SetOnAction([this](const std::string& cid, ExtensionCard::State /*s*/)
+                              { OnCardAction(cid, true); });
+            card->ApplyTheme(theme_engine_);
+            installed_cards_.push_back(card);
+            if (installed_card_sizer_ != nullptr)
+            {
+                installed_card_sizer_->Add(card, 0, wxEXPAND);
+            }
+        }
+        Layout();
+        return;
+    }
+    if (query == "@disabled")
+    {
+        ClearSearchCards();
+        ClearInstalledCards();
+        installed_extensions_ = mgmt_service_.get_installed();
+        for (const auto& ext : installed_extensions_)
+        {
+            if (ext.enabled)
+            {
+                continue;
+            }
+            const auto ext_id = ext.manifest.publisher + "." + ext.manifest.name;
+            auto* card = new ExtensionCard(card_scroll_,
+                                           theme_engine_,
+                                           icon_manager_,
+                                           ext_id,
+                                           ext.manifest.name,
+                                           ext.manifest.publisher,
+                                           ext.manifest.version,
+                                           ext.manifest.description,
+                                           ExtensionCard::State::Installed);
+            card->SetOnClick([this](const std::string& cid) { OnCardClicked(cid); });
+            card->SetOnAction([this](const std::string& cid, ExtensionCard::State /*s*/)
+                              { OnCardAction(cid, true); });
+            card->ApplyTheme(theme_engine_);
+            installed_cards_.push_back(card);
+            if (installed_card_sizer_ != nullptr)
+            {
+                installed_card_sizer_->Add(card, 0, wxEXPAND);
+            }
+        }
+        Layout();
+        return;
+    }
+    if (query == "@outdated")
+    {
+        // Trigger update check and show results
+        auto updates = mgmt_service_.check_updates();
+        if (updates.has_value() && !updates.value().empty())
+        {
+            ClearSearchCards();
+            for (const auto& upd : updates.value())
+            {
+                auto* card = new ExtensionCard(card_scroll_,
+                                               theme_engine_,
+                                               icon_manager_,
+                                               upd.extension_id,
+                                               upd.gallery_entry.display_name,
+                                               upd.gallery_entry.publisher_display,
+                                               upd.available_version,
+                                               upd.gallery_entry.description,
+                                               ExtensionCard::State::UpdateAvailable);
+                card->SetUpdateVersion(upd.current_version, upd.available_version);
+                card->SetOnClick([this](const std::string& cid) { OnCardClicked(cid); });
+                card->SetOnAction([this](const std::string& cid, ExtensionCard::State /*s*/)
+                                  { OnCardAction(cid, true); });
+                card->ApplyTheme(theme_engine_);
+                search_cards_.push_back(card);
+                if (search_card_sizer_ != nullptr)
+                {
+                    search_card_sizer_->Add(card, 0, wxEXPAND);
+                }
+            }
+            if (search_section_ != nullptr)
+            {
+                search_section_->Show();
+            }
+            Layout();
+        }
+        return;
+    }
+
+    // Default: gallery search
     if (query.length() >= 2)
     {
         SearchExtensions(query);
@@ -401,24 +584,41 @@ void ExtensionsBrowserPanel::OnCardAction(const std::string& extension_id, bool 
 {
     if (is_installed)
     {
-        auto result = mgmt_service_.uninstall(extension_id);
-        if (result.has_value())
+        // Phase 20 Task 6: Uninstall confirmation dialog
+        wxString msg;
+        msg << "Uninstall \"" << extension_id << "\"?\n\n"
+            << "This will remove:\n"
+            << "  \u2022 Extension files\n"
+            << "  \u2022 Extension settings\n"
+            << "  \u2022 Extension data\n";
+
+        int result =
+            wxMessageBox(msg, "Confirm Uninstall", wxYES_NO | wxNO_DEFAULT | wxICON_WARNING, this);
+        if (result != wxYES)
+        {
+            return;
+        }
+
+        auto uninstall_result = mgmt_service_.uninstall(extension_id);
+        if (uninstall_result.has_value())
         {
             spdlog::info("Extension uninstalled: {}", extension_id);
         }
         else
         {
-            spdlog::error("Failed to uninstall {}: {}", extension_id, result.error());
+            spdlog::error("Failed to uninstall {}: {}", extension_id, uninstall_result.error());
         }
     }
     else
     {
-        // For gallery installs, we need a GalleryExtension object
+        // Phase 20 Task 14: For gallery installs, check for deps and install
         auto gallery_result = gallery_service_.get_extensions({extension_id});
         if (gallery_result.has_value() && !gallery_result.value().empty())
         {
-            auto install_result =
-                mgmt_service_.install_from_gallery(gallery_result.value().front());
+            const auto& gallery_ext = gallery_result.value().front();
+
+            // Attempt install (ExtensionManagementService handles dep resolution)
+            auto install_result = mgmt_service_.install_from_gallery(gallery_ext);
             if (install_result.has_value())
             {
                 spdlog::info("Extension installed: {}", extension_id);
@@ -426,11 +626,19 @@ void ExtensionsBrowserPanel::OnCardAction(const std::string& extension_id, bool 
             else
             {
                 spdlog::error("Failed to install {}: {}", extension_id, install_result.error());
+                wxMessageBox("Failed to install extension:\n" + install_result.error(),
+                             "Install Error",
+                             wxOK | wxICON_ERROR,
+                             this);
             }
         }
         else
         {
             spdlog::error("Extension not found in gallery: {}", extension_id);
+            wxMessageBox("Extension not found in gallery: " + extension_id,
+                         "Not Found",
+                         wxOK | wxICON_WARNING,
+                         this);
         }
     }
 
@@ -495,8 +703,17 @@ void ExtensionsBrowserPanel::ShowFilterMenu()
     auto* category_menu = new wxMenu();
     category_menu->AppendRadioItem(2000, "All")->Check(gallery_category_.empty());
     category_menu->AppendRadioItem(2001, "Themes")->Check(gallery_category_ == "Themes");
-    category_menu->AppendRadioItem(2002, "Snippets")->Check(gallery_category_ == "Snippets");
-    category_menu->AppendRadioItem(2003, "Linters")->Check(gallery_category_ == "Linters");
+    category_menu->AppendRadioItem(2002, "Languages")->Check(gallery_category_ == "Languages");
+    category_menu->AppendRadioItem(2003, "Debuggers")->Check(gallery_category_ == "Debuggers");
+    category_menu->AppendRadioItem(2004, "Linters")->Check(gallery_category_ == "Linters");
+    category_menu->AppendRadioItem(2005, "Formatters")->Check(gallery_category_ == "Formatters");
+    category_menu->AppendRadioItem(2006, "Snippets")->Check(gallery_category_ == "Snippets");
+    category_menu->AppendRadioItem(2007, "Testing")->Check(gallery_category_ == "Testing");
+    category_menu->AppendRadioItem(2008, "Notebooks")->Check(gallery_category_ == "Notebooks");
+    category_menu->AppendRadioItem(2009, "Visualization")
+        ->Check(gallery_category_ == "Visualization");
+    category_menu->AppendRadioItem(2010, "Keymaps")->Check(gallery_category_ == "Keymaps");
+    category_menu->AppendRadioItem(2011, "Other")->Check(gallery_category_ == "Other");
 
     menu.AppendSubMenu(sort_menu, "Sort By");
     menu.AppendSubMenu(category_menu, "Category");
@@ -534,11 +751,43 @@ void ExtensionsBrowserPanel::ShowFilterMenu()
                           changed = true;
                           break;
                       case 2002:
-                          gallery_category_ = "Snippets";
+                          gallery_category_ = "Languages";
                           changed = true;
                           break;
                       case 2003:
+                          gallery_category_ = "Debuggers";
+                          changed = true;
+                          break;
+                      case 2004:
                           gallery_category_ = "Linters";
+                          changed = true;
+                          break;
+                      case 2005:
+                          gallery_category_ = "Formatters";
+                          changed = true;
+                          break;
+                      case 2006:
+                          gallery_category_ = "Snippets";
+                          changed = true;
+                          break;
+                      case 2007:
+                          gallery_category_ = "Testing";
+                          changed = true;
+                          break;
+                      case 2008:
+                          gallery_category_ = "Notebooks";
+                          changed = true;
+                          break;
+                      case 2009:
+                          gallery_category_ = "Visualization";
+                          changed = true;
+                          break;
+                      case 2010:
+                          gallery_category_ = "Keymaps";
+                          changed = true;
+                          break;
+                      case 2011:
+                          gallery_category_ = "Other";
                           changed = true;
                           break;
                   }
@@ -603,6 +852,209 @@ void ExtensionsBrowserPanel::ApplyTheme()
     }
 
     Refresh();
+}
+
+auto ExtensionsBrowserPanel::GetVisibleCards() const -> const std::vector<ExtensionCard*>&
+{
+    // Return whichever card list is currently active
+    if (!search_cards_.empty())
+    {
+        return search_cards_;
+    }
+    return installed_cards_;
+}
+
+void ExtensionsBrowserPanel::OnKeyDown(wxKeyEvent& event)
+{
+    const auto& cards = GetVisibleCards();
+    if (cards.empty())
+    {
+        event.Skip();
+        return;
+    }
+
+    const int key = event.GetKeyCode();
+    const int card_count = static_cast<int>(cards.size());
+
+    switch (key)
+    {
+        case WXK_DOWN:
+        {
+            focused_card_index_ = std::min(focused_card_index_ + 1, card_count - 1);
+            if (focused_card_index_ >= 0 && focused_card_index_ < card_count)
+            {
+                cards[static_cast<size_t>(focused_card_index_)]->SetFocus();
+                // Scroll to make the focused card visible
+                if (card_scroll_ != nullptr)
+                {
+                    int scroll_x = 0;
+                    int scroll_y = 0;
+                    card_scroll_->GetViewStart(&scroll_x, &scroll_y);
+                    auto pos = cards[static_cast<size_t>(focused_card_index_)]->GetPosition();
+                    card_scroll_->Scroll(-1, pos.y / 10);
+                }
+            }
+            break;
+        }
+        case WXK_UP:
+        {
+            focused_card_index_ = std::max(focused_card_index_ - 1, 0);
+            if (focused_card_index_ < card_count)
+            {
+                cards[static_cast<size_t>(focused_card_index_)]->SetFocus();
+                if (card_scroll_ != nullptr)
+                {
+                    auto pos = cards[static_cast<size_t>(focused_card_index_)]->GetPosition();
+                    card_scroll_->Scroll(-1, pos.y / 10);
+                }
+            }
+            break;
+        }
+        case WXK_RETURN:
+        case WXK_NUMPAD_ENTER:
+        {
+            if (focused_card_index_ >= 0 && focused_card_index_ < card_count)
+            {
+                OnCardClicked(cards[static_cast<size_t>(focused_card_index_)]->GetExtensionId());
+            }
+            break;
+        }
+        case WXK_ESCAPE:
+        {
+            // Return from detail view to list
+            if (detail_panel_ != nullptr && detail_panel_->IsShown())
+            {
+                ShowCardList();
+            }
+            else
+            {
+                event.Skip();
+            }
+            break;
+        }
+        default:
+            event.Skip();
+            break;
+    }
+}
+
+// Phase 20 Task 18: Switch between Installed / Marketplace / Recommended view tabs
+void ExtensionsBrowserPanel::SwitchViewTab(int tab_index)
+{
+    active_view_tab_ = tab_index;
+
+    // Show/hide sections based on active tab
+    if (installed_section_ != nullptr)
+    {
+        installed_section_->Show(tab_index == 0);
+    }
+    if (trending_section_ != nullptr)
+    {
+        trending_section_->Show(tab_index == 1);
+    }
+    if (recommended_section_ != nullptr)
+    {
+        recommended_section_->Show(tab_index == 2);
+    }
+
+    // Tab styling
+    auto active_col = theme_engine_.color(core::ThemeColorToken::AccentPrimary);
+    auto inactive_col = theme_engine_.color(core::ThemeColorToken::TextMuted);
+    if (tab_installed_ != nullptr)
+    {
+        tab_installed_->SetForegroundColour(tab_index == 0 ? active_col : inactive_col);
+    }
+    if (tab_marketplace_ != nullptr)
+    {
+        tab_marketplace_->SetForegroundColour(tab_index == 1 ? active_col : inactive_col);
+    }
+    if (tab_recommended_ != nullptr)
+    {
+        tab_recommended_->SetForegroundColour(tab_index == 2 ? active_col : inactive_col);
+    }
+
+    // Populate on first switch to Marketplace tab
+    if (tab_index == 1 && trending_cards_.empty())
+    {
+        PopulateTrendingSection();
+    }
+    // Populate on first switch to Recommended tab
+    if (tab_index == 2 && recommended_cards_.empty())
+    {
+        PopulateRecommendedSection();
+    }
+
+    Layout();
+    Refresh();
+}
+
+// Phase 20 Task 16: Populate trending/popular extensions section
+void ExtensionsBrowserPanel::PopulateTrendingSection()
+{
+    ClearTrendingCards();
+
+    // Phase 20 Task 22: Check marketplace cache validity (5-minute TTL)
+    constexpr auto kCacheTtl = std::chrono::minutes(5);
+    auto now = std::chrono::steady_clock::now();
+    bool cache_valid = !marketplace_cache_.empty() && (now - cache_timestamp_) < kCacheTtl;
+
+    std::vector<core::GalleryExtension> trending;
+    if (cache_valid)
+    {
+        trending = marketplace_cache_;
+    }
+    else
+    {
+        // Fetch popular extensions from gallery sorted by install count
+        core::GalleryQueryOptions trending_options;
+        trending_options.sort_by = core::GallerySortBy::kInstallCount;
+        trending_options.page_size = 20;
+        auto result = gallery_service_.query(trending_options);
+        if (result.has_value())
+        {
+            trending = result.value().extensions;
+            // Update cache
+            marketplace_cache_ = trending;
+            cache_timestamp_ = now;
+        }
+    }
+
+    for (const auto& ext : trending)
+    {
+        auto is_installed = IsExtensionInstalled(ext.identifier);
+        auto state =
+            is_installed ? ExtensionCard::State::Installed : ExtensionCard::State::NotInstalled;
+        auto* card = new ExtensionCard(card_scroll_,
+                                       theme_engine_,
+                                       icon_manager_,
+                                       ext.identifier,
+                                       ext.display_name,
+                                       ext.publisher_display,
+                                       ext.version,
+                                       ext.description,
+                                       state);
+        card->SetOnClick([this](const std::string& cid) { OnCardClicked(cid); });
+        card->SetOnAction([this, is_installed](const std::string& cid, ExtensionCard::State /*s*/)
+                          { OnCardAction(cid, is_installed); });
+        card->ApplyTheme(theme_engine_);
+        trending_cards_.push_back(card);
+        if (trending_card_sizer_ != nullptr)
+        {
+            trending_card_sizer_->Add(card, 0, wxEXPAND);
+        }
+    }
+
+    Layout();
+}
+
+// Phase 20 Task 16: Clear trending cards
+void ExtensionsBrowserPanel::ClearTrendingCards()
+{
+    for (auto* card : trending_cards_)
+    {
+        card->Destroy();
+    }
+    trending_cards_.clear();
 }
 
 } // namespace markamp::ui

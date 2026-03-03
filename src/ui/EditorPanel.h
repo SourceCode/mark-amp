@@ -241,6 +241,26 @@ public:
     void NavigateToNextGitChange();
     void NavigateToPreviousGitChange();
 
+    // Phase 18 Task 12: Git blame annotation toggle
+    void ToggleBlame();
+
+    // ── Phase 19: Debug integration ──
+
+    /// Task 12: Show execution line with yellow arrow and background highlight.
+    void ShowExecutionLine(int line);
+
+    /// Task 12: Clear execution line indicator.
+    void ClearExecutionLine();
+
+    /// Task 18: Show inline variable values as ghost text annotations.
+    void ShowInlineValues(const std::vector<std::pair<int, std::string>>& line_values);
+
+    /// Task 18: Clear all inline value annotations.
+    void ClearInlineValues();
+
+    /// Task 21: Check if we're in debug hover evaluation mode.
+    void SetDebugHoverEnabled(bool enabled);
+
     // ── VS Code-Inspired Editor Improvements (20 items) ──
 
     // #1 Auto-closing brackets/quotes
@@ -538,6 +558,7 @@ public:
     static constexpr int kMarkerGitAdded = 14;
     static constexpr int kMarkerGitModified = 15;
     static constexpr int kMarkerGitDeleted = 16;
+    static constexpr int kMarkerCurrentExecution = 17; // Phase 19 Task 12
 
     // Indicators (Indices > 7)
     static constexpr int kIndicatorSelectionLine = 8;
@@ -598,6 +619,7 @@ private:
     std::unordered_map<std::string, std::vector<int>> breakpoints_;
 
     std::vector<std::unique_ptr<IGutterDecorationProvider>> gutter_providers_;
+    class GitBlameGutterProvider* blame_provider_{nullptr}; // Phase 18 Task 12: non-owning
     void RenderGutterDecorations();
 
     struct MergeConflict
@@ -838,6 +860,9 @@ private:
     int lightbulb_line_{-1};
     bool peek_problem_visible_{false};
     int peek_problem_line_{-1};
+
+    // Phase 19: Debug integration state
+    bool debug_hover_enabled_{false};
 
     // Phase 7 private helpers
     void RefreshBracketColors();

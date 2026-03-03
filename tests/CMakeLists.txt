@@ -815,6 +815,10 @@ target_sources(markamp_core PRIVATE
     ${CMAKE_SOURCE_DIR}/src/core/av/AVValue.cpp
     ${CMAKE_SOURCE_DIR}/src/core/av/AttributeView.cpp
     ${CMAKE_SOURCE_DIR}/src/core/av/AttributeViewStore.cpp
+    # Phase 21: Integrated Terminal
+    ${CMAKE_SOURCE_DIR}/src/core/AnsiParser.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/TerminalBuffer.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/PtyProcess.cpp
 )
 target_include_directories(markamp_core PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(markamp_core PUBLIC markamp_dependencies)
@@ -856,6 +860,7 @@ add_executable(test_editor_qol
     ${CMAKE_SOURCE_DIR}/src/ui/LinkPreviewPopover.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/TableEditorOverlay.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/ImagePreviewPopover.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/GitBlameGutterProvider.cpp
 )
 target_include_directories(test_editor_qol PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_editor_qol PRIVATE

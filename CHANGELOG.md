@@ -1,5 +1,39 @@
 # MarkAmp Release History
 
+## v2.14.54 — 2026-03-02
+
+### Highlights
+
+Phase 21: Integrated Terminal Panel. Replaced the stub `TerminalService` with a fully-functional PTY-backed terminal system. Built an ANSI parser (VT100/VT220/xterm), character grid buffer with scrollback, macOS PTY process wrapper, and custom-painted terminal UI with tab bar, selection, find, copy/paste, context menu, and full ANSI color theme integration. Registered terminal as deferred panel in `LayoutManager` with lazy service injection. Fixed pre-existing `test_editor_qol` linker error and updated test suites for new `TerminalService(EventBus&)` constructor.
+
+### Added
+
+- **AnsiParser**: Streaming ANSI state machine supporting SGR (16/256/RGB colors, bold/italic/underline), cursor control, erase operations, and OSC sequences (title, CWD, bell).
+- **TerminalBuffer**: Character grid with configurable scrollback ring buffer, cursor tracking, and selection text extraction.
+- **PtyProcess**: macOS `forkpty()` wrapper with data/exit callbacks and `TIOCSWINSZ` resize support.
+- **TerminalService**: Full rewrite with multi-session PTY management, shell profile detection, EventBus integration, OSC 7 CWD tracking, and configurable scrollback.
+- **TerminalPanel**: Custom-painted terminal renderer with cursor blink, ANSI→theme color mapping, keyboard input (Cmd+C/V/A/K, arrows, special keys), mouse selection, find-in-terminal, resize debounce, context menu, and bell notification.
+- **TerminalTabBar**: Tab bar UI for multiple terminal sessions with custom painting, add/close/rename/select, and hover effects.
+- **LayoutManager Integration**: Terminal registered as deferred panel `markamp.panel.terminal` via `RegisterDeferredPanel`. Added `SetTerminalService()` for lazy initialization.
+- **Terminal Events**: 8 new events in `Events.h` (TerminalCreated, Destroyed, DataOutput, DataInput, TitleChanged, CwdChanged, Bell, Resized).
+- **GitBlameGutterProvider**: New gutter provider for Git blame annotations in editor.
+- **Debug Stubs**: `DebugAdapterClient`, `DebugSessionManager`, `LaunchConfig`, `DebugToolbar`, `RunDebugPanel` foundation files.
+- **Build Stubs**: `CompilerOutputParser`, `ProcessRunner`, `TaskRunner` foundation files.
+- **Extension Improvements**: `ExtensionIconCache`, `MarketplaceCache` for extension gallery caching.
+
+### Changed
+
+- **CMakeLists.txt**: Added 4 new Phase 21 compilation units (AnsiParser, TerminalBuffer, PtyProcess, TerminalTabBar).
+- **tests/CMakeLists.txt**: Added Phase 21 files to `markamp_core` test library; added `GitBlameGutterProvider.cpp` to `test_editor_qol`.
+- **test_p1_p4_services.cpp**: Updated `TerminalService` tests for `EventBus&` constructor; updated assertions for real service behavior.
+- **test_service_wiring.cpp**: Updated `TerminalService` instantiation for `EventBus&` constructor.
+
+### Fixed
+
+- **test_editor_qol linker error**: Added missing `GitBlameGutterProvider.cpp` to test target source list.
+- **test_p1_p4_services**: Fixed `TerminalService()` no-arg constructor calls broken by Phase 21 rewrite.
+- **test_service_wiring**: Same `TerminalService` constructor fix.
+
 ## v2.13.53 — 2026-02-27
 
 ### Highlights

@@ -2,6 +2,7 @@
 
 #include "CodeLensProvider.h"
 #include "FloatingFormatBar.h"
+#include "GitBlameGutterProvider.h"
 #include "GitGutterProvider.h"
 #include "ImagePreviewPopover.h"
 #include "LinkPreviewPopover.h"
@@ -65,6 +66,11 @@ EditorPanel::EditorPanel(wxWindow* parent,
 
     // We pass an empty string down down for now; or we can derive workspace later
     gutter_providers_.push_back(std::make_unique<GitGutterProvider>());
+
+    // Phase 18 Task 12: Git blame annotations provider (starts disabled)
+    auto blame_provider = std::make_unique<GitBlameGutterProvider>();
+    blame_provider_ = blame_provider.get();
+    gutter_providers_.push_back(std::move(blame_provider));
 }
 
 EditorPanel::~EditorPanel()
@@ -1169,7 +1175,11 @@ void EditorPanel::CreateEditor()
     editor_->Bind(wxEVT_RIGHT_DOWN, &EditorPanel::OnRightDown, this);
 
     // R22 Task 13: Drag and drop
-    editor_->DragAcceptFiles(drag_drop_enabled_);
+    // Only call DragAcceptFiles if no drop target is set to avoid assertions
+    if (!this->GetDropTarget())
+    {
+        this->DragAcceptFiles(drag_drop_enabled_);
+    }
     editor_->Bind(wxEVT_DROP_FILES, &EditorPanel::OnFileDrop, this);
 
     // Phase 5: Dwell events for link/image preview
@@ -1529,6 +1539,29 @@ void EditorPanel::RenderGutterDecorations()
     {
         auto decs = provider->GetDecorations();
         bool is_git = (provider->GetProviderId() == "provider.git_gutter");
+        bool is_blame = (provider->GetProviderId() == "provider.git_blame");
+
+        // Phase 18 Task 12: Handle blame text margins
+        if (is_blame)
+        {
+            if (!decs.empty())
+            {
+                editor_->SetMarginType(GitBlameGutterProvider::kBlameMargin, wxSTC_MARGIN_RTEXT);
+                editor_->SetMarginWidth(GitBlameGutterProvider::kBlameMargin,
+                                        GitBlameGutterProvider::kBlameMarginWidth);
+                auto muted = theme_engine().color(core::ThemeColorToken::TextMuted);
+                for (const auto& dec : decs)
+                {
+                    editor_->MarginSetText(dec.line, dec.text);
+                    editor_->MarginSetStyle(dec.line, wxSTC_STYLE_DEFAULT);
+                }
+            }
+            else
+            {
+                editor_->SetMarginWidth(GitBlameGutterProvider::kBlameMargin, 0);
+            }
+            continue;
+        }
 
         for (const auto& dec : decs)
         {
@@ -1968,7 +2001,7 @@ void EditorPanel::SelectNextOccurrence()
 
     if (found != wxSTC_INVALID_POSITION)
     {
-        int match_end = editor_->GetTargetEnd();
+        int match_end = found + static_cast<int>(selected.length());
         editor_->AddSelection(found, match_end);
         editor_->ScrollRange(found, match_end);
     }
@@ -5111,10 +5144,15 @@ void EditorPanel::HandleLinkAutoComplete()
 // #13 Drag-and-drop file insertion
 void EditorPanel::SetDragDropEnabled(bool enabled)
 {
+    if (drag_drop_enabled_ == enabled)
+    {
+        return;
+    }
+
     drag_drop_enabled_ = enabled;
     if (editor_ != nullptr)
     {
-        editor_->DragAcceptFiles(enabled);
+        this->DragAcceptFiles(enabled);
     }
 }
 
@@ -7013,6 +7051,98 @@ void EditorPanel::NavigateToPreviousGitChange()
         }
         editor_->GotoLine(block_start);
     }
+}
+
+void EditorPanel::ToggleBlame()
+{
+    if (blame_provider_ == nullptr || editor_ == nullptr)
+    {
+        return;
+    }
+
+    blame_provider_->SetEnabled(!blame_provider_->IsEnabled());
+
+    if (blame_provider_->IsEnabled())
+    {
+        // Refresh blame data for the current file
+        const auto content_str = editor_->GetText().ToStdString();
+        blame_provider_->UpdateContent(content_str);
+    }
+
+    RenderGutterDecorations();
+}
+
+// ── Phase 19: Debug integration ──
+
+void EditorPanel::ShowExecutionLine(int line)
+{
+    if (editor_ == nullptr)
+    {
+        return;
+    }
+
+    ClearExecutionLine(); // Clear previous indicator
+
+    // Add yellow arrow marker in gutter
+    editor_->MarkerAdd(line, kMarkerCurrentExecution);
+
+    // Set up the marker if not already configured
+    editor_->MarkerDefine(kMarkerCurrentExecution, wxSTC_MARK_SHORTARROW);
+    editor_->MarkerSetForeground(kMarkerCurrentExecution, wxColour(255, 200, 0)); // Yellow
+    editor_->MarkerSetBackground(kMarkerCurrentExecution,
+                                 wxColour(255, 230, 100, 40)); // Amber tint
+
+    // Scroll to the line and ensure visible
+    editor_->GotoLine(line);
+    editor_->EnsureVisibleEnforcePolicy(line);
+
+    spdlog::info("Debug: execution line at {}", line);
+}
+
+void EditorPanel::ClearExecutionLine()
+{
+    if (editor_ == nullptr)
+    {
+        return;
+    }
+
+    // Clear all execution line markers
+    editor_->MarkerDeleteAll(kMarkerCurrentExecution);
+}
+
+void EditorPanel::ShowInlineValues(const std::vector<std::pair<int, std::string>>& line_values)
+{
+    if (editor_ == nullptr)
+    {
+        return;
+    }
+
+    ClearInlineValues();
+
+    // Use Scintilla annotations to display values
+    for (const auto& [line_num, value_text] : line_values)
+    {
+        std::string annotation = "  // " + value_text;
+        editor_->AnnotationSetText(line_num, annotation);
+        editor_->AnnotationSetStyle(line_num, wxSTC_STYLE_DEFAULT);
+    }
+
+    editor_->AnnotationSetVisible(wxSTC_ANNOTATION_STANDARD);
+}
+
+void EditorPanel::ClearInlineValues()
+{
+    if (editor_ == nullptr)
+    {
+        return;
+    }
+
+    editor_->AnnotationClearAll();
+}
+
+void EditorPanel::SetDebugHoverEnabled(bool enabled)
+{
+    debug_hover_enabled_ = enabled;
 }
 
 } // namespace markamp::ui
