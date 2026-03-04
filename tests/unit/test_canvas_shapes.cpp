@@ -1,67 +1,176 @@
-// NOLINTBEGIN(cppcoreguidelines-avoid-do-while,cert-err58-cpp,cppcoreguidelines-avoid-non-const-global-variables,misc-use-anonymous-namespace,readability-function-cognitive-complexity)
-#include "canvas/ShapeModel.h"
+/**
+ * @file test_canvas_shapes.cpp
+ * @brief Phase 43: Tests for ShapePrimitiveSet and GeometryHandleController.
+ */
+
+#include "canvas/GeometryHandleController.h"
+#include "canvas/ShapePrimitiveSet.h"
 
 #include <catch2/catch_test_macros.hpp>
 
 using namespace markamp::canvas;
 
-TEST_CASE("Default shape is rectangle", "[shape][type]")
+// ═══════════════════════════════════════════════════════
+// ShapePrimitive
+// ═══════════════════════════════════════════════════════
+
+TEST_CASE("ShapePrimitive - type name", "[canvas][shapes]")
 {
-    ShapeModel model;
-    REQUIRE(model.type() == ShapeType::kRectangle);
+    ShapePrimitive shape;
+    shape.type = ShapeType::kRect;
+    CHECK(shape.type_name() == "rect");
+
+    shape.type = ShapeType::kStar;
+    CHECK(shape.type_name() == "star");
 }
 
-TEST_CASE("Corner radius clamped to half of min dimension", "[shape][geometry]")
+TEST_CASE("ShapePrimitive - center and area", "[canvas][shapes]")
 {
-    ShapeModel model;
-    model.set_bounds({0, 0, 100, 60});
-    model.set_corner_radius(50.0);
-    REQUIRE(model.corner_radius() == 30.0); // clamped to 60/2
+    ShapePrimitive shape;
+    shape.pos_x = 10.0;
+    shape.pos_y = 20.0;
+    shape.width = 100.0;
+    shape.height = 50.0;
+
+    CHECK(shape.center_x() == 60.0);
+    CHECK(shape.center_y() == 45.0);
+    CHECK(shape.area() == 5000.0);
 }
 
-TEST_CASE("Constrain proportions makes square", "[shape][geometry]")
+// ═══════════════════════════════════════════════════════
+// ShapePrimitiveSet
+// ═══════════════════════════════════════════════════════
+
+TEST_CASE("ShapePrimitiveSet - add and find", "[canvas][shapes]")
 {
-    ShapeModel model;
-    model.set_bounds({0, 0, 200, 100});
-    model.constrain_proportions();
-    REQUIRE(model.bounds().width == 100.0);
-    REQUIRE(model.bounds().height == 100.0);
+    ShapePrimitiveSet set;
+    ShapePrimitive shape;
+    shape.shape_id = "rect1";
+    shape.type = ShapeType::kRect;
+    set.add_shape(shape);
+
+    CHECK(set.shape_count() == 1);
+    const auto* found = set.find_shape("rect1");
+    REQUIRE(found != nullptr);
+    CHECK(found->type == ShapeType::kRect);
 }
 
-TEST_CASE("Style inheritance via commit", "[shape][style]")
+TEST_CASE("ShapePrimitiveSet - remove", "[canvas][shapes]")
 {
-    ShapeModel model;
-    model.set_style({"#FF0000", "#00FF00", 3.0, 5.0, 0.8});
-    model.commit_style_as_default();
-    REQUIRE(model.default_style().fill_color == "#FF0000");
-    REQUIRE(model.default_style().stroke_width == 3.0);
+    ShapePrimitiveSet set;
+    ShapePrimitive shape;
+    shape.shape_id = "s1";
+    set.add_shape(shape);
+    set.remove_shape("s1");
+    CHECK(set.shape_count() == 0);
 }
 
-TEST_CASE("Reset default style", "[shape][style]")
+TEST_CASE("ShapePrimitiveSet - style inheritance", "[canvas][shapes]")
 {
-    ShapeModel model;
-    model.set_style({"#FF0000", "#00FF00", 3.0, 5.0, 0.8});
-    model.commit_style_as_default();
-    model.reset_default_style();
-    REQUIRE(model.default_style().fill_color == "#FFFFFF");
+    ShapePrimitiveSet set;
+    ShapeDefaults style;
+    style.fill_color = 0xFF0000FF;
+    style.stroke_width = 4.0;
+    set.set_last_style(style);
+
+    auto created = set.create_with_style("new1", ShapeType::kEllipse, 10, 20, 100, 80);
+    CHECK(created.defaults.fill_color == 0xFF0000FF);
+    CHECK(created.defaults.stroke_width == 4.0);
+    CHECK(created.type == ShapeType::kEllipse);
 }
 
-TEST_CASE("Constrained bounds", "[shape][constrained]")
+TEST_CASE("ShapePrimitiveSet - shapes of type", "[canvas][shapes]")
 {
-    ShapeModel model;
-    model.set_bounds({10, 20, 200, 100});
-    model.set_constrained(true);
-    const auto cb = model.constrained_bounds();
-    REQUIRE(cb.width == 100.0);
-    REQUIRE(cb.height == 100.0);
-    REQUIRE(cb.x == 10.0);
+    ShapePrimitiveSet set;
+    ShapePrimitive rect;
+    rect.shape_id = "r1";
+    rect.type = ShapeType::kRect;
+    set.add_shape(rect);
+
+    ShapePrimitive ellipse;
+    ellipse.shape_id = "e1";
+    ellipse.type = ShapeType::kEllipse;
+    set.add_shape(ellipse);
+
+    auto rects = set.shapes_of_type(ShapeType::kRect);
+    CHECK(rects.size() == 1);
 }
 
-TEST_CASE("Non-constrained bounds unchanged", "[shape][constrained]")
+// ═══════════════════════════════════════════════════════
+// GeometryHandle
+// ═══════════════════════════════════════════════════════
+
+TEST_CASE("GeometryHandle - type and position names", "[canvas][handles]")
 {
-    ShapeModel model;
-    model.set_bounds({10, 20, 200, 100});
-    const auto cb = model.constrained_bounds();
-    REQUIRE(cb.width == 200.0);
+    GeometryHandle handle;
+    handle.type = HandleType::kCorner;
+    handle.position = HandlePosition::kTopLeft;
+    CHECK(handle.type_name() == "corner");
+    CHECK(handle.position_name() == "top_left");
 }
-// NOLINTEND(cppcoreguidelines-avoid-do-while,cert-err58-cpp,cppcoreguidelines-avoid-non-const-global-variables,misc-use-anonymous-namespace,readability-function-cognitive-complexity)
+
+// ═══════════════════════════════════════════════════════
+// GeometryHandleController
+// ═══════════════════════════════════════════════════════
+
+TEST_CASE("GeometryHandleController - generate handles", "[canvas][handles]")
+{
+    GeometryHandleController ctrl;
+    ctrl.generate_handles(0.0, 0.0, 100.0, 50.0);
+
+    CHECK(ctrl.handle_count() == 10); // 4 corners + 4 edges + rotation + radius
+}
+
+TEST_CASE("GeometryHandleController - hit handle", "[canvas][handles]")
+{
+    GeometryHandleController ctrl;
+    ctrl.generate_handles(0.0, 0.0, 100.0, 50.0);
+
+    // Hit top-left corner at (0, 0)
+    const auto* hit = ctrl.hit_handle(1.0, 1.0, 5.0);
+    REQUIRE(hit != nullptr);
+    CHECK(hit->position == HandlePosition::kTopLeft);
+
+    // Miss
+    const auto* miss = ctrl.hit_handle(50.0, 25.0, 3.0);
+    CHECK(miss == nullptr);
+}
+
+TEST_CASE("GeometryHandleController - constrained resize", "[canvas][handles]")
+{
+    GeometryHandleController ctrl;
+    GeometryHandleController::Bounds original{0.0, 0.0, 100.0, 100.0};
+
+    // No constraint
+    auto result = ctrl.constrained_resize(HandlePosition::kBottomRight, 20.0, 10.0, original);
+    CHECK(result.width == 120.0);
+    CHECK(result.height == 110.0);
+}
+
+TEST_CASE("GeometryHandleController - proportional constraint", "[canvas][handles]")
+{
+    GeometryHandleController ctrl;
+    ctrl.set_constraint(ConstraintMode::kProportional);
+    GeometryHandleController::Bounds original{0.0, 0.0, 100.0, 50.0};
+
+    auto result = ctrl.constrained_resize(HandlePosition::kBottomRight, 20.0, 0.0, original);
+    // Width = 120, aspect = 2:1, so height should be 60
+    CHECK(result.width == 120.0);
+    CHECK(result.height == 60.0);
+}
+
+TEST_CASE("GeometryHandleController - snap grid", "[canvas][handles]")
+{
+    GeometryHandleController ctrl;
+    ctrl.set_snap_grid(10.0);
+
+    CHECK(ctrl.snap_value(13.0) == 10.0);
+    CHECK(ctrl.snap_value(17.0) == 20.0);
+    CHECK(ctrl.snap_value(25.0) == 30.0);
+}
+
+TEST_CASE("GeometryHandleController - no snap when grid=0", "[canvas][handles]")
+{
+    GeometryHandleController ctrl;
+    CHECK(ctrl.snap_value(13.7) == 13.7);
+}

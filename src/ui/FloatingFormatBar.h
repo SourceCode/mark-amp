@@ -1,10 +1,13 @@
 #pragma once
 
-#include "core/EventBus.h"
-#include "core/ThemeEngine.h"
+/// @file FloatingFormatBar.h
+/// @brief V13 Phase 30 — Floating format bar inheriting from FloatingToolbar base.
+///
+/// Provides one-click markdown formatting: Bold, Italic, Strikethrough, Code,
+/// Link, Blockquote, Heading, Table, Highlight, Footnote.
+/// Appears above text selections in the editor.
 
-#include <wx/popupwin.h>
-#include <wx/wx.h>
+#include "FloatingToolbar.h"
 
 #include <functional>
 #include <string>
@@ -12,9 +15,7 @@
 namespace markamp::ui
 {
 
-/// Floating formatting toolbar that appears above text selections.
-/// Provides one-click markdown formatting: Bold, Italic, Code, Link, Quote, Heading, Table.
-class FloatingFormatBar : public wxPopupTransientWindow
+class FloatingFormatBar : public FloatingToolbar
 {
 public:
     /// Actions the format bar can trigger.
@@ -22,11 +23,14 @@ public:
     {
         Bold,
         Italic,
+        Strikethrough,
         InlineCode,
         Link,
         Blockquote,
         Heading,
-        Table
+        Table,
+        Highlight,
+        Footnote
     };
 
     using ActionCallback = std::function<void(Action)>;
@@ -36,17 +40,13 @@ public:
                       core::EventBus& event_bus,
                       ActionCallback callback);
 
-    /// Update styling from theme.
-    void ApplyTheme();
+    /// Show above a text selection, centered horizontally.
+    void ShowAboveSelection(const wxPoint& selection_start, const wxPoint& selection_end);
 
 private:
-    core::ThemeEngine& theme_engine_;
-    core::EventBus& event_bus_;
-    core::Subscription theme_sub_;
     ActionCallback callback_;
 
-    void CreateButtons();
-    void OnButtonClicked(Action action);
+    void BuildButtons();
 };
 
 } // namespace markamp::ui

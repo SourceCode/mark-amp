@@ -41,6 +41,33 @@ add_executable(markamp
     ui/BreadcrumbModel.cpp
     ui/SplitterModel.cpp
     ui/ContextMenuModel.cpp
+    ui/ContextMenuBuilder.cpp
+    ui/ContextMenuRegistry.cpp
+    ui/ThemedContextMenu.cpp
+    ui/ToolWindowTabControl.cpp
+    ui/PanelLifecycleManager.cpp
+    ui/NavigationCommandSet.cpp
+    ui/JumpToController.cpp
+    ui/ControlMotionTokens.cpp
+    ui/ControlAnimator.cpp
+    ui/DragAffordanceController.cpp
+    ui/DropTargetHighlighter.cpp
+    ui/MultiSelectModel.cpp
+    ui/BulkActionController.cpp
+    ui/PreflightValidator.cpp
+    ui/RecoveryActionProvider.cpp
+    ui/AccessibilitySemanticsController.cpp
+    ui/ScreenReaderAnnouncer.cpp
+    ui/DpiScalingController.cpp
+    ui/CompactLayoutModel.cpp
+    ui/LayoutPresetController.cpp
+    ui/ControlVisibilityPrefs.cpp
+    ui/UxMetricsCollector.cpp
+    ui/TelemetryPrivacyController.cpp
+    ui/ControlSnapshotTester.cpp
+    ui/KeyboardWorkflowRunner.cpp
+    ui/UxAuditRunner.cpp
+    ui/ReleaseGateChecker.cpp
     ui/ShortcutOverlayModel.cpp
     ui/NotificationModel.cpp
     ui/DialogModel.cpp
@@ -93,6 +120,7 @@ add_executable(markamp
     ui/SplitView.cpp
     ui/EditorGroupManager.cpp
     ui/Toolbar.cpp
+    ui/RunConfigDropdown.cpp
     ui/TooltipWindow.cpp
     ui/ThemeGallery.cpp
     ui/ThemeTokenEditor.cpp
@@ -105,6 +133,27 @@ add_executable(markamp
     ui/BreadcrumbBar.cpp
     ui/BreadcrumbDropdown.cpp
     ui/FloatingFormatBar.cpp
+    ui/LightbulbWidget.cpp
+    ui/CodeActionMenu.cpp
+    ui/CodeActionPreview.cpp
+    ui/FloatingToolbar.cpp
+    ui/FloatingToolbarManager.cpp
+    ui/DebugToolbar.cpp
+    ui/SelectionActionBar.cpp
+    ui/MinimapHoverToolbar.cpp
+    ui/ImagePreviewToolbar.cpp
+    # V13 Phase 31: Command Palette V2
+    core/FuzzyScorer.cpp
+    core/FrecencyTracker.cpp
+    core/MarkdownSymbolProvider.cpp
+    ui/IconProvider.cpp
+    # V13 Phase 32: Go-To System
+    core/NavigationService.cpp
+    core/LinkResolver.cpp
+    core/BacklinkFinder.cpp
+    core/ChangeTracker.cpp
+    core/WorkspaceSymbolIndex.cpp
+    ui/NavigationHistoryPanel.cpp
     ui/LinkPreviewPopover.cpp
     ui/ImagePreviewPopover.cpp
     ui/TableEditorOverlay.cpp
@@ -120,6 +169,8 @@ add_executable(markamp
     ui/SidebarPanelRegistry.cpp
     ui/SidebarToolbar.cpp
     ui/PanelHeader.cpp
+    ui/PanelHeaderBar.cpp
+    ui/PanelHeaderIcons.cpp
     ui/SidebarFooter.cpp
     ui/SidebarSection.cpp
     ui/SidebarSkeletonPlaceholder.cpp
@@ -160,6 +211,16 @@ add_executable(markamp
     core/TerminalBuffer.cpp
     core/PtyProcess.cpp
     ui/TerminalTabBar.cpp
+    # Phase 22-25: Output Panel V2, Problems V2, Debug Console, Build & Tasks
+    ui/OutputPanelRenderer.cpp
+    ui/ProblemsTreeModel.cpp
+    core/DebugConsoleService.cpp
+    core/ExpressionEvaluator.cpp
+    core/CompilerErrorParser.cpp
+    core/TaskConfig.cpp
+    core/BuildService.cpp
+    ui/BuildPanel.cpp
+    ui/TaskListPanel.cpp
     ui/ProblemsPanel.cpp
     ui/TreeViewHost.cpp
     ui/WebviewHostPanel.cpp
@@ -188,6 +249,7 @@ add_executable(markamp
     core/FileSystemProviderRegistry.cpp
     core/LanguageProviderRegistry.cpp
     core/NotificationService.cpp
+    core/RunConfigService.cpp
     core/StatusBarItemService.cpp
     core/InputBoxService.cpp
     core/QuickPickService.cpp
@@ -620,6 +682,24 @@ add_executable(markamp
     canvas/DrawTool.cpp
     # V10 Phase 41-45: Canvas Input & Drawing Models
     canvas/CanvasInputModel.cpp
+    canvas/CanvasToolStateMachine.cpp
+    canvas/PointerEventRouter.cpp
+    canvas/StrokeSmoother.cpp
+    canvas/StrokeStylePreset.cpp
+    canvas/ShapePrimitiveSet.cpp
+    canvas/GeometryHandleController.cpp
+    canvas/ConnectorAnchorModel.cpp
+    canvas/ConnectorRouteEngine.cpp
+    canvas/CanvasTextEditor.cpp
+    canvas/TextStylePreset.cpp
+    canvas/CanvasColorToken.cpp
+    canvas/ColorPaletteController.cpp
+    canvas/StrokeBorderStyle.cpp
+    canvas/FillEffectsController.cpp
+    canvas/SelectionSemantics.cpp
+    canvas/TransformAlignController.cpp
+    canvas/SnapTargetEngine.cpp
+    canvas/GridGuideController.cpp
     canvas/FreehandModel.cpp
     canvas/ShapeModel.cpp
     canvas/ConnectorModel.cpp
@@ -879,6 +959,8 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "Src" FILES
     ui/EditorGroupManager.h
     ui/EditorGroupManager.cpp
     ui/Toolbar.cpp
+    ui/RunConfigDropdown.h
+    ui/RunConfigDropdown.cpp
     ui/TooltipWindow.h
     ui/TooltipWindow.cpp
     ui/ThemeGallery.h
@@ -897,6 +979,48 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "Src" FILES
     ui/BreadcrumbBar.cpp
     ui/FloatingFormatBar.h
     ui/FloatingFormatBar.cpp
+    ui/LightbulbWidget.h
+    ui/LightbulbWidget.cpp
+    ui/CodeActionMenu.h
+    ui/CodeActionMenu.cpp
+    ui/CodeActionPreview.h
+    ui/CodeActionPreview.cpp
+    ui/FloatingToolbar.h
+    ui/FloatingToolbar.cpp
+    ui/FloatingToolbarManager.h
+    ui/FloatingToolbarManager.cpp
+    ui/DebugToolbar.h
+    ui/DebugToolbar.cpp
+    ui/SelectionActionBar.h
+    ui/SelectionActionBar.cpp
+    ui/MinimapHoverToolbar.h
+    ui/MinimapHoverToolbar.cpp
+    ui/ImagePreviewToolbar.h
+    ui/ImagePreviewToolbar.cpp
+    # V13 Phase 31: Command Palette V2
+    core/FuzzyScorer.h
+    core/FuzzyScorer.cpp
+    core/FrecencyTracker.h
+    core/FrecencyTracker.cpp
+    core/ISymbolProvider.h
+    core/MarkdownSymbolProvider.h
+    core/MarkdownSymbolProvider.cpp
+    ui/FileIconResolver.h
+    ui/IconProvider.h
+    ui/IconProvider.cpp
+    # V13 Phase 32: Go-To System
+    core/NavigationService.h
+    core/NavigationService.cpp
+    core/LinkResolver.h
+    core/LinkResolver.cpp
+    core/BacklinkFinder.h
+    core/BacklinkFinder.cpp
+    core/ChangeTracker.h
+    core/ChangeTracker.cpp
+    core/WorkspaceSymbolIndex.h
+    core/WorkspaceSymbolIndex.cpp
+    ui/NavigationHistoryPanel.h
+    ui/NavigationHistoryPanel.cpp
     ui/LinkPreviewPopover.h
     ui/LinkPreviewPopover.cpp
     ui/ImagePreviewPopover.h
@@ -928,6 +1052,10 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "Src" FILES
     ui/SidebarHeader.cpp
     ui/PanelHeader.h
     ui/PanelHeader.cpp
+    ui/PanelHeaderBar.h
+    ui/PanelHeaderBar.cpp
+    ui/PanelHeaderIcons.h
+    ui/PanelHeaderIcons.cpp
     ui/SidebarFooter.cpp
     ui/SidebarSection.h
     ui/SidebarSection.cpp

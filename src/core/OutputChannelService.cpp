@@ -1,5 +1,7 @@
 #include "OutputChannelService.h"
 
+#include <algorithm>
+#include <array>
 #include <utility>
 
 namespace markamp::core
@@ -31,12 +33,32 @@ void OutputChannel::append(const std::string& text)
 void OutputChannel::append_line(const std::string& text)
 {
     content_ += text + "\n";
+    lines_.push_back(OutputLine{
+        .text = text,
+        .ansi_text = text,
+        .level = LogLevel::kInfo,
+        .timestamp = std::chrono::system_clock::now(),
+    });
+    fire_content_change();
+}
+
+void OutputChannel::append_line(const std::string& text, LogLevel level)
+{
+    content_ += text + "\n";
+    lines_.push_back(OutputLine{
+        .text = text,
+        .ansi_text = text,
+        .level = level,
+        .timestamp = std::chrono::system_clock::now(),
+    });
     fire_content_change();
 }
 
 void OutputChannel::clear()
 {
     content_.clear();
+    lines_.clear();
+    read_index_ = 0;
     fire_content_change();
 }
 
@@ -53,6 +75,54 @@ void OutputChannel::hide()
 auto OutputChannel::is_visible() const -> bool
 {
     return visible_;
+}
+
+auto OutputChannel::lines() const -> const std::vector<OutputLine>&
+{
+    return lines_;
+}
+
+auto OutputChannel::lines_filtered(LogLevel min_level) const -> std::vector<OutputLine>
+{
+    std::vector<OutputLine> result;
+    result.reserve(lines_.size());
+    for (const auto& line : lines_)
+    {
+        if (line.level >= min_level)
+        {
+            result.push_back(line);
+        }
+    }
+    return result;
+}
+
+auto OutputChannel::line_count() const -> std::size_t
+{
+    return lines_.size();
+}
+
+auto OutputChannel::auto_reveal() const -> bool
+{
+    return auto_reveal_;
+}
+
+void OutputChannel::set_auto_reveal(bool enabled)
+{
+    auto_reveal_ = enabled;
+}
+
+auto OutputChannel::unread_count() const -> std::size_t
+{
+    if (lines_.size() > read_index_)
+    {
+        return lines_.size() - read_index_;
+    }
+    return 0;
+}
+
+void OutputChannel::mark_read()
+{
+    read_index_ = lines_.size();
 }
 
 auto OutputChannel::on_content_change(ContentChangeListener listener) -> std::size_t
@@ -98,9 +168,9 @@ auto OutputChannelService::channel_names() const -> std::vector<std::string>
 {
     std::vector<std::string> names;
     names.reserve(channels_.size());
-    for (const auto& [name, channel] : channels_)
+    for (const auto& [channel_name, channel] : channels_)
     {
-        names.push_back(name);
+        names.push_back(channel_name);
     }
     return names;
 }
@@ -118,6 +188,38 @@ auto OutputChannelService::active_channel() const -> std::string
 void OutputChannelService::set_active_channel(const std::string& channel_name)
 {
     active_channel_ = channel_name;
+}
+
+void OutputChannelService::create_default_channels()
+{
+    static constexpr std::array<const char*, 5> kDefaultChannels = {
+        "Build",
+        "Git",
+        "Tasks",
+        "Extension Host",
+        "Log",
+    };
+    for (const auto* channel_name : kDefaultChannels)
+    {
+        if (get_channel(channel_name) == nullptr)
+        {
+            create_channel(channel_name);
+        }
+    }
+    if (active_channel_.empty())
+    {
+        active_channel_ = "Log";
+    }
+}
+
+auto OutputChannelService::ensure_channel(const std::string& channel_name) -> OutputChannel*
+{
+    auto* existing = get_channel(channel_name);
+    if (existing != nullptr)
+    {
+        return existing;
+    }
+    return create_channel(channel_name);
 }
 
 } // namespace markamp::core

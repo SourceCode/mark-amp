@@ -1,5 +1,42 @@
 # MarkAmp Release History
 
+## v2.15.55 — 2026-03-04
+
+### Highlights
+
+Phases 22-32 feature sweep: Output Panel V2 with channel management (Phase 22), Problems Tree Model with severity sorting and filtering (Phase 23), Debug Console with expression evaluation and REPL history (Phase 24), Build Service with task configuration, compiler error parsing, and task runner (Phase 25), Code Actions V2 with CodeActionSet, extended CodeActionProvider, LightbulbWidget, and CodeActionMenu/Preview (Phase 29), Context Menu V2 with themed context menus, keyboard navigation, and accessibility (Phase 28), Floating Toolbars with FloatingToolbar base, FloatingToolbarManager, DebugToolbar, SelectionActionBar, MinimapHoverToolbar, and ImagePreviewToolbar (Phase 30), Command Palette V2 with FuzzyScorer, FrecencyTracker, MarkdownSymbolProvider, FileIconResolver, and IconProvider (Phase 31), and Go-To System with NavigationService, LinkResolver, BacklinkFinder, ChangeTracker, WorkspaceSymbolIndex, and NavigationHistoryPanel (Phase 32). 74 new test cases (214 assertions) for Phases 31-32 alone. All tests pass.
+
+### Added
+
+- **FuzzyScorer** — Multi-signal scoring engine with consecutive (+5), word-boundary (+10), camelCase (+8), exact-prefix (+20), and gap penalty (-3) weights for command palette ranking.
+- **FrecencyTracker** — Frequency+recency algorithm with decay weights (100 for <4h, 70 for <1d, 50 for <3d, 30 for <7d, 15 for <30d, 10 for older) and max-10 timestamp tracking.
+- **ISymbolProvider / MarkdownSymbolProvider** — Interface for document symbol extraction; Markdown implementation extracting ATX headings with hierarchy tracking and code-block skipping.
+- **FileIconResolver** — Header-only utility mapping 30+ file extensions to 11 `FileIconType` categories (code, markdown, config, image, build, git, etc.).
+- **IconProvider** — Category-based icon defaults (16 categories) with specific icon registration override system.
+- **NavigationService** — Back/forward navigation history stack (max 100 entries) with duplicate coalescing and `NavigationChangedEvent` emission.
+- **LinkResolver** — Resolves `[[wiki-links]]`, `[markdown](urls)`, and `((block-refs))` to file paths with heading anchor support.
+- **BacklinkFinder** — Workspace-wide scanner finding all wiki-link and markdown-link references to a target document or heading.
+- **ChangeTracker** — Tracks edited lines since last save with next/prev navigation and wrap-around.
+- **WorkspaceSymbolIndex** — Cross-document symbol search using FuzzyScorer with incremental update support.
+- **NavigationHistoryPanel** — Themed sidebar panel showing navigation stack with current-location highlighting and double-click navigation.
+- **FloatingToolbar** — Base class for context-aware floating toolbar system with auto-positioning and theme integration.
+- **FloatingToolbarManager** — Centralized manager for creating, positioning, and dismissing floating toolbars.
+- **DebugToolbar** — Floating toolbar for debug session controls (continue, step, stop, restart).
+- **SelectionActionBar** — Floating toolbar appearing on text selection for quick formatting actions.
+- **MinimapHoverToolbar** — Floating toolbar for minimap hover interactions.
+- **ImagePreviewToolbar** — Floating toolbar for image preview controls (zoom, fit, rotate).
+- **BuildService / TaskConfig / CompilerErrorParser** — Build system infrastructure with task configuration, error pattern matching, and compiler output parsing.
+- **DebugConsoleService / ExpressionEvaluator** — Debug console REPL with expression evaluation and history.
+- **ProblemsTreeModel** — Hierarchical tree model for diagnostic display with severity sorting.
+- **LightbulbWidget / CodeActionMenu / CodeActionPreview** — Code action UI components with lightbulb indicator, action menu, and diff preview.
+- **Events**: `PaletteOpenedEvent`, `PaletteClosedEvent`, `NavigationChangedEvent`, `GoToLineEvent`, `FileOpenRequestEvent` (Phase 32).
+
+### Changed
+
+- **src/CMakeLists.txt** — Added 28 new Phase 31-32 source entries across both target_sources blocks.
+- **tests/CMakeLists.txt** — Added Phase 31-32 sources to `markamp_core` library; added `test_command_palette_v2` and `test_goto_system` test targets.
+- **Events.h** — Removed duplicate `FileOpenRequestEvent` definition; added 5 new event types for Phases 31-32.
+
 ## v2.14.54 — 2026-03-02
 
 ### Highlights

@@ -2,13 +2,16 @@
 
 #include "ActivityBar.h"
 #include "BreadcrumbBar.h"
+#include "BuildPanel.h"
 #include "CanvasWorkspacePanel.h"
+#include "DebugConsolePanel.h"
 #include "EditorPanel.h"
 #include "OutputPanel.h"
 #include "ProblemsPanel.h"
 #include "SplitView.h"
 #include "StatusBarPanel.h"
 #include "TabBar.h"
+#include "TaskListPanel.h"
 #include "ThemeGallery.h"
 #include "Toolbar.h"
 #include "WalkthroughPanel.h"
@@ -1908,6 +1911,32 @@ LayoutManager::LayoutManager(wxWindow* parent,
 
     toggle_bottom_panel_sub_ = event_bus_.subscribe<core::events::ToggleBottomPanelRequestEvent>(
         [this](const auto&) { ShowBottomPanel(!is_bottom_panel_visible()); });
+
+    // Phase 23: Update status bar with diagnostic counts
+    diagnostics_changed_sub_ = event_bus_.subscribe<core::events::DiagnosticsChangedEvent>(
+        [this](const core::events::DiagnosticsChangedEvent& evt)
+        {
+            if (statusbar_panel_ != nullptr)
+            {
+                statusbar_panel_->set_panel_notifications(
+                    evt.error_count, evt.warning_count, evt.info_count);
+            }
+            // Also refresh problems panel
+            if (problems_panel_ != nullptr)
+            {
+                problems_panel_->RefreshContent();
+            }
+        });
+
+    // Phase 25: Refresh build panel on build status change
+    build_status_changed_sub_ = event_bus_.subscribe<core::events::BuildFinishedEvent>(
+        [this]([[maybe_unused]] const core::events::BuildFinishedEvent& evt)
+        {
+            if (build_panel_ != nullptr)
+            {
+                build_panel_->RefreshContent();
+            }
+        });
 }
 
 LayoutManager::~LayoutManager() = default;
@@ -2101,6 +2130,23 @@ void LayoutManager::CreateLayout()
                 new TerminalPanel(parent, theme_engine(), event_bus_, *terminal_service_);
             return static_cast<wxWindow*>(terminal_panel_);
         });
+
+    // Phase 24: Debug Console (deferred)
+    panel_container_->RegisterDeferredPanel("markamp.panel.debug_console",
+                                            [this](wxWindow* parent)
+                                            {
+                                                debug_console_panel_ =
+                                                    new DebugConsolePanel(parent);
+                                                return static_cast<wxWindow*>(debug_console_panel_);
+                                            });
+
+    // Phase 25: Build Panel (deferred)
+    panel_container_->RegisterDeferredPanel("markamp.panel.build",
+                                            [this](wxWindow* parent)
+                                            {
+                                                build_panel_ = new BuildPanel(parent);
+                                                return static_cast<wxWindow*>(build_panel_);
+                                            });
 
     panel_sizer->Add(panel_container_, 1, wxEXPAND);
     panel_zone->SetSizer(panel_sizer);

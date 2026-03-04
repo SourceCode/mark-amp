@@ -1,43 +1,54 @@
 #pragma once
 
 /// @file CodeActionProvider.h
-/// @brief V9 Phase 19 — Code actions (quick fixes and refactoring) for markdown.
+/// @brief V9 Phase 19 + V13 Phase 29 — Code actions (quick fixes and refactoring) for markdown.
 ///
 /// Provides context-aware code actions including diagnostic quick-fixes,
-/// heading hierarchy fixes, link conversions, and extract operations.
+/// heading hierarchy fixes, link conversions, extract operations, and
+/// an extension provider registration API.
 
+#include "CodeActionTypes.h"
 #include "CodeIntelligenceTypes.h"
 #include "DiagnosticsService.h"
 
+#include <functional>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace markamp::core
 {
 
+/// Callback type for extension-registered code action providers.
+/// Takes (content, start_line, start_char, end_line, end_char, document_uri)
+/// and returns a vector of CodeActionInfo.
+using ExtensionActionProvider =
+    std::function<std::vector<CodeActionInfo>(const std::string& content,
+                                              int start_line,
+                                              int start_char,
+                                              int end_line,
+                                              int end_char,
+                                              const std::string& document_uri)>;
+
 /// Provider for code actions (quick fixes, refactoring) in markdown documents.
+///
+/// V13 Phase 29 additions:
+/// - `provide_action_set()` returns categorized `CodeActionSet`
+/// - `register_provider()` allows extensions to contribute custom actions
+/// - Built-in: organize links, format document, remove unused references
 ///
 /// Usage:
 /// ```cpp
 /// CodeActionProvider provider(diagnostics_service);
-/// auto actions = provider.provide_actions(content, 5, 0, 5, 40);
-/// for (const auto& action : actions) {
-///     // Apply action.edits
-/// }
+/// auto set = provider.provide_action_set(content, 5, 0, 5, 40, "file.md");
+/// if (set.has_preferred()) { /* auto-apply */ }
 /// ```
 class CodeActionProvider
 {
 public:
     explicit CodeActionProvider(DiagnosticsService& diagnostics_service);
 
-    /// Provide code actions for the given range.
-    /// @param content Full document content
-    /// @param start_line Selection start line (0-based)
-    /// @param start_char Selection start character
-    /// @param end_line Selection end line
-    /// @param end_char Selection end character
-    /// @param document_uri URI for diagnostic lookup
-    /// @return Available code actions
+    /// V9: Provide code actions for the given range (flat list).
     [[nodiscard]] auto provide_actions(const std::string& content,
                                        int start_line,
                                        int start_char,
@@ -46,8 +57,31 @@ public:
                                        const std::string& document_uri = "") const
         -> std::vector<CodeActionInfo>;
 
+    /// V13 Phase 29: Provide a categorized set of code actions.
+    [[nodiscard]] auto provide_action_set(const std::string& content,
+                                          int start_line,
+                                          int start_char,
+                                          int end_line,
+                                          int end_char,
+                                          const std::string& document_uri = "") const
+        -> CodeActionSet;
+
+    /// Register an extension-provided code action provider.
+    /// @param provider_id Unique identifier for the provider
+    /// @param provider Callback that returns code actions for a given range
+    void register_provider(const std::string& provider_id, ExtensionActionProvider provider);
+
+    /// Unregister a previously registered extension provider.
+    void unregister_provider(const std::string& provider_id);
+
+    /// Get the number of registered extension providers.
+    [[nodiscard]] auto extension_provider_count() const -> size_t;
+
 private:
     DiagnosticsService& diagnostics_service_;
+
+    /// Extension-registered action providers.
+    std::unordered_map<std::string, ExtensionActionProvider> extension_providers_;
 
     /// Generate quick-fix actions from diagnostics in the range.
     [[nodiscard]] auto
@@ -70,6 +104,18 @@ private:
 
     /// Generate trailing whitespace removal action.
     [[nodiscard]] static auto get_trailing_whitespace_action(const std::string& line_text, int line)
+        -> std::vector<CodeActionInfo>;
+
+    /// V13 Phase 29: Organize reference links (sort alphabetically, remove unused).
+    [[nodiscard]] static auto get_organize_links_action(const std::string& content)
+        -> std::vector<CodeActionInfo>;
+
+    /// V13 Phase 29: Format entire document (normalize spacing, fences, lists).
+    [[nodiscard]] static auto get_format_document_action(const std::string& content)
+        -> std::vector<CodeActionInfo>;
+
+    /// V13 Phase 29: Remove unused reference link definitions.
+    [[nodiscard]] static auto get_remove_unused_references_action(const std::string& content)
         -> std::vector<CodeActionInfo>;
 
     /// Get the line text at a given line number.

@@ -1,195 +1,155 @@
 #include "DebugToolbar.h"
 
+#include "core/Events.h"
+
 namespace markamp::ui
 {
 
 DebugToolbar::DebugToolbar(wxWindow* parent,
                            core::ThemeEngine& theme_engine,
-                           core::EventBus& event_bus,
-                           core::DebugSessionManager& session_mgr)
-    : wxPanel(parent, wxID_ANY)
-    , theme_engine_(theme_engine)
-    , event_bus_(event_bus)
-    , session_mgr_(session_mgr)
+                           core::EventBus& event_bus)
+    : FloatingToolbar(parent, theme_engine, event_bus, "debug_toolbar")
 {
-    CreateLayout();
-    ApplyTheme();
+    SetAutoHideMs(0); // Debug toolbar stays visible until stopped
+    SetDraggable(true);
+    SetSnapToEdges(true);
+    BuildButtons();
 }
 
-void DebugToolbar::CreateLayout()
+void DebugToolbar::OnDebugStarted()
 {
-    auto* sizer = new wxBoxSizer(wxHORIZONTAL);
+    is_paused_ = false;
+    RefreshButtonStates();
+    ShowAtScreenCenter();
+}
 
-    auto make_btn = [this](const std::string& label, const std::string& tooltip) -> wxButton*
+void DebugToolbar::OnDebugPaused()
+{
+    is_paused_ = true;
+    RefreshButtonStates();
+}
+
+void DebugToolbar::OnDebugContinued()
+{
+    is_paused_ = false;
+    RefreshButtonStates();
+}
+
+void DebugToolbar::OnDebugStopped()
+{
+    is_paused_ = false;
+    HideToolbar();
+}
+
+auto DebugToolbar::is_paused() const -> bool
+{
+    return is_paused_;
+}
+
+void DebugToolbar::BuildButtons()
+{
+    std::vector<FloatingToolbarButton> buttons;
+
+    // Continue / Pause
+    FloatingToolbarButton continue_btn;
+    continue_btn.id = "continue";
+    continue_btn.label = "\u25B6"; // ▶
+    continue_btn.tooltip = "Continue (F5)";
+    continue_btn.shortcut = "F5";
+    continue_btn.is_enabled = [this]() { return is_paused_; };
+    continue_btn.callback = [this]()
     {
-        auto* btn =
-            new wxButton(this, wxID_ANY, label, wxDefaultPosition, wxSize(28, 28), wxBORDER_NONE);
-        btn->SetFont(theme_engine_.font(core::ThemeFontToken::MonoRegular));
-        btn->SetToolTip(tooltip);
-        btn->SetName(tooltip); // Accessibility
-        return btn;
+        core::events::CommandExecutedEvent evt;
+        evt.command_id = "debug.continue";
+        evt.source = "toolbar";
+        event_bus_.publish(evt);
     };
+    buttons.push_back(std::move(continue_btn));
 
-    btn_continue_ = make_btn("\u25B6", "Continue (F5)");
-    btn_pause_ = make_btn("\u23F8", "Pause (F6)");
-    btn_step_over_ = make_btn("\u2B8F", "Step Over (F10)");
-    btn_step_into_ = make_btn("\u2B8E", "Step Into (F11)");
-    btn_step_out_ = make_btn("\u2B8D", "Step Out (Shift+F11)");
-    btn_restart_ = make_btn("\u21BB", "Restart (Ctrl+Shift+F5)");
-    btn_stop_ = make_btn("\u25A0", "Stop (Shift+F5)");
-
-    btn_continue_->Bind(wxEVT_BUTTON,
-                        [this](wxCommandEvent& /*unused*/)
-                        {
-                            if (on_continue_)
-                            {
-                                on_continue_();
-                            }
-                        });
-    btn_pause_->Bind(wxEVT_BUTTON,
-                     [this](wxCommandEvent& /*unused*/)
-                     {
-                         if (on_pause_)
-                         {
-                             on_pause_();
-                         }
-                     });
-    btn_step_over_->Bind(wxEVT_BUTTON,
-                         [this](wxCommandEvent& /*unused*/)
-                         {
-                             if (on_step_over_)
-                             {
-                                 on_step_over_();
-                             }
-                         });
-    btn_step_into_->Bind(wxEVT_BUTTON,
-                         [this](wxCommandEvent& /*unused*/)
-                         {
-                             if (on_step_into_)
-                             {
-                                 on_step_into_();
-                             }
-                         });
-    btn_step_out_->Bind(wxEVT_BUTTON,
-                        [this](wxCommandEvent& /*unused*/)
-                        {
-                            if (on_step_out_)
-                            {
-                                on_step_out_();
-                            }
-                        });
-    btn_restart_->Bind(wxEVT_BUTTON,
-                       [this](wxCommandEvent& /*unused*/)
-                       {
-                           if (on_restart_)
-                           {
-                               on_restart_();
-                           }
-                       });
-    btn_stop_->Bind(wxEVT_BUTTON,
-                    [this](wxCommandEvent& /*unused*/)
-                    {
-                        if (on_stop_)
-                        {
-                            on_stop_();
-                        }
-                    });
-
-    sizer->Add(btn_continue_, 0, wxRIGHT, 2);
-    sizer->Add(btn_pause_, 0, wxRIGHT, 2);
-    sizer->Add(btn_step_over_, 0, wxRIGHT, 2);
-    sizer->Add(btn_step_into_, 0, wxRIGHT, 2);
-    sizer->Add(btn_step_out_, 0, wxRIGHT, 2);
-    sizer->Add(btn_restart_, 0, wxRIGHT, 2);
-    sizer->Add(btn_stop_, 0);
-
-    SetSizer(sizer);
-    SetMinSize(wxSize(220, 32));
-}
-
-void DebugToolbar::ApplyTheme()
-{
-    auto bg_color = theme_engine_.color(core::ThemeColorToken::BgPanel);
-    SetBackgroundColour(bg_color);
-
-    // Accent green for continue, red for stop
-    if (btn_continue_ != nullptr)
+    // Step Over
+    FloatingToolbarButton step_over_btn;
+    step_over_btn.id = "step_over";
+    step_over_btn.label = "\u2B9E"; // ⮞
+    step_over_btn.tooltip = "Step Over (F10)";
+    step_over_btn.shortcut = "F10";
+    step_over_btn.is_enabled = [this]() { return is_paused_; };
+    step_over_btn.callback = [this]()
     {
-        btn_continue_->SetBackgroundColour(
-            theme_engine_.color(core::ThemeColorToken::AccentPrimary));
-        btn_continue_->SetForegroundColour(*wxWHITE);
-    }
-    if (btn_stop_ != nullptr)
+        core::events::CommandExecutedEvent evt;
+        evt.command_id = "debug.step_over";
+        evt.source = "toolbar";
+        event_bus_.publish(evt);
+    };
+    buttons.push_back(std::move(step_over_btn));
+
+    // Step In
+    FloatingToolbarButton step_in_btn;
+    step_in_btn.id = "step_in";
+    step_in_btn.label = "\u2B07"; // ⬇
+    step_in_btn.tooltip = "Step Into (F11)";
+    step_in_btn.shortcut = "F11";
+    step_in_btn.is_enabled = [this]() { return is_paused_; };
+    step_in_btn.callback = [this]()
     {
-        btn_stop_->SetBackgroundColour(theme_engine_.color(core::ThemeColorToken::ErrorColor));
-        btn_stop_->SetForegroundColour(*wxWHITE);
-    }
+        core::events::CommandExecutedEvent evt;
+        evt.command_id = "debug.step_in";
+        evt.source = "toolbar";
+        event_bus_.publish(evt);
+    };
+    buttons.push_back(std::move(step_in_btn));
 
-    Refresh();
-}
-
-void DebugToolbar::UpdateState()
-{
-    const auto state = session_mgr_.state();
-    const bool is_active = session_mgr_.is_active();
-
-    Show(is_active);
-
-    if (btn_continue_ != nullptr)
+    // Step Out
+    FloatingToolbarButton step_out_btn;
+    step_out_btn.id = "step_out";
+    step_out_btn.label = "\u2B06"; // ⬆
+    step_out_btn.tooltip = "Step Out (Shift+F11)";
+    step_out_btn.shortcut = "Shift+F11";
+    step_out_btn.is_enabled = [this]() { return is_paused_; };
+    step_out_btn.callback = [this]()
     {
-        btn_continue_->Show(state == core::DebugState::kPaused);
-    }
-    if (btn_pause_ != nullptr)
-    {
-        btn_pause_->Show(state == core::DebugState::kRunning);
-    }
+        core::events::CommandExecutedEvent evt;
+        evt.command_id = "debug.step_out";
+        evt.source = "toolbar";
+        event_bus_.publish(evt);
+    };
+    buttons.push_back(std::move(step_out_btn));
 
-    const bool can_step = (state == core::DebugState::kPaused);
-    if (btn_step_over_ != nullptr)
-    {
-        btn_step_over_->Enable(can_step);
-    }
-    if (btn_step_into_ != nullptr)
-    {
-        btn_step_into_->Enable(can_step);
-    }
-    if (btn_step_out_ != nullptr)
-    {
-        btn_step_out_->Enable(can_step);
-    }
+    // Separator
+    FloatingToolbarButton sep;
+    sep.is_separator = true;
+    buttons.push_back(std::move(sep));
 
-    Layout();
-}
+    // Restart
+    FloatingToolbarButton restart_btn;
+    restart_btn.id = "restart";
+    restart_btn.label = "\u21BB"; // ↻
+    restart_btn.tooltip = "Restart (Ctrl+Shift+F5)";
+    restart_btn.shortcut = "Ctrl+Shift+F5";
+    restart_btn.callback = [this]()
+    {
+        core::events::CommandExecutedEvent evt;
+        evt.command_id = "debug.restart";
+        evt.source = "toolbar";
+        event_bus_.publish(evt);
+    };
+    buttons.push_back(std::move(restart_btn));
 
-// ── Callback setters ──
+    // Stop
+    FloatingToolbarButton stop_btn;
+    stop_btn.id = "stop";
+    stop_btn.label = "\u25A0"; // ■
+    stop_btn.tooltip = "Stop (Shift+F5)";
+    stop_btn.shortcut = "Shift+F5";
+    stop_btn.callback = [this]()
+    {
+        core::events::CommandExecutedEvent evt;
+        evt.command_id = "debug.stop";
+        evt.source = "toolbar";
+        event_bus_.publish(evt);
+    };
+    buttons.push_back(std::move(stop_btn));
 
-void DebugToolbar::SetOnContinue(std::function<void()> callback)
-{
-    on_continue_ = std::move(callback);
-}
-void DebugToolbar::SetOnPause(std::function<void()> callback)
-{
-    on_pause_ = std::move(callback);
-}
-void DebugToolbar::SetOnStepOver(std::function<void()> callback)
-{
-    on_step_over_ = std::move(callback);
-}
-void DebugToolbar::SetOnStepInto(std::function<void()> callback)
-{
-    on_step_into_ = std::move(callback);
-}
-void DebugToolbar::SetOnStepOut(std::function<void()> callback)
-{
-    on_step_out_ = std::move(callback);
-}
-void DebugToolbar::SetOnRestart(std::function<void()> callback)
-{
-    on_restart_ = std::move(callback);
-}
-void DebugToolbar::SetOnStop(std::function<void()> callback)
-{
-    on_stop_ = std::move(callback);
+    SetButtons(std::move(buttons));
 }
 
 } // namespace markamp::ui

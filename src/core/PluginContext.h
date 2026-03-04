@@ -39,6 +39,7 @@ class StatusBarItemService;
 class InputBoxService;
 class QuickPickService;
 class IPanelService;
+class DebugConsoleService;
 
 // Forward declarations for P1–P4 services
 class SnippetEngine;
@@ -147,6 +148,10 @@ struct PluginContext
     GrammarEngine* grammar_engine{nullptr};
     TerminalService* terminal_service{nullptr};
     TaskRunnerService* task_runner_service{nullptr};
+
+    // ── Phase 24: Debug Console ──
+
+    DebugConsoleService* debug_console_service{nullptr};
 
     // ── V4 Phase 02: Vault Management ──
 

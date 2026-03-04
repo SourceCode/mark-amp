@@ -1,5 +1,8 @@
 #pragma once
 
+#include "LogLevel.h"
+
+#include <chrono>
 #include <functional>
 #include <mutex>
 #include <string>
@@ -8,6 +11,17 @@
 
 namespace markamp::core
 {
+
+// ── Phase 22: Per-line output storage ──
+
+/// A single line of output with log level, ANSI text, and timestamp.
+struct OutputLine
+{
+    std::string text;      ///< Plain text (ANSI stripped)
+    std::string ansi_text; ///< Original text with ANSI sequences preserved
+    LogLevel level{LogLevel::kInfo};
+    std::chrono::system_clock::time_point timestamp{std::chrono::system_clock::now()};
+};
 
 /// An output channel that extensions can write to (equivalent to VS Code's OutputChannel).
 class OutputChannel
@@ -26,6 +40,28 @@ public:
 
     [[nodiscard]] auto is_visible() const -> bool;
 
+    // ── Phase 22: Per-line log level support ──
+
+    /// Append a line with an explicit log level.
+    void append_line(const std::string& text, LogLevel level);
+
+    /// Get all stored lines.
+    [[nodiscard]] auto lines() const -> const std::vector<OutputLine>&;
+
+    /// Get lines filtered by minimum severity.
+    [[nodiscard]] auto lines_filtered(LogLevel min_level) const -> std::vector<OutputLine>;
+
+    /// Total number of stored lines.
+    [[nodiscard]] auto line_count() const -> std::size_t;
+
+    /// Auto-reveal: when true, panel should reveal when new content arrives.
+    [[nodiscard]] auto auto_reveal() const -> bool;
+    void set_auto_reveal(bool enabled);
+
+    /// Unread line count (lines added since last read).
+    [[nodiscard]] auto unread_count() const -> std::size_t;
+    void mark_read();
+
     /// Listener for content changes.
     using ContentChangeListener = std::function<void(const OutputChannel& channel)>;
     auto on_content_change(ContentChangeListener listener) -> std::size_t;
@@ -35,6 +71,9 @@ private:
     std::string name_;
     std::string content_;
     bool visible_{false};
+    bool auto_reveal_{true};
+    std::vector<OutputLine> lines_;
+    std::size_t read_index_{0};
     std::vector<std::pair<std::size_t, ContentChangeListener>> listeners_;
     std::size_t next_listener_id_{0};
 
@@ -64,6 +103,14 @@ public:
 
     /// Set the active channel.
     void set_active_channel(const std::string& channel_name);
+
+    // ── Phase 22: Default system channels ──
+
+    /// Create default channels: Build, Git, Tasks, Extension Host, Log.
+    void create_default_channels();
+
+    /// Get or create a channel (convenience).
+    auto ensure_channel(const std::string& channel_name) -> OutputChannel*;
 
 private:
     std::unordered_map<std::string, std::unique_ptr<OutputChannel>> channels_;

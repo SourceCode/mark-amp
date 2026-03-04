@@ -1,157 +1,92 @@
 #include "FloatingFormatBar.h"
 
-#include "core/Color.h"
 #include "core/Events.h"
-
-#include <wx/button.h>
-#include <wx/sizer.h>
-
-#include <array>
 
 namespace markamp::ui
 {
-
-namespace
-{
-
-struct ButtonSpec
-{
-    wxString label;
-    FloatingFormatBar::Action action;
-    wxString tooltip;
-};
-
-// Button definitions — compact labels for the toolbar
-constexpr int kButtonSize = 28;
-constexpr int kBarPadding = 4;
-constexpr int kButtonSpacing = 2;
-
-} // namespace
 
 FloatingFormatBar::FloatingFormatBar(wxWindow* parent,
                                      core::ThemeEngine& theme_engine,
                                      core::EventBus& event_bus,
                                      ActionCallback callback)
-    : wxPopupTransientWindow(parent, wxBORDER_NONE)
-    , theme_engine_(theme_engine)
-    , event_bus_(event_bus)
+    : FloatingToolbar(parent, theme_engine, event_bus, "format_bar")
     , callback_(std::move(callback))
 {
-    CreateButtons();
-    ApplyTheme();
-
-    theme_sub_ = event_bus_.subscribe<core::events::ThemeChangedEvent>(
-        [this](const core::events::ThemeChangedEvent& /*evt*/) { ApplyTheme(); });
+    SetDraggable(false);
+    SetSnapToEdges(false);
+    SetAutoHideMs(0); // Hidden when selection clears
+    BuildButtons();
 }
 
-void FloatingFormatBar::CreateButtons()
+void FloatingFormatBar::ShowAboveSelection(const wxPoint& selection_start,
+                                           const wxPoint& selection_end)
 {
-    auto* sizer = new wxBoxSizer(wxHORIZONTAL);
+    // Center horizontally between selection endpoints, position above
+    const int center_x = (selection_start.x + selection_end.x) / 2;
+    const auto toolbar_size = FloatingToolbar::CalculateSize();
+    const int toolbar_x = center_x - toolbar_size.x / 2;
+    const int toolbar_y = selection_start.y - toolbar_size.y - 8;
 
-    const std::array<ButtonSpec, 7> specs = {{
-        {wxString::FromUTF8("B"), Action::Bold, "Bold (⌘B)"},
-        {wxString::FromUTF8("I"), Action::Italic, "Italic (⌘I)"},
-        {wxString::FromUTF8("</>"), Action::InlineCode, "Inline Code"},
-        {wxString::FromUTF8("🔗"), Action::Link, "Insert Link (⌘K)"},
-        {wxString::FromUTF8(">"), Action::Blockquote, "Blockquote"},
-        {wxString::FromUTF8("H"), Action::Heading, "Cycle Heading"},
-        {wxString::FromUTF8("⊞"), Action::Table, "Insert Table"},
-    }};
-
-    sizer->AddSpacer(kBarPadding);
-
-    for (const auto& spec : specs)
+    // If above would be off-screen, show below instead
+    if (toolbar_y < 0)
     {
-        auto* btn = new wxButton(
-            this, wxID_ANY, spec.label, wxDefaultPosition, wxSize(kButtonSize, kButtonSize));
-        btn->SetToolTip(spec.tooltip);
-
-        // Use a bold font for B and I buttons
-        if (spec.action == Action::Bold)
-        {
-            auto font = btn->GetFont();
-            font.SetWeight(wxFONTWEIGHT_BOLD);
-            btn->SetFont(font);
-        }
-        else if (spec.action == Action::Italic)
-        {
-            auto font = btn->GetFont();
-            font.SetStyle(wxFONTSTYLE_ITALIC);
-            btn->SetFont(font);
-        }
-
-        // R21 Fix 9: Hover background — highlight button on mouse enter
-        btn->Bind(wxEVT_ENTER_WINDOW,
-                  [this, btn](wxMouseEvent& /*evt*/)
-                  {
-                      auto hover_bg = theme_engine_.color(core::ThemeColorToken::HoverBg);
-                      btn->SetBackgroundColour(hover_bg);
-                      btn->Refresh();
-                  });
-        btn->Bind(wxEVT_LEAVE_WINDOW,
-                  [this, btn](wxMouseEvent& /*evt*/)
-                  {
-                      auto bg = theme_engine_.color(core::ThemeColorToken::BgPanel);
-                      btn->SetBackgroundColour(bg);
-                      btn->Refresh();
-                  });
-
-        // R21 Fix 12: Pressed feedback — flash AccentSecondary on click
-        btn->Bind(wxEVT_BUTTON,
-                  [this, action = spec.action, btn](wxCommandEvent& /*evt*/)
-                  {
-                      // R21 Fix 10: Flash accent color on press
-                      auto accent = theme_engine_.color(core::ThemeColorToken::AccentSecondary);
-                      btn->SetForegroundColour(accent);
-                      btn->Refresh();
-                      OnButtonClicked(action);
-                  });
-
-        sizer->Add(btn, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, kButtonSpacing);
+        ShowAt(wxPoint(toolbar_x, selection_end.y + 8));
     }
-
-    sizer->AddSpacer(kBarPadding);
-    SetSizer(sizer);
-
-    // Fit to contents
-    sizer->Fit(this);
+    else
+    {
+        ShowAt(wxPoint(toolbar_x, toolbar_y));
+    }
 }
 
-void FloatingFormatBar::ApplyTheme()
+void FloatingFormatBar::BuildButtons()
 {
-    auto bg_color = theme_engine_.color(core::ThemeColorToken::BgPanel);
-    auto fg_color = theme_engine_.color(core::ThemeColorToken::TextMain);
-    auto accent = theme_engine_.color(core::ThemeColorToken::AccentPrimary);
-    auto border = theme_engine_.color(core::ThemeColorToken::BorderDark);
+    std::vector<FloatingToolbarButton> buttons;
 
-    SetBackgroundColour(bg_color);
-
-    // Style all child buttons
-    for (auto* child : GetChildren())
+    auto make_action = [this](const std::string& btn_id,
+                              const std::string& label,
+                              const std::string& tooltip_text,
+                              Action action) -> FloatingToolbarButton
     {
-        auto* btn = dynamic_cast<wxButton*>(child);
-        if (btn != nullptr)
+        FloatingToolbarButton btn;
+        btn.id = btn_id;
+        btn.label = label;
+        btn.tooltip = tooltip_text;
+        btn.callback = [this, action]()
         {
-            btn->SetBackgroundColour(bg_color);
-            btn->SetForegroundColour(fg_color);
-        }
-    }
+            if (callback_)
+            {
+                callback_(action);
+            }
+            HideToolbar();
+        };
+        return btn;
+    };
 
-    // R21 Fix 11: Border for depth effect around the popup
-    // wxPopupTransientWindow doesn't support border painting directly,
-    // but we can use the window's background and accent to style it
+    buttons.push_back(make_action("bold", "B", "Bold (\u2318B)", Action::Bold));
+    buttons.push_back(make_action("italic", "I", "Italic (\u2318I)", Action::Italic));
+    buttons.push_back(
+        make_action("strikethrough", "S\u0336", "Strikethrough", Action::Strikethrough));
+    buttons.push_back(make_action("code", "</>", "Inline Code", Action::InlineCode));
+    buttons.push_back(make_action("link", "\U0001F517", "Insert Link (\u2318K)", Action::Link));
 
-    Refresh();
-}
+    // Separator
+    FloatingToolbarButton sep1;
+    sep1.is_separator = true;
+    buttons.push_back(std::move(sep1));
 
-void FloatingFormatBar::OnButtonClicked(Action action)
-{
-    if (callback_)
-    {
-        callback_(action);
-    }
-    // Dismiss after action
-    Dismiss();
+    buttons.push_back(make_action("blockquote", ">", "Blockquote", Action::Blockquote));
+    buttons.push_back(make_action("heading", "H", "Cycle Heading", Action::Heading));
+    buttons.push_back(make_action("table", "\u229E", "Insert Table", Action::Table));
+
+    // Separator
+    FloatingToolbarButton sep2;
+    sep2.is_separator = true;
+    buttons.push_back(std::move(sep2));
+
+    buttons.push_back(make_action("highlight", "\u2588", "Highlight", Action::Highlight));
+    buttons.push_back(make_action("footnote", "\u00B9", "Insert Footnote", Action::Footnote));
+
+    SetButtons(std::move(buttons));
 }
 
 } // namespace markamp::ui

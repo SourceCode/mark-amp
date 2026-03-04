@@ -86,6 +86,63 @@ Toolbar::Toolbar(wxWindow* parent, DesignSystemContext& ds, core::EventBus& even
     flash_cfg.easing_type = animation::EasingType::EaseOutCubic;
     transition_manager_.register_transition("save_flash", flash_cfg);
 
+    // ── Phase 26: Build/run lifecycle event subscriptions ────────────
+    build_started_sub_ = event_bus_.subscribe<core::events::BuildStartedEvent>(
+        [this](const core::events::BuildStartedEvent& /*evt*/)
+        {
+            build_indicator_state_ = BuildIndicatorState::kBuilding;
+            spinner_frame_ = 0;
+            Refresh();
+        });
+
+    build_finished_sub_ = event_bus_.subscribe<core::events::BuildFinishedEvent>(
+        [this](const core::events::BuildFinishedEvent& evt)
+        {
+            build_indicator_state_ =
+                evt.success ? BuildIndicatorState::kSuccess : BuildIndicatorState::kFailure;
+            // Auto-decay back to idle after 3 seconds
+            build_decay_timer_.SetOwner(this);
+            build_decay_timer_.StartOnce(3000);
+            build_decay_timer_.Bind(wxEVT_TIMER,
+                                    [this](wxTimerEvent& /*timer_evt*/)
+                                    {
+                                        build_indicator_state_ = BuildIndicatorState::kIdle;
+                                        Refresh();
+                                    });
+            Refresh();
+        });
+
+    run_started_sub_ = event_bus_.subscribe<core::events::RunConfigStartedEvent>(
+        [this](const core::events::RunConfigStartedEvent& evt)
+        {
+            process_running_ = true;
+            running_config_name_ = evt.config_name;
+            Refresh();
+        });
+
+    run_finished_sub_ = event_bus_.subscribe<core::events::RunConfigFinishedEvent>(
+        [this](const core::events::RunConfigFinishedEvent& /*evt*/)
+        {
+            process_running_ = false;
+            running_config_name_.clear();
+            Refresh();
+        });
+
+    run_stopped_sub_ = event_bus_.subscribe<core::events::RunConfigStoppedEvent>(
+        [this](const core::events::RunConfigStoppedEvent& /*evt*/)
+        {
+            process_running_ = false;
+            running_config_name_.clear();
+            Refresh();
+        });
+
+    sidebar_toggle_sub_ = event_bus_.subscribe<core::events::SidebarToggleEvent>(
+        [this](const core::events::SidebarToggleEvent& evt)
+        {
+            sidebar_visible_ = evt.visible;
+            Refresh();
+        });
+
     RecalculateButtonRects();
 
     // R20 Fix 8: Tooltip delay timer — waits 400ms before showing tooltip
@@ -260,6 +317,8 @@ void Toolbar::OnSize(wxSizeEvent& event)
 {
     // R18 Fix 16: Responsive collapse to icons-only
     compact_mode_ = (event.GetSize().GetWidth() < 600);
+    // Phase 26: Show overflow chevron in compact mode
+    show_overflow_chevron_ = compact_mode_;
     RecalculateButtonRects();
     Refresh();
     event.Skip();
@@ -575,9 +634,16 @@ void Toolbar::OnPaint(wxPaintEvent& /*event*/)
     {
         int sep_x =
             (left_buttons_.back().rect.GetRight() + right_buttons_.front().rect.GetLeft()) / 2;
-        auto sep_col = wxColour(t.colors.border_light.to_rgba_string());
-        gc.SetPen(gc.CreatePen(wxGraphicsPenInfo(sep_col).Width(1.0)));
-        gc.StrokeLine(sep_x, 8, sep_x, GetClientSize().GetHeight() - 8);
+        DrawZoneDivider(gc, sep_x, t);
+    }
+
+    // Phase 26: Build indicator — positioned between left and right button groups
+    if (build_indicator_state_ != BuildIndicatorState::kIdle && !left_buttons_.empty() &&
+        !right_buttons_.empty())
+    {
+        int bi_x = left_buttons_.back().rect.GetRight() + 8;
+        int bi_y = (GetClientSize().GetHeight() - 14) / 2;
+        DrawBuildIndicator(gc, bi_x, bi_y, t);
     }
 
     for (const auto& btn : right_buttons_)
@@ -596,6 +662,45 @@ void Toolbar::OnPaint(wxPaintEvent& /*event*/)
             double uy = btn.rect.GetBottom() - 1;
             gc.StrokeLine(ux, uy, ux + uw, uy);
         }
+    }
+
+    // Phase 26: Notification bell unread badge — red dot with count
+    if (notification_unread_count_ > 0 && !right_buttons_.empty())
+    {
+        // Draw badge on the last right button (settings) area
+        const auto& last_btn = right_buttons_.back();
+        auto badge_font = wxFont(wxFontInfo(7).Family(wxFONTFAMILY_SWISS).Bold());
+        auto badge_bg = theme_engine().color(core::ThemeColorToken::ErrorColor);
+        auto badge_text = std::to_string(notification_unread_count_);
+        gc.SetFont(badge_font, wxColour(255, 255, 255));
+        wxDouble bw = 0;
+        wxDouble bh = 0;
+        gc.GetTextExtent(badge_text, &bw, &bh);
+        double bx = last_btn.rect.GetRight() - bw;
+        double by = last_btn.rect.GetY() - 2;
+        gc.SetBrush(gc.CreateBrush(wxBrush(badge_bg)));
+        gc.SetPen(*wxTRANSPARENT_PEN);
+        gc.DrawRoundedRectangle(bx - 3, by, bw + 6, bh + 2, (bh + 2) / 2.0);
+        gc.SetFont(badge_font, wxColour(255, 255, 255));
+        gc.DrawText(badge_text, bx, by + 1);
+    }
+
+    // Phase 26: Overflow chevron in compact mode
+    if (show_overflow_chevron_)
+    {
+        auto chevron_color = wxColour(t.colors.text_muted.to_rgba_string());
+        gc.SetPen(gc.CreatePen(wxGraphicsPenInfo(chevron_color).Width(1.5)));
+        gc.SetBrush(*wxTRANSPARENT_BRUSH);
+        int cx = GetClientSize().GetWidth() - 16;
+        int cy = GetClientSize().GetHeight() / 2;
+        auto path = gc.CreatePath();
+        path.MoveToPoint(cx - 3, cy - 4);
+        path.AddLineToPoint(cx + 2, cy);
+        path.AddLineToPoint(cx - 3, cy + 4);
+        path.MoveToPoint(cx + 1, cy - 4);
+        path.AddLineToPoint(cx + 6, cy);
+        path.AddLineToPoint(cx + 1, cy + 4);
+        gc.StrokePath(path);
     }
 
     // R20 Fix 9: Active mode badge — small count beside active view mode label
@@ -852,6 +957,100 @@ void Toolbar::OnThemeChanged(const core::Theme& new_theme)
 {
     ThemeAwareWindow::OnThemeChanged(new_theme);
     Refresh();
+}
+
+// ═══════════════════════════════════════════════════════
+// Phase 26: Zone Divider
+// ═══════════════════════════════════════════════════════
+
+void Toolbar::DrawZoneDivider(wxGraphicsContext& graphics_ctx,
+                              int x_position,
+                              const core::Theme& current_theme) const
+{
+    const int bar_height = GetClientSize().GetHeight();
+    const int divider_margin = 8;
+    const auto divider_color = wxColour(current_theme.colors.border_light.to_rgba_string());
+
+    graphics_ctx.SetPen(graphics_ctx.CreatePen(wxGraphicsPenInfo(divider_color).Width(1.0)));
+    graphics_ctx.StrokeLine(x_position, divider_margin, x_position, bar_height - divider_margin);
+}
+
+// ═══════════════════════════════════════════════════════
+// Phase 26: Build Indicator
+// ═══════════════════════════════════════════════════════
+
+void Toolbar::DrawBuildIndicator(wxGraphicsContext& graphics_ctx,
+                                 int x_position,
+                                 int y_position,
+                                 const core::Theme& current_theme)
+{
+    constexpr int kIndicatorSize = 14;
+    constexpr double kHalfSize = kIndicatorSize / 2.0;
+
+    switch (build_indicator_state_)
+    {
+        case BuildIndicatorState::kIdle:
+            // No indicator drawn when idle
+            break;
+
+        case BuildIndicatorState::kBuilding:
+        {
+            // Spinning arc indicator
+            const auto accent = wxColour(current_theme.colors.accent_primary.to_rgba_string());
+            graphics_ctx.SetPen(graphics_ctx.CreatePen(wxGraphicsPenInfo(accent).Width(2.0)));
+            graphics_ctx.SetBrush(*wxTRANSPARENT_BRUSH);
+
+            const double start_angle =
+                (static_cast<double>(spinner_frame_) * 30.0) * 3.14159265 / 180.0;
+            const double sweep_angle = 270.0 * 3.14159265 / 180.0;
+
+            auto path = graphics_ctx.CreatePath();
+            path.AddArc(x_position + kHalfSize,
+                        y_position + kHalfSize,
+                        kHalfSize - 1.0,
+                        start_angle,
+                        start_angle + sweep_angle,
+                        true);
+            graphics_ctx.StrokePath(path);
+
+            // Advance spinner frame
+            ++spinner_frame_;
+            break;
+        }
+
+        case BuildIndicatorState::kSuccess:
+        {
+            // Green checkmark
+            const auto success_col = wxColour(current_theme.success_fg_token.to_rgba_string());
+            graphics_ctx.SetPen(graphics_ctx.CreatePen(wxGraphicsPenInfo(success_col).Width(2.0)));
+            graphics_ctx.SetBrush(*wxTRANSPARENT_BRUSH);
+
+            auto path = graphics_ctx.CreatePath();
+            path.MoveToPoint(x_position + 3, y_position + kHalfSize);
+            path.AddLineToPoint(x_position + kHalfSize, y_position + kIndicatorSize - 3);
+            path.AddLineToPoint(x_position + kIndicatorSize - 2, y_position + 3);
+            graphics_ctx.StrokePath(path);
+            break;
+        }
+
+        case BuildIndicatorState::kFailure:
+        {
+            // Red X
+            const auto error_col = wxColour(current_theme.error_fg_token.to_rgba_string());
+            graphics_ctx.SetPen(graphics_ctx.CreatePen(wxGraphicsPenInfo(error_col).Width(2.0)));
+            graphics_ctx.SetBrush(*wxTRANSPARENT_BRUSH);
+
+            graphics_ctx.StrokeLine(x_position + 3,
+                                    y_position + 3,
+                                    x_position + kIndicatorSize - 3,
+                                    y_position + kIndicatorSize - 3);
+            graphics_ctx.StrokeLine(x_position + kIndicatorSize - 3,
+                                    y_position + 3,
+                                    x_position + 3,
+                                    y_position + kIndicatorSize - 3);
+            break;
+        }
+    }
 }
 
 } // namespace markamp::ui

@@ -55,6 +55,7 @@ namespace markamp::ui
 
 class ActivityBar;
 class BreadcrumbBar;
+class BuildPanel;
 class DebugConsolePanel;
 class ExplorerPanel;
 class ExtensionsBrowserPanel;
@@ -67,6 +68,7 @@ class SecondarySidebarTabStrip;
 class SplitView;
 class StatusBarPanel;
 class TabBar;
+class TaskListPanel;
 class TerminalPanel;
 class PanelContainer;
 class PreviewPanel;
@@ -239,6 +241,8 @@ private:
     WalkthroughPanel* walkthrough_panel_{nullptr};
     TerminalPanel* terminal_panel_{nullptr};
     DebugConsolePanel* debug_console_panel_{nullptr};
+    BuildPanel* build_panel_{nullptr};
+    TaskListPanel* task_list_panel_{nullptr};
     TreeViewHost* tree_view_host_{nullptr};
     WebviewHostPanel* webview_host_panel_{nullptr};
     bool bottom_panel_visible_{false};
@@ -463,6 +467,10 @@ private:
     core::Subscription panel_tabs_sub_;
     core::Subscription panel_badge_sub_;
     core::Subscription toggle_bottom_panel_sub_;
+
+    // Phase 23/25: Status bar integration
+    core::Subscription diagnostics_changed_sub_;
+    core::Subscription build_status_changed_sub_;
 };
 
 } // namespace markamp::ui

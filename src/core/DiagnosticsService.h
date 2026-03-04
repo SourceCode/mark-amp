@@ -40,6 +40,15 @@ struct Diagnostic
     DiagnosticSeverity severity{DiagnosticSeverity::kError};
     std::string source; // e.g. "eslint", "tsc"
     std::string code;   // e.g. "TS2304", "no-unused-vars"
+
+    /// Related information links (uri + message pairs).
+    struct RelatedInfo
+    {
+        std::string uri;
+        DiagnosticPosition position;
+        std::string message;
+    };
+    std::vector<RelatedInfo> related_information;
 };
 
 /// Service that manages diagnostics per URI (equivalent to VS Code's DiagnosticCollection).
@@ -62,6 +71,16 @@ public:
 
     /// Clear all diagnostics.
     void clear();
+
+    /// Clear all diagnostics from a specific source (e.g., "gcc", "eslint").
+    void clear_by_source(const std::string& source);
+
+    /// Clear all diagnostics of a specific severity.
+    void clear_by_severity(DiagnosticSeverity severity);
+
+    /// Get all diagnostics matching a severity across all URIs.
+    [[nodiscard]] auto diagnostics_for_severity(DiagnosticSeverity severity) const
+        -> std::vector<std::pair<std::string, Diagnostic>>;
 
     /// Count diagnostics by severity across all URIs.
     [[nodiscard]] auto count_by_severity(DiagnosticSeverity severity) const -> std::size_t;

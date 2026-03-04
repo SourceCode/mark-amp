@@ -93,4 +93,79 @@ void DiagnosticsService::fire_change(const std::string& uri)
     }
 }
 
+void DiagnosticsService::clear_by_source(const std::string& source)
+{
+    for (auto& [uri, diags] : diagnostics_)
+    {
+        auto original_size = diags.size();
+        diags.erase(std::remove_if(diags.begin(),
+                                   diags.end(),
+                                   [&source](const Diagnostic& diag)
+                                   { return diag.source == source; }),
+                    diags.end());
+        if (diags.size() != original_size)
+        {
+            fire_change(uri);
+        }
+    }
+    // Remove empty URI entries
+    for (auto iter = diagnostics_.begin(); iter != diagnostics_.end();)
+    {
+        if (iter->second.empty())
+        {
+            iter = diagnostics_.erase(iter);
+        }
+        else
+        {
+            ++iter;
+        }
+    }
+}
+
+void DiagnosticsService::clear_by_severity(DiagnosticSeverity severity)
+{
+    for (auto& [uri, diags] : diagnostics_)
+    {
+        auto original_size = diags.size();
+        diags.erase(std::remove_if(diags.begin(),
+                                   diags.end(),
+                                   [severity](const Diagnostic& diag)
+                                   { return diag.severity == severity; }),
+                    diags.end());
+        if (diags.size() != original_size)
+        {
+            fire_change(uri);
+        }
+    }
+    // Remove empty URI entries
+    for (auto iter = diagnostics_.begin(); iter != diagnostics_.end();)
+    {
+        if (iter->second.empty())
+        {
+            iter = diagnostics_.erase(iter);
+        }
+        else
+        {
+            ++iter;
+        }
+    }
+}
+
+auto DiagnosticsService::diagnostics_for_severity(DiagnosticSeverity severity) const
+    -> std::vector<std::pair<std::string, Diagnostic>>
+{
+    std::vector<std::pair<std::string, Diagnostic>> result;
+    for (const auto& [uri, diags] : diagnostics_)
+    {
+        for (const auto& diag : diags)
+        {
+            if (diag.severity == severity)
+            {
+                result.emplace_back(uri, diag);
+            }
+        }
+    }
+    return result;
+}
+
 } // namespace markamp::core

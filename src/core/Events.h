@@ -4629,4 +4629,247 @@ std::string stage_name;
 int phase{0};
 MARKAMP_DECLARE_EVENT_END;
 
+// ============================================================================
+// Phase 22: Output Panel V2 events
+// ============================================================================
+
+/// Fired when content is appended to an output channel.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(OutputChannelContentEvent)
+std::string channel_name;
+std::string text;
+int log_level{2}; ///< LogLevel as int (0=Trace..5=Fatal)
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a new output channel is created.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(OutputChannelCreatedEvent)
+std::string channel_name;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when the active output channel changes.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(OutputChannelActiveChangedEvent)
+std::string old_channel;
+std::string new_channel;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired to request auto-reveal of the output panel.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(OutputAutoRevealEvent)
+std::string channel_name;
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// Phase 23: Problems Panel V2 events
+// ============================================================================
+
+/// Fired when diagnostics change for a URI.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DiagnosticsChangedEvent)
+std::string uri;
+int error_count{0};
+int warning_count{0};
+int info_count{0};
+int hint_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired to navigate the editor to a specific problem location.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NavigateToProblemEvent)
+std::string file_uri;
+int line{0};
+int character{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a quick fix is requested for a diagnostic in the problems panel.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DiagnosticQuickFixRequestEvent)
+std::string file_uri;
+int line{0};
+int character{0};
+std::string diagnostic_code;
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// Phase 24: Debug Console Panel events
+// ============================================================================
+
+/// Fired when text is written to the debug console output.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DebugConsoleOutputEvent)
+std::string text;
+int entry_type{0}; ///< 0=Output, 1=Error, 2=System, 3=Debug
+std::string source;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when the user submits input in the debug console.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DebugConsoleInputEvent)
+std::string expression;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when an expression evaluation completes.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DebugConsoleEvalResultEvent)
+std::string expression;
+std::string result;
+bool is_error{false};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when the debug console is cleared.
+MARKAMP_DECLARE_EVENT(DebugConsoleClearEvent);
+
+// ============================================================================
+// Phase 25: Build & Task Runner Panel events
+// ============================================================================
+
+/// Fired when a build process starts.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BuildStartedEvent)
+std::string build_system; ///< "cmake", "make", "custom"
+std::string target;
+std::string configuration; ///< "debug", "release", etc.
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired to report build progress.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BuildProgressEvent)
+int completed{0};
+int total{0};
+std::string current_file;
+float percentage{0.0F};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a build process finishes.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BuildFinishedEvent)
+bool success{false};
+int error_count{0};
+int warning_count{0};
+float duration_seconds{0.0F};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when the build produces output text.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BuildOutputEvent)
+std::string text;
+bool is_stderr{false};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a task starts execution.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TaskExecutionStartedEvent)
+std::string task_name;
+std::string task_type; ///< "build", "test", "deploy", etc.
+std::string command;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a task finishes execution.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TaskExecutionFinishedEvent)
+std::string task_name;
+bool success{false};
+int exit_code{0};
+float duration_seconds{0.0F};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// Phase 26: Run configuration events
+// ============================================================================
+
+/// Fired when a run configuration starts executing.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(RunConfigStartedEvent)
+std::string config_name;
+bool is_debug{false};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a run configuration finishes (process exits).
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(RunConfigFinishedEvent)
+std::string config_name;
+int exit_code{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a run configuration is manually stopped by the user.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(RunConfigStoppedEvent)
+std::string config_name;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when the active run configuration changes.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(RunConfigChangedEvent)
+std::string config_name;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when layout mode changes (Default/Zen/Presentation).
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(LayoutModeChangedEvent)
+int mode{0}; ///< 0=Default, 1=Zen, 2=Presentation
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// Phase 29: Code Actions V2 events
+// ============================================================================
+
+/// Fired when code actions are computed for a cursor/selection range.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CodeActionsComputedEvent)
+std::string document_uri;
+int action_count{0};
+bool has_preferred{false};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a code action is applied.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CodeActionAppliedEvent)
+std::string document_uri;
+std::string action_title;
+int action_kind{0}; ///< CodeActionKind as int
+int edits_applied{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when the lightbulb visibility changes.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(LightbulbVisibilityChangedEvent)
+int line{-1};
+bool visible{false};
+int primary_kind{0}; ///< CodeActionKind as int
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when an extension code action provider is registered.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ExtensionActionProviderRegisteredEvent)
+std::string provider_id;
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// Phase 30: Floating Toolbar events
+// ============================================================================
+
+/// Fired when a floating toolbar is shown.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FloatingToolbarShownEvent)
+std::string toolbar_id;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a floating toolbar is hidden.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FloatingToolbarHiddenEvent)
+std::string toolbar_id;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Fired when a floating toolbar is moved via drag.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FloatingToolbarMovedEvent)
+std::string toolbar_id;
+int pos_x{0};
+int pos_y{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ════════════════════════════════════════════════════════════════════
+// Phase 31 — Command Palette V2 Events
+// ════════════════════════════════════════════════════════════════════
+
+/// Emitted when the command palette is opened.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PaletteOpenedEvent)
+int mode{0}; ///< PaletteMode as integer (0=Commands, 1=QuickOpen, 2=GoToSymbol, 3=GoToLine)
+MARKAMP_DECLARE_EVENT_END;
+
+/// Emitted when the command palette is closed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PaletteClosedEvent)
+std::string selected_command; ///< Command ID that was selected (empty if cancelled)
+bool cancelled{false};        ///< True if the user cancelled without selection
+MARKAMP_DECLARE_EVENT_END;
+
+// ════════════════════════════════════════════════════════════════════
+// Phase 32 — Go-To System Events
+// ════════════════════════════════════════════════════════════════════
+
+/// Emitted when the navigation location changes (back/forward/go_to).
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NavigationChangedEvent)
+std::string document_id;
+int line{0};
+int column{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Emitted to navigate the editor to a specific line.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(GoToLineEvent)
+int line{0};
+MARKAMP_DECLARE_EVENT_END;
+
 } // namespace markamp::core::events

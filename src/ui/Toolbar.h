@@ -13,9 +13,21 @@
 namespace markamp::ui
 {
 
-/// Toolbar with view mode toggle buttons (SRC / SPLIT / VIEW) and
-/// right-side action buttons (Save, Themes, Settings).
-/// Height: 40px, background: bg_panel, bottom border: border_dark.
+/// @file Toolbar.h
+/// @brief Main Application Toolbar — zone-based layout with run controls, layout modes, and utility
+/// toggles.
+///
+/// Features:
+///   - Three-zone layout: Left (run controls), Center (layout modes), Right (utility toggles)
+///   - Run configuration dropdown with play/debug/stop buttons
+///   - Build status indicator (spinner/check/X)
+///   - Layout mode buttons (Default/Zen/Presentation)
+///   - Sidebar, panel, breadcrumb, minimap, and search toggles
+///   - Notification bell with unread badge
+///   - Responsive collapse and overflow menu
+///   - Toolbar customization via config
+///
+/// @see RunConfigService, NotificationService, LayoutManager
 class Toolbar : public ThemeAwareWindow
 {
 public:
@@ -76,6 +88,17 @@ private:
     void RecalculateButtonRects();
     void OnSize(wxSizeEvent& event);
 
+    // Phase 26: Zone-aware divider drawing
+    void DrawZoneDivider(wxGraphicsContext& graphics_ctx,
+                         int x_position,
+                         const core::Theme& current_theme) const;
+
+    // Phase 26: Build status indicator rendering
+    void DrawBuildIndicator(wxGraphicsContext& graphics_ctx,
+                            int x_position,
+                            int y_position,
+                            const core::Theme& current_theme);
+
     // Focus mode
     bool focus_mode_active_{false};
 
@@ -104,6 +127,118 @@ private:
     wxTimer tooltip_delay_timer_;
     int pending_tooltip_index_{-1};
     bool pending_tooltip_is_left_{false};
+
+    // ── Phase 26: Toolbar customization config ──────────────────────
+
+    /// User-configurable toolbar layout settings.
+    struct ToolbarCustomization
+    {
+        bool show_run_controls{true};
+        bool show_layout_modes{true};
+        bool show_sidebar_toggle{true};
+        bool show_panel_toggle{true};
+        bool show_notification_bell{true};
+        bool show_search_button{true};
+        bool show_breadcrumb_toggle{false}; // Off by default
+        bool show_minimap_toggle{false};    // Off by default
+    };
+
+    ToolbarCustomization toolbar_config_;
+
+    // ── Phase 26: Zone-based toolbar layout ──────────────────────────
+    // These fields are declared ahead of the full Toolbar.cpp rebuild.
+    // They will be wired to event handlers and paint routines in subsequent tasks.
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-private-field"
+
+    /// Toolbar zone alignment.
+    enum class ZoneAlignment : uint8_t
+    {
+        kLeft,
+        kCenter,
+        kRight
+    };
+
+    /// A toolbar zone containing a group of buttons.
+    struct ToolbarZone
+    {
+        ZoneAlignment alignment;
+        std::vector<ButtonInfo> buttons;
+        int total_width{0};
+        int x_offset{0};
+    };
+
+    ToolbarZone left_zone_;   ///< Run controls
+    ToolbarZone center_zone_; ///< Layout mode toggles
+    ToolbarZone right_zone_;  ///< Utility toggles + notification bell
+
+    // ── Phase 26: Build indicator ────────────────────────────────────
+
+    /// Build indicator animation state.
+    enum class BuildIndicatorState : uint8_t
+    {
+        kIdle,
+        kBuilding,
+        kSuccess,
+        kFailure
+    };
+
+    BuildIndicatorState build_indicator_state_{BuildIndicatorState::kIdle};
+    int spinner_frame_{0};
+    wxTimer build_decay_timer_;
+
+    // ── Phase 26: Layout modes ───────────────────────────────────────
+
+    /// Layout mode presets.
+    enum class LayoutMode : uint8_t
+    {
+        kDefault,
+        kZen,
+        kPresentation
+    };
+
+    /// Preset configuration for a layout mode.
+    struct LayoutModePreset
+    {
+        bool show_sidebar{true};
+        bool show_panel{true};
+        bool show_toolbar{true};
+        bool show_status_bar{true};
+        bool show_tab_bar{true};
+        int editor_font_size_delta{0};
+    };
+
+    LayoutMode current_layout_mode_{LayoutMode::kDefault};
+
+    // ── Phase 26: Toggle button states ───────────────────────────────
+    // These will be wired to event handlers in subsequent Toolbar.cpp updates.
+    bool sidebar_visible_{true};
+    bool panel_visible_{true};
+    bool breadcrumb_visible_{true};
+    bool minimap_visible_{true};
+    bool search_visible_{false};
+    int notification_unread_count_{0};
+
+    // ── Phase 26: Process running state ──────────────────────────────
+
+    bool process_running_{false};
+    std::string running_config_name_;
+
+    // ── Phase 26: Overflow ───────────────────────────────────────────
+
+    std::vector<int> overflow_button_indices_;
+    bool show_overflow_chevron_{false};
+
+#pragma clang diagnostic pop
+
+    // ── Phase 26: Event subscriptions ────────────────────────────────
+
+    core::Subscription build_started_sub_;
+    core::Subscription build_finished_sub_;
+    core::Subscription run_started_sub_;
+    core::Subscription run_finished_sub_;
+    core::Subscription run_stopped_sub_;
+    core::Subscription sidebar_toggle_sub_;
 };
 
 } // namespace markamp::ui

@@ -1,61 +1,123 @@
-// NOLINTBEGIN(cppcoreguidelines-avoid-do-while,cert-err58-cpp,cppcoreguidelines-avoid-non-const-global-variables,misc-use-anonymous-namespace,readability-function-cognitive-complexity)
-#include "canvas/StyleModel.h"
+/**
+ * @file test_canvas_style_rendering.cpp
+ * @brief Phase 47: Tests for StrokeBorderStyle and FillEffectsController.
+ */
+
+#include "canvas/FillEffectsController.h"
+#include "canvas/StrokeBorderStyle.h"
 
 #include <catch2/catch_test_macros.hpp>
 
 using namespace markamp::canvas;
 
-TEST_CASE("Stroke width clamped to positive", "[style][stroke]")
+// ═══════════════════════════════════════════════════════
+// StrokeBorderStyle
+// ═══════════════════════════════════════════════════════
+
+TEST_CASE("StrokeBorderStyle - dash name", "[canvas][style]")
 {
-    StyleModel model;
-    model.set_stroke_width(-1.0);
-    REQUIRE(model.stroke_width() == 0.0);
-    model.set_stroke_width(5.0);
-    REQUIRE(model.stroke_width() == 5.0);
+    StrokeBorderStyle style;
+    style.dash = DashPattern::kDashed;
+    CHECK(style.dash_name() == "dashed");
+
+    style.dash = DashPattern::kDashDot;
+    CHECK(style.dash_name() == "dash-dot");
 }
 
-TEST_CASE("Dash and cap/join options", "[style][stroke]")
+TEST_CASE("StrokeBorderStyle - cap and join names", "[canvas][style]")
 {
-    StyleModel model;
-    model.set_dash(DashPattern::kDotted);
-    model.set_line_cap(LineCap::kSquare);
-    model.set_line_join(LineJoin::kBevel);
-    REQUIRE(model.dash() == DashPattern::kDotted);
-    REQUIRE(model.line_cap() == LineCap::kSquare);
-    REQUIRE(model.line_join() == LineJoin::kBevel);
+    StrokeBorderStyle style;
+    style.cap = LineCap::kRound;
+    CHECK(style.cap_name() == "round");
+
+    style.join = LineJoin::kBevel;
+    CHECK(style.join_name() == "bevel");
 }
 
-TEST_CASE("Fill type and gradient stops", "[style][fill]")
+TEST_CASE("StrokeBorderStyle - border sides", "[canvas][style]")
 {
-    StyleModel model;
-    model.set_fill_type(FillType::kLinearGradient);
-    model.set_gradient_stops({"#FF0000", "#0000FF"});
-    REQUIRE(model.fill_type() == FillType::kLinearGradient);
-    REQUIRE(model.gradient_stops().size() == 2);
+    StrokeBorderStyle style;
+    style.sides = BorderSide::kAll;
+    CHECK(style.has_side(BorderSide::kTop));
+    CHECK(style.has_side(BorderSide::kBottom));
+
+    style.sides = BorderSide::kTop | BorderSide::kLeft;
+    CHECK(style.has_side(BorderSide::kTop));
+    CHECK_FALSE(style.has_side(BorderSide::kBottom));
 }
 
-TEST_CASE("Opacity clamped 0-1", "[style][opacity]")
+TEST_CASE("StrokeBorderStyle - dash array", "[canvas][style]")
 {
-    StyleModel model;
-    model.set_opacity(1.5);
-    REQUIRE(model.opacity() == 1.0);
-    model.set_opacity(-0.5);
-    REQUIRE(model.opacity() == 0.0);
-    model.set_opacity(0.7);
-    REQUIRE(model.opacity() == 0.7);
+    StrokeBorderStyle style;
+    style.width = 2.0;
+
+    style.dash = DashPattern::kSolid;
+    CHECK(style.dash_array().empty());
+
+    style.dash = DashPattern::kDashed;
+    auto arr = style.dash_array();
+    CHECK(arr.size() == 2);
+    CHECK(arr[0] == 8.0); // 2.0 * 4.0
 }
 
-TEST_CASE("Shadow properties", "[style][shadow]")
+// ═══════════════════════════════════════════════════════
+// FillSpec
+// ═══════════════════════════════════════════════════════
+
+TEST_CASE("FillSpec - type name", "[canvas][style]")
 {
-    StyleModel model;
-    model.set_shadow({3.0, 3.0, 8.0, "#00000080", true});
-    REQUIRE(model.shadow().enabled);
-    REQUIRE(model.shadow().blur == 8.0);
+    FillSpec fill;
+    fill.type = FillType::kLinearGradient;
+    CHECK(fill.type_name() == "linear_gradient");
 }
 
-TEST_CASE("Default shadow is disabled", "[style][shadow]")
+// ═══════════════════════════════════════════════════════
+// FillEffectsController
+// ═══════════════════════════════════════════════════════
+
+TEST_CASE("FillEffectsController - default state", "[canvas][style]")
 {
-    StyleModel model;
-    REQUIRE_FALSE(model.shadow().enabled);
+    FillEffectsController ctrl;
+    CHECK(ctrl.opacity() == 1.0);
+    CHECK(ctrl.is_fill_visible());
+    CHECK_FALSE(ctrl.has_effects());
 }
-// NOLINTEND(cppcoreguidelines-avoid-do-while,cert-err58-cpp,cppcoreguidelines-avoid-non-const-global-variables,misc-use-anonymous-namespace,readability-function-cognitive-complexity)
+
+TEST_CASE("FillEffectsController - fill types", "[canvas][style]")
+{
+    FillEffectsController ctrl;
+    FillSpec fill;
+    fill.type = FillType::kNone;
+    ctrl.set_fill(fill);
+    CHECK_FALSE(ctrl.is_fill_visible());
+
+    fill.type = FillType::kSolid;
+    ctrl.set_fill(fill);
+    CHECK(ctrl.is_fill_visible());
+}
+
+TEST_CASE("FillEffectsController - shadow", "[canvas][style]")
+{
+    FillEffectsController ctrl;
+    ShadowSpec shadow;
+    shadow.enabled = true;
+    shadow.blur = 8.0;
+    ctrl.set_shadow(shadow);
+
+    CHECK(ctrl.shadow_enabled());
+    CHECK(ctrl.shadow().blur == 8.0);
+    CHECK(ctrl.has_effects());
+
+    ctrl.set_shadow_enabled(false);
+    CHECK_FALSE(ctrl.shadow_enabled());
+}
+
+TEST_CASE("FillEffectsController - opacity clamped", "[canvas][style]")
+{
+    FillEffectsController ctrl;
+    ctrl.set_opacity(2.0);
+    CHECK(ctrl.opacity() == 1.0);
+
+    ctrl.set_opacity(-1.0);
+    CHECK(ctrl.opacity() == 0.0);
+}

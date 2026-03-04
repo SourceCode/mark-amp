@@ -819,6 +819,31 @@ target_sources(markamp_core PRIVATE
     ${CMAKE_SOURCE_DIR}/src/core/AnsiParser.cpp
     ${CMAKE_SOURCE_DIR}/src/core/TerminalBuffer.cpp
     ${CMAKE_SOURCE_DIR}/src/core/PtyProcess.cpp
+    # Phase 22-25: Output Panel V2, Problems, Debug Console, Build & Tasks
+    ${CMAKE_SOURCE_DIR}/src/core/DebugConsoleService.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/ExpressionEvaluator.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/CompilerErrorParser.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/TaskConfig.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/BuildService.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/ProblemsTreeModel.cpp
+    # Phase 30: Floating Toolbars
+    ${CMAKE_SOURCE_DIR}/src/ui/FloatingToolbar.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/FloatingToolbarManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/DebugToolbar.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/SelectionActionBar.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/MinimapHoverToolbar.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/ImagePreviewToolbar.cpp
+    # Phase 31: Command Palette V2
+    ${CMAKE_SOURCE_DIR}/src/core/FuzzyScorer.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/FrecencyTracker.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/MarkdownSymbolProvider.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/IconProvider.cpp
+    # Phase 32: Go-To System
+    ${CMAKE_SOURCE_DIR}/src/core/NavigationService.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/LinkResolver.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/BacklinkFinder.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/ChangeTracker.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/WorkspaceSymbolIndex.cpp
 )
 target_include_directories(markamp_core PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(markamp_core PUBLIC markamp_dependencies)
@@ -4987,6 +5012,8 @@ add_test(NAME test_theme_gallery_controls COMMAND test_theme_gallery_controls)
 add_executable(test_tool_window_controls
     unit/test_tool_window_controls.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/ToolWindowModel.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/ToolWindowTabControl.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/PanelLifecycleManager.cpp
 )
 target_include_directories(test_tool_window_controls PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_tool_window_controls PRIVATE
@@ -5023,6 +5050,8 @@ add_test(NAME test_control_motion_budget COMMAND test_control_motion_budget)
 add_executable(test_drag_drop_controls
     unit/test_drag_drop_controls.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/DragDropModel.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/DragAffordanceController.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/DropTargetHighlighter.cpp
 )
 target_include_directories(test_drag_drop_controls PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_drag_drop_controls PRIVATE
@@ -5035,6 +5064,7 @@ add_test(NAME test_drag_drop_controls COMMAND test_drag_drop_controls)
 add_executable(test_multi_select_controls
     unit/test_multi_select_controls.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/MultiSelectModel.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/BulkActionController.cpp
 )
 target_include_directories(test_multi_select_controls PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_multi_select_controls PRIVATE
@@ -5046,7 +5076,8 @@ add_test(NAME test_multi_select_controls COMMAND test_multi_select_controls)
 # V10 Phase 34: Error Prevention and Recovery Control UX
 add_executable(test_control_error_recovery
     unit/test_control_error_recovery.cpp
-    ${CMAKE_SOURCE_DIR}/src/ui/ErrorRecoveryModel.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/PreflightValidator.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/RecoveryActionProvider.cpp
 )
 target_include_directories(test_control_error_recovery PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_control_error_recovery PRIVATE
@@ -5058,7 +5089,8 @@ add_test(NAME test_control_error_recovery COMMAND test_control_error_recovery)
 # V10 Phase 35: Accessibility and Assistive Control Semantics
 add_executable(test_control_accessibility_semantics
     unit/test_control_accessibility_semantics.cpp
-    ${CMAKE_SOURCE_DIR}/src/ui/AccessibilityModel.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/AccessibilitySemanticsController.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/ScreenReaderAnnouncer.cpp
 )
 target_include_directories(test_control_accessibility_semantics PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_control_accessibility_semantics PRIVATE
@@ -5081,7 +5113,8 @@ add_test(NAME test_phase05_accessibility_audit COMMAND test_phase05_accessibilit
 # V10 Phase 36: Responsive, DPI, and Platform-Adaptive Controls
 add_executable(test_control_responsiveness
     unit/test_control_responsiveness.cpp
-    ${CMAKE_SOURCE_DIR}/src/ui/ResponsiveModel.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/DpiScalingController.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/CompactLayoutModel.cpp
 )
 target_include_directories(test_control_responsiveness PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_control_responsiveness PRIVATE
@@ -5093,7 +5126,8 @@ add_test(NAME test_control_responsiveness COMMAND test_control_responsiveness)
 # V10 Phase 37: Personalization and Layout Preset Controls
 add_executable(test_layout_personalization_controls
     unit/test_layout_personalization_controls.cpp
-    ${CMAKE_SOURCE_DIR}/src/ui/LayoutPresetModel.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/LayoutPresetController.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/ControlVisibilityPrefs.cpp
 )
 target_include_directories(test_layout_personalization_controls PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_layout_personalization_controls PRIVATE
@@ -5105,7 +5139,8 @@ add_test(NAME test_layout_personalization_controls COMMAND test_layout_personali
 # V10 Phase 38: UX Instrumentation and Control Quality Metrics
 add_executable(test_control_metrics_instrumentation
     unit/test_control_metrics_instrumentation.cpp
-    ${CMAKE_SOURCE_DIR}/src/ui/UxMetricsModel.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/UxMetricsCollector.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/TelemetryPrivacyController.cpp
 )
 target_include_directories(test_control_metrics_instrumentation PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_control_metrics_instrumentation PRIVATE
@@ -5117,7 +5152,8 @@ add_test(NAME test_control_metrics_instrumentation COMMAND test_control_metrics_
 # V10 Phase 39: Control Regression Harness and UX QA Automation
 add_executable(test_control_regression_harness
     unit/test_control_regression_harness.cpp
-    ${CMAKE_SOURCE_DIR}/src/ui/RegressionHarnessModel.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/ControlSnapshotTester.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/KeyboardWorkflowRunner.cpp
 )
 target_include_directories(test_control_regression_harness PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_control_regression_harness PRIVATE
@@ -5129,7 +5165,8 @@ add_test(NAME test_control_regression_harness COMMAND test_control_regression_ha
 # V10 Phase 40: Final Control UX Audit and Release Gates
 add_executable(test_release_audit_gates
     unit/test_release_audit_gates.cpp
-    ${CMAKE_SOURCE_DIR}/src/ui/ReleaseAuditModel.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/UxAuditRunner.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/ReleaseGateChecker.cpp
 )
 target_include_directories(test_release_audit_gates PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_release_audit_gates PRIVATE
@@ -5141,7 +5178,8 @@ add_test(NAME test_release_audit_gates COMMAND test_release_audit_gates)
 # V10 Phase 41: Canvas Input Model and Tool State Machine
 add_executable(test_canvas_input_state_machine
     unit/test_canvas_input_state_machine.cpp
-    ${CMAKE_SOURCE_DIR}/src/canvas/CanvasInputModel.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/CanvasToolStateMachine.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/PointerEventRouter.cpp
 )
 target_include_directories(test_canvas_input_state_machine PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_input_state_machine PRIVATE
@@ -5153,7 +5191,8 @@ add_test(NAME test_canvas_input_state_machine COMMAND test_canvas_input_state_ma
 # V10 Phase 42: Freehand Drawing Engine Quality
 add_executable(test_canvas_freehand
     unit/test_canvas_freehand.cpp
-    ${CMAKE_SOURCE_DIR}/src/canvas/FreehandModel.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/StrokeSmoother.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/StrokeStylePreset.cpp
 )
 target_include_directories(test_canvas_freehand PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_freehand PRIVATE
@@ -5165,7 +5204,8 @@ add_test(NAME test_canvas_freehand COMMAND test_canvas_freehand)
 # V10 Phase 43: Shape Tools and Geometry Editing
 add_executable(test_canvas_shapes
     unit/test_canvas_shapes.cpp
-    ${CMAKE_SOURCE_DIR}/src/canvas/ShapeModel.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/ShapePrimitiveSet.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/GeometryHandleController.cpp
 )
 target_include_directories(test_canvas_shapes PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_shapes PRIVATE
@@ -5177,7 +5217,8 @@ add_test(NAME test_canvas_shapes COMMAND test_canvas_shapes)
 # V10 Phase 44: Connector Routing and Line Editing Fundamentals
 add_executable(test_canvas_connectors
     unit/test_canvas_connectors.cpp
-    ${CMAKE_SOURCE_DIR}/src/canvas/ConnectorModel.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/ConnectorAnchorModel.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/ConnectorRouteEngine.cpp
 )
 target_include_directories(test_canvas_connectors PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_connectors PRIVATE
@@ -5189,7 +5230,8 @@ add_test(NAME test_canvas_connectors COMMAND test_canvas_connectors)
 # V10 Phase 45: Text Editing and Typography on Canvas
 add_executable(test_canvas_text
     unit/test_canvas_text.cpp
-    ${CMAKE_SOURCE_DIR}/src/canvas/CanvasTextModel.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/CanvasTextEditor.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/TextStylePreset.cpp
 )
 target_include_directories(test_canvas_text PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_text PRIVATE
@@ -5201,7 +5243,8 @@ add_test(NAME test_canvas_text COMMAND test_canvas_text)
 # V10 Phase 46: Canvas Color System and Palette Controls
 add_executable(test_canvas_color_system
     unit/test_canvas_color_system.cpp
-    ${CMAKE_SOURCE_DIR}/src/canvas/CanvasColorModel.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/CanvasColorToken.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/ColorPaletteController.cpp
 )
 target_include_directories(test_canvas_color_system PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_color_system PRIVATE
@@ -5213,7 +5256,8 @@ add_test(NAME test_canvas_color_system COMMAND test_canvas_color_system)
 # V10 Phase 47: Stroke Fill Border and Effects Controls
 add_executable(test_canvas_style_rendering
     unit/test_canvas_style_rendering.cpp
-    ${CMAKE_SOURCE_DIR}/src/canvas/StyleModel.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/StrokeBorderStyle.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/FillEffectsController.cpp
 )
 target_include_directories(test_canvas_style_rendering PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_style_rendering PRIVATE
@@ -5225,7 +5269,8 @@ add_test(NAME test_canvas_style_rendering COMMAND test_canvas_style_rendering)
 # V10 Phase 48: Selection Transform and Alignment Core
 add_executable(test_canvas_selection_transform
     unit/test_canvas_selection_transform.cpp
-    ${CMAKE_SOURCE_DIR}/src/canvas/SelectionTransformModel.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/SelectionSemantics.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/TransformAlignController.cpp
 )
 target_include_directories(test_canvas_selection_transform PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_selection_transform PRIVATE
@@ -5237,7 +5282,8 @@ add_test(NAME test_canvas_selection_transform COMMAND test_canvas_selection_tran
 # V10 Phase 49: Snapping Grid and Guide Precision
 add_executable(test_canvas_snapping
     unit/test_canvas_snapping.cpp
-    ${CMAKE_SOURCE_DIR}/src/canvas/SnappingModel.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/SnapTargetEngine.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/GridGuideController.cpp
 )
 target_include_directories(test_canvas_snapping PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_canvas_snapping PRIVATE
@@ -5725,3 +5771,111 @@ add_executable(test_phase14_gutter unit/test_phase14_gutter.cpp)
 target_include_directories(test_phase14_gutter PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_phase14_gutter PRIVATE markamp_core Catch2::Catch2WithMain)
 add_test(NAME test_phase14_gutter COMMAND test_phase14_gutter)
+
+# Phase 22: Output Panel V2
+add_executable(test_output_panel_v2 unit/test_output_panel_v2.cpp)
+target_include_directories(test_output_panel_v2 PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_output_panel_v2 PRIVATE markamp_core Catch2::Catch2WithMain)
+add_test(NAME test_output_panel_v2 COMMAND test_output_panel_v2)
+
+# Phase 24: Debug Console
+add_executable(test_debug_console unit/test_debug_console.cpp)
+target_include_directories(test_debug_console PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_debug_console PRIVATE markamp_core Catch2::Catch2WithMain)
+add_test(NAME test_debug_console COMMAND test_debug_console)
+
+# Phase 25: Compiler Error Parser, TaskConfig, BuildService
+add_executable(test_compiler_error_parser unit/test_compiler_error_parser.cpp)
+target_include_directories(test_compiler_error_parser PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_compiler_error_parser PRIVATE markamp_core Catch2::Catch2WithMain)
+add_test(NAME test_compiler_error_parser COMMAND test_compiler_error_parser)
+
+# Phase 23: Problems Tree Model
+add_executable(test_problems_tree_model unit/test_problems_tree_model.cpp)
+target_include_directories(test_problems_tree_model PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_problems_tree_model PRIVATE markamp_core Catch2::Catch2WithMain)
+add_test(NAME test_problems_tree_model COMMAND test_problems_tree_model)
+
+# Phase 26: Toolbar V2 (RunConfigService, NotificationService stored, responsive collapse, run flow)
+add_executable(test_toolbar_v2
+    unit/test_toolbar_v2.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/ToolbarModel.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/RunConfigService.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/NotificationService.cpp
+)
+target_include_directories(test_toolbar_v2 PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_toolbar_v2 PRIVATE markamp_core Catch2::Catch2WithMain)
+add_test(NAME test_toolbar_v2 COMMAND test_toolbar_v2)
+
+# Phase 27: Panel Header Bar (PanelHeaderBar, PanelHeaderIcons per-panel action definitions)
+add_executable(test_panel_header_bar
+    unit/test_panel_header_bar.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/PanelHeaderIcons.cpp
+)
+target_include_directories(test_panel_header_bar PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_panel_header_bar PRIVATE markamp_core Catch2::Catch2WithMain)
+add_test(NAME test_panel_header_bar COMMAND test_panel_header_bar)
+
+# Phase 28: Context Menu System V2 (Builder, Registry, built-in menus)
+add_executable(test_context_menu_v2
+    unit/test_context_menu_v2.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/ContextMenuModel.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/ContextMenuBuilder.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/ContextMenuRegistry.cpp
+)
+target_include_directories(test_context_menu_v2 PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_context_menu_v2 PRIVATE markamp_core Catch2::Catch2WithMain)
+add_test(NAME test_context_menu_v2 COMMAND test_context_menu_v2)
+
+# Phase 30: Navigation Commands (NavigationCommandSet, JumpToController)
+add_executable(test_navigation_commands
+    unit/test_navigation_commands.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/NavigationCommandSet.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/JumpToController.cpp
+)
+target_include_directories(test_navigation_commands PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_navigation_commands PRIVATE markamp_core Catch2::Catch2WithMain)
+add_test(NAME test_navigation_commands COMMAND test_navigation_commands)
+
+# Phase 31: Control Motion (ControlMotionTokens, ControlAnimator)
+add_executable(test_control_motion
+    unit/test_control_motion.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/ControlMotionTokens.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/ControlAnimator.cpp
+)
+target_include_directories(test_control_motion PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_control_motion PRIVATE markamp_core Catch2::Catch2WithMain)
+add_test(NAME test_control_motion COMMAND test_control_motion)
+
+# Phase 29: Code Actions V2 (CodeActionSet, extended CodeActionProvider, LightbulbWidget)
+add_executable(test_code_actions_v2
+    unit/test_code_actions_v2.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/LightbulbWidget.cpp
+)
+target_include_directories(test_code_actions_v2 PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_code_actions_v2 PRIVATE markamp_core Catch2::Catch2WithMain)
+add_test(NAME test_code_actions_v2 COMMAND test_code_actions_v2)
+
+# Phase 30: Floating Toolbars (FloatingToolbar base, FloatingToolbarManager, events)
+add_executable(test_floating_toolbars
+    unit/test_floating_toolbars.cpp
+)
+target_include_directories(test_floating_toolbars PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_floating_toolbars PRIVATE markamp_core Catch2::Catch2WithMain)
+add_test(NAME test_floating_toolbars COMMAND test_floating_toolbars)
+
+# Phase 31: Command Palette V2 (FuzzyScorer, FrecencyTracker, SymbolProvider, FileIconResolver, IconProvider)
+add_executable(test_command_palette_v2
+    unit/test_command_palette_v2.cpp
+)
+target_include_directories(test_command_palette_v2 PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_command_palette_v2 PRIVATE markamp_core Catch2::Catch2WithMain)
+add_test(NAME test_command_palette_v2 COMMAND test_command_palette_v2)
+
+# Phase 32: Go-To System (NavigationService, LinkResolver, BacklinkFinder, ChangeTracker, WorkspaceSymbolIndex)
+add_executable(test_goto_system
+    unit/test_goto_system.cpp
+)
+target_include_directories(test_goto_system PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_goto_system PRIVATE markamp_core Catch2::Catch2WithMain)
+add_test(NAME test_goto_system COMMAND test_goto_system)

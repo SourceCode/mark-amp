@@ -29,6 +29,13 @@ struct ContextMenuItem
     bool is_enabled{true};    ///< Dynamic enablement state
     bool is_visible{true};    ///< Whether to show the item at all
     bool is_separator{false}; ///< Separator line (label/action ignored)
+
+    // Phase 28: Extended fields
+    std::string icon_name;                 ///< Icon to draw beside the label
+    bool is_checked{false};                ///< Checked state (checkmark indicator)
+    bool has_submenu{false};               ///< Whether this item opens a sub-menu
+    std::string disabled_tooltip;          ///< Tooltip shown when hovering a disabled item
+    std::vector<ContextMenuItem> children; ///< Sub-menu items (only if has_submenu)
 };
 
 /// Testable model for Context Menus (Phase 16).

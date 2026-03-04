@@ -1,70 +1,40 @@
 #pragma once
 
-#include "core/DebugSessionManager.h"
-#include "core/ThemeEngine.h"
+/// @file DebugToolbar.h
+/// @brief V13 Phase 30 — Floating debug toolbar with Continue/Step/Restart/Stop.
 
-#include <wx/button.h>
-#include <wx/panel.h>
-#include <wx/sizer.h>
-
-#include <functional>
-
-namespace markamp::core
-{
-class EventBus;
-} // namespace markamp::core
+#include "FloatingToolbar.h"
 
 namespace markamp::ui
 {
 
-/// Phase 19 Task 6: Floating debug toolbar shown at top-center of editor area.
-/// Contains Continue/Pause, Step Over/Into/Out, Restart, Stop buttons.
-/// Only visible when a debug session is active.
-class DebugToolbar : public wxPanel
+/// Floating toolbar that appears during debug sessions at the top-center
+/// of the editor area, providing debug control buttons.
+class DebugToolbar : public FloatingToolbar
 {
 public:
-    DebugToolbar(wxWindow* parent,
-                 core::ThemeEngine& theme_engine,
-                 core::EventBus& event_bus,
-                 core::DebugSessionManager& session_mgr);
+    DebugToolbar(wxWindow* parent, core::ThemeEngine& theme_engine, core::EventBus& event_bus);
 
-    /// Apply theme colors to buttons.
-    void ApplyTheme();
+    /// Call when a debug session starts to show the toolbar.
+    void OnDebugStarted();
 
-    /// Update button visibility based on debug state.
-    void UpdateState();
+    /// Call when the debugger pauses (breakpoint hit, step complete).
+    void OnDebugPaused();
 
-    // ── Callbacks ──
-    void SetOnContinue(std::function<void()> callback);
-    void SetOnPause(std::function<void()> callback);
-    void SetOnStepOver(std::function<void()> callback);
-    void SetOnStepInto(std::function<void()> callback);
-    void SetOnStepOut(std::function<void()> callback);
-    void SetOnRestart(std::function<void()> callback);
-    void SetOnStop(std::function<void()> callback);
+    /// Call when the debugger continues after pause.
+    void OnDebugContinued();
+
+    /// Call when the debug session ends to hide the toolbar.
+    void OnDebugStopped();
+
+    [[nodiscard]] auto is_paused() const -> bool;
 
 private:
-    core::ThemeEngine& theme_engine_;
-    [[maybe_unused]] core::EventBus& event_bus_;
-    core::DebugSessionManager& session_mgr_;
+    bool is_paused_{false};
+    core::Subscription debug_start_sub_;
+    core::Subscription debug_stop_sub_;
 
-    wxButton* btn_continue_{nullptr};
-    wxButton* btn_pause_{nullptr};
-    wxButton* btn_step_over_{nullptr};
-    wxButton* btn_step_into_{nullptr};
-    wxButton* btn_step_out_{nullptr};
-    wxButton* btn_restart_{nullptr};
-    wxButton* btn_stop_{nullptr};
-
-    std::function<void()> on_continue_;
-    std::function<void()> on_pause_;
-    std::function<void()> on_step_over_;
-    std::function<void()> on_step_into_;
-    std::function<void()> on_step_out_;
-    std::function<void()> on_restart_;
-    std::function<void()> on_stop_;
-
-    void CreateLayout();
+    void BuildButtons();
 };
 
 } // namespace markamp::ui

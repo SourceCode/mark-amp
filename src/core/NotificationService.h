@@ -3,6 +3,7 @@
 #include "EventBus.h"
 #include "Events.h"
 
+#include <chrono>
 #include <functional>
 #include <string>
 #include <vector>
@@ -29,6 +30,25 @@ struct NotificationResult
     /// The action label the user clicked, or empty if dismissed/timed-out.
     std::string selected_action;
     bool was_dismissed{true};
+};
+
+/// A stored notification entry for the bell badge/dropdown.
+struct StoredNotification
+{
+    enum class Level : uint8_t
+    {
+        kInfo,
+        kWarning,
+        kError
+    };
+
+    std::string id;
+    std::string title;
+    std::string message;
+    Level level{Level::kInfo};
+    std::chrono::system_clock::time_point timestamp;
+    bool read{false};
+    std::string source; ///< "build", "extension", "system"
 };
 
 /// Extension-facing service for showing notifications.
@@ -61,8 +81,33 @@ public:
     void show_with_actions(const NotificationOptions& options,
                            const std::function<void(const std::string&)>& on_action);
 
+    // ── Stored notification management (Phase 26: bell badge) ──────
+
+    /// Store a notification for the bell badge dropdown.
+    void store(const std::string& title,
+               const std::string& message,
+               StoredNotification::Level level = StoredNotification::Level::kInfo,
+               const std::string& source = {});
+
+    /// Get all stored notifications.
+    [[nodiscard]] auto stored_notifications() const -> const std::vector<StoredNotification>&;
+
+    /// Get the number of unread stored notifications.
+    [[nodiscard]] auto unread_count() const -> int;
+
+    /// Mark a specific stored notification as read.
+    void mark_read(const std::string& id);
+
+    /// Mark all stored notifications as read.
+    void mark_all_read();
+
+    /// Remove all stored notifications.
+    void clear_all();
+
 private:
     EventBus& event_bus_;
+    std::vector<StoredNotification> stored_notifications_;
+    int next_stored_id_{1};
 };
 
 } // namespace markamp::core
