@@ -4872,4 +4872,33 @@ MARKAMP_DECLARE_EVENT_WITH_FIELDS(GoToLineEvent)
 int line{0};
 MARKAMP_DECLARE_EVENT_END;
 
+// ============================================================================
+// Phase 33: Outline Panel Events
+// ============================================================================
+
+/// Emitted after the outline for a document has been rebuilt.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(OutlineRebuiltEvent)
+std::string root_id;
+int heading_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// Emitted when the outline panel visibility changes.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(OutlineVisibilityChangedEvent)
+bool visible{false};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// Phase 35: Quick Open Events
+// ============================================================================
+
+/// Emitted to preview a file without fully opening it.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FilePreviewRequestEvent)
+std::string file_path;
+MARKAMP_DECLARE_EVENT_END;
+
+/// Emitted to open a file in a split editor pane.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FileSplitOpenRequestEvent)
+std::string file_path;
+MARKAMP_DECLARE_EVENT_END;
+
 } // namespace markamp::core::events

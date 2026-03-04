@@ -93,6 +93,46 @@ add_executable(markamp
     ui/RegressionHarnessModel.cpp
     ui/ReleaseAuditModel.cpp
     ui/ThemedScrollbar.cpp
+    # V13 Phase 41: Component Library Polish
+    ui/ComponentVariants.cpp
+    ui/ThemedButton.cpp
+    ui/ThemedTextInput.cpp
+    ui/ThemedDropdown.cpp
+    ui/ThemedCheckbox.cpp
+    ui/ThemedRadio.cpp
+    ui/ThemedToggleSwitch.cpp
+    ui/ThemedSlider.cpp
+    ui/ThemedProgressBar.cpp
+    ui/Badge.cpp
+    ui/ChipTag.cpp
+    ui/SegmentedControl.cpp
+    ui/NumberStepper.cpp
+    ui/TreeViewItem.cpp
+    # V13 Phase 42: Scrollbar & Scroll Behavior
+    ui/ScrollPhysicsEngine.cpp
+    ui/ScrollPositionStore.cpp
+    # V13 Phase 43: Notification System V2
+    ui/NotificationCenterModel.cpp
+    # V13 Phase 44: Dialog & Modal System
+    ui/DialogStackManager.cpp
+    # V13 Phase 45: Drag & Drop System
+    ui/DragController.cpp
+    # V13 Phase 41 (cont): Additional widgets
+    ui/RichTooltip.cpp
+    ui/ThemedColorPicker.cpp
+    ui/AnimationDriver.cpp
+    # V13 Phase 42 (cont): Scroll decorations
+    ui/ScrollDecorationProvider.cpp
+    # V13 Phase 43 (cont): Notification persistence
+    ui/NotificationPersistence.cpp
+    # V13 Phase 44 (cont): Dialog widgets
+    ui/ThemedDialog.cpp
+    ui/UnsavedChangesGuard.cpp
+    # V13 Phase 45 (cont): Drag rendering
+    ui/DragGhostWindow.cpp
+    ui/DropIndicatorOverlay.cpp
+    ui/DragAutoScroll.cpp
+    ui/DragUndoAction.cpp
     ui/LayoutManager.cpp
     ui/ToolWindowHost.cpp
     # V8 Phase 12: Surface link router + transition coordinator
@@ -153,6 +193,21 @@ add_executable(markamp
     core/BacklinkFinder.cpp
     core/ChangeTracker.cpp
     core/WorkspaceSymbolIndex.cpp
+    # V13 Phase 33: Outline Panel
+    ui/OutlinePanel.cpp
+    # V13 Phase 34: Find & Replace V2
+    ui/FindBar.cpp
+    core/ReplaceUndoBuffer.cpp
+    core/PreserveCaseReplacer.cpp
+    ui/SearchResultsPanel.cpp
+    # V13 Phase 35: Quick Open & File Switching
+    core/RecentFilesManager.cpp
+    core/FileSearchScorer.cpp
+    core/FileIndex.cpp
+    ui/TabSwitcherOverlay.cpp
+    # V13 Phase 36: Settings UI Overhaul
+    ui/RichDescriptionRenderer.cpp
+    ui/SettingsCompareView.cpp
     ui/NavigationHistoryPanel.cpp
     ui/LinkPreviewPopover.cpp
     ui/ImagePreviewPopover.cpp
@@ -854,6 +909,51 @@ add_executable(markamp
     core/PanelService.cpp
     core/TrashManager.cpp
     core/MultiRootWorkspace.cpp
+    # V13 Phase 37: Compiler Configuration Panel
+    core/CompilerConfig.cpp
+    core/CompilerDetector.cpp
+    core/CompilerConfigValidator.cpp
+    core/CompilerProfileManager.cpp
+    # V13 Phase 38: Build System Integration
+    core/CMakeIntegration.cpp
+    core/MakeIntegration.cpp
+    core/BuildOutputParser.cpp
+    core/BuildTaskManager.cpp
+    core/BuildDependencyGraph.cpp
+    core/IncrementalBuildTracker.cpp
+    core/BuildLogManager.cpp
+    # V13 Phase 40: Workspace & Project Configuration
+    core/WorkspaceConfig.cpp
+    core/WorkspaceTrustService.cpp
+    core/RecentWorkspacesManager.cpp
+    core/WorkspaceEnvironment.cpp
+    # V13 Phase 46: Diff Editor and Merge Tool
+    core/WordDiffEngine.cpp
+    core/MergeEngine.cpp
+    ui/DiffGutter.cpp
+    ui/SideBySideDiffView.cpp
+    ui/InlineDiffView.cpp
+    ui/MergeEditor.cpp
+    # V13 Phase 47: Peek View System
+    core/PeekProvider.cpp
+    ui/PeekView.cpp
+    ui/PeekResultList.cpp
+    ui/PeekEditorHost.cpp
+    # V13 Phase 48: Welcome and Onboarding
+    ui/WelcomeTab.cpp
+    ui/RecentItemsList.cpp
+    ui/InteractiveTutorial.cpp
+    ui/ChangelogPanel.cpp
+    ui/TipOfTheDay.cpp
+    ui/SpotlightOverlay.cpp
+    # V13 Phase 49: Performance Dashboard
+    core/PerformanceCounters.cpp
+    # V13 Phase 50: UI Integration Testing Harness
+    testing/VisualRegressionRunner.cpp
+    testing/UIAutomation.cpp
+    testing/AccessibilityAuditor.cpp
+    testing/ThemeCoverageChecker.cpp
+    testing/MemoryLeakDetector.cpp
 )
 
 # Platform-specific sources
@@ -869,7 +969,7 @@ elseif(UNIX)
     target_sources(markamp PRIVATE platform/LinuxPlatform.cpp platform/LinuxScreenReaderBridge.cpp)
 endif()
 
-project(MarkAmp VERSION 2.10.47 LANGUAGES CXX)
+project(MarkAmp VERSION 2.16.60 LANGUAGES CXX)
 
 # Include paths -- src/ is the root for includes like "app/MarkAmpApp.h"
 target_include_directories(markamp PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
@@ -1027,6 +1127,33 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "Src" FILES
     ui/ImagePreviewPopover.cpp
     ui/TableEditorOverlay.h
     ui/TableEditorOverlay.cpp
+    # V13 Phase 33: Outline Panel
+    ui/OutlinePanel.h
+    ui/OutlinePanel.cpp
+    ui/OutlineIconProvider.h
+    # V13 Phase 34: Find & Replace V2
+    ui/FindBar.h
+    ui/FindBar.cpp
+    core/ReplaceUndoBuffer.h
+    core/ReplaceUndoBuffer.cpp
+    core/PreserveCaseReplacer.h
+    core/PreserveCaseReplacer.cpp
+    ui/SearchResultsPanel.h
+    ui/SearchResultsPanel.cpp
+    # V13 Phase 35: Quick Open & File Switching
+    core/RecentFilesManager.h
+    core/RecentFilesManager.cpp
+    core/FileSearchScorer.h
+    core/FileSearchScorer.cpp
+    core/FileIndex.h
+    core/FileIndex.cpp
+    ui/TabSwitcherOverlay.h
+    ui/TabSwitcherOverlay.cpp
+    # V13 Phase 36: Settings UI Overhaul
+    ui/RichDescriptionRenderer.h
+    ui/RichDescriptionRenderer.cpp
+    ui/SettingsCompareView.h
+    ui/SettingsCompareView.cpp
     ui/TabBar.h
     ui/TabBar.cpp
     ui/SettingsPanel.h

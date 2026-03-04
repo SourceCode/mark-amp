@@ -53,8 +53,10 @@ auto FuzzyScorer::score(const std::string& query, const std::string& candidate) 
 
     for (size_t cand_idx = 0; cand_idx < candidate.size() && query_idx < query.size(); ++cand_idx)
     {
-        const char query_char = std::tolower(static_cast<unsigned char>(query[query_idx]));
-        const char cand_char = std::tolower(static_cast<unsigned char>(candidate[cand_idx]));
+        const char query_char =
+            static_cast<char>(std::tolower(static_cast<unsigned char>(query[query_idx])));
+        const char cand_char =
+            static_cast<char>(std::tolower(static_cast<unsigned char>(candidate[cand_idx])));
 
         if (query_char == cand_char)
         {

@@ -1,5 +1,56 @@
 # MarkAmp Release History
 
+## v2.16.60 — 2026-03-04
+
+### Highlights
+
+Phases 33-50 feature sweep: Outline Panel with symbol hierarchy and icon rendering (Phase 33), Find & Replace V2 with preserve-case replacement and undo buffer (Phase 34), Quick Open with file search scoring and tab switcher overlay (Phase 35), Settings UI Overhaul with rich description rendering and settings comparison (Phase 36), Compiler Configuration with compiler detection, validation, and profile management (Phase 37), Build System Integration with CMake/Make integration, build output parsing, task management, and dependency graphs (Phase 38), Keyboard Shortcuts Editor (Phase 39), Workspace & Project Configuration with trust service and environment management (Phase 40), Themed Component Library with Button, Checkbox, Radio, Slider, Toggle, Dropdown, TextInput, ColorPicker, ProgressBar, NumberStepper, SegmentedControl, and Badge components (Phase 41-42), Dialog System with DialogStackManager and ThemedDialog (Phase 43), Scroll System with ScrollPhysicsEngine, ScrollPositionStore, and ScrollDecorationProvider (Phase 44), Notification System V2 with NotificationCenterModel and NotificationPersistence (Phase 45), Diff Editor & Merge Tool with WordDiffEngine, MergeEngine, DiffGutter, SideBySideDiffView, InlineDiffView, and MergeEditor (Phase 46), Peek View System with PeekProvider, PeekView, PeekResultList, and PeekEditorHost (Phase 47), Welcome & Onboarding with WelcomeTab, InteractiveTutorial, ChangelogPanel, TipOfTheDay, and SpotlightOverlay (Phase 48), Performance Dashboard with PerformanceCounters (Phase 49), UI Integration Testing Harness with VisualRegressionRunner, UIAutomation, AccessibilityAuditor, ThemeCoverageChecker, and MemoryLeakDetector (Phase 50). 143 new test targets (594 total). All tests pass.
+
+### Added
+
+- **OutlinePanel** — Symbol hierarchy tree with icon rendering via OutlineIconProvider.
+- **FindBar** — Full find & replace UI with regex, case, whole-word toggles.
+- **ReplaceUndoBuffer** — Undo buffer for replace-all operations.
+- **PreserveCaseReplacer** — Case-preserving find & replace.
+- **SearchResultsPanel** — Workspace search results tree view.
+- **RecentFilesManager / FileSearchScorer / FileIndex** — Quick Open engine with fuzzy file scoring.
+- **TabSwitcherOverlay** — Ctrl+Tab file switcher overlay.
+- **RichDescriptionRenderer** — HTML-like description rendering for settings.
+- **SettingsCompareView** — Side-by-side settings comparison panel.
+- **CompilerConfig / CompilerDetector / CompilerConfigValidator / CompilerProfileManager** — Compiler detection, validation, and profile management for C/C++ workflows.
+- **CMakeIntegration / MakeIntegration** — Build system file parsing and project configuration.
+- **BuildOutputParser / BuildTaskManager / BuildDependencyGraph / IncrementalBuildTracker / BuildLogManager** — Build task execution, output parsing, dependency analysis, and log management.
+- **WorkspaceConfig / WorkspaceTrustService / RecentWorkspacesManager / WorkspaceEnvironment** — Workspace configuration, trust boundaries, and environment variable management.
+- **ThemedButton / ThemedCheckbox / ThemedRadio / ThemedSlider / ThemedToggleSwitch / ThemedDropdown / ThemedTextInput / ThemedColorPicker / ThemedProgressBar / ThemedDialog** — Themed component library using design system tokens.
+- **NumberStepper / SegmentedControl / Badge / ChipTag** — Additional themed UI primitives.
+- **ComponentVariants** — Variant management system for themed components.
+- **AnimationDriver** — Animation driver for component micro-interactions.
+- **DialogStackManager** — Modal dialog stack with focus trapping.
+- **ScrollPhysicsEngine / ScrollPositionStore / ScrollDecorationProvider** — Physics-based smooth scrolling with position persistence and decorations.
+- **NotificationCenterModel / NotificationPersistence** — Notification center with persistence and filtering.
+- **DragController / DragGhostWindow / DragAutoScroll / DragUndoAction / DropIndicatorOverlay** — Comprehensive drag & drop system.
+- **WordDiffEngine / MergeEngine** — Word-level diff and three-way merge algorithms.
+- **DiffGutter / SideBySideDiffView / InlineDiffView / MergeEditor** — Diff and merge UI components.
+- **PeekProvider / PeekView / PeekResultList / PeekEditorHost** — Peek definition/reference system.
+- **WelcomeTab / RecentItemsList / InteractiveTutorial / ChangelogPanel / TipOfTheDay / SpotlightOverlay** — Welcome experience and onboarding flow.
+- **PerformanceCounters** — Runtime performance counter collection.
+- **VisualRegressionRunner / UIAutomation / AccessibilityAuditor / ThemeCoverageChecker / MemoryLeakDetector** — UI integration testing harness.
+- **Events**: Added events for Phases 33-50 including outline, find/replace, quick open, shortcuts, workspace config, component library, scroll, notification, dialog, drag & drop, diff, peek, welcome, performance, and UI testing.
+
+### Changed
+
+- **src/CMakeLists.txt** — Added 127 new Phase 33-50 source entries across both target_sources blocks.
+- **tests/CMakeLists.txt** — Added 237 new lines: Phase 33-50 sources to `markamp_core` library; added 17 new test targets for all phases.
+- **Events.h** — Added 29 new event types for Phases 33-50.
+- **FuzzyScorer.cpp** — Fixed scoring argument order.
+- **ContextMenuModel.cpp** — Extended context menu items for new features.
+- **EditorPanel.cpp** — Added outline panel integration hooks.
+- **FloatingToolbarManager.h** — Updated toolbar registration interface.
+
+### Fixed
+
+- **OutputPanelRenderer linker error** — Added missing `OutputPanelRenderer.cpp` to `markamp_core` test library, resolving `test_extension_integration` linker failure.
+
 ## v2.15.55 — 2026-03-04
 
 ### Highlights

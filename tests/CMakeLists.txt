@@ -100,6 +100,7 @@ add_library(markamp_core STATIC
     ${CMAKE_SOURCE_DIR}/src/core/TaskRunnerService.cpp
     # UI panels needed by tests
     ${CMAKE_SOURCE_DIR}/src/ui/OutputPanel.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/OutputPanelRenderer.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/ProblemsPanel.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/TreeViewHost.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/PanelAreaModel.cpp
@@ -843,7 +844,66 @@ target_sources(markamp_core PRIVATE
     ${CMAKE_SOURCE_DIR}/src/core/LinkResolver.cpp
     ${CMAKE_SOURCE_DIR}/src/core/BacklinkFinder.cpp
     ${CMAKE_SOURCE_DIR}/src/core/ChangeTracker.cpp
+    # Phase 33: Outline Panel
+    # (OutlinePanel.cpp excluded - wx dependency)
+    # Phase 34: Find & Replace V2
+    ${CMAKE_SOURCE_DIR}/src/core/ReplaceUndoBuffer.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/PreserveCaseReplacer.cpp
+    # (FindBar.cpp, SearchResultsPanel.cpp excluded - wx dependency)
+    # Phase 35: Quick Open & File Switching
+    ${CMAKE_SOURCE_DIR}/src/core/RecentFilesManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/FileSearchScorer.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/FileIndex.cpp
+    # (TabSwitcherOverlay.cpp excluded - wx dependency)
+    # Phase 36: Settings UI Overhaul
+    ${CMAKE_SOURCE_DIR}/src/ui/RichDescriptionRenderer.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/SettingsCompareView.cpp
     ${CMAKE_SOURCE_DIR}/src/core/WorkspaceSymbolIndex.cpp
+    # Phase 37: Compiler Configuration Panel
+    ${CMAKE_SOURCE_DIR}/src/core/CompilerConfig.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/CompilerDetector.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/CompilerConfigValidator.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/CompilerProfileManager.cpp
+    # Phase 38: Build System Integration
+    ${CMAKE_SOURCE_DIR}/src/core/CMakeIntegration.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/MakeIntegration.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/BuildOutputParser.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/BuildTaskManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/BuildDependencyGraph.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/IncrementalBuildTracker.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/BuildLogManager.cpp
+    # Phase 40: Workspace & Project Configuration
+    ${CMAKE_SOURCE_DIR}/src/core/WorkspaceConfig.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/WorkspaceTrustService.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/RecentWorkspacesManager.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/WorkspaceEnvironment.cpp
+    # Phase 46: Diff Editor and Merge Tool
+    ${CMAKE_SOURCE_DIR}/src/core/WordDiffEngine.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/MergeEngine.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/DiffGutter.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/SideBySideDiffView.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/InlineDiffView.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/MergeEditor.cpp
+    # Phase 47: Peek View System
+    ${CMAKE_SOURCE_DIR}/src/core/PeekProvider.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/PeekView.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/PeekResultList.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/PeekEditorHost.cpp
+    # Phase 48: Welcome and Onboarding
+    ${CMAKE_SOURCE_DIR}/src/ui/WelcomeTab.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/RecentItemsList.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/InteractiveTutorial.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/ChangelogPanel.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/TipOfTheDay.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/SpotlightOverlay.cpp
+    # Phase 49: Performance Dashboard
+    ${CMAKE_SOURCE_DIR}/src/core/PerformanceCounters.cpp
+    # Phase 50: UI Integration Testing Harness
+    ${CMAKE_SOURCE_DIR}/src/testing/VisualRegressionRunner.cpp
+    ${CMAKE_SOURCE_DIR}/src/testing/UIAutomation.cpp
+    ${CMAKE_SOURCE_DIR}/src/testing/AccessibilityAuditor.cpp
+    ${CMAKE_SOURCE_DIR}/src/testing/ThemeCoverageChecker.cpp
+    ${CMAKE_SOURCE_DIR}/src/testing/MemoryLeakDetector.cpp
 )
 target_include_directories(markamp_core PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(markamp_core PUBLIC markamp_dependencies)
@@ -5879,3 +5939,181 @@ add_executable(test_goto_system
 target_include_directories(test_goto_system PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_goto_system PRIVATE markamp_core Catch2::Catch2WithMain)
 add_test(NAME test_goto_system COMMAND test_goto_system)
+
+# Phase 34: Find & Replace V2 (PreserveCaseReplacer, ReplaceUndoBuffer, FindBarState, SearchResultsModel)
+add_executable(test_find_replace_v2
+    unit/test_find_replace_v2.cpp
+)
+target_include_directories(test_find_replace_v2 PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_find_replace_v2 PRIVATE markamp_core Catch2::Catch2WithMain)
+add_test(NAME test_find_replace_v2 COMMAND test_find_replace_v2)
+
+# Phase 35: Quick Open (RecentFilesManager, FileSearchScorer, FileIndex, TabSwitcherModel)
+add_executable(test_quick_open
+    unit/test_quick_open.cpp
+)
+target_include_directories(test_quick_open PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_quick_open PRIVATE markamp_core Catch2::Catch2WithMain)
+add_test(NAME test_quick_open COMMAND test_quick_open)
+
+# Phase 36: Settings UI Overhaul (RichDescriptionRenderer, SettingsCompareModel)
+add_executable(test_settings_ui_v2
+    unit/test_settings_ui_v2.cpp
+)
+target_include_directories(test_settings_ui_v2 PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_settings_ui_v2 PRIVATE markamp_core Catch2::Catch2WithMain)
+add_test(NAME test_settings_ui_v2 COMMAND test_settings_ui_v2)
+
+# Phase 37: Compiler Configuration Panel
+add_executable(test_compiler_config
+    unit/test_compiler_config.cpp
+)
+target_include_directories(test_compiler_config PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_compiler_config PRIVATE markamp_core Catch2::Catch2WithMain)
+add_test(NAME test_compiler_config COMMAND test_compiler_config)
+
+# Phase 38: Build System Integration
+add_executable(test_build_system
+    unit/test_build_system.cpp
+)
+target_include_directories(test_build_system PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_build_system PRIVATE markamp_core Catch2::Catch2WithMain)
+add_test(NAME test_build_system COMMAND test_build_system)
+
+# Phase 39: Keyboard Shortcuts Editor
+add_executable(test_shortcuts_editor
+    unit/test_shortcuts_editor.cpp
+)
+target_include_directories(test_shortcuts_editor PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_shortcuts_editor PRIVATE markamp_core Catch2::Catch2WithMain)
+add_test(NAME test_shortcuts_editor COMMAND test_shortcuts_editor)
+
+# Phase 40: Workspace & Project Configuration
+add_executable(test_workspace_config
+    unit/test_workspace_config.cpp
+)
+target_include_directories(test_workspace_config PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_workspace_config PRIVATE markamp_core Catch2::Catch2WithMain)
+add_test(NAME test_workspace_config COMMAND test_workspace_config)
+
+# Phase 41: Component Library Polish
+add_executable(test_component_library
+    unit/test_component_library.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/ComponentVariants.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/ThemedTextInput.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/ThemedDropdown.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/ThemedCheckbox.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/ThemedRadio.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/ThemedToggleSwitch.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/ThemedSlider.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/ThemedProgressBar.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/Badge.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/ChipTag.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/SegmentedControl.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/NumberStepper.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/TreeViewItem.cpp
+)
+target_include_directories(test_component_library PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_component_library PRIVATE markamp_core Catch2::Catch2WithMain)
+add_test(NAME test_component_library COMMAND test_component_library)
+
+# Phase 42: Scrollbar & Scroll Behavior
+add_executable(test_scroll_system
+    unit/test_scroll_system.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/ScrollPhysicsEngine.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/ScrollPositionStore.cpp
+)
+target_include_directories(test_scroll_system PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_scroll_system PRIVATE markamp_core Catch2::Catch2WithMain)
+add_test(NAME test_scroll_system COMMAND test_scroll_system)
+
+# Phase 43: Notification System V2
+add_executable(test_notification_system_v2
+    unit/test_notification_system_v2.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/NotificationCenterModel.cpp
+)
+target_include_directories(test_notification_system_v2 PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_notification_system_v2 PRIVATE markamp_core Catch2::Catch2WithMain)
+add_test(NAME test_notification_system_v2 COMMAND test_notification_system_v2)
+
+# Phase 44: Dialog & Modal System
+add_executable(test_dialog_system
+    unit/test_dialog_system.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/DialogStackManager.cpp
+)
+target_include_directories(test_dialog_system PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_dialog_system PRIVATE markamp_core Catch2::Catch2WithMain)
+add_test(NAME test_dialog_system COMMAND test_dialog_system)
+
+# Phase 45: Drag & Drop System
+add_executable(test_drag_drop_system
+    unit/test_drag_drop_system.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/DragController.cpp
+)
+target_include_directories(test_drag_drop_system PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_drag_drop_system PRIVATE markamp_core Catch2::Catch2WithMain)
+add_test(NAME test_drag_drop_system COMMAND test_drag_drop_system)
+
+# Phase 46: Diff Editor and Merge Tool
+add_executable(test_diff_editor
+    unit/test_diff_editor.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/WordDiffEngine.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/MergeEngine.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/DiffEngine.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/DiffGutter.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/SideBySideDiffView.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/InlineDiffView.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/MergeEditor.cpp
+)
+target_include_directories(test_diff_editor PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_diff_editor PRIVATE markamp_core Catch2::Catch2WithMain)
+add_test(NAME test_diff_editor COMMAND test_diff_editor)
+
+# Phase 47: Peek View System
+add_executable(test_peek_view
+    unit/test_peek_view.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/PeekProvider.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/PeekView.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/PeekResultList.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/PeekEditorHost.cpp
+)
+target_include_directories(test_peek_view PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_peek_view PRIVATE markamp_core Catch2::Catch2WithMain)
+add_test(NAME test_peek_view COMMAND test_peek_view)
+
+# Phase 48: Welcome and Onboarding
+add_executable(test_welcome_onboarding
+    unit/test_welcome_onboarding.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/WelcomeTab.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/RecentItemsList.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/InteractiveTutorial.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/ChangelogPanel.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/TipOfTheDay.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/SpotlightOverlay.cpp
+)
+target_include_directories(test_welcome_onboarding PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_welcome_onboarding PRIVATE markamp_core Catch2::Catch2WithMain)
+add_test(NAME test_welcome_onboarding COMMAND test_welcome_onboarding)
+
+# Phase 49: Performance Dashboard
+add_executable(test_performance_dashboard
+    unit/test_performance_dashboard.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/PerformanceCounters.cpp
+)
+target_include_directories(test_performance_dashboard PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_performance_dashboard PRIVATE markamp_core Catch2::Catch2WithMain)
+add_test(NAME test_performance_dashboard COMMAND test_performance_dashboard)
+
+# Phase 50: UI Integration Testing Harness
+add_executable(test_ui_harness
+    unit/test_ui_harness.cpp
+    ${CMAKE_SOURCE_DIR}/src/testing/VisualRegressionRunner.cpp
+    ${CMAKE_SOURCE_DIR}/src/testing/UIAutomation.cpp
+    ${CMAKE_SOURCE_DIR}/src/testing/AccessibilityAuditor.cpp
+    ${CMAKE_SOURCE_DIR}/src/testing/ThemeCoverageChecker.cpp
+    ${CMAKE_SOURCE_DIR}/src/testing/MemoryLeakDetector.cpp
+)
+target_include_directories(test_ui_harness PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_ui_harness PRIVATE markamp_core Catch2::Catch2WithMain)
+add_test(NAME test_ui_harness COMMAND test_ui_harness)
+

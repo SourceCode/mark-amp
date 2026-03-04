@@ -4359,6 +4359,11 @@ void EditorPanel::HandleFormatBarAction(int action)
         case FloatingFormatBar::Action::Table:
             InsertTable();
             break;
+        case FloatingFormatBar::Action::Strikethrough:
+        case FloatingFormatBar::Action::Highlight:
+        case FloatingFormatBar::Action::Footnote:
+            // TODO: implement strikethrough, highlight, footnote actions
+            break;
     }
 }
 

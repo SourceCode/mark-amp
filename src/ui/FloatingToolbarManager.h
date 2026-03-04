@@ -59,9 +59,11 @@ public:
     [[nodiscard]] auto z_order() const -> const std::vector<std::string>&;
 
 private:
-    wxWindow* parent_;
-    core::ThemeEngine& theme_engine_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
-    core::EventBus& event_bus_;       // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+    [[maybe_unused]] wxWindow* parent_;
+    [[maybe_unused]] core::ThemeEngine&
+        theme_engine_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
+    [[maybe_unused]] core::EventBus&
+        event_bus_; // NOLINT(cppcoreguidelines-avoid-const-or-ref-data-members)
 
     std::unordered_map<std::string, std::unique_ptr<FloatingToolbar>> toolbars_;
     std::unordered_map<std::string, wxPoint> saved_positions_;

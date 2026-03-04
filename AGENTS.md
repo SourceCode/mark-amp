@@ -10,7 +10,7 @@
 | Field           | Value                                                                                                                      |
 | --------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | Name            | **MarkAmp**                                                                                                                |
-| Version         | **2.10.48**                                                                                                                |
+| Version         | **2.16.60**                                                                                                                |
 | Language        | C++23 (C++26-ready patterns)                                                                                               |
 | UI Toolkit      | wxWidgets 3.2.9                                                                                                            |
 | Build System    | CMake 3.30+ with presets                                                                                                   |
@@ -63,7 +63,7 @@ cd build/debug && ctest -R test_phase12_canvas_advanced --output-on-failure
 cd build/debug && ctest -N
 ```
 
-**Test Stats:** 451 test targets, 444 test source files in `tests/unit/`.
+**Test Stats:** 594 test targets, 594 test source files in `tests/unit/`.
 
 ### 2.4 Release Workflow
 
@@ -475,24 +475,24 @@ Mermaid, Table Editor, Format Bar, Theme Gallery, Link Preview, Image Preview, B
 
 **Purpose:** Multi-modal search across documents, canvas, and knowledge graph.
 
-| Component               | Purpose                      |
-| ----------------------- | ---------------------------- |
-| `SearchEngine`          | Core full-text search        |
+| Component               | Purpose                               |
+| ----------------------- | ------------------------------------- |
+| `SearchEngine`          | Core full-text search                 |
 | `SearchContext`         | Dynamic pre/post match context buffer |
-| `SearchService`         | Search orchestration         |
-| `SearchQueryParser`     | Query syntax parser          |
-| `ContentIndexer`        | Document content indexing    |
-| `SearchIndexWatcher`    | Watch for indexable changes  |
-| `IncrementalSearcher`   | Progressive text search      |
-| `SearchResultNavigator` | Navigate search results      |
-| `SearchReplacePreview`  | Search/replace with preview  |
-| `SearchHistory`         | Search history tracking      |
-| `SavedSearches`         | Persistent saved searches    |
-| `SearchExporter`        | Export search results        |
-| `SearchAccessibility`   | Accessible search UI         |
-| `SearchCommands`        | Command palette integration  |
-| `CanvasSearch`          | Search within canvas objects |
-| `NotebookSearchIndex`   | Search within notebooks      |
+| `SearchService`         | Search orchestration                  |
+| `SearchQueryParser`     | Query syntax parser                   |
+| `ContentIndexer`        | Document content indexing             |
+| `SearchIndexWatcher`    | Watch for indexable changes           |
+| `IncrementalSearcher`   | Progressive text search               |
+| `SearchResultNavigator` | Navigate search results               |
+| `SearchReplacePreview`  | Search/replace with preview           |
+| `SearchHistory`         | Search history tracking               |
+| `SavedSearches`         | Persistent saved searches             |
+| `SearchExporter`        | Export search results                 |
+| `SearchAccessibility`   | Accessible search UI                  |
+| `SearchCommands`        | Command palette integration           |
+| `CanvasSearch`          | Search within canvas objects          |
+| `NotebookSearchIndex`   | Search within notebooks               |
 
 ---
 
