@@ -15,6 +15,7 @@
 #include "core/QuickPickService.h"
 #include "core/ShortcutManager.h"
 #include "core/ThemeEngine.h"
+#include "platform/AccessibilityIdentifier.h"
 #include "ui/AccessibilityModel.h"
 #include "ui/IconGalleryDialog.h"
 #include "ui/IconManager.h"
@@ -117,6 +118,10 @@ MainFrame::MainFrame(const wxString& title,
 {
     // Minimum size constraints
     SetMinSize(wxSize(app::MarkAmpApp::kMinWidth, app::MarkAmpApp::kMinHeight));
+
+    // Phase 14: E2E automation selector — stable accessibility name for Appium mac2
+    SetName("ma.shell.main_frame");
+    markamp::platform::set_accessibility_identifier(this, "ma.shell.main_frame");
 
     // Dark background (will be overridden by theme)
     if (theme_engine_ != nullptr)
@@ -2157,6 +2162,12 @@ void MainFrame::showEditor()
         layout_->Show();
     }
     Layout();
+
+    // Rebuild the macOS accessibility tree now that the LayoutManager and all
+    // its child panels are visible.  This ensures XCUITest / Appium mac2 can
+    // discover ma.activitybar, ma.editor.panel, ma.filetree.ctrl, etc.
+    markamp::platform::refresh_accessibility_tree(this);
+
     // Fix 16: Was calling updateMenuBarForStartup — should be editor
     updateMenuBarForEditor();
 }

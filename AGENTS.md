@@ -10,7 +10,7 @@
 | Field           | Value                                                                                                                      |
 | --------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | Name            | **MarkAmp**                                                                                                                |
-| Version         | **2.16.60**                                                                                                                |
+| Version         | **2.17.61**                                                                                                                |
 | Language        | C++23 (C++26-ready patterns)                                                                                               |
 | UI Toolkit      | wxWidgets 3.2.9                                                                                                            |
 | Build System    | CMake 3.30+ with presets                                                                                                   |
@@ -877,16 +877,18 @@ Mermaid, Table Editor, Format Bar, Theme Gallery, Link Preview, Image Preview, B
 
 ## 7 · Platform Layer (`src/platform/`)
 
-| Component                 | Purpose                               |
-| ------------------------- | ------------------------------------- |
-| `PlatformAbstraction`     | Platform detection and dispatch       |
-| `MacPlatform`             | macOS-specific (Objective-C++ bridge) |
-| `WinPlatform`             | Windows-specific (Win32 API)          |
-| `LinuxPlatform`           | Linux-specific (GTK/GDK)              |
-| `ScreenReaderBridge`      | Base screen reader integration        |
-| `MacScreenReaderBridge`   | NSAccessibility-based screen reader   |
-| `LinuxScreenReaderBridge` | Linux screen reader stub              |
-| `WinScreenReaderBridge`   | Windows screen reader stub            |
+| Component                     | Purpose                                              |
+| ----------------------------- | ---------------------------------------------------- |
+| `PlatformAbstraction`         | Platform detection and dispatch                      |
+| `MacPlatform`                 | macOS-specific (Objective-C++ bridge)                |
+| `WinPlatform`                 | Windows-specific (Win32 API)                         |
+| `LinuxPlatform`               | Linux-specific (GTK/GDK)                             |
+| `ScreenReaderBridge`          | Base screen reader integration                       |
+| `MacScreenReaderBridge`       | NSAccessibility-based screen reader                  |
+| `LinuxScreenReaderBridge`     | Linux screen reader stub                             |
+| `WinScreenReaderBridge`       | Windows screen reader stub                           |
+| `AccessibilityIdentifier`     | wxWidgets↔NSAccessibility bridge with hierarchy walk |
+| `StubAccessibilityIdentifier` | No-op stub for non-macOS platforms                   |
 
 Platform services implemented in `PlatformServices.h/.cpp`: `FileWatcher` (polling-based), clipboard, shell operations.
 
