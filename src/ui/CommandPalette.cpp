@@ -2,6 +2,7 @@
 
 #include "accessibility/AccessibilityController.h"
 #include "core/Events.h"
+#include "platform/AccessibilityIdentifier.h"
 
 #include <wx/dcbuffer.h>
 #include <wx/graphics.h>
@@ -101,6 +102,10 @@ CommandPalette::CommandPalette(wxWindow* parent,
 
     theme_sub_ = event_bus_.subscribe<core::events::ThemeChangedEvent>(
         [this](const core::events::ThemeChangedEvent& /*evt*/) { ApplyTheme(); });
+
+    // Phase 14: E2E automation selector — stable accessibility name for Appium mac2
+    SetName("ma.commandpalette");
+    markamp::platform::set_accessibility_identifier(this, "ma.commandpalette");
 }
 
 void CommandPalette::RegisterCommand(PaletteCommand command)

@@ -1,0 +1,31 @@
+{
+  "name": "markamp-e2e-appium",
+  "version": "1.0.0",
+  "private": true,
+  "description": "MarkAmp Appium mac2 E2E test suite",
+  "scripts": {
+    "test": "wdio run wdio.conf.ts",
+    "test:smoke": "wdio run wdio.conf.ts --spec src/specs/smoke/**/*.spec.ts",
+    "test:workflows": "wdio run wdio.conf.ts --spec src/specs/workflows/**/*.spec.ts",
+    "test:edge-cases": "wdio run wdio.conf.ts --spec src/specs/edge_cases/**/*.spec.ts",
+    "test:regression": "wdio run wdio.conf.ts --spec src/specs/workflows/**/*.spec.ts --spec src/specs/edge_cases/**/*.spec.ts",
+    "bootstrap": "bash scripts/bootstrap_mac2.sh",
+    "lint": "eslint src/ --ext .ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.6",
+    "@wdio/cli": "^8.38.0",
+    "@wdio/local-runner": "^8.38.0",
+    "@wdio/mocha-framework": "^8.38.0",
+    "@wdio/spec-reporter": "^8.38.0",
+    "appium": "^2.19.0",
+    "appium-mac2-driver": "^1.12.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.0",
+    "webdriverio": "^8.38.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

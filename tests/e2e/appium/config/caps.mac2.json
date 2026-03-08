@@ -1,0 +1,11 @@
+{
+  "automationName": "mac2",
+  "platformName": "mac",
+  "bundleId": "com.markamp.editor",
+  "noReset": true,
+  "newCommandTimeout": 120,
+  "arguments": [],
+  "environment": {
+    "MARKAMP_E2E": "1"
+  }
+}

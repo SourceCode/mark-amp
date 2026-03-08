@@ -1,5 +1,0 @@
-Change Dir: '/Users/ryanrentfro/code/markamp/build/debug'
-
-Run Build Command(s): /opt/homebrew/bin/ninja -v markamp_core
-ninja: no work to do.
-

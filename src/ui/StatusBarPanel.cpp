@@ -10,6 +10,7 @@
 #include "accessibility/AccessibilityController.h"
 #include "core/Events.h"
 #include "core/Logger.h"
+#include "platform/AccessibilityIdentifier.h"
 #include "ui/FocusManager.h"
 #include "ui/FocusRingRenderer.h"
 #include "ui/SidebarMode.h"
@@ -82,6 +83,10 @@ StatusBarPanel::StatusBarPanel(wxWindow* parent,
 
     // Build initial layout items
     RebuildItems();
+
+    // Phase 14: E2E automation selector — stable accessibility name for Appium mac2
+    SetName("ma.statusbar");
+    markamp::platform::set_accessibility_identifier(this, "ma.statusbar");
 
     Bind(wxEVT_PAINT, &StatusBarPanel::OnPaint, this);
     Bind(wxEVT_LEFT_DOWN, &StatusBarPanel::OnMouseDown, this);

@@ -77,6 +77,10 @@ public:
     /// Map a VSCode color key to internal ThemeColorToken.
     /// Returns empty string if no mapping exists.
     [[nodiscard]] static auto map_vscode_color(const std::string& vscode_key) -> std::string;
+
+    /// V16 Phase 17: Map a TextMate scope to internal syntax token key.
+    /// Returns empty string if no mapping exists.
+    [[nodiscard]] static auto map_vscode_scope(const std::string& scope) -> std::string;
 };
 
 } // namespace markamp::core

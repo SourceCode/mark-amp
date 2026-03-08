@@ -1,7 +1,9 @@
-/// test_tile_cache.cpp — Unit tests
-#include <catch2/catch_test_macros.hpp>
+/// test_tile_cache.cpp
+#include "canvas/TileCache.h"
 
-TEST_CASE("TileCache: placeholder", "[tile_cache]")
+#include <catch2/catch_test_macros.hpp>
+using namespace markamp::canvas;
+TEST_CASE("TileCache: type compiles", "[tile_cache]")
 {
-    REQUIRE(true);
+    static_assert(sizeof(TileCache) > 0);
 }

@@ -142,6 +142,9 @@ private:
     // Phase 01: Infrastructure
     std::unique_ptr<core::Watchdog> watchdog_;
     std::unique_ptr<core::MemoryBudget> memory_budget_;
+
+    // Phase 14: E2E testability — set true when MARKAMP_E2E=1 env var detected
+    bool e2e_mode_ = false;
 };
 
 } // namespace markamp::app

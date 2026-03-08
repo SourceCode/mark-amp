@@ -1,11 +1,9 @@
-/// test_a_i_service.cpp — Unit tests
+/// test_a_i_service.cpp — Unit tests for AIService
 #include "core/AIService.h"
 
 #include <catch2/catch_test_macros.hpp>
-
 using namespace markamp::core;
-
-TEST_CASE("AIService: header compiles", "[a_i_service]")
+TEST_CASE("AIService: type compiles", "[ai_service]")
 {
-    REQUIRE(true);
+    static_assert(sizeof(AIService) > 0);
 }

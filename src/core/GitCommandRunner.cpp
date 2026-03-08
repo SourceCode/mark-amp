@@ -1,12 +1,12 @@
 #include "GitCommandRunner.h"
 
 #include <wx/log.h>
-#include <wx/process.h>
 #include <wx/string.h>
-#include <wx/utils.h>
 
+#include <cstdio>
 #include <memory>
 #include <sstream>
+#include <sys/wait.h>
 
 namespace markamp::core
 {
@@ -20,27 +20,46 @@ auto GitCommandRunner::RunSync(const std::string& command) -> CommandResult
 {
     CommandResult result;
 
-    wxString wx_command = wxString::FromUTF8(command);
-    wxArrayString stdout_arr;
-    wxArrayString stderr_arr;
+    // Build command with working directory prefix and stderr redirect.
+    // We use popen() instead of wxExecute() because RunSync is called from
+    // background threads (e.g., GitStatusProvider::Refresh), and wxExecute
+    // is NOT thread-safe — it triggers a wxWidgets assertion from non-main threads.
+    std::string full_cmd =
+        "cd \"" + workspace_root_ + "\" && " + command + " 2>/tmp/markamp_git_stderr.txt";
 
-    long wx_result = wxExecute(wx_command, stdout_arr, stderr_arr, wxEXEC_SYNC | wxEXEC_NODISABLE);
-
-    result.exit_code = static_cast<int>(wx_result);
-
-    std::ostringstream out_stream;
-    for (const auto& line : stdout_arr)
+    FILE* pipe = popen(full_cmd.c_str(), "r");
+    if (pipe == nullptr)
     {
-        out_stream << line.utf8_string() << '\n';
+        result.exit_code = -1;
+        result.stderr_text = "Failed to execute command";
+        return result;
+    }
+
+    // Read stdout
+    std::ostringstream out_stream;
+    constexpr size_t kBufSize = 4096;
+    char buffer[kBufSize];
+    while (fgets(buffer, sizeof(buffer), pipe) != nullptr)
+    {
+        out_stream << buffer;
     }
     result.stdout_text = out_stream.str();
 
-    std::ostringstream err_stream;
-    for (const auto& line : stderr_arr)
+    int status = pclose(pipe);
+    result.exit_code = WIFEXITED(status) ? WEXITSTATUS(status) : -1;
+
+    // Read stderr from temp file
+    FILE* err_file = fopen("/tmp/markamp_git_stderr.txt", "r");
+    if (err_file != nullptr)
     {
-        err_stream << line.utf8_string() << '\n';
+        std::ostringstream err_stream;
+        while (fgets(buffer, sizeof(buffer), err_file) != nullptr)
+        {
+            err_stream << buffer;
+        }
+        fclose(err_file);
+        result.stderr_text = err_stream.str();
     }
-    result.stderr_text = err_stream.str();
 
     return result;
 }

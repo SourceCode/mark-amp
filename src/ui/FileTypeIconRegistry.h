@@ -32,7 +32,23 @@ enum class FileTypeIconId
     kShell,
     kToml,
     kCMake,
-    kText
+    kText,
+    // V16 Phase 05: Expanded file types for VS Code parity
+    kCSharp,
+    kSwift,
+    kKotlin,
+    kDart,
+    kLua,
+    kPhp,
+    kScala,
+    kSql,
+    kR,
+    kVue,
+    kSvelte,
+    kGraphql,
+    kProto,
+    kTerraform,
+    kDiff,
 };
 
 enum class FolderIconType

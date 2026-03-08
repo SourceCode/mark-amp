@@ -29,7 +29,24 @@ enum class TokenType
     Variable,     // Variables
     Constant,     // Constants (true, false, null, ALL_CAPS)
     Preprocessor, // Preprocessor directives (#include, #define)
-    Whitespace    // Whitespace (preserved but not colored)
+    Whitespace,   // Whitespace (preserved but not colored)
+
+    // V16 Phase 11: Fine-grained TextMate scope alignment
+    Namespace,    // namespace / module identifiers
+    Enum,         // enum type names
+    EnumMember,   // enum values
+    Interface,    // interface / protocol names
+    Struct,       // struct names
+    Parameter,    // function/method parameter names
+    Label,        // labels (goto targets, switch cases)
+    Decorator,    // decorators / annotations (@override, @Deprecated)
+    Regex,        // regular expression literals
+    Escape,       // escape sequences in strings (\n, \t, \x00)
+    Embedded,     // embedded language regions (JS in HTML, etc.)
+    MetaTag,      // meta tags (pragma, region, etc.)
+    DocComment,   // documentation comments (///, /**, #!)
+    Macro,        // macro invocations / expansions
+    TypeParameter // generic type parameters (<T>, <K, V>)
 };
 
 struct Token
@@ -38,6 +55,71 @@ struct Token
     std::string text;
     size_t start{0};
     size_t length{0};
+};
+
+/// V16 Phase 11: Scope stack for tracking nested TextMate scopes.
+///
+/// Used by GrammarEngine to maintain context during tokenization.
+/// Each level represents one grammar scope (e.g. "source.cpp" → "meta.function" →
+/// "string.quoted.double").
+struct ScopeStack
+{
+    std::vector<std::string> scopes;
+
+    void push(const std::string& scope)
+    {
+        scopes.push_back(scope);
+    }
+    void pop()
+    {
+        if (!scopes.empty())
+        {
+            scopes.pop_back();
+        }
+    }
+
+    [[nodiscard]] auto depth() const noexcept -> size_t
+    {
+        return scopes.size();
+    }
+    [[nodiscard]] auto empty() const noexcept -> bool
+    {
+        return scopes.empty();
+    }
+    [[nodiscard]] auto top() const -> const std::string&
+    {
+        static const std::string empty_scope;
+        return scopes.empty() ? empty_scope : scopes.back();
+    }
+
+    /// Build the full dot-separated scope path (e.g. "source.cpp meta.function
+    /// string.quoted.double")
+    [[nodiscard]] auto to_string() const -> std::string
+    {
+        std::string result;
+        for (size_t idx = 0; idx < scopes.size(); ++idx)
+        {
+            if (idx > 0)
+            {
+                result += ' ';
+            }
+            result += scopes[idx];
+        }
+        return result;
+    }
+
+    /// Check if a specific scope exists anywhere in the stack.
+    [[nodiscard]] auto contains(const std::string& scope) const -> bool
+    {
+        for (const auto& item : scopes)
+        {
+            if (item == scope)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
 };
 
 // ═══════════════════════════════════════════════════════

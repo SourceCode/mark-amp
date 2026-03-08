@@ -1,0 +1,140 @@
+name: E2E Tests — mac2 Tiered
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    # Nightly full regression at 02:00 UTC
+    - cron: "0 2 * * *"
+
+env:
+  MARKAMP_E2E: "1"
+  NODE_VERSION: "20"
+
+jobs:
+  # ── Smoke Suite (every PR, blocking) ──
+  e2e-smoke:
+    name: E2E Smoke
+    runs-on: macos-14
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: tests/e2e/appium/package-lock.json
+
+      - name: Build MarkAmp
+        run: cmake -B build/debug -DCMAKE_BUILD_TYPE=Debug && cmake --build build/debug --parallel
+
+      - name: Bootstrap Appium
+        run: bash tests/e2e/appium/scripts/bootstrap_mac2.sh
+
+      - name: Install E2E dependencies
+        working-directory: tests/e2e/appium
+        run: npm ci
+
+      - name: Run Smoke Suite
+        working-directory: tests/e2e/appium
+        run: npm run test:smoke
+
+      - name: Upload failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-smoke-artifacts
+          path: tests/e2e/appium/artifacts/
+          retention-days: 3
+
+  # ── Critical Suite (every PR, blocking) ──
+  e2e-critical:
+    name: E2E Critical
+    runs-on: macos-14
+    timeout-minutes: 15
+    needs: e2e-smoke
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: tests/e2e/appium/package-lock.json
+
+      - name: Build MarkAmp
+        run: cmake -B build/debug -DCMAKE_BUILD_TYPE=Debug && cmake --build build/debug --parallel
+
+      - name: Bootstrap Appium
+        run: bash tests/e2e/appium/scripts/bootstrap_mac2.sh
+
+      - name: Install E2E dependencies
+        working-directory: tests/e2e/appium
+        run: npm ci
+
+      - name: Run Critical Suite
+        working-directory: tests/e2e/appium
+        run: npx wdio run wdio.conf.ts --mochaOpts.grep "@critical"
+
+      - name: Upload failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-critical-artifacts
+          path: tests/e2e/appium/artifacts/
+          retention-days: 7
+
+  # ── Nightly Full Regression (scheduled, informational) ──
+  e2e-nightly:
+    name: E2E Nightly Regression
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: macos-14
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: tests/e2e/appium/package-lock.json
+
+      - name: Build MarkAmp
+        run: cmake -B build/debug -DCMAKE_BUILD_TYPE=Debug && cmake --build build/debug --parallel
+
+      - name: Bootstrap Appium
+        run: bash tests/e2e/appium/scripts/bootstrap_mac2.sh
+
+      - name: Install E2E dependencies
+        working-directory: tests/e2e/appium
+        run: npm ci
+
+      - name: Run Full Regression Suite
+        working-directory: tests/e2e/appium
+        run: npm run test:regression
+
+      - name: Run Performance Benchmarks
+        working-directory: tests/e2e/appium
+        run: npx wdio run wdio.conf.ts --mochaOpts.grep "@perf"
+        continue-on-error: true
+
+      - name: Run Chaos Tests
+        working-directory: tests/e2e/appium
+        run: npx wdio run wdio.conf.ts --mochaOpts.grep "@chaos"
+        continue-on-error: true
+
+      - name: Run Resilience Tests
+        working-directory: tests/e2e/appium
+        run: npx wdio run wdio.conf.ts --mochaOpts.grep "@resilience"
+        continue-on-error: true
+
+      - name: Upload nightly artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-nightly-artifacts
+          path: |
+            tests/e2e/appium/artifacts/
+            tests/e2e/appium/reports/
+          retention-days: 14

@@ -109,7 +109,7 @@ struct ThemeSyntaxColors
     Color editor_cursor;
     Color editor_gutter;
 
-    // Syntax categories
+    // Syntax categories (original 8)
     Color keyword{140, 120, 255}; // language keywords
     Color string_literal{80, 200, 120};
     Color comment{100, 100, 130};
@@ -118,6 +118,23 @@ struct ThemeSyntaxColors
     Color function_name{220, 200, 100};
     Color operator_tok{200, 200, 220};
     Color preprocessor{180, 140, 200};
+
+    // V16 Phase 16: Fine-grained syntax colors
+    Color variable{200, 200, 220};       // variable.other
+    Color constant{220, 120, 120};       // constant.language
+    Color tag{240, 120, 100};            // entity.name.tag (HTML/XML)
+    Color attribute{160, 200, 120};      // entity.other.attribute-name
+    Color property{180, 180, 240};       // variable.other.property
+    Color namespace_name{140, 200, 200}; // entity.name.namespace
+    Color enum_name{120, 200, 180};      // entity.name.type.enum
+    Color interface_name{140, 220, 220}; // entity.name.type.interface
+    Color struct_name{120, 180, 220};    // entity.name.type.struct
+    Color parameter{200, 160, 160};      // variable.parameter
+    Color decorator{220, 160, 100};      // meta.decorator
+    Color regex{200, 100, 140};          // string.regexp
+    Color escape{220, 140, 160};         // constant.character.escape
+    Color doc_comment{120, 140, 100};    // comment.block.documentation
+    Color macro{200, 140, 220};          // entity.name.function.macro
 
     auto operator<=>(const ThemeSyntaxColors&) const = default;
     auto operator==(const ThemeSyntaxColors&) const -> bool = default;

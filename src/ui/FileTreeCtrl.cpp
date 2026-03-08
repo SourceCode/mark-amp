@@ -16,6 +16,7 @@
 #include "IconManager.h"
 #include "SidebarSkeletonPlaceholder.h"
 #include "core/Logger.h"
+#include "platform/AccessibilityIdentifier.h"
 #include "ui/FileTypeIconRegistry.h"
 #include "ui/FocusManager.h"
 #include "ui/FocusRingRenderer.h"
@@ -122,6 +123,10 @@ FileTreeCtrl::FileTreeCtrl(wxWindow* parent,
     git_status_.SetRefreshCallback([this]() { this->Refresh(); });
 
     LoadIcons();
+
+    // Phase 14: E2E automation selector — stable accessibility name for Appium mac2
+    SetName("ma.filetree.ctrl");
+    markamp::platform::set_accessibility_identifier(this, "ma.filetree.ctrl");
 
     // Setup Drag and Drop
     SetDropTarget(new FileTreeDropTarget(this));

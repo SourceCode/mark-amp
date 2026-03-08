@@ -40,6 +40,8 @@ add_library(markamp_core STATIC
     ${CMAKE_SOURCE_DIR}/src/core/Md4cWrapper.cpp
     ${CMAKE_SOURCE_DIR}/src/core/MarkdownParser.cpp
     ${CMAKE_SOURCE_DIR}/src/core/SyntaxHighlighter.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/LanguagePack.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/SemanticTokenEngine.cpp
     ${CMAKE_SOURCE_DIR}/src/core/ShortcutManager.cpp
     ${CMAKE_SOURCE_DIR}/src/core/AccessibilityManager.cpp
     ${CMAKE_SOURCE_DIR}/src/core/Profiler.cpp
@@ -161,6 +163,9 @@ target_sources(markamp_core PRIVATE
     ${CMAKE_SOURCE_DIR}/src/ui/IconLibrary.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/FileTypeIconRegistry.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/FileTypeIconResolver.cpp
+    # V16 Phase 01-04: Icon Manifest & Pipeline
+    ${CMAKE_SOURCE_DIR}/src/ui/IconManifest.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/IconPipeline.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/ThemeAwareWindow.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/BreadcrumbBar.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/BreadcrumbDropdown.cpp
@@ -947,6 +952,11 @@ add_executable(test_editor_qol
     ${CMAKE_SOURCE_DIR}/src/ui/ImagePreviewPopover.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/GitBlameGutterProvider.cpp
 )
+if(APPLE)
+    target_sources(test_editor_qol PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/MacAccessibilityIdentifier.mm)
+else()
+    target_sources(test_editor_qol PRIVATE ${CMAKE_SOURCE_DIR}/src/platform/StubAccessibilityIdentifier.cpp)
+endif()
 target_include_directories(test_editor_qol PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_editor_qol PRIVATE
     Catch2::Catch2WithMain
@@ -4036,10 +4046,28 @@ target_include_directories(test_icon_cache PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_icon_cache PRIVATE Catch2::Catch2WithMain markamp_core)
 add_test(NAME test_icon_cache COMMAND test_icon_cache)
 
+# V16 Phases 21-23: Polish, cache, resilience tests
+add_executable(test_v16_polish unit/test_v16_polish.cpp)
+target_include_directories(test_v16_polish PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v16_polish PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v16_polish COMMAND test_v16_polish)
+
 add_executable(test_icon_registry unit/test_icon_registry.cpp)
 target_include_directories(test_icon_registry PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_icon_registry PRIVATE Catch2::Catch2WithMain markamp_core)
 add_test(NAME test_icon_registry COMMAND test_icon_registry)
+
+# V16 Phase 01-04: Icon Manifest tests
+add_executable(test_icon_manifest unit/test_icon_manifest.cpp)
+target_include_directories(test_icon_manifest PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_icon_manifest PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_icon_manifest COMMAND test_icon_manifest)
+
+# V16 Phase 09-10: Icon Pipeline tests
+add_executable(test_icon_pipeline unit/test_icon_pipeline.cpp)
+target_include_directories(test_icon_pipeline PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_icon_pipeline PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_icon_pipeline COMMAND test_icon_pipeline)
 
 
 add_executable(test_ui_icon_library unit/test_ui_icon_library.cpp)
@@ -6117,3 +6145,10 @@ target_include_directories(test_ui_harness PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_ui_harness PRIVATE markamp_core Catch2::Catch2WithMain)
 add_test(NAME test_ui_harness COMMAND test_ui_harness)
 
+# Phase 14: Appium Selector Contract Audit
+add_executable(test_phase14_appium_selector_contract
+    unit/test_phase14_appium_selector_contract.cpp
+)
+target_include_directories(test_phase14_appium_selector_contract PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_phase14_appium_selector_contract PRIVATE Catch2::Catch2WithMain)
+add_test(NAME test_phase14_appium_selector_contract COMMAND test_phase14_appium_selector_contract)

@@ -2,10 +2,8 @@
 #include "core/DiagramRendererRegistry.h"
 
 #include <catch2/catch_test_macros.hpp>
-
 using namespace markamp::core;
-
-TEST_CASE("DiagramRendererRegistry: header compiles", "[diagram_renderer_registry]")
+TEST_CASE("DiagramRendererRegistry: type compiles", "[diagram_renderer_registry]")
 {
-    REQUIRE(true);
+    static_assert(sizeof(DiagramRendererRegistry) > 0);
 }

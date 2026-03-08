@@ -13,6 +13,7 @@
 #include "core/Events.h"
 #include "core/FeatureRegistry.h"
 #include "core/Logger.h"
+#include "platform/AccessibilityIdentifier.h"
 
 #include <wx/button.h>
 #include <wx/datetime.h>
@@ -52,6 +53,10 @@ EditorPanel::EditorPanel(wxWindow* parent,
     sizer->Add(editor_, 1, wxEXPAND);
 
     SetSizer(sizer);
+
+    // Phase 14: E2E automation selector — stable accessibility name for Appium mac2
+    SetName("ma.editor.panel");
+    markamp::platform::set_accessibility_identifier(this, "ma.editor.panel");
 
     // Bind debounce timer
     Bind(wxEVT_TIMER, &EditorPanel::OnDebounceTimer, this, debounce_timer_.GetId());

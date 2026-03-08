@@ -41,6 +41,8 @@
 #include "platform/PlatformAbstraction.h"
 #include "ui/FocusManager.h"
 #include "ui/FocusRingRenderer.h"
+#include "ui/IconLibrary.h"
+#include "ui/IconManager.h"
 #include "ui/MainFrame.h"
 #include "ui/PanelAreaModel.h"
 #include "ui/accessibility/AccessibilityController.h"
@@ -111,6 +113,14 @@ bool MarkAmpApp::OnInit()
     MARKAMP_LOG_INFO("Platform: {}",
                      wxPlatformInfo::Get().GetOperatingSystemDescription().ToStdString());
 
+    // Phase 14: E2E mode detection — must run before Config initialization
+    const char* e2e_env = std::getenv("MARKAMP_E2E");
+    if (e2e_env != nullptr && std::string(e2e_env) == "1")
+    {
+        e2e_mode_ = true;
+        MARKAMP_LOG_INFO("E2E mode active — deterministic runtime, isolated config");
+    }
+
     // Phase 01 Task 9: Structured startup timing
     core::StartupTimer startup_timer;
     MARKAMP_LOG_DEBUG("StartupTimer created (t₀)");
@@ -164,6 +174,13 @@ bool MarkAmpApp::OnInit()
     MARKAMP_LOG_DEBUG("ThemeEngine initialized with theme: {}",
                       theme_engine_->current_theme().name);
     startup_timer.checkpoint("theme_system_initialized");
+
+    // Register all built-in SVG icons into the global IconManager registry.
+    // This must happen before MainFrame creation, which uses icons for the
+    // activity bar, toolbar, file tree, panel headers, and status bar.
+    ui::RegisterCoreIcons(ui::IconManager::get().registry());
+    MARKAMP_LOG_INFO("Core icons registered ({} icons)", ui::IconManager::get().registry().size());
+    startup_timer.checkpoint("core_icons_registered");
 
     // Phase 05 Task 7: Initialize global Accessibility Controller
     ui::accessibility::AccessibilityController::get().initialize();

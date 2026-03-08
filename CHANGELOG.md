@@ -1,5 +1,29 @@
 # MarkAmp Release History
 
+## v2.18.62 — 2026-03-07
+
+### Highlights
+
+V16 UI/UX Overhaul — Milestones 5-6 (Phases 16-25): Expanded the theming system with 15 new fine-grained syntax color tokens (SyntaxVariable through SyntaxMacro) across ThemeTokens, ThemeSyntaxColors, ScopedTokenMap, VsCodeThemeAdapter, and ThemeEngine cache. Added centralized UILayoutTokens design system (10 token structs for spacing, icons, panels, toolbars, menus, interaction timing, status bar, empty states, tabs). Rewrote IconCache with LRU eviction, 32MB memory budget, and cache statistics. 23 new Phase 21-23 test cases. Build: 646/646 steps, 598/598 tests pass (100%).
+
+### Added
+
+- **15 V16 ThemeColorToken entries** — `SyntaxVariable`, `SyntaxConstant`, `SyntaxTag`, `SyntaxAttribute`, `SyntaxProperty`, `SyntaxNamespace`, `SyntaxEnum`, `SyntaxInterface`, `SyntaxStruct`, `SyntaxParameter`, `SyntaxDecorator`, `SyntaxRegex`, `SyntaxEscape`, `SyntaxDocComment`, `SyntaxMacro` with sensible default colors.
+- **UILayoutTokens.h** — 10 centralized token structs: `SpacingScale` (4px base), `IconSizeTokens` (12-48px), `IconTextPairTokens`, `DensePanelTokens`, `ToolbarTokens`, `ContextMenuTokens`, `InteractionTimingTokens` (with reduced-motion), `StatusBarTokens`, `EmptyStateTokens`, `TabBarTokens`.
+- **VsCodeThemeAdapter scope mapping** — 45-entry `vscode_scope_map()` covering TextMate scopes and LSP semantic token fallbacks. New `map_vscode_scope()` API.
+- **test_v16_polish.cpp** — 23 test cases: 10 layout token validation, 10 cache LRU/memory/stats, 3 resilience stress tests.
+
+### Changed
+
+- **ThemeTokens.h** — `ThemeColorToken` enum expanded by 15 entries; `kColorTokenCount` updated.
+- **Theme.h** — `ThemeSyntaxColors` struct expanded with 15 new color fields.
+- **ScopedTokenMap.cpp** — 15 new enum→string mappings in `get_enum_mapping()`.
+- **ThemeEngine.cpp** — 15 new `cache_color` calls in both `rebuild_cache()` and `apply_syntax_theme()`.
+- **IconCache.h/cpp** — Full rewrite: LRU eviction via doubly-linked access list, memory budget enforcement (32MB default, 2048 max entries), `IconCacheStats` with hit_rate/budget_usage/eviction_count.
+- **VsCodeThemeAdapter.h** — Added `map_vscode_scope()` declaration.
+- **VsCodeThemeAdapter.cpp** — Added `vscode_scope_map()` function and `compatibility_report()` integration.
+- **tests/CMakeLists.txt** — Added `test_v16_polish` target.
+
 ## v2.17.61 — 2026-03-06
 
 ### Highlights

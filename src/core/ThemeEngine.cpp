@@ -262,6 +262,39 @@ void ThemeEngine::rebuild_cache()
                 "editor.token.preprocessor",
                 current_theme_.syntax.preprocessor);
 
+    // V16 Phase 16: Fine-grained syntax tokens
+    cache_color(
+        ThemeColorToken::SyntaxVariable, "editor.token.variable", current_theme_.syntax.variable);
+    cache_color(
+        ThemeColorToken::SyntaxConstant, "editor.token.constant", current_theme_.syntax.constant);
+    cache_color(ThemeColorToken::SyntaxTag, "editor.token.tag", current_theme_.syntax.tag);
+    cache_color(ThemeColorToken::SyntaxAttribute,
+                "editor.token.attribute",
+                current_theme_.syntax.attribute);
+    cache_color(
+        ThemeColorToken::SyntaxProperty, "editor.token.property", current_theme_.syntax.property);
+    cache_color(ThemeColorToken::SyntaxNamespace,
+                "editor.token.namespace",
+                current_theme_.syntax.namespace_name);
+    cache_color(ThemeColorToken::SyntaxEnum, "editor.token.enum", current_theme_.syntax.enum_name);
+    cache_color(ThemeColorToken::SyntaxInterface,
+                "editor.token.interface",
+                current_theme_.syntax.interface_name);
+    cache_color(
+        ThemeColorToken::SyntaxStruct, "editor.token.struct", current_theme_.syntax.struct_name);
+    cache_color(ThemeColorToken::SyntaxParameter,
+                "editor.token.parameter",
+                current_theme_.syntax.parameter);
+    cache_color(ThemeColorToken::SyntaxDecorator,
+                "editor.token.decorator",
+                current_theme_.syntax.decorator);
+    cache_color(ThemeColorToken::SyntaxRegex, "editor.token.regex", current_theme_.syntax.regex);
+    cache_color(ThemeColorToken::SyntaxEscape, "editor.token.escape", current_theme_.syntax.escape);
+    cache_color(ThemeColorToken::SyntaxDocComment,
+                "editor.token.docComment",
+                current_theme_.syntax.doc_comment);
+    cache_color(ThemeColorToken::SyntaxMacro, "editor.token.macro", current_theme_.syntax.macro);
+
     // Phase 4: Render tokens
     cache_color(ThemeColorToken::RenderHeading,
                 "markdown.headingForeground",
@@ -437,6 +470,23 @@ void ThemeEngine::apply_syntax_theme()
     cache_color(ThemeColorToken::SyntaxFunction, current_theme_.syntax.function_name);
     cache_color(ThemeColorToken::SyntaxOperator, current_theme_.syntax.operator_tok);
     cache_color(ThemeColorToken::SyntaxPreprocessor, current_theme_.syntax.preprocessor);
+
+    // V16 Phase 16: Fine-grained syntax tokens
+    cache_color(ThemeColorToken::SyntaxVariable, current_theme_.syntax.variable);
+    cache_color(ThemeColorToken::SyntaxConstant, current_theme_.syntax.constant);
+    cache_color(ThemeColorToken::SyntaxTag, current_theme_.syntax.tag);
+    cache_color(ThemeColorToken::SyntaxAttribute, current_theme_.syntax.attribute);
+    cache_color(ThemeColorToken::SyntaxProperty, current_theme_.syntax.property);
+    cache_color(ThemeColorToken::SyntaxNamespace, current_theme_.syntax.namespace_name);
+    cache_color(ThemeColorToken::SyntaxEnum, current_theme_.syntax.enum_name);
+    cache_color(ThemeColorToken::SyntaxInterface, current_theme_.syntax.interface_name);
+    cache_color(ThemeColorToken::SyntaxStruct, current_theme_.syntax.struct_name);
+    cache_color(ThemeColorToken::SyntaxParameter, current_theme_.syntax.parameter);
+    cache_color(ThemeColorToken::SyntaxDecorator, current_theme_.syntax.decorator);
+    cache_color(ThemeColorToken::SyntaxRegex, current_theme_.syntax.regex);
+    cache_color(ThemeColorToken::SyntaxEscape, current_theme_.syntax.escape);
+    cache_color(ThemeColorToken::SyntaxDocComment, current_theme_.syntax.doc_comment);
+    cache_color(ThemeColorToken::SyntaxMacro, current_theme_.syntax.macro);
 
     // V8 Phase 9: Semantic editor tokens (cached from flat colors struct)
     cache_color(ThemeColorToken::EditorActiveLine, current_theme_.colors.editor_active_line);

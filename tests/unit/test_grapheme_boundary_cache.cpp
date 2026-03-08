@@ -2,10 +2,8 @@
 #include "core/GraphemeBoundaryCache.h"
 
 #include <catch2/catch_test_macros.hpp>
-
 using namespace markamp::core;
-
-TEST_CASE("GraphemeBoundaryCache: header compiles", "[grapheme_boundary_cache]")
+TEST_CASE("GraphemeBoundaryCache: type compiles", "[grapheme_boundary_cache]")
 {
-    REQUIRE(true);
+    static_assert(sizeof(GraphemeBoundaryCache) > 0);
 }

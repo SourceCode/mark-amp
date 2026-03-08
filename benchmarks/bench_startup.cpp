@@ -102,7 +102,7 @@ void BM_Startup_ExtensionServices(benchmark::State& state)
         auto notif = std::make_unique<markamp::core::NotificationService>(bus);
         auto status = std::make_unique<markamp::core::StatusBarItemService>();
         auto grammar = std::make_unique<markamp::core::GrammarEngine>();
-        auto terminal = std::make_unique<markamp::core::TerminalService>();
+        auto terminal = std::make_unique<markamp::core::TerminalService>(bus);
         auto task_runner = std::make_unique<markamp::core::TaskRunnerService>();
 
         benchmark::DoNotOptimize(ctx_key.get());

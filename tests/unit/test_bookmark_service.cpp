@@ -1,12 +1,9 @@
-/// test_bookmark_service.cpp — Unit tests
-
+/// test_bookmark_service.cpp — Unit tests for BookmarkService
 #include "core/BookmarkService.h"
 
 #include <catch2/catch_test_macros.hpp>
-
 using namespace markamp::core;
-
-TEST_CASE("BookmarkService: compiles", "[bookmark_service]")
+TEST_CASE("BookmarkService: type compiles", "[bookmark_service]")
 {
     static_assert(sizeof(BookmarkService) > 0);
 }

@@ -14,6 +14,10 @@ public:
 
     /// Returns the folder icon name, optionally for an open folder state.
     static auto GetFolderIcon(bool is_open = false) -> std::string;
+
+    /// V16: Returns a folder icon name resolved by folder name using the manifest.
+    static auto GetFolderIconByName(const std::string& folder_name, bool is_open = false)
+        -> std::string;
 };
 
 } // namespace markamp::ui

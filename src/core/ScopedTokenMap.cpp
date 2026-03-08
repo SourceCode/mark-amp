@@ -116,6 +116,23 @@ auto ScopedTokenMap::get_enum_mapping() -> const std::unordered_map<ThemeColorTo
         {ThemeColorToken::SyntaxOperator, "operator"},
         {ThemeColorToken::SyntaxPreprocessor, "preprocessor"},
 
+        // V16 Phase 16: Fine-grained syntax tokens
+        {ThemeColorToken::SyntaxVariable, "variable"},
+        {ThemeColorToken::SyntaxConstant, "constant"},
+        {ThemeColorToken::SyntaxTag, "entity.name.tag"},
+        {ThemeColorToken::SyntaxAttribute, "entity.other.attribute-name"},
+        {ThemeColorToken::SyntaxProperty, "variable.other.property"},
+        {ThemeColorToken::SyntaxNamespace, "entity.name.namespace"},
+        {ThemeColorToken::SyntaxEnum, "entity.name.type.enum"},
+        {ThemeColorToken::SyntaxInterface, "entity.name.type.interface"},
+        {ThemeColorToken::SyntaxStruct, "entity.name.type.struct"},
+        {ThemeColorToken::SyntaxParameter, "variable.parameter"},
+        {ThemeColorToken::SyntaxDecorator, "meta.decorator"},
+        {ThemeColorToken::SyntaxRegex, "string.regexp"},
+        {ThemeColorToken::SyntaxEscape, "constant.character.escape"},
+        {ThemeColorToken::SyntaxDocComment, "comment.block.documentation"},
+        {ThemeColorToken::SyntaxMacro, "entity.name.function.macro"},
+
         // Render tokens
         {ThemeColorToken::RenderHeading, "markdown.heading"},
         {ThemeColorToken::RenderLink, "markdown.link"},

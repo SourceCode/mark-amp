@@ -135,6 +135,37 @@ auto SyntaxHighlighter::token_class(TokenType type) -> std::string_view
             return "preprocessor";
         case TokenType::Whitespace:
             return "whitespace";
+        // V16 Phase 11: Fine-grained TextMate types
+        case TokenType::Namespace:
+            return "namespace";
+        case TokenType::Enum:
+            return "enum";
+        case TokenType::EnumMember:
+            return "enum-member";
+        case TokenType::Interface:
+            return "interface";
+        case TokenType::Struct:
+            return "struct";
+        case TokenType::Parameter:
+            return "parameter";
+        case TokenType::Label:
+            return "label";
+        case TokenType::Decorator:
+            return "decorator";
+        case TokenType::Regex:
+            return "regexp";
+        case TokenType::Escape:
+            return "escape";
+        case TokenType::Embedded:
+            return "embedded";
+        case TokenType::MetaTag:
+            return "meta-tag";
+        case TokenType::DocComment:
+            return "doc-comment";
+        case TokenType::Macro:
+            return "macro";
+        case TokenType::TypeParameter:
+            return "type-parameter";
         default:
             return "text";
     }

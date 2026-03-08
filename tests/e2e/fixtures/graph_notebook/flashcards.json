@@ -1,0 +1,53 @@
+{
+  "decks": [
+    {
+      "id": "deck-1",
+      "name": "Test Flashcard Deck",
+      "cards": [
+        {
+          "id": "card-1",
+          "front": "What is the capital of France?",
+          "back": "Paris",
+          "tags": ["geography", "europe"],
+          "schedule": {
+            "due": "2026-01-15T00:00:00Z",
+            "stability": 1.0,
+            "difficulty": 5.0,
+            "reps": 0,
+            "lapses": 0,
+            "state": "new"
+          }
+        },
+        {
+          "id": "card-2",
+          "front": "What is {{c1::TypeScript}}?",
+          "back": "A typed superset of JavaScript",
+          "tags": ["programming", "web"],
+          "type": "cloze",
+          "schedule": {
+            "due": "2026-01-10T00:00:00Z",
+            "stability": 2.5,
+            "difficulty": 4.0,
+            "reps": 3,
+            "lapses": 0,
+            "state": "review"
+          }
+        },
+        {
+          "id": "card-3",
+          "front": "Name three design patterns",
+          "back": "Singleton, Observer, Factory",
+          "tags": ["programming", "patterns"],
+          "schedule": {
+            "due": "2026-01-20T00:00:00Z",
+            "stability": 0.5,
+            "difficulty": 7.0,
+            "reps": 1,
+            "lapses": 1,
+            "state": "learning"
+          }
+        }
+      ]
+    }
+  ]
+}

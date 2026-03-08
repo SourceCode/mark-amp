@@ -1,13 +1,9 @@
-/// test_plugin_context.cpp — Unit tests
-
+/// test_plugin_context.cpp
 #include "core/PluginContext.h"
 
 #include <catch2/catch_test_macros.hpp>
-
 using namespace markamp::core;
-
-TEST_CASE("PluginContext: compiles", "[plugin_context]")
+TEST_CASE("PluginContext: type compiles", "[plugin_context]")
 {
-    // PluginContext requires complex wiring; verify it compiles
     static_assert(sizeof(PluginContext) > 0);
 }

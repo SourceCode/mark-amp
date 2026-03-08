@@ -328,6 +328,9 @@ add_executable(markamp
     ui/IconRegistry.cpp
     ui/IconRenderer.cpp
     ui/SvgDocument.cpp
+    # V16 Phase 01-04: Icon Manifest & Pipeline
+    ui/IconManifest.cpp
+    ui/IconPipeline.cpp
     core/EventBus.cpp
     core/AppState.cpp
     core/Command.cpp
@@ -362,6 +365,8 @@ add_executable(markamp
     core/MarkdownParser.cpp
     core/RecentWorkspaces.cpp
     core/SyntaxHighlighter.cpp
+    core/LanguagePack.cpp
+    core/SemanticTokenEngine.cpp
     core/ShortcutManager.cpp
     core/CommandRegistry.cpp
     core/ChordShortcutManager.cpp
@@ -958,15 +963,15 @@ add_executable(markamp
 
 # Platform-specific sources
 if(APPLE)
-    target_sources(markamp PRIVATE platform/MacPlatform.mm platform/MacScreenReaderBridge.mm)
+    target_sources(markamp PRIVATE platform/MacPlatform.mm platform/MacScreenReaderBridge.mm platform/MacAccessibilityIdentifier.mm)
     # Enable Objective-C++ for .mm files
-    set_source_files_properties(platform/MacPlatform.mm platform/MacScreenReaderBridge.mm PROPERTIES
+    set_source_files_properties(platform/MacPlatform.mm platform/MacScreenReaderBridge.mm platform/MacAccessibilityIdentifier.mm PROPERTIES
         COMPILE_FLAGS "-x objective-c++"
     )
 elseif(WIN32)
-    target_sources(markamp PRIVATE platform/WinPlatform.cpp platform/WinScreenReaderBridge.cpp)
+    target_sources(markamp PRIVATE platform/WinPlatform.cpp platform/WinScreenReaderBridge.cpp platform/StubAccessibilityIdentifier.cpp)
 elseif(UNIX)
-    target_sources(markamp PRIVATE platform/LinuxPlatform.cpp platform/LinuxScreenReaderBridge.cpp)
+    target_sources(markamp PRIVATE platform/LinuxPlatform.cpp platform/LinuxScreenReaderBridge.cpp platform/StubAccessibilityIdentifier.cpp)
 endif()
 
 project(MarkAmp VERSION 2.16.60 LANGUAGES CXX)

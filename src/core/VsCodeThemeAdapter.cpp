@@ -128,6 +128,67 @@ static const std::unordered_map<std::string, std::string>& vscode_color_map()
 }
 
 // ============================================================================
+// V16 Phase 17: TextMate scope -> internal syntax token mapping
+// ============================================================================
+
+static const std::unordered_map<std::string, std::string>& vscode_scope_map()
+{
+    static const std::unordered_map<std::string, std::string> mapping = {
+        // Original 8 syntax scopes
+        {"keyword", "syntax_keyword"},
+        {"keyword.control", "syntax_keyword"},
+        {"keyword.operator", "syntax_operator"},
+        {"string", "syntax_string"},
+        {"string.quoted", "syntax_string"},
+        {"comment", "syntax_comment"},
+        {"comment.line", "syntax_comment"},
+        {"comment.block", "syntax_comment"},
+        {"constant.numeric", "syntax_number"},
+        {"entity.name.type", "syntax_type"},
+        {"entity.name.function", "syntax_function"},
+        {"storage.type", "syntax_type"},
+        {"meta.preprocessor", "syntax_preprocessor"},
+
+        // V16 Phase 17: Fine-grained scopes
+        {"variable", "syntax_variable"},
+        {"variable.other", "syntax_variable"},
+        {"variable.parameter", "syntax_parameter"},
+        {"variable.other.property", "syntax_property"},
+        {"constant", "syntax_constant"},
+        {"constant.language", "syntax_constant"},
+        {"constant.character.escape", "syntax_escape"},
+        {"entity.name.tag", "syntax_tag"},
+        {"entity.other.attribute-name", "syntax_attribute"},
+        {"entity.name.namespace", "syntax_namespace"},
+        {"entity.name.type.enum", "syntax_enum"},
+        {"entity.name.type.interface", "syntax_interface"},
+        {"entity.name.type.struct", "syntax_struct"},
+        {"entity.name.function.macro", "syntax_macro"},
+        {"meta.decorator", "syntax_decorator"},
+        {"punctuation.definition.decorator", "syntax_decorator"},
+        {"string.regexp", "syntax_regex"},
+        {"comment.block.documentation", "syntax_doc_comment"},
+
+        // LSP semantic token fallbacks
+        {"namespace", "syntax_namespace"},
+        {"type", "syntax_type"},
+        {"class", "syntax_type"},
+        {"enum", "syntax_enum"},
+        {"interface", "syntax_interface"},
+        {"struct", "syntax_struct"},
+        {"typeParameter", "syntax_type"},
+        {"parameter", "syntax_parameter"},
+        {"function", "syntax_function"},
+        {"method", "syntax_function"},
+        {"macro", "syntax_macro"},
+        {"decorator", "syntax_decorator"},
+        {"regexp", "syntax_regex"},
+        {"property", "syntax_property"},
+    };
+    return mapping;
+}
+
+// ============================================================================
 // JSON parsing (minimal — no external JSON dependency for stub)
 // ============================================================================
 
@@ -256,6 +317,17 @@ auto VsCodeThemeAdapter::map_vscode_color(const std::string& vscode_key) -> std:
     const auto& color_map = vscode_color_map();
     auto iter = color_map.find(vscode_key);
     if (iter != color_map.end())
+    {
+        return iter->second;
+    }
+    return "";
+}
+
+auto VsCodeThemeAdapter::map_vscode_scope(const std::string& scope) -> std::string
+{
+    const auto& scope_map = vscode_scope_map();
+    auto iter = scope_map.find(scope);
+    if (iter != scope_map.end())
     {
         return iter->second;
     }

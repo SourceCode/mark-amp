@@ -1,5 +1,7 @@
 #include "FileTypeIconRegistry.h"
 
+#include "ui/IconManager.h"
+
 #include <algorithm>
 #include <filesystem>
 
@@ -20,35 +22,72 @@ void FileTypeIconRegistry::RegisterExtensions()
                       {".h", FileTypeIconId::kHeader},
                       {".hpp", FileTypeIconId::kHeader},
                       {".hxx", FileTypeIconId::kHeader},
+                      {".inl", FileTypeIconId::kHeader},
                       {".py", FileTypeIconId::kPython},
                       {".pyw", FileTypeIconId::kPython},
+                      {".pyi", FileTypeIconId::kPython},
                       {".js", FileTypeIconId::kJavascript},
                       {".jsx", FileTypeIconId::kJavascript},
+                      {".mjs", FileTypeIconId::kJavascript},
+                      {".cjs", FileTypeIconId::kJavascript},
                       {".ts", FileTypeIconId::kTypescript},
                       {".tsx", FileTypeIconId::kTypescript},
+                      {".mts", FileTypeIconId::kTypescript},
+                      {".cts", FileTypeIconId::kTypescript},
                       {".md", FileTypeIconId::kMarkdown},
                       {".markdown", FileTypeIconId::kMarkdown},
+                      {".mdx", FileTypeIconId::kMarkdown},
                       {".json", FileTypeIconId::kJson},
+                      {".json5", FileTypeIconId::kJson},
+                      {".jsonc", FileTypeIconId::kJson},
                       {".yml", FileTypeIconId::kYaml},
                       {".yaml", FileTypeIconId::kYaml},
                       {".html", FileTypeIconId::kHtml},
                       {".htm", FileTypeIconId::kHtml},
+                      {".xhtml", FileTypeIconId::kHtml},
                       {".css", FileTypeIconId::kCss},
                       {".scss", FileTypeIconId::kCss},
                       {".sass", FileTypeIconId::kCss},
+                      {".less", FileTypeIconId::kCss},
                       {".xml", FileTypeIconId::kXml},
+                      {".xsl", FileTypeIconId::kXml},
+                      {".svg", FileTypeIconId::kXml},
                       {".rs", FileTypeIconId::kRust},
                       {".go", FileTypeIconId::kGo},
                       {".java", FileTypeIconId::kJava},
                       {".rb", FileTypeIconId::kRuby},
+                      {".erb", FileTypeIconId::kRuby},
                       {".sh", FileTypeIconId::kShell},
                       {".bash", FileTypeIconId::kShell},
                       {".zsh", FileTypeIconId::kShell},
+                      {".fish", FileTypeIconId::kShell},
+                      {".ps1", FileTypeIconId::kShell},
                       {".toml", FileTypeIconId::kToml},
                       {".txt", FileTypeIconId::kText},
                       {".log", FileTypeIconId::kText},
+                      {".ini", FileTypeIconId::kText},
+                      {".cfg", FileTypeIconId::kText},
+                      {".conf", FileTypeIconId::kText},
                       {"CMakeLists.txt", FileTypeIconId::kCMake},
-                      {".cmake", FileTypeIconId::kCMake}};
+                      {".cmake", FileTypeIconId::kCMake},
+                      {".cs", FileTypeIconId::kCSharp},
+                      {".swift", FileTypeIconId::kSwift},
+                      {".kt", FileTypeIconId::kKotlin},
+                      {".kts", FileTypeIconId::kKotlin},
+                      {".dart", FileTypeIconId::kDart},
+                      {".lua", FileTypeIconId::kLua},
+                      {".php", FileTypeIconId::kPhp},
+                      {".scala", FileTypeIconId::kScala},
+                      {".sql", FileTypeIconId::kSql},
+                      {".r", FileTypeIconId::kR},
+                      {".vue", FileTypeIconId::kVue},
+                      {".svelte", FileTypeIconId::kSvelte},
+                      {".graphql", FileTypeIconId::kGraphql},
+                      {".gql", FileTypeIconId::kGraphql},
+                      {".proto", FileTypeIconId::kProto},
+                      {".tf", FileTypeIconId::kTerraform},
+                      {".diff", FileTypeIconId::kDiff},
+                      {".patch", FileTypeIconId::kDiff}};
 }
 
 auto FileTypeIconRegistry::GetExtensionBytes(const std::string& filename) -> std::string
@@ -113,8 +152,29 @@ void FileTypeIconRegistry::DrawFileIcon(wxGraphicsContext& gc,
                                         double size,
                                         const core::ThemeEngine& theme) const
 {
-    FileTypeIconId id = GetIconId(filename);
-    switch (id)
+    // V16 Phase 05: Try pipeline-rendered SVG first
+    auto& pipeline = IconManager::get().pipeline();
+    if (pipeline.is_initialized())
+    {
+        // Resolve filename to canonical icon ID, then try to get rendered bitmap
+        auto icon_id = pipeline.manifest().resolve_file_icon(filename);
+        auto entry = pipeline.manifest().get_entry(icon_id);
+        if (entry.has_value())
+        {
+            const wxColour icon_color = theme.color(core::ThemeColorToken::TextMuted);
+            const wxSize icon_size(static_cast<int>(size), static_cast<int>(size));
+            auto bmp = pipeline.get_icon_by_id(icon_id, icon_size, icon_color);
+            if (bmp.IsOk())
+            {
+                gc.DrawBitmap(bmp, x, y, size, size);
+                return;
+            }
+        }
+    }
+
+    // Fallback: hardcoded drawing routines
+    FileTypeIconId file_type = GetIconId(filename);
+    switch (file_type)
     {
         case FileTypeIconId::kCpp:
             DrawCppIcon(gc, x, y, size, theme);

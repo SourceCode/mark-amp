@@ -1,11 +1,9 @@
-/// test_board_template.cpp — Unit tests
+/// test_board_template.cpp
 #include "canvas/BoardTemplate.h"
 
 #include <catch2/catch_test_macros.hpp>
-
 using namespace markamp::canvas;
-
-TEST_CASE("BoardTemplate: header compiles", "[board_template]")
+TEST_CASE("BoardTemplateLibrary: type compiles", "[board_template]")
 {
-    REQUIRE(true);
+    static_assert(sizeof(BoardTemplateLibrary) > 0);
 }

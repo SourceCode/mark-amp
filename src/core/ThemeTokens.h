@@ -37,6 +37,23 @@ enum class ThemeColorToken
     SyntaxOperator,
     SyntaxPreprocessor,
 
+    // V16 Phase 16: Fine-grained syntax tokens
+    SyntaxVariable,
+    SyntaxConstant,
+    SyntaxTag,
+    SyntaxAttribute,
+    SyntaxProperty,
+    SyntaxNamespace,
+    SyntaxEnum,
+    SyntaxInterface,
+    SyntaxStruct,
+    SyntaxParameter,
+    SyntaxDecorator,
+    SyntaxRegex,
+    SyntaxEscape,
+    SyntaxDocComment,
+    SyntaxMacro,
+
     // Phase 4: Render/preview tokens
     RenderHeading,
     RenderLink,

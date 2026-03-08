@@ -1149,16 +1149,24 @@ void EditorGroupManager::DrawDividers(wxDC& dc, EditorGroupNode* node, const wxR
 
 void EditorGroupManager::OnPaint(wxPaintEvent& /*evt*/)
 {
-    wxAutoBufferedPaintDC dc(this);
-    dc.SetBackground(wxBrush(theme_engine().color(core::ThemeColorToken::BgApp)));
-    dc.Clear();
+    // Use wxPaintDC directly instead of wxAutoBufferedPaintDC.
+    // On macOS Cocoa, all views are layer-backed and double-buffered by the
+    // window server, so manual double buffering is unnecessary.
+    // wxAutoBufferedPaintDC asserts (dcbuffer.h:227) when IsDoubleBuffered()
+    // returns false, which triggers a modal error dialog.  The modal dialog
+    // runs its own event loop, processing additional paint events, which fire
+    // the same assertion — creating an infinite recursive modal hang that
+    // freezes the entire application.
+    wxPaintDC paint_dc(this);
+    paint_dc.SetBackground(wxBrush(theme_engine().color(core::ThemeColorToken::BgApp)));
+    paint_dc.Clear();
 
-    dc.SetPen(*wxTRANSPARENT_PEN);
-    dc.SetBrush(wxBrush(theme_engine().color(core::ThemeColorToken::BorderLight)));
+    paint_dc.SetPen(*wxTRANSPARENT_PEN);
+    paint_dc.SetBrush(wxBrush(theme_engine().color(core::ThemeColorToken::BorderLight)));
 
     if (maximized_group_id_ == -1 && root_)
     {
-        DrawDividers(dc, root_.get(), GetClientRect());
+        DrawDividers(paint_dc, root_.get(), GetClientRect());
     }
 }
 

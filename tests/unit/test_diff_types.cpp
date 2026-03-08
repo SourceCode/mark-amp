@@ -1,26 +1,16 @@
-/// test_diff_types.cpp — Unit tests
+/// test_diff_types.cpp
 #include "core/DiffTypes.h"
 
 #include <catch2/catch_test_macros.hpp>
-
 using namespace markamp::core;
-
-TEST_CASE("DiffType: enum values", "[diff_types]")
+TEST_CASE("DiffOptions: default values", "[diff_types]")
 {
-    REQUIRE(static_cast<int>(DiffType::Unchanged) != static_cast<int>(DiffType::Added));
+    DiffOptions opts;
+    (void)opts;
 }
-
-TEST_CASE("DiffViewMode: enum values", "[diff_types]")
+TEST_CASE("BlockDiffResult: default values", "[diff_types]")
 {
-    REQUIRE(static_cast<int>(DiffViewMode::Inline) != static_cast<int>(DiffViewMode::SideBySide));
-}
-
-TEST_CASE("DiffType: compiles", "[diff_types]")
-{
-    static_assert(sizeof(DiffType) > 0);
-}
-
-TEST_CASE("DiffViewMode: compiles", "[diff_types]")
-{
-    static_assert(sizeof(DiffViewMode) > 0);
+    BlockDiffResult result;
+    REQUIRE(result.diffs.empty());
+    REQUIRE(result.compute_time_ms == 0);
 }

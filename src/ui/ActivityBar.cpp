@@ -10,6 +10,7 @@
 #include "core/Config.h"
 #include "core/Logger.h"
 #include "core/ThemeEngine.h"
+#include "platform/AccessibilityIdentifier.h"
 #include "ui/IconManager.h"
 #include "ui/accessibility/AccessibilityController.h"
 
@@ -41,8 +42,10 @@ ActivityBar::ActivityBar(wxWindow* parent,
     CreateItems();
     ApplyTheme();
 
-    // Phase 06 Task 19: Accessibility labels for screen readers
-    SetName("Activity Bar");
+    // Phase 14: E2E automation selector — stable accessibility name for Appium mac2
+    // (was "Activity Bar" — normalized to ma.* convention)
+    SetName("ma.activitybar");
+    markamp::platform::set_accessibility_identifier(this, "ma.activitybar");
     SetHelpText("Vertical navigation bar for switching sidebar modes. "
                 "Use arrow keys to navigate, Enter/Space to activate.");
 

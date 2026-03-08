@@ -1,3 +1,10 @@
+/// @file IconManager.cpp
+/// @brief V16 Phase 04 — Upgraded IconManager with IconPipeline integration.
+///
+/// The singleton now holds an IconPipeline instance alongside the legacy
+/// registry/cache. New callers use pipeline methods; legacy callers
+/// continue to work through the get_icon_bitmap/draw_icon interface.
+
 #include "ui/IconManager.h"
 
 #include "ui/IconRenderer.h"
@@ -23,12 +30,29 @@ auto IconManager::cache() -> IconCache&
     return cache_;
 }
 
+auto IconManager::pipeline() -> IconPipeline&
+{
+    return pipeline_;
+}
+
+void IconManager::initialize_pipeline(const IconPipelineConfig& config)
+{
+    [[maybe_unused]] auto initialized = pipeline_.initialize(config);
+}
+
+void IconManager::on_theme_changed()
+{
+    // Invalidate all cached bitmaps when the theme changes
+    cache_.clear();
+    pipeline_.invalidate_cache();
+}
+
 auto IconManager::get_icon_bitmap(const std::string& name,
                                   const wxSize& size,
                                   const wxColour& color,
                                   double scale) -> wxBitmap
 {
-    IconCacheKey key{
+    const IconCacheKey key{
         name, size.GetWidth(), size.GetHeight(), IconCache::color_to_rgba(color), scale};
 
     if (auto cached = cache_.get(key))
@@ -36,9 +60,10 @@ auto IconManager::get_icon_bitmap(const std::string& name,
         return *cached;
     }
 
-    if (auto doc = registry_.get_icon(name))
+    // Try pipeline first (manifest-driven)
+    if (pipeline_.is_initialized())
     {
-        wxBitmap bmp = IconRenderer::RenderIcon(*doc, size, color, scale);
+        auto bmp = pipeline_.get_icon_by_id(name, size, color, scale);
         if (bmp.IsOk())
         {
             cache_.put(key, bmp);
@@ -46,7 +71,18 @@ auto IconManager::get_icon_bitmap(const std::string& name,
         }
     }
 
-    // Fallback: render a question mark (or missing glyph) if icon is not found
+    // Fallback: try legacy registry
+    if (auto doc = registry_.get_icon(name))
+    {
+        const wxBitmap bmp = IconRenderer::RenderIcon(*doc, size, color, scale);
+        if (bmp.IsOk())
+        {
+            cache_.put(key, bmp);
+            return bmp;
+        }
+    }
+
+    // Last resort: render a question mark fallback placeholder
     wxBitmap fallback_bmp(
         static_cast<int>(size.GetWidth() * scale), static_cast<int>(size.GetHeight() * scale), 32);
     fallback_bmp.UseAlpha();
@@ -59,40 +95,37 @@ auto IconManager::get_icon_bitmap(const std::string& name,
     memDC.SetBackground(*wxTRANSPARENT_BRUSH);
     memDC.Clear();
 
-    // Use a generic system font for the missing icon indicator
-    int font_size = static_cast<int>(size.GetHeight() * 0.7);
-    wxFont font(font_size, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_BOLD);
+    const int font_size = static_cast<int>(size.GetHeight() * 0.7);
+    const wxFont font(font_size, wxFONTFAMILY_DEFAULT, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_BOLD);
     memDC.SetFont(font);
 
-    // Apply 50% opacity to the given color to clearly indicate it's a fallback placeholder
-    wxColour fallback_color(color.Red(), color.Green(), color.Blue(), 128);
+    const wxColour fallback_color(color.Red(), color.Green(), color.Blue(), 128);
     memDC.SetTextForeground(fallback_color);
 
-    wxString fallback_text = "?";
-    wxSize text_size = memDC.GetTextExtent(fallback_text);
+    const wxString fallback_text = "?";
+    const wxSize text_size = memDC.GetTextExtent(fallback_text);
 
-    // Center the text
-    int tx = (fallback_bmp.GetWidth() - text_size.GetWidth()) / 2;
-    int ty = (fallback_bmp.GetHeight() - text_size.GetHeight()) / 2;
-    memDC.DrawText(fallback_text, tx, ty);
+    const int text_x = (fallback_bmp.GetWidth() - text_size.GetWidth()) / 2;
+    const int text_y = (fallback_bmp.GetHeight() - text_size.GetHeight()) / 2;
+    memDC.DrawText(fallback_text, text_x, text_y);
     memDC.SelectObject(wxNullBitmap);
 
     cache_.put(key, fallback_bmp);
     return fallback_bmp;
 }
 
-auto IconManager::draw_icon(wxDC& dc,
+auto IconManager::draw_icon(wxDC& drawing_context,
                             const std::string& name,
-                            int x,
-                            int y,
+                            int x_pos,
+                            int y_pos,
                             const wxSize& size,
                             const wxColour& color,
                             double scale) -> void
 {
-    wxBitmap bmp = get_icon_bitmap(name, size, color, scale);
+    const wxBitmap bmp = get_icon_bitmap(name, size, color, scale);
     if (bmp.IsOk())
     {
-        dc.DrawBitmap(bmp, x, y, true);
+        drawing_context.DrawBitmap(bmp, x_pos, y_pos, true);
     }
 }
 

@@ -9,6 +9,7 @@
 #include "core/Events.h"
 #include "core/Logger.h"
 #include "core/SettingsCatalog.h"
+#include "platform/AccessibilityIdentifier.h"
 
 #include <wx/button.h>
 #include <wx/imaglist.h>
@@ -36,6 +37,10 @@ SettingsPanel::SettingsPanel(wxWindow* parent,
     RegisterBuiltinSettings();
     BuildCategoryTree();
     ApplyTheme();
+
+    // Phase 14: E2E automation selector — stable accessibility name for Appium mac2
+    SetName("ma.settings.panel");
+    markamp::platform::set_accessibility_identifier(this, "ma.settings.panel");
 
     // Subscribe to theme changes
     theme_sub_ = event_bus_.subscribe<core::events::ThemeChangedEvent>(

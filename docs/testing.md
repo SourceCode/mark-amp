@@ -226,3 +226,87 @@ add_test(NAME test_my_component COMMAND test_my_component)
 - Minimum 80% coverage for new files
 - Integration tests for cross-component interactions
 - No `any` or `unknown` types in test code
+
+---
+
+## V14: Appium Mac2 E2E Testing
+
+### E2E Test Charter
+
+| Layer                | Technology  | Ownership                                        |
+| -------------------- | ----------- | ------------------------------------------------ |
+| Desktop UI Workflows | Appium mac2 | E2E team — real app binary, macOS selectors      |
+| Non-UI Logic         | Catch2      | Core team — unit/integration without wxWidgets   |
+| Hybrid Coverage      | Both        | Shared — logic validated by Catch2, UI by Appium |
+
+**Out of scope:** pixel-perfect visual diffs, low-level renderer internals, cross-browser testing.
+
+### Test Pyramid
+
+```
+                ┌─────────────┐
+                │  E2E (mac2) │  ~15 specs — smoke + workflow
+                │  Appium UI  │  Slow, high fidelity
+                ├─────────────┤
+                │ Integration │  ~20 tests — cross-service pipelines
+                │  Catch2     │  Medium speed
+                ├─────────────┤
+                │    Unit     │  195+ targets — pure logic
+                │   Catch2    │  Fast, isolated
+                └─────────────┘
+```
+
+### Workflow Coverage Matrix
+
+| Workflow                      | Catch2 Coverage | Appium E2E | Priority |
+| ----------------------------- | --------------- | ---------- | -------- |
+| App startup & shell readiness | Partial (state) | Needed     | P1       |
+| File tree → open file         | FileNode tests  | Needed     | P1       |
+| Editor create/edit/save       | Partial (parse) | Needed     | P1       |
+| Theme switch & persistence    | ThemeEngine ok  | Needed     | P1       |
+| Command palette invoke        | FuzzyScorer ok  | Needed     | P1       |
+| Settings toggle round-trip    | Config tests ok | Needed     | P1       |
+| Sidebar toggle                | AppState tests  | Hybrid     | P2       |
+| View mode switching           | AppState tests  | Hybrid     | P2       |
+| Plugin activation lifecycle   | PluginManager   | Covered    | Done     |
+| Markdown rendering pipeline   | HtmlRenderer    | Covered    | Done     |
+
+### Definition of Done
+
+- **Pass rate:** ≥95% on every CI run
+- **Flake threshold:** <2% rerun-pass rate
+- **Runtime budget:** Full smoke suite <5 minutes
+- **Failure artifacts:** Screenshot, Appium log, page source, workspace snapshot
+- **Data determinism:** `MARKAMP_E2E=1` env var, isolated temp workspaces, fixture copy/cleanup
+- **Merge gate:** Smoke suite must pass for PR merge
+
+### Selector Contract
+
+All automation selectors use: `ma.<surface>.<control>`
+
+| Selector              | Control           |
+| --------------------- | ----------------- |
+| `ma.shell.main_frame` | Main Frame        |
+| `ma.activitybar`      | Activity Bar      |
+| `ma.editor.panel`     | Editor Panel      |
+| `ma.filetree.ctrl`    | File Tree Control |
+| `ma.settings.panel`   | Settings Panel    |
+| `ma.commandpalette`   | Command Palette   |
+| `ma.statusbar`        | Status Bar        |
+
+**Rules:** globally unique, version-stable, no dynamic-label selectors, PR review required.
+
+### Running E2E Tests
+
+```bash
+cd tests/e2e/appium
+npm ci
+npm run appium:start   # Start Appium server
+npm run e2e:mac -- --suite smoke
+```
+
+### Ownership & Quarantine
+
+- Ownership rotates quarterly
+- Flaky tests quarantined within 24 hours, root cause within 1 sprint
+- Cross-platform expansion: Windows (v15), Linux (v16)

@@ -21,6 +21,19 @@ namespace markamp::core
 
 auto Config::config_directory() -> std::filesystem::path
 {
+    // Phase 14: When running under E2E automation, use a throwaway temp directory
+    // so tests never pollute the developer's real profile.
+    const char* e2e_env = std::getenv("MARKAMP_E2E");
+    if (e2e_env != nullptr && std::string(e2e_env) == "1")
+    {
+        const char* tmpdir = std::getenv("TMPDIR");
+        std::filesystem::path e2e_dir = (tmpdir != nullptr)
+                                            ? std::filesystem::path(tmpdir) / "markamp_e2e"
+                                            : std::filesystem::path("/tmp") / "markamp_e2e";
+        std::filesystem::create_directories(e2e_dir);
+        return e2e_dir;
+    }
+
     std::filesystem::path dir;
 
 #ifdef __APPLE__

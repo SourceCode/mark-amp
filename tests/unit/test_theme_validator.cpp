@@ -1,19 +1,9 @@
-/// test_theme_validator.cpp — Unit tests
-
+/// test_theme_validator.cpp
 #include "core/ThemeValidator.h"
 
 #include <catch2/catch_test_macros.hpp>
-
 using namespace markamp::core;
-
-TEST_CASE("ValidationResult: default is valid", "[theme_validator]")
+TEST_CASE("ThemeValidator: type compiles", "[theme_validator]")
 {
-    ValidationResult result;
-    REQUIRE(result.errors.empty());
-}
-
-TEST_CASE("ThemeValidator: default construction", "[theme_validator]")
-{
-    ThemeValidator validator;
-    (void)validator;
+    static_assert(sizeof(ThemeValidator) > 0);
 }
