@@ -150,7 +150,7 @@ Configuration files: `.clang-format`, `.clang-tidy` (project root).
 | `src/ui/av/`              | Attribute View UI (table, gallery, kanban, filter)             | 14 headers             |
 | `src/rendering/`          | Rendering pipeline, FX engine, block renderers                 | 36 headers             |
 | `src/platform/`           | Platform abstraction (Mac/Win/Linux)                           | 4 headers              |
-| `tests/unit/`             | Catch2 unit tests                                              | 444 files, 451 targets |
+| `tests/unit/`             | Catch2 unit tests                                              | 613 files, 634 targets |
 | `benchmarks/`             | Performance benchmarks                                         | 25 files               |
 | `fuzz/`                   | Fuzz testing harnesses                                         | 6 files                |
 | `scripts/`                | Build, test, packaging automation                              | 23 scripts             |
@@ -1068,3 +1068,22 @@ Platform services implemented in `PlatformServices.h/.cpp`: `FileWatcher` (polli
 | `CMakePresets.json`         | CMake preset definitions     |
 | `vcpkg-configuration.json`  | vcpkg registry configuration |
 | `cppcheck-suppressions.txt` | cppcheck suppressions        |
+
+---
+
+## 14 · CLI Tools Available
+
+The following tools are available on the development CLI for use in automation, analysis, and agent operations:
+
+| Tool         | Purpose                                                 |
+| ------------ | ------------------------------------------------------- |
+| `ast-grep`   | Structural code search and transformation via AST rules |
+| `difftastic` | Structural diff tool (syntax-aware, language-aware)     |
+| `shellcheck` | Static analysis for shell scripts                       |
+| `sd`         | Find-and-replace CLI (sed alternative with regex)       |
+| `scc`        | Source lines of code counter (fast, language-aware)     |
+| `yq`         | YAML/JSON/XML processor (jq-like)                       |
+| `comby`      | Structural code search and rewriting                    |
+| `hyperfine`  | CLI benchmarking tool                                   |
+| `watchexec`  | File watcher that re-runs commands on change            |
+| `git-delta`  | Syntax-highlighting diff pager for Git                  |

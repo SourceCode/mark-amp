@@ -1,6 +1,6 @@
 # Testing Guide
 
-> Test strategy, execution, and tooling for MarkAmp v2.3.16.
+> Test strategy, execution, and tooling for MarkAmp v2.19.63.
 
 ---
 
@@ -9,8 +9,8 @@
 | Metric            | Value  |
 | ----------------- | ------ |
 | Test framework    | Catch2 |
-| Test targets      | 451    |
-| Test source files | 444    |
+| Test targets      | 634    |
+| Test source files | 613    |
 | Benchmark files   | 25     |
 | Fuzz test files   | 6      |
 
@@ -251,7 +251,7 @@ add_test(NAME test_my_component COMMAND test_my_component)
                 │ Integration │  ~20 tests — cross-service pipelines
                 │  Catch2     │  Medium speed
                 ├─────────────┤
-                │    Unit     │  195+ targets — pure logic
+                │    Unit     │  634+ targets — pure logic
                 │   Catch2    │  Fast, isolated
                 └─────────────┘
 ```
