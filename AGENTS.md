@@ -10,7 +10,7 @@
 | Field           | Value                                                                                                                      |
 | --------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | Name            | **MarkAmp**                                                                                                                |
-| Version         | **2.18.62**                                                                                                                |
+| Version         | **2.19.63**                                                                                                                |
 | Language        | C++23 (C++26-ready patterns)                                                                                               |
 | UI Toolkit      | wxWidgets 3.2.9                                                                                                            |
 | Build System    | CMake 3.30+ with presets                                                                                                   |
@@ -63,7 +63,7 @@ cd build/debug && ctest -R test_phase12_canvas_advanced --output-on-failure
 cd build/debug && ctest -N
 ```
 
-**Test Stats:** 594 test targets, 594 test source files in `tests/unit/`.
+**Test Stats:** 634 test targets, 634 test source files in `tests/unit/`.
 
 ### 2.4 Release Workflow
 

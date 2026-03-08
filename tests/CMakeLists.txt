@@ -4052,6 +4052,24 @@ target_include_directories(test_v16_polish PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_v16_polish PRIVATE Catch2::Catch2WithMain markamp_core)
 add_test(NAME test_v16_polish COMMAND test_v16_polish)
 
+# V16: Theme integration — scope mapping, token completeness, syntax defaults, round-trips
+add_executable(test_v16_theme_integration unit/test_v16_theme_integration.cpp)
+target_include_directories(test_v16_theme_integration PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v16_theme_integration PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v16_theme_integration COMMAND test_v16_theme_integration)
+
+# V16: Icon coverage — color overrides, HiDPI, cache warming, compound extensions
+add_executable(test_v16_icon_coverage unit/test_v16_icon_coverage.cpp)
+target_include_directories(test_v16_icon_coverage PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v16_icon_coverage PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v16_icon_coverage COMMAND test_v16_icon_coverage)
+
+# V16: Grammar coverage — custom registration, nested scopes, semantic delta, overlay
+add_executable(test_v16_grammar_coverage unit/test_v16_grammar_coverage.cpp)
+target_include_directories(test_v16_grammar_coverage PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v16_grammar_coverage PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v16_grammar_coverage COMMAND test_v16_grammar_coverage)
+
 add_executable(test_icon_registry unit/test_icon_registry.cpp)
 target_include_directories(test_icon_registry PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_icon_registry PRIVATE Catch2::Catch2WithMain markamp_core)
@@ -6152,3 +6170,80 @@ add_executable(test_phase14_appium_selector_contract
 target_include_directories(test_phase14_appium_selector_contract PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_phase14_appium_selector_contract PRIVATE Catch2::Catch2WithMain)
 add_test(NAME test_phase14_appium_selector_contract COMMAND test_phase14_appium_selector_contract)
+
+# --- Batch 5-8 Unit Tests (400-test expansion) ---
+
+add_executable(test_command_execution_log unit/test_command_execution_log.cpp)
+target_include_directories(test_command_execution_log PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_command_execution_log PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_command_execution_log COMMAND test_command_execution_log)
+
+add_executable(test_language_detector unit/test_language_detector.cpp)
+target_include_directories(test_language_detector PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_language_detector PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_language_detector COMMAND test_language_detector)
+
+add_executable(test_accessibility_audit unit/test_accessibility_audit.cpp)
+target_include_directories(test_accessibility_audit PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_accessibility_audit PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_accessibility_audit COMMAND test_accessibility_audit)
+
+add_executable(test_automation_rule unit/test_automation_rule.cpp)
+target_include_directories(test_automation_rule PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_automation_rule PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_automation_rule COMMAND test_automation_rule)
+
+add_executable(test_batch_export_engine unit/test_batch_export_engine.cpp)
+target_include_directories(test_batch_export_engine PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_batch_export_engine PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_batch_export_engine COMMAND test_batch_export_engine)
+
+add_executable(test_activity_timeline unit/test_activity_timeline.cpp)
+target_include_directories(test_activity_timeline PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_activity_timeline PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_activity_timeline COMMAND test_activity_timeline)
+
+add_executable(test_frecency_tracker unit/test_frecency_tracker.cpp)
+target_include_directories(test_frecency_tracker PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_frecency_tracker PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_frecency_tracker COMMAND test_frecency_tracker)
+
+add_executable(test_ansi_parser unit/test_ansi_parser.cpp)
+target_include_directories(test_ansi_parser PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_ansi_parser PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_ansi_parser COMMAND test_ansi_parser)
+
+add_executable(test_expression_evaluator unit/test_expression_evaluator.cpp)
+target_include_directories(test_expression_evaluator PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_expression_evaluator PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_expression_evaluator COMMAND test_expression_evaluator)
+
+add_executable(test_formula_evaluator unit/test_formula_evaluator.cpp)
+target_include_directories(test_formula_evaluator PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_formula_evaluator PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_formula_evaluator COMMAND test_formula_evaluator)
+
+add_executable(test_cross_platform_path unit/test_cross_platform_path.cpp)
+target_include_directories(test_cross_platform_path PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_cross_platform_path PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_cross_platform_path COMMAND test_cross_platform_path)
+
+add_executable(test_fuzzy_scorer unit/test_fuzzy_scorer.cpp)
+target_include_directories(test_fuzzy_scorer PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_fuzzy_scorer PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_fuzzy_scorer COMMAND test_fuzzy_scorer)
+
+add_executable(test_change_tracker unit/test_change_tracker.cpp)
+target_include_directories(test_change_tracker PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_change_tracker PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_change_tracker COMMAND test_change_tracker)
+
+add_executable(test_deprecation_tracker unit/test_deprecation_tracker.cpp)
+target_include_directories(test_deprecation_tracker PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_deprecation_tracker PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_deprecation_tracker COMMAND test_deprecation_tracker)
+
+add_executable(test_changelog_engine unit/test_changelog_engine.cpp)
+target_include_directories(test_changelog_engine PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_changelog_engine PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_changelog_engine COMMAND test_changelog_engine)

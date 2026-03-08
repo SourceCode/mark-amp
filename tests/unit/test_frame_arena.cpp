@@ -1,85 +1,116 @@
-/// test_frame_arena.cpp — Comprehensive tests for FrameArena
+// test_frame_arena.cpp — 10 tests for FrameArena, FrameArenaPool, ObjectPool
 #include "core/FrameArena.h"
 
 #include <catch2/catch_test_macros.hpp>
 
-#include <memory_resource>
-#include <vector>
 using namespace markamp::core;
 
-// ── Positive Tests ──
+// ============================================================================
+// FrameArena tests
+// ============================================================================
 
-TEST_CASE("FrameArena: default construction", "[frame_arena][positive]")
-{
-    FrameArena arena;
-    (void)arena;
-}
-
-TEST_CASE("FrameArena: custom buffer size", "[frame_arena][positive]")
-{
-    FrameArena arena(128 * 1024);
-    (void)arena;
-}
-
-TEST_CASE("FrameArena: allocator returns valid allocator", "[frame_arena][positive]")
-{
-    FrameArena arena;
-    auto alloc = arena.allocator();
-    (void)alloc;
-}
-
-TEST_CASE("FrameArena: make_vector allocates and uses arena", "[frame_arena][positive]")
+TEST_CASE("FrameArena make_vector creates usable vector", "[arena]")
 {
     FrameArena arena;
     auto vec = arena.make_vector<int>();
     vec.push_back(1);
     vec.push_back(2);
     vec.push_back(3);
-    REQUIRE(vec.size() == 3);
-    REQUIRE(vec[0] == 1);
-    REQUIRE(vec[2] == 3);
+    CHECK(vec.size() == 3);
+    CHECK(vec[0] == 1);
+    CHECK(vec[2] == 3);
 }
 
-TEST_CASE("FrameArena: reset allows reuse", "[frame_arena][positive]")
+TEST_CASE("FrameArena reset invalidates previous allocations", "[arena]")
 {
-    FrameArena arena(4096);
-    {
-        auto vec = arena.make_vector<int>();
-        for (int i = 0; i < 100; ++i)
-        {
-            vec.push_back(i);
-        }
-    }
-    arena.reset();
-    auto vec2 = arena.make_vector<int>();
-    vec2.push_back(42);
-    REQUIRE(vec2.size() == 1);
-}
-
-// ── Negative Tests ──
-
-TEST_CASE("FrameArena: kDefaultBufferSize is 64KB", "[frame_arena][negative]")
-{
-    REQUIRE(FrameArena::kDefaultBufferSize == 64 * 1024);
-}
-
-// ── Edge Cases ──
-
-TEST_CASE("FrameArena: multiple resets are safe", "[frame_arena][edge]")
-{
-    FrameArena arena;
-    arena.reset();
-    arena.reset();
+    FrameArena arena(1024);
     auto vec = arena.make_vector<int>();
-    vec.push_back(1);
-    REQUIRE(vec.size() == 1);
+    vec.push_back(42);
+    arena.reset();
+    // After reset, new allocations succeed from the same buffer
+    auto vec2 = arena.make_vector<int>();
+    vec2.push_back(99);
+    CHECK(vec2.size() == 1);
+    CHECK(vec2[0] == 99);
 }
 
-TEST_CASE("FrameArenaPool: get_arena returns valid arena", "[frame_arena][edge]")
+TEST_CASE("FrameArena default buffer size is 64KB", "[arena]")
+{
+    CHECK(FrameArena::kDefaultBufferSize == 64 * 1024);
+}
+
+// ============================================================================
+// FrameArenaPool tests
+// ============================================================================
+
+TEST_CASE("FrameArenaPool provides a PoolArena", "[arena][pool]")
 {
     FrameArenaPool pool;
     auto& arena = pool.get_arena();
     auto vec = arena.make_vector<int>();
-    vec.push_back(42);
-    REQUIRE(vec.size() == 1);
+    vec.push_back(10);
+    CHECK(vec.size() == 1);
+    CHECK(vec[0] == 10);
+}
+
+TEST_CASE("FrameArenaPool reset_current does not crash", "[arena][pool]")
+{
+    FrameArenaPool pool;
+    auto& arena = pool.get_arena();
+    auto vec = arena.make_vector<int>();
+    vec.push_back(1);
+    REQUIRE_NOTHROW(pool.reset_current());
+}
+
+TEST_CASE("FrameArenaPool arena_size returns configured size", "[arena][pool]")
+{
+    FrameArenaPool pool(512 * 1024);
+    CHECK(pool.arena_size() == 512 * 1024);
+}
+
+// ============================================================================
+// ObjectPool tests
+// ============================================================================
+
+TEST_CASE("ObjectPool create and destroy", "[arena][object_pool]")
+{
+    ObjectPool<int> pool;
+    int* val = pool.create(42);
+    REQUIRE(val != nullptr);
+    CHECK(*val == 42);
+    CHECK(pool.active_count() == 1);
+    pool.destroy(val);
+    CHECK(pool.active_count() == 0);
+}
+
+TEST_CASE("ObjectPool reuses freed memory", "[arena][object_pool]")
+{
+    ObjectPool<int, 4> pool;
+    int* a = pool.create(1);
+    pool.destroy(a);
+    int* b = pool.create(2);
+    // Should reuse the same slot
+    CHECK(a == b);
+    CHECK(*b == 2);
+    pool.destroy(b);
+}
+
+TEST_CASE("ObjectPool grows when exhausted", "[arena][object_pool]")
+{
+    ObjectPool<int, 2> pool; // block of 2
+    int* a = pool.create(1);
+    int* b = pool.create(2);
+    int* c = pool.create(3); // triggers grow
+    CHECK(pool.active_count() == 3);
+    CHECK(pool.total_capacity() >= 3);
+    pool.destroy(a);
+    pool.destroy(b);
+    pool.destroy(c);
+}
+
+TEST_CASE("ObjectPool destroy nullptr is safe", "[arena][object_pool]")
+{
+    ObjectPool<int> pool;
+    REQUIRE_NOTHROW(pool.destroy(nullptr));
+    CHECK(pool.active_count() == 0);
 }

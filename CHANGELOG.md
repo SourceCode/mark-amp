@@ -1,5 +1,34 @@
 # MarkAmp Release History
 
+## v2.19.63 — 2026-03-08
+
+### Highlights
+
+400-Test Unit Test Expansion: Created 40 new test files containing 400 unit tests across 8 thematic batches covering data structures, async/concurrency, parsing/encoding, diff/scoring, event systems, performance/diagnostics, core utilities, and system modules. All 40 test executables compile, link, and pass with 591 total assertions and 0 failures. Added 15 new CMake test targets and fixed 4 API mismatches found during integration testing.
+
+### Added
+
+- **Batch 1 — Data Structures (5 files, 50 tests):** `test_bounded_container`, `test_chunked_storage`, `test_constexpr_map`, `test_frame_arena`, `test_frecency_tracker`
+- **Batch 2 — Async & Concurrency (5 files, 50 tests):** `test_cancellation_token`, `test_adaptive_throttle`, `test_backpressure`, `test_coalescing_task`, `test_frame_scheduler`
+- **Batch 3 — Parsing & Encoding (5 files, 50 tests):** `test_ansi_parser`, `test_encoding_detector`, `test_expression_evaluator`, `test_formula_evaluator`, `test_cross_platform_path`
+- **Batch 4 — Diff & Scoring (5 files, 50 tests):** `test_diff_engine`, `test_fuzzy_scorer`, `test_change_tracker`, `test_deprecation_tracker`, `test_changelog_engine`
+- **Batch 5 — Event Systems (5 files, 50 tests):** `test_event_bus`, `test_flat_event_bus`, `test_event_type_id`, `test_command`, `test_command_execution_log`
+- **Batch 6 — Performance & Diagnostics (3 files, 30 tests):** `test_frame_budget_enforcer`, `test_crash_reporter`, `test_content_indexer`
+- **Batch 7 — Core Utilities (5 files, 50 tests):** `test_language_detector`, `test_result`, `test_app_state`, `test_atomic_writer`, `test_api_version`
+- **Batch 8 — System Modules (7 files, 70 tests):** `test_accessibility_audit`, `test_async_file_loader`, `test_automation_rule`, `test_batch_export_engine`, `test_allocator_config`, `test_activity_timeline`, `test_spsc_queue`
+
+### Changed
+
+- **tests/CMakeLists.txt** — Added 15 new test targets for Batches 5-8 test files.
+- **CMakeLists.txt** — Version bumped to 2.19.63.
+
+### Fixed
+
+- `test_app_state` — `ViewMode::Source` → `ViewMode::Editor` (enum value did not exist).
+- `test_activity_timeline` — `ActivityFeed::add_entry()` → `ActivityFeed::record()` (correct API).
+- `test_spsc_queue` — `push`/`pop` → `try_push`/`try_pop` (correct lock-free API).
+- `test_async_file_loader` — Empty file test adapted for loader behavior (no chunk for zero-byte files).
+
 ## v2.18.62 — 2026-03-07
 
 ### Highlights

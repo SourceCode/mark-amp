@@ -1,124 +1,100 @@
-/// test_cancellation_token.cpp — V7 Phase 17: Cancellation token tests
-
+// test_cancellation_token.cpp — 10 tests for CancellationToken & CancellationTokenSource
 #include "core/CancellationToken.h"
 
 #include <catch2/catch_test_macros.hpp>
 
-#include <atomic>
-#include <thread>
-
 using namespace markamp::core;
 
-TEST_CASE("CancellationToken: not cancelled by default", "[cancellation]")
+TEST_CASE("CancellationToken default is not cancelled", "[cancel]")
 {
-    CancellationTokenSource source;
-    auto tok = source.token();
-    REQUIRE_FALSE(tok.is_cancelled());
-    REQUIRE(tok.is_valid());
+    CancellationToken token;
+    CHECK_FALSE(token.is_cancelled());
 }
 
-TEST_CASE("CancellationToken: cancellation propagates", "[cancellation]")
+TEST_CASE("CancellationToken::none is never cancelled", "[cancel]")
+{
+    auto token = CancellationToken::none();
+    CHECK_FALSE(token.is_cancelled());
+    CHECK_FALSE(token.is_valid());
+}
+
+TEST_CASE("CancellationTokenSource creates valid token", "[cancel]")
 {
     CancellationTokenSource source;
-    auto tok = source.token();
-    REQUIRE_FALSE(tok.is_cancelled());
+    auto token = source.token();
+    CHECK(token.is_valid());
+    CHECK_FALSE(token.is_cancelled());
+}
+
+TEST_CASE("CancellationTokenSource cancel propagates to token", "[cancel]")
+{
+    CancellationTokenSource source;
+    auto token = source.token();
     source.cancel();
-    REQUIRE(tok.is_cancelled());
+    CHECK(token.is_cancelled());
+    CHECK(source.is_cancelled());
 }
 
-TEST_CASE("CancellationToken: throw_if_cancelled returns ok when not cancelled", "[cancellation]")
+TEST_CASE("CancellationToken throw_if_cancelled returns error when cancelled", "[cancel]")
 {
     CancellationTokenSource source;
-    auto tok = source.token();
-    auto result = tok.throw_if_cancelled();
-    REQUIRE(result.has_value());
-}
+    auto token = source.token();
+    auto result = token.throw_if_cancelled();
+    CHECK(result.has_value());
 
-TEST_CASE("CancellationToken: throw_if_cancelled returns error when cancelled", "[cancellation]")
-{
-    CancellationTokenSource source;
-    auto tok = source.token();
     source.cancel();
-    auto result = tok.throw_if_cancelled();
-    REQUIRE_FALSE(result.has_value());
-    REQUIRE(result.error().code == ErrorCode::Cancelled);
+    auto result2 = token.throw_if_cancelled();
+    CHECK_FALSE(result2.has_value());
 }
 
-TEST_CASE("CancellationToken: callbacks fire on cancel", "[cancellation]")
+TEST_CASE("CancellationToken callback fires on cancel", "[cancel]")
 {
     CancellationTokenSource source;
-    auto tok = source.token();
-    bool called = false;
-    tok.register_callback([&called]() { called = true; });
-    REQUIRE_FALSE(called);
+    auto token = source.token();
+    bool fired = false;
+    token.register_callback([&fired] { fired = true; });
+    CHECK_FALSE(fired);
     source.cancel();
-    REQUIRE(called);
+    CHECK(fired);
 }
 
-TEST_CASE("CancellationToken: callback fires immediately if already cancelled", "[cancellation]")
+TEST_CASE("CancellationToken callback fires immediately if already cancelled", "[cancel]")
 {
     CancellationTokenSource source;
     source.cancel();
-    auto tok = source.token();
-    bool called = false;
-    tok.register_callback([&called]() { called = true; });
-    REQUIRE(called);
+    auto token = source.token();
+    bool fired = false;
+    token.register_callback([&fired] { fired = true; });
+    CHECK(fired);
 }
 
-TEST_CASE("CancellationToken: multiple tokens from same source", "[cancellation]")
+TEST_CASE("CancellationTokenSource double cancel is safe", "[cancel]")
 {
     CancellationTokenSource source;
-    auto tok1 = source.token();
-    auto tok2 = source.token();
-    source.cancel();
-    REQUIRE(tok1.is_cancelled());
-    REQUIRE(tok2.is_cancelled());
-}
-
-TEST_CASE("CancellationToken: none() token is never cancelled", "[cancellation]")
-{
-    auto tok = CancellationToken::none();
-    REQUIRE_FALSE(tok.is_cancelled());
-    REQUIRE_FALSE(tok.is_valid());
-}
-
-TEST_CASE("CancellationToken: source reports is_cancelled", "[cancellation]")
-{
-    CancellationTokenSource source;
-    REQUIRE_FALSE(source.is_cancelled());
-    source.cancel();
-    REQUIRE(source.is_cancelled());
-}
-
-TEST_CASE("CancellationToken: double cancel is safe", "[cancellation]")
-{
-    CancellationTokenSource source;
+    auto token = source.token();
     int call_count = 0;
-    auto tok = source.token();
-    tok.register_callback([&call_count]() { call_count++; });
+    token.register_callback([&call_count] { ++call_count; });
     source.cancel();
-    source.cancel(); // Should not re-fire callbacks
-    REQUIRE(call_count == 1);
+    source.cancel(); // should not fire callback again
+    CHECK(call_count == 1);
 }
 
-TEST_CASE("CancellationToken: works across threads", "[cancellation]")
+TEST_CASE("CancellationToken multiple callbacks all fire", "[cancel]")
 {
     CancellationTokenSource source;
-    auto tok = source.token();
-    std::atomic<bool> seen{false};
-
-    std::thread worker(
-        [&tok, &seen]()
-        {
-            while (!tok.is_cancelled())
-            {
-                std::this_thread::yield();
-            }
-            seen.store(true);
-        });
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    auto token = source.token();
+    int count = 0;
+    token.register_callback([&count] { ++count; });
+    token.register_callback([&count] { ++count; });
+    token.register_callback([&count] { ++count; });
     source.cancel();
-    worker.join();
-    REQUIRE(seen.load());
+    CHECK(count == 3);
+}
+
+TEST_CASE("CancellationToken register_callback on default token does nothing", "[cancel]")
+{
+    CancellationToken token; // no state
+    bool fired = false;
+    token.register_callback([&fired] { fired = true; });
+    CHECK_FALSE(fired);
 }

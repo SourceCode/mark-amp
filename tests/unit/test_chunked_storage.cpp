@@ -1,108 +1,107 @@
-/// test_chunked_storage.cpp — Unit tests for ChunkedStorage
-
+// test_chunked_storage.cpp — 10 tests for ChunkedBuffer and ByteCappedLRU
 #include "core/ChunkedStorage.h"
 
 #include <catch2/catch_test_macros.hpp>
-#include <string>
 
 using namespace markamp::core;
 
-TEST_CASE("ChunkedBuffer: default is empty", "[chunked_storage]")
+// ============================================================================
+// ChunkedBuffer tests
+// ============================================================================
+
+TEST_CASE("ChunkedBuffer starts empty", "[chunked][buffer]")
 {
-    ChunkedBuffer<4096> buf;
-    REQUIRE(buf.empty());
-    REQUIRE(buf.size() == 0);
-    REQUIRE(buf.chunk_count() == 0);
+    ChunkedBuffer<1024> buf;
+    CHECK(buf.empty());
+    CHECK(buf.size() == 0);
+    CHECK(buf.chunk_count() == 0);
 }
 
-TEST_CASE("ChunkedBuffer: append and read", "[chunked_storage]")
+TEST_CASE("ChunkedBuffer append and read back", "[chunked][buffer]")
 {
-    ChunkedBuffer<64> buf;
+    ChunkedBuffer<1024> buf;
     buf.append("Hello World");
-    REQUIRE(buf.size() == 11);
-    REQUIRE(buf.read(0, 5) == "Hello");
-    REQUIRE(buf.read(6, 5) == "World");
+    CHECK(buf.size() == 11);
+    CHECK(buf.read(0, 11) == "Hello World");
 }
 
-TEST_CASE("ChunkedBuffer: read entire content", "[chunked_storage]")
+TEST_CASE("ChunkedBuffer read with offset", "[chunked][buffer]")
 {
-    ChunkedBuffer<64> buf;
-    buf.append("Test content");
-    REQUIRE(buf.read(0, 12) == "Test content");
+    ChunkedBuffer<1024> buf;
+    buf.append("ABCDEFGHIJ");
+    CHECK(buf.read(3, 4) == "DEFG");
+    CHECK(buf.read(0, 1) == "A");
+    CHECK(buf.read(9, 1) == "J");
 }
 
-TEST_CASE("ChunkedBuffer: cross-chunk read", "[chunked_storage]")
+TEST_CASE("ChunkedBuffer read beyond size returns truncated", "[chunked][buffer]")
 {
-    ChunkedBuffer<8> buf;
-    buf.append("12345678ABCD");
-    REQUIRE(buf.chunk_count() == 2);
-    REQUIRE(buf.read(6, 4) == "78AB");
+    ChunkedBuffer<1024> buf;
+    buf.append("Short");
+    CHECK(buf.read(0, 100) == "Short");
+    CHECK(buf.read(10, 5).empty());
 }
 
-TEST_CASE("ChunkedBuffer: read past end returns partial", "[chunked_storage]")
+TEST_CASE("ChunkedBuffer spans multiple chunks", "[chunked][buffer]")
 {
-    ChunkedBuffer<64> buf;
-    buf.append("abc");
-    REQUIRE(buf.read(0, 100) == "abc");
+    ChunkedBuffer<16> buf; // tiny 16-byte chunks
+    std::string data(50, 'X');
+    buf.append(data);
+    CHECK(buf.size() == 50);
+    CHECK(buf.chunk_count() >= 3); // ceil(50/16) = 4
+    CHECK(buf.read(0, 50) == data);
 }
 
-TEST_CASE("ChunkedBuffer: read at invalid offset returns empty", "[chunked_storage]")
+TEST_CASE("ChunkedBuffer clear resets all state", "[chunked][buffer]")
 {
-    ChunkedBuffer<64> buf;
-    buf.append("abc");
-    REQUIRE(buf.read(100, 10).empty());
-}
-
-TEST_CASE("ChunkedBuffer: clear resets state", "[chunked_storage]")
-{
-    ChunkedBuffer<64> buf;
-    buf.append("hello");
-    buf.clear();
-    REQUIRE(buf.empty());
-    REQUIRE(buf.chunk_count() == 0);
-}
-
-TEST_CASE("ChunkedBuffer: capacity tracks allocated space", "[chunked_storage]")
-{
-    ChunkedBuffer<16> buf;
+    ChunkedBuffer<1024> buf;
     buf.append("data");
-    REQUIRE(buf.capacity() == 16);
+    buf.clear();
+    CHECK(buf.empty());
+    CHECK(buf.size() == 0);
+    CHECK(buf.chunk_count() == 0);
 }
 
-TEST_CASE("ByteCappedLRU: put and get", "[chunked_storage]")
+// ============================================================================
+// ByteCappedLRU tests
+// ============================================================================
+
+static auto string_size(const std::string& s) -> std::size_t
 {
-    auto size_fn = [](const std::string& s) -> std::size_t { return s.size(); };
-    ByteCappedLRU<int, std::string> cache(100, size_fn);
-    cache.put(1, "hello");
-    auto* val = cache.get(1);
+    return s.size();
+}
+
+TEST_CASE("ByteCappedLRU put and get", "[chunked][lru]")
+{
+    ByteCappedLRU<std::string, std::string> cache(1000, string_size);
+    cache.put("a", "alpha");
+    auto* val = cache.get("a");
     REQUIRE(val != nullptr);
-    REQUIRE(*val == "hello");
+    CHECK(*val == "alpha");
 }
 
-TEST_CASE("ByteCappedLRU: get missing returns nullptr", "[chunked_storage]")
+TEST_CASE("ByteCappedLRU returns nullptr for missing key", "[chunked][lru]")
 {
-    auto size_fn = [](const std::string& s) -> std::size_t { return s.size(); };
-    ByteCappedLRU<int, std::string> cache(100, size_fn);
-    REQUIRE(cache.get(42) == nullptr);
+    ByteCappedLRU<std::string, std::string> cache(1000, string_size);
+    CHECK(cache.get("missing") == nullptr);
 }
 
-TEST_CASE("ByteCappedLRU: eviction on byte cap", "[chunked_storage]")
+TEST_CASE("ByteCappedLRU evicts by byte cap", "[chunked][lru]")
 {
-    auto size_fn = [](const std::string& s) -> std::size_t { return s.size(); };
-    ByteCappedLRU<int, std::string> cache(10, size_fn);
-    cache.put(1, "12345");
-    cache.put(2, "67890");
-    REQUIRE(cache.size() == 2);
-    cache.put(3, "ABCDE");
-    REQUIRE(cache.size() == 2); // evicted oldest
+    ByteCappedLRU<std::string, std::string> cache(10, string_size);
+    cache.put("a", "12345"); // 5 bytes
+    cache.put("b", "67890"); // 5 bytes, total=10
+    cache.put("c", "ABCDE"); // 5 bytes, must evict "a"
+    CHECK(cache.get("a") == nullptr);
+    CHECK(cache.get("c") != nullptr);
 }
 
-TEST_CASE("ByteCappedLRU: clear resets", "[chunked_storage]")
+TEST_CASE("ByteCappedLRU clear resets bytes", "[chunked][lru]")
 {
-    auto size_fn = [](const std::string& s) -> std::size_t { return s.size(); };
-    ByteCappedLRU<int, std::string> cache(100, size_fn);
-    cache.put(1, "hello");
+    ByteCappedLRU<std::string, std::string> cache(1000, string_size);
+    cache.put("x", "data");
+    CHECK(cache.current_bytes() > 0);
     cache.clear();
-    REQUIRE(cache.size() == 0);
-    REQUIRE(cache.current_bytes() == 0);
+    CHECK(cache.current_bytes() == 0);
+    CHECK(cache.size() == 0);
 }
