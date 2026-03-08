@@ -6247,3 +6247,208 @@ add_executable(test_changelog_engine unit/test_changelog_engine.cpp)
 target_include_directories(test_changelog_engine PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_changelog_engine PRIVATE Catch2::Catch2WithMain markamp_core)
 add_test(NAME test_changelog_engine COMMAND test_changelog_engine)
+
+# --- Coverage Gap 400-test Expansion (Batch 1-8) ---
+
+# Batch 1: AI Integration
+add_executable(test_ai_conversation_history unit/test_ai_conversation_history.cpp)
+target_include_directories(test_ai_conversation_history PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_ai_conversation_history PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_ai_conversation_history COMMAND test_ai_conversation_history)
+
+add_executable(test_ai_types unit/test_ai_types.cpp)
+target_include_directories(test_ai_types PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_ai_types PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_ai_types COMMAND test_ai_types)
+
+add_executable(test_ai_document_generator unit/test_ai_document_generator.cpp)
+target_include_directories(test_ai_document_generator PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_ai_document_generator PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_ai_document_generator COMMAND test_ai_document_generator)
+
+add_executable(test_ai_search_enhancer unit/test_ai_search_enhancer.cpp)
+target_include_directories(test_ai_search_enhancer PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_ai_search_enhancer PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_ai_search_enhancer COMMAND test_ai_search_enhancer)
+
+add_executable(test_ai_rate_limiter unit/test_ai_rate_limiter.cpp)
+target_include_directories(test_ai_rate_limiter PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_ai_rate_limiter PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_ai_rate_limiter COMMAND test_ai_rate_limiter)
+
+# Batch 2: Security & Input Validation
+add_executable(test_url_sanitizer unit/test_url_sanitizer.cpp)
+target_include_directories(test_url_sanitizer PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_url_sanitizer PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_url_sanitizer COMMAND test_url_sanitizer)
+
+add_executable(test_clipboard_sanitizer unit/test_clipboard_sanitizer.cpp)
+target_include_directories(test_clipboard_sanitizer PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_clipboard_sanitizer PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_clipboard_sanitizer COMMAND test_clipboard_sanitizer)
+
+add_executable(test_data_redaction_engine unit/test_data_redaction_engine.cpp)
+target_include_directories(test_data_redaction_engine PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_data_redaction_engine PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_data_redaction_engine COMMAND test_data_redaction_engine)
+
+add_executable(test_security_audit_log unit/test_security_audit_log.cpp)
+target_include_directories(test_security_audit_log PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_security_audit_log PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_security_audit_log COMMAND test_security_audit_log)
+
+add_executable(test_content_security_policy unit/test_content_security_policy.cpp)
+target_include_directories(test_content_security_policy PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_content_security_policy PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_content_security_policy COMMAND test_content_security_policy)
+
+# Batch 3: Localization & i18n
+add_executable(test_translation_catalog unit/test_translation_catalog.cpp)
+target_include_directories(test_translation_catalog PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_translation_catalog PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_translation_catalog COMMAND test_translation_catalog)
+
+add_executable(test_locale_manager unit/test_locale_manager.cpp)
+target_include_directories(test_locale_manager PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_locale_manager PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_locale_manager COMMAND test_locale_manager)
+
+add_executable(test_text_direction_engine unit/test_text_direction_engine.cpp)
+target_include_directories(test_text_direction_engine PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_text_direction_engine PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_text_direction_engine COMMAND test_text_direction_engine)
+
+add_executable(test_locale_info unit/test_locale_info.cpp)
+target_include_directories(test_locale_info PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_locale_info PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_locale_info COMMAND test_locale_info)
+
+add_executable(test_translation_entry unit/test_translation_entry.cpp)
+target_include_directories(test_translation_entry PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_translation_entry PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_translation_entry COMMAND test_translation_entry)
+
+# Batch 4: Cloud Sync
+add_executable(test_sync_notification_types unit/test_sync_notification_types.cpp)
+target_include_directories(test_sync_notification_types PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_sync_notification_types PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_sync_notification_types COMMAND test_sync_notification_types)
+
+add_executable(test_selective_sync_filter unit/test_selective_sync_filter.cpp)
+target_include_directories(test_selective_sync_filter PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_selective_sync_filter PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_selective_sync_filter COMMAND test_selective_sync_filter)
+
+add_executable(test_sync_history_logger unit/test_sync_history_logger.cpp)
+target_include_directories(test_sync_history_logger PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_sync_history_logger PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_sync_history_logger COMMAND test_sync_history_logger)
+
+add_executable(test_sync_scheduler unit/test_sync_scheduler.cpp)
+target_include_directories(test_sync_scheduler PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_sync_scheduler PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_sync_scheduler COMMAND test_sync_scheduler)
+
+add_executable(test_sync_conflict_manager unit/test_sync_conflict_manager.cpp)
+target_include_directories(test_sync_conflict_manager PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_sync_conflict_manager PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_sync_conflict_manager COMMAND test_sync_conflict_manager)
+
+# Batch 5: WYSIWYG & Presentation
+add_executable(test_wysiwyg_types unit/test_wysiwyg_types.cpp)
+target_include_directories(test_wysiwyg_types PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_wysiwyg_types PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_wysiwyg_types COMMAND test_wysiwyg_types)
+
+add_executable(test_slide_engine unit/test_slide_engine.cpp)
+target_include_directories(test_slide_engine PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_slide_engine PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_slide_engine COMMAND test_slide_engine)
+
+add_executable(test_slide_theme_provider unit/test_slide_theme_provider.cpp)
+target_include_directories(test_slide_theme_provider PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_slide_theme_provider PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_slide_theme_provider COMMAND test_slide_theme_provider)
+
+add_executable(test_presentation_manager unit/test_presentation_manager.cpp)
+target_include_directories(test_presentation_manager PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_presentation_manager PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_presentation_manager COMMAND test_presentation_manager)
+
+add_executable(test_wysiwyg_state_persistence unit/test_wysiwyg_state_persistence.cpp)
+target_include_directories(test_wysiwyg_state_persistence PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_wysiwyg_state_persistence PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_wysiwyg_state_persistence COMMAND test_wysiwyg_state_persistence)
+
+# Batch 6: Encryption, Vault, Privacy
+add_executable(test_key_manager unit/test_key_manager.cpp)
+target_include_directories(test_key_manager PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_key_manager PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_key_manager COMMAND test_key_manager)
+
+add_executable(test_privacy_manager unit/test_privacy_manager.cpp)
+target_include_directories(test_privacy_manager PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_privacy_manager PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_privacy_manager COMMAND test_privacy_manager)
+
+add_executable(test_runtime_policy unit/test_runtime_policy.cpp)
+target_include_directories(test_runtime_policy PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_runtime_policy PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_runtime_policy COMMAND test_runtime_policy)
+
+add_executable(test_vault_encryption_manager unit/test_vault_encryption_manager.cpp)
+target_include_directories(test_vault_encryption_manager PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_vault_encryption_manager PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_vault_encryption_manager COMMAND test_vault_encryption_manager)
+
+add_executable(test_slide_exporter unit/test_slide_exporter.cpp)
+target_include_directories(test_slide_exporter PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_slide_exporter PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_slide_exporter COMMAND test_slide_exporter)
+
+# Batch 7: Additional AI / Core
+add_executable(test_ai_writing_assistant unit/test_ai_writing_assistant.cpp)
+target_include_directories(test_ai_writing_assistant PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_ai_writing_assistant PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_ai_writing_assistant COMMAND test_ai_writing_assistant)
+
+add_executable(test_ai_flashcard_generator unit/test_ai_flashcard_generator.cpp)
+target_include_directories(test_ai_flashcard_generator PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_ai_flashcard_generator PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_ai_flashcard_generator COMMAND test_ai_flashcard_generator)
+
+add_executable(test_ai_inline_completer unit/test_ai_inline_completer.cpp)
+target_include_directories(test_ai_inline_completer PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_ai_inline_completer PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_ai_inline_completer COMMAND test_ai_inline_completer)
+
+add_executable(test_ai_tag_suggester unit/test_ai_tag_suggester.cpp)
+target_include_directories(test_ai_tag_suggester PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_ai_tag_suggester PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_ai_tag_suggester COMMAND test_ai_tag_suggester)
+
+add_executable(test_ai_link_suggester unit/test_ai_link_suggester.cpp)
+target_include_directories(test_ai_link_suggester PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_ai_link_suggester PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_ai_link_suggester COMMAND test_ai_link_suggester)
+
+# Batch 8: Safety, Network, Patterns
+add_executable(test_safe_mode_v2 unit/test_safe_mode_v2.cpp)
+target_include_directories(test_safe_mode_v2 PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_safe_mode_v2 PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_safe_mode_v2 COMMAND test_safe_mode_v2)
+
+add_executable(test_network_interceptor unit/test_network_interceptor.cpp)
+target_include_directories(test_network_interceptor PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_network_interceptor PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_network_interceptor COMMAND test_network_interceptor)
+
+add_executable(test_sync_ignore_patterns unit/test_sync_ignore_patterns.cpp)
+target_include_directories(test_sync_ignore_patterns PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_sync_ignore_patterns PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_sync_ignore_patterns COMMAND test_sync_ignore_patterns)
+
+add_executable(test_slide_block_types unit/test_slide_block_types.cpp)
+target_include_directories(test_slide_block_types PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_slide_block_types PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_slide_block_types COMMAND test_slide_block_types)

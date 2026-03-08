@@ -1,5 +1,37 @@
 # MarkAmp Release History
 
+## v2.20.66 — 2026-03-08
+
+### Highlights
+
+Coverage Gap Expansion Phase 2: Created 40 new test files containing 400 unit tests across 8 thematic batches covering AI Integration, Security & Input Validation, Localization, Cloud Sync, WYSIWYG & Presentation, Encryption/Vault/Privacy, Additional AI types, and Safety/Network/Patterns. All 40 test executables compile, link, and pass with 687 total assertions and 0 failures. Added 40 new CMake test targets and fixed 6 API mismatches, 3 missing includes, 1 linker error, and 1 test logic error found during integration testing.
+
+### Added
+
+- **Batch 1 — AI Integration (5 files, 50 tests):** `test_ai_conversation_history`, `test_ai_types`, `test_ai_document_generator`, `test_ai_search_enhancer`, `test_ai_rate_limiter`
+- **Batch 2 — Security & Input Validation (5 files, 50 tests):** `test_url_sanitizer`, `test_clipboard_sanitizer`, `test_data_redaction_engine`, `test_security_audit_log`, `test_content_security_policy`
+- **Batch 3 — Localization & i18n (5 files, 50 tests):** `test_translation_catalog`, `test_locale_manager`, `test_text_direction_engine`, `test_locale_info`, `test_translation_entry`
+- **Batch 4 — Cloud Sync (5 files, 50 tests):** `test_sync_notification_types`, `test_selective_sync_filter`, `test_sync_history_logger`, `test_sync_scheduler`, `test_sync_conflict_manager`
+- **Batch 5 — WYSIWYG & Presentation (5 files, 50 tests):** `test_wysiwyg_types`, `test_slide_engine`, `test_slide_theme_provider`, `test_presentation_manager`, `test_wysiwyg_state_persistence`
+- **Batch 6 — Encryption/Vault/Privacy (5 files, 50 tests):** `test_key_manager`, `test_privacy_manager`, `test_runtime_policy`, `test_vault_encryption_manager`, `test_slide_exporter`
+- **Batch 7 — Additional AI / Core (5 files, 50 tests):** `test_ai_writing_assistant`, `test_ai_flashcard_generator`, `test_ai_inline_completer`, `test_ai_tag_suggester`, `test_ai_link_suggester`
+- **Batch 8 — Safety, Network, Patterns (5 files, 50 tests):** `test_safe_mode_v2`, `test_network_interceptor`, `test_sync_ignore_patterns`, `test_slide_block_types`
+
+### Changed
+
+- **tests/CMakeLists.txt** — Added 40 new test targets for Batches 1-8.
+- **CMakeLists.txt** — Version bumped to 2.20.66.
+- **vcpkg.json** — Version bumped to 2.20.66.
+
+### Fixed
+
+- `test_slide_exporter` — Rewrote to use actual `SlideExporter` API (`SlideExportOptions`, `SlideExportFormat`, `exports_by_format`).
+- `test_safe_mode_v2` — Changed from non-existent `SafeMode` class to actual `SafeModeController`/`CrashCounter` API.
+- `test_vault_encryption_manager` — Rewrote to use per-vault `encrypt_vault`/`lock_vault`/`unlock_vault` API.
+- `test_sync_conflict_manager` — Fixed `SyncConflict.file_path` → `SyncConflict.relative_path` (correct field name).
+- `test_sync_ignore_patterns` — Removed calls to unimplemented `should_ignore()` method.
+- `test_wysiwyg_state_persistence` — Fixed thematic break block type assertion to match parser behavior.
+
 ## v2.19.63 — 2026-03-08
 
 ### Highlights

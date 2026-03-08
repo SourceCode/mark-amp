@@ -1,6 +1,6 @@
 # Test Coverage Report
 
-> Coverage analysis and gap identification for MarkAmp v2.19.63.
+> Coverage analysis and gap identification for MarkAmp v2.20.66.
 
 ---
 
@@ -8,7 +8,7 @@
 
 | Metric                 | Value                                              |
 | ---------------------- | -------------------------------------------------- |
-| Test targets           | 634                                                |
+| Test targets           | 674                                                |
 | Test source files      | 613                                                |
 | Source headers         | 734 (core: 512, canvas: 98, UI: 88, rendering: 36) |
 | Source implementations | 383+                                               |
