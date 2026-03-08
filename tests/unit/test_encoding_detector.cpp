@@ -51,7 +51,8 @@ TEST_CASE("detect_encoding empty input", "[encoding]")
 
 TEST_CASE("strip_bom removes UTF-8 BOM", "[encoding]")
 {
-    std::string with_bom = "\xEF\xBB\xBFContent";
+    std::string with_bom = "\xEF\xBB\xBF"
+                           "Content";
     auto stripped = strip_bom(with_bom, Encoding::Utf8Bom);
     CHECK(stripped == "Content");
 }

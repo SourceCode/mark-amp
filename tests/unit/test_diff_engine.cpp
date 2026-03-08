@@ -17,7 +17,7 @@ TEST_CASE("DiffEngine detects insertion", "[diff]")
     DiffEngine engine;
     auto result = engine.compute_diff("line1\nline3\n", "line1\nline2\nline3\n");
     CHECK_FALSE(result.hunks.empty());
-    CHECK(result.total_insertions > 0);
+    CHECK(result.additions > 0);
 }
 
 TEST_CASE("DiffEngine detects deletion", "[diff]")
@@ -25,7 +25,7 @@ TEST_CASE("DiffEngine detects deletion", "[diff]")
     DiffEngine engine;
     auto result = engine.compute_diff("line1\nline2\nline3\n", "line1\nline3\n");
     CHECK_FALSE(result.hunks.empty());
-    CHECK(result.total_deletions > 0);
+    CHECK(result.deletions > 0);
 }
 
 TEST_CASE("DiffEngine detects modification", "[diff]")
@@ -72,7 +72,7 @@ TEST_CASE("DiffEngine empty to non-empty", "[diff]")
 {
     DiffEngine engine;
     auto result = engine.compute_diff("", "new content\n");
-    CHECK(result.total_insertions > 0);
+    CHECK(result.additions > 0);
 }
 
 TEST_CASE("DiffEngine context lines parameter", "[diff]")
