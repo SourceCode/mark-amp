@@ -160,6 +160,20 @@ public:
     /// Human-readable name for the canvas surface.
     [[nodiscard]] static auto surface_name() -> std::string;
 
+    // ── Batch 10 (#99-100) ────────────────────────────────────────
+
+    /// (#99) Number of boards currently open.
+    [[nodiscard]] auto board_count() const noexcept -> size_t
+    {
+        return boards_.size();
+    }
+
+    /// (#100) Whether there is an active board.
+    [[nodiscard]] auto has_active_board() const noexcept -> bool
+    {
+        return !active_board_id_.empty();
+    }
+
 private:
     std::shared_ptr<core::EventBus> event_bus_;
 
@@ -180,6 +194,14 @@ private:
 
     // Persistent state
     CanvasWorkbenchState state_;
+
+    /// Per-board viewport state for switching.
+    struct ViewportState
+    {
+        double zoom{1.0};
+        Point2D pan{0.0, 0.0};
+    };
+    std::unordered_map<std::string, ViewportState> board_viewports_;
 
     // Helpers
     auto add_to_recent(const std::string& board_id) -> void;

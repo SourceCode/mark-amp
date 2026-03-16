@@ -40,6 +40,50 @@ public:
     [[nodiscard]] auto to_json() const -> std::string override;
     auto from_json(const std::string& json) -> void override;
 
+    /// Whether the group has no children.
+    [[nodiscard]] auto is_empty() const noexcept -> bool
+    {
+        return children_ids_.empty();
+    }
+
+    /// Whether the group has children.
+    [[nodiscard]] auto has_children() const noexcept -> bool
+    {
+        return !children_ids_.empty();
+    }
+
+    // ── Round 2 Batch 1 (#6-10) ───────────────────────────────────
+
+    /// (#6) First child ObjectId, or kInvalidObjectId if empty.
+    [[nodiscard]] auto first_child_id() const noexcept -> ObjectId
+    {
+        return children_ids_.empty() ? kInvalidObjectId : children_ids_.front();
+    }
+
+    /// (#7) Last child ObjectId, or kInvalidObjectId if empty.
+    [[nodiscard]] auto last_child_id() const noexcept -> ObjectId
+    {
+        return children_ids_.empty() ? kInvalidObjectId : children_ids_.back();
+    }
+
+    /// (#8) Whether the group contains exactly one child.
+    [[nodiscard]] auto is_single_child() const noexcept -> bool
+    {
+        return children_ids_.size() == 1;
+    }
+
+    /// (#9) Cached bounding box width.
+    [[nodiscard]] auto cached_width() const noexcept -> double
+    {
+        return cached_bounds_.width();
+    }
+
+    /// (#10) Cached bounding box height.
+    [[nodiscard]] auto cached_height() const noexcept -> double
+    {
+        return cached_bounds_.height();
+    }
+
 private:
     std::vector<ObjectId> children_ids_;
     AABB cached_bounds_{0.0, 0.0, 0.0, 0.0};

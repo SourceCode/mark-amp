@@ -49,6 +49,18 @@ public:
     /// Filter commands based on FX master enabled status.
     [[nodiscard]] auto available_commands(bool fx_enabled) const -> std::vector<FxCommand>;
 
+    /// Number of unique command categories.
+    [[nodiscard]] auto category_count() const -> int
+    {
+        return static_cast<int>(categories().size());
+    }
+
+    /// Check if a command with the given ID exists.
+    [[nodiscard]] auto has_command(const std::string& command_id) const -> bool
+    {
+        return find_command(command_id).has_value();
+    }
+
 private:
     std::vector<FxCommand> commands_;
 

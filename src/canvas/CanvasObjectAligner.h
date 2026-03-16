@@ -41,6 +41,12 @@ struct AlignmentSuggestion
     double reference_value{0.0}; ///< The coordinate to align to
     size_t matching_objects{0};  ///< How many objects are near this alignment
     double max_deviation{0.0};   ///< Maximum deviation from perfect alignment
+
+    /// Whether the deviation is within a tight tolerance (< 1 pixel).
+    [[nodiscard]] auto is_near_perfect() const noexcept -> bool
+    {
+        return max_deviation < 1.0;
+    }
 };
 
 /// Result of an alignment or distribution operation.
@@ -48,6 +54,20 @@ struct AlignResult
 {
     bool success{false};
     size_t objects_moved{0};
+
+    /// Whether the operation failed.
+    [[nodiscard]] auto failed() const noexcept -> bool
+    {
+        return !success;
+    }
+
+    // ── Round 2 Batch 5 (#50) ────────────────────────────────────
+
+    /// (#50) Alias for objects_moved.
+    [[nodiscard]] auto objects_affected() const noexcept -> size_t
+    {
+        return objects_moved;
+    }
 };
 
 /// Canvas object alignment and distribution service.
@@ -97,6 +117,9 @@ public:
 
     /// Get a human-readable name for a distribution mode.
     [[nodiscard]] static auto distribute_mode_name(DistributeMode mode) -> std::string;
+
+    /// (#82) Compute combined bounding box of a set of objects.
+    [[nodiscard]] auto compute_bounds(const std::vector<ObjectId>& ids) const -> AABB;
 
 private:
     Board& board_;

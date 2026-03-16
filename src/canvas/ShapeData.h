@@ -94,6 +94,20 @@ public:
     [[nodiscard]] auto to_json() const -> std::string override;
     auto from_json(const std::string& json) -> void override;
 
+    // ── Batch 7 (#69-70) ──────────────────────────────────────────
+
+    /// (#69) Whether this is a circle (ellipse with equal width/height).
+    [[nodiscard]] auto is_circle() const noexcept -> bool
+    {
+        return shape_type_ == ShapeType::kEllipse && width_ == height_;
+    }
+
+    /// (#70) Whether the shape has a non-transparent fill.
+    [[nodiscard]] auto is_filled() const noexcept -> bool
+    {
+        return style_.fill_color.a > 0;
+    }
+
 private:
     ShapeType shape_type_{ShapeType::kRectangle};
     ShapeStyle style_;

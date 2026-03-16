@@ -187,6 +187,18 @@ public:
         return tables_.size();
     }
 
+    /// Whether no line tables are cached.
+    [[nodiscard]] auto is_empty() const noexcept -> bool
+    {
+        return tables_.empty();
+    }
+
+    /// Whether a specific line has a valid (non-empty) advance table.
+    [[nodiscard]] auto has_table(std::size_t line) const noexcept -> bool
+    {
+        return line < tables_.size() && !tables_[line].prefix_sums.empty();
+    }
+
 private:
     std::vector<LineAdvanceTable> tables_;
 

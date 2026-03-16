@@ -124,4 +124,27 @@ auto LayeringService::auto_distribute_z(Board& board) -> void
     board.mark_dirty();
 }
 
+// (#79) Return object IDs sorted by their z-index (front to back).
+auto LayeringService::get_z_order(const Board& board) -> std::vector<ObjectId>
+{
+    std::vector<std::pair<int, ObjectId>> z_list;
+    z_list.reserve(board.object_count());
+    for (const auto& obj_ptr : board.objects())
+    {
+        if (obj_ptr)
+        {
+            z_list.emplace_back(obj_ptr->z_index(), obj_ptr->id());
+        }
+    }
+    std::sort(z_list.begin(), z_list.end(),
+              [](const auto& lhs, const auto& rhs) { return lhs.first > rhs.first; });
+    std::vector<ObjectId> result;
+    result.reserve(z_list.size());
+    for (const auto& [z_val, obj_id] : z_list)
+    {
+        result.push_back(obj_id);
+    }
+    return result;
+}
+
 } // namespace markamp::canvas

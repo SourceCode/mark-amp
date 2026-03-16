@@ -1,5 +1,8 @@
 #include "ConfigAuditTrail.h"
 
+#include <algorithm>
+#include <unordered_map>
+
 namespace markamp::core
 {
 
@@ -78,6 +81,69 @@ auto ConfigAuditTrail::last_entry() const -> const AuditEntry*
     }
     std::size_t last_idx = (head_ == 0) ? max_entries_ - 1 : head_ - 1;
     return &ring_[last_idx];
+}
+
+// (#92) Filter entries for a specific config key.
+auto ConfigAuditTrail::entries_for_key(const std::string& key) const -> std::vector<AuditEntry>
+{
+    std::vector<AuditEntry> result;
+    auto all = entries();
+    for (auto& entry : all)
+    {
+        if (entry.key == key)
+        {
+            result.push_back(std::move(entry));
+        }
+    }
+    return result;
+}
+
+// ── Batch 19-22 improvements (#124-126) ──
+
+auto ConfigAuditTrail::unique_key_count() const -> std::size_t
+{
+    std::vector<std::string> seen;
+    auto all = entries();
+    for (const auto& entry : all)
+    {
+        if (std::find(seen.begin(), seen.end(), entry.key) == seen.end())
+        {
+            seen.push_back(entry.key);
+        }
+    }
+    return seen.size();
+}
+
+auto ConfigAuditTrail::is_full() const -> bool
+{
+    return count_ >= max_entries_;
+}
+
+auto ConfigAuditTrail::most_changed_key() const -> std::string
+{
+    if (count_ == 0)
+    {
+        return {};
+    }
+
+    std::unordered_map<std::string, int> counts;
+    auto all = entries();
+    for (const auto& entry : all)
+    {
+        ++counts[entry.key];
+    }
+
+    std::string best_key;
+    int best_count = 0;
+    for (const auto& [key_name, change_count] : counts)
+    {
+        if (change_count > best_count)
+        {
+            best_count = change_count;
+            best_key = key_name;
+        }
+    }
+    return best_key;
 }
 
 } // namespace markamp::core

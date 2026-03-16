@@ -4,6 +4,7 @@
 // ============================================================================
 #pragma once
 
+#include <algorithm>
 #include <cstdint>
 #include <functional>
 #include <string>
@@ -19,6 +20,25 @@ enum class AIProvider : uint8_t
     Anthropic, // Anthropic API (Claude)
     Local,     // Local model (llama.cpp, Ollama, etc.)
     Custom     // User-configured endpoint
+};
+
+// Structured error codes for AI API responses (#29).
+enum class AIErrorCode : uint8_t
+{
+    None,              // No error
+    NetworkError,      // Connection failure / DNS resolution / timeout
+    AuthError,         // Invalid API key or unauthorized
+    RateLimited,       // Rate limit exceeded (HTTP 429)
+    InvalidRequest,    // Malformed request (HTTP 400)
+    ModelNotFound,     // Requested model not available
+    ContentFiltered,   // Content blocked by safety filters
+    ContextTooLong,    // Input exceeds model's context window
+    ServerError,       // Provider server error (HTTP 5xx)
+    Cancelled,         // Request was cancelled by user
+    ProviderUnavailable, // Provider endpoint unreachable
+    ParseError,        // Failed to parse provider response
+    BudgetExceeded,    // Monthly spending limit reached
+    ConfigError        // Missing or invalid configuration
 };
 
 // AI action type.
@@ -53,6 +73,7 @@ struct AIMessage
     AIRole role{AIRole::User};
     std::string content;
     int64_t timestamp{0};
+    int32_t token_count{0}; // (#14) Token count for this message
 };
 
 // AI model configuration.
@@ -67,7 +88,10 @@ struct AIModelConfig
     double top_p{1.0};               // Nucleus sampling
     double frequency_penalty{0.0};
     double presence_penalty{0.0};
-    std::string system_prompt; // System message
+    std::string system_prompt;         // System message
+    int32_t request_timeout_ms{30000}; // Request timeout in ms (#5)
+    int32_t max_retries{3};            // Max retry attempts on transient failures (#6)
+    int32_t retry_base_delay_ms{1000}; // Base delay for exponential backoff (#6)
 };
 
 // Request to the AI service.
@@ -93,6 +117,9 @@ struct AIResponse
     int32_t total_tokens{0};
     int64_t elapsed_ms{0};
     std::string error_message;
+    AIErrorCode error_code{AIErrorCode::None}; // Structured error code (#29)
+    int32_t http_status{0};                    // Raw HTTP status code
+    int32_t retry_after_ms{0};                 // Retry-after hint for rate limits
 };
 
 // Streaming callback: (partial_content, is_done).
@@ -114,6 +141,38 @@ struct AISession
         msg.role = role;
         msg.content = content;
         messages.push_back(std::move(msg));
+    }
+
+    /// Rough token estimate (~4 chars per token) for context window management (#11).
+    [[nodiscard]] auto estimated_token_count() const -> int32_t
+    {
+        int32_t total = 0;
+        for (const auto& msg : messages)
+        {
+            total += static_cast<int32_t>(msg.content.size()) / 4 + 1;
+        }
+        return total;
+    }
+
+    /// Prune oldest non-system messages to fit within token budget (#12).
+    auto prune_to_token_limit(int32_t max_tokens) -> int
+    {
+        int pruned = 0;
+        while (estimated_token_count() > max_tokens && messages.size() > 1)
+        {
+            // Find first non-system message to remove.
+            auto iter = std::find_if(
+                messages.begin(),
+                messages.end(),
+                [](const AIMessage& msg) { return msg.role != AIRole::System; });
+            if (iter == messages.end())
+            {
+                break;
+            }
+            messages.erase(iter);
+            ++pruned;
+        }
+        return pruned;
     }
 };
 
@@ -198,6 +257,9 @@ struct AIConversationEntry
     int64_t created_at{0};
     int64_t last_active{0};
     int32_t message_count{0};
+    std::string model_name;   // (#13) Model used for this conversation
+    int32_t provider{0};      // (#13) AIProvider as int
+    int32_t total_tokens{0};  // (#14) Cumulative token usage
 };
 
 // Inline completion suggestion (ghost text).

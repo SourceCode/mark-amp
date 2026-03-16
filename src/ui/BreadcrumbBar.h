@@ -87,6 +87,26 @@ public:
         return mode_;
     }
 
+    // ── 100 Editor UX/UI Improvements: Batch 8 — Breadcrumb Accessors (#78–#80) ──
+
+    /// #78 Number of breadcrumb segments.
+    [[nodiscard]] inline auto segment_count() const noexcept -> std::size_t
+    {
+        return segments_.size();
+    }
+
+    /// #79 True when document symbols are available.
+    [[nodiscard]] inline auto has_symbols() const noexcept -> bool
+    {
+        return !document_symbols_.empty();
+    }
+
+    /// #80 True when the breadcrumb bar is focused.
+    [[nodiscard]] inline auto is_focused() const noexcept -> bool
+    {
+        return is_focused_;
+    }
+
 private:
     void Rebuild();
     void RecalculateSegmentBounds(wxGraphicsContext* graphics_context);

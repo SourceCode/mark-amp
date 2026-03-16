@@ -77,6 +77,32 @@ public:
     /// Downsample the path to at most max_points, evenly spaced.
     auto subsample(size_t max_points) -> void;
 
+    // ── Batch 8 (#75-78) ──────────────────────────────────────────
+
+    /// (#75) Whether the path has any points.
+    [[nodiscard]] auto has_points() const noexcept -> bool
+    {
+        return !points_.empty();
+    }
+
+    /// (#76) First point in the path (or {0,0} if empty).
+    [[nodiscard]] auto first_point() const noexcept -> Point2D
+    {
+        return points_.empty() ? Point2D{0.0, 0.0} : points_.front();
+    }
+
+    /// (#77) Last point in the path (or {0,0} if empty).
+    [[nodiscard]] auto last_point() const noexcept -> Point2D
+    {
+        return points_.empty() ? Point2D{0.0, 0.0} : points_.back();
+    }
+
+    /// (#78) Whether smoothing is active (factor > 0).
+    [[nodiscard]] auto is_smooth() const noexcept -> bool
+    {
+        return smoothing_factor_ > 0.0;
+    }
+
     // ── CanvasObject overrides ─────────────────────────────────
 
     [[nodiscard]] auto local_bounds() const -> AABB override;

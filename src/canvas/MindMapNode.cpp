@@ -173,9 +173,94 @@ auto MindMapNode::to_json() const -> std::string
     return oss.str();
 }
 
-auto MindMapNode::from_json(const std::string& /*json*/) -> void
+auto MindMapNode::from_json(const std::string& json) -> void
 {
-    // Stub — real JSON parsing deferred.
+    // Helper to extract a string value.
+    auto get_str = [&](const std::string& key) -> std::string
+    {
+        const std::string needle = "\"" + key + "\":\"";
+        auto pos = json.find(needle);
+        if (pos == std::string::npos)
+        {
+            return "";
+        }
+        pos += needle.size();
+        const auto end_pos = json.find('"', pos);
+        if (end_pos == std::string::npos)
+        {
+            return "";
+        }
+        return json.substr(pos, end_pos - pos);
+    };
+
+    // Helper to extract a numeric value.
+    auto get_num = [&](const std::string& key) -> double
+    {
+        const std::string needle = "\"" + key + "\":";
+        auto pos = json.find(needle);
+        if (pos == std::string::npos)
+        {
+            return 0.0;
+        }
+        pos += needle.size();
+        return std::stod(json.substr(pos));
+    };
+
+    // Helper to extract a bool value.
+    auto get_bool = [&](const std::string& key) -> bool
+    {
+        const std::string needle = "\"" + key + "\":";
+        auto pos = json.find(needle);
+        if (pos == std::string::npos)
+        {
+            return false;
+        }
+        pos += needle.size();
+        return json.substr(pos, 4) == "true";
+    };
+
+    text_ = get_str("text");
+    parent_node_id_ = static_cast<ObjectId>(get_num("parent_id"));
+    connector_id_ = static_cast<ObjectId>(get_num("connector_id"));
+    depth_ = static_cast<int>(get_num("depth"));
+    width_ = get_num("width");
+    height_ = get_num("height");
+    icon_ = get_str("icon");
+    notes_ = get_str("notes");
+    collapsed_ = get_bool("collapsed");
+    priority_ = static_cast<int>(get_num("priority"));
+    progress_ = static_cast<int>(get_num("progress"));
+
+    // Parse children array.
+    child_node_ids_.clear();
+    auto children_pos = json.find("\"children\":[");
+    if (children_pos != std::string::npos)
+    {
+        children_pos += 12;
+        const auto arr_end = json.find(']', children_pos);
+        if (arr_end != std::string::npos)
+        {
+            const std::string arr_str = json.substr(children_pos, arr_end - children_pos);
+            size_t pos = 0;
+            while (pos < arr_str.size())
+            {
+                while (pos < arr_str.size() && (arr_str[pos] == ',' || arr_str[pos] == ' '))
+                {
+                    ++pos;
+                }
+                if (pos >= arr_str.size())
+                {
+                    break;
+                }
+                child_node_ids_.push_back(
+                    static_cast<ObjectId>(std::stoi(arr_str.substr(pos))));
+                while (pos < arr_str.size() && arr_str[pos] != ',')
+                {
+                    ++pos;
+                }
+            }
+        }
+    }
 }
 
 auto MindMapNode::clone() const -> std::unique_ptr<CanvasObject>

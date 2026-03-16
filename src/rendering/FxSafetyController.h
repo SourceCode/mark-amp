@@ -78,6 +78,29 @@ public:
     /// Reset all safety modes to defaults.
     void reset_to_defaults() noexcept;
 
+    /// Number of active safety modes (reduced motion, low power, text safety, high contrast).
+    [[nodiscard]] auto active_safety_count() const noexcept -> int
+    {
+        int count = 0;
+        if (reduced_motion_)
+        {
+            ++count;
+        }
+        if (low_power_mode_)
+        {
+            ++count;
+        }
+        if (text_safety_mode_)
+        {
+            ++count;
+        }
+        if (high_contrast_guard_)
+        {
+            ++count;
+        }
+        return count;
+    }
+
 private:
     core::EventBus& event_bus_;
 

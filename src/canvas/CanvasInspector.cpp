@@ -247,6 +247,20 @@ auto CanvasInspector::apply_value_to_object(CanvasObject& obj,
     {
         obj.set_visible(std::get<bool>(val));
     }
+    else if (key == "width" && std::holds_alternative<double>(val))
+    {
+        const double new_width = std::get<double>(val);
+        auto xform = obj.transform();
+        xform.scale_x = new_width / std::max(1.0, obj.world_bounds().width()) * xform.scale_x;
+        obj.set_transform(xform);
+    }
+    else if (key == "height" && std::holds_alternative<double>(val))
+    {
+        const double new_height = std::get<double>(val);
+        auto xform = obj.transform();
+        xform.scale_y = new_height / std::max(1.0, obj.world_bounds().height()) * xform.scale_y;
+        obj.set_transform(xform);
+    }
     else if (key == "fill_color" && std::holds_alternative<CanvasColor>(val))
     {
         obj.set_custom_color(std::get<CanvasColor>(val));
@@ -254,6 +268,10 @@ auto CanvasInspector::apply_value_to_object(CanvasObject& obj,
     else if (key == "stroke_color" && std::holds_alternative<CanvasColor>(val))
     {
         obj.set_custom_color(std::get<CanvasColor>(val));
+    }
+    else if (key == "layer" && std::holds_alternative<int>(val))
+    {
+        obj.set_layer(std::get<int>(val));
     }
     else
     {

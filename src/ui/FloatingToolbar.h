@@ -80,6 +80,15 @@ public:
     [[nodiscard]] auto button_count() const -> int;
     [[nodiscard]] auto is_draggable() const -> bool;
 
+    /// Whether any button in the toolbar is a separator.
+    [[nodiscard]] auto has_separator() const -> bool;
+
+    /// Number of currently enabled (non-greyed) buttons.
+    [[nodiscard]] auto enabled_count() const -> int;
+
+    /// Number of currently toggled buttons.
+    [[nodiscard]] auto toggled_count() const -> int;
+
     // Layout constants
     static constexpr int kButtonSize = 28;
     static constexpr int kButtonPadding = 2;
@@ -88,6 +97,20 @@ public:
     static constexpr int kShadowOffset = 3;
     static constexpr int kSnapDistance = 20;
     static constexpr int kDefaultAutoHideMs = 5000;
+
+    // ── 100 Editor UX/UI Improvements: Batch 9 — Float Toolbar Accessors (#89–#90) ──
+
+    /// #89 True when auto-hide is enabled (delay > 0).
+    [[nodiscard]] inline auto is_auto_hide_active() const noexcept -> bool
+    {
+        return auto_hide_ms_ > 0;
+    }
+
+    /// #90 Auto-hide delay in milliseconds.
+    [[nodiscard]] inline auto auto_hide_delay() const noexcept -> int
+    {
+        return auto_hide_ms_;
+    }
 
 protected:
     /// Subclasses call this to define the toolbar's button set.

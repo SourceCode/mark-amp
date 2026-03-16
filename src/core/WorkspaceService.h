@@ -118,6 +118,9 @@ public:
     /// Get all open documents.
     [[nodiscard]] auto text_documents() const -> std::vector<TextDocumentItem>;
 
+    /// (#68) Get number of tracked documents.
+    [[nodiscard]] auto document_count() const -> std::size_t;
+
     // ── Document Events ──
 
     auto on_did_open(DocumentCallback callback) -> std::size_t;

@@ -115,6 +115,9 @@ public:
     /// Slugify a title for use as a filename (lowercase, hyphens, no specials).
     [[nodiscard]] static auto slugify(const std::string& title) -> std::string;
 
+    /// (#102) Return the number of documents in a batch export job.
+    [[nodiscard]] static auto document_count(const BatchExportJob& job) -> std::size_t;
+
     /// Generate an HTML index page linking to all exported files.
     [[nodiscard]] static auto generate_index(const std::string& batch_title,
                                              const std::vector<BatchItemResult>& items)

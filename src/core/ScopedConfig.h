@@ -78,6 +78,17 @@ public:
         return catalog_;
     }
 
+    // ── Batch 19-22 (#119-121) ──
+
+    /// (#119) Return the number of attached config scopes (1-3).
+    [[nodiscard]] auto scope_count() const -> int;
+
+    /// (#120) Return the number of scopes that have at least one override.
+    [[nodiscard]] auto active_scope_count() const -> int;
+
+    /// (#121) Return all keys overridden in workspace or project scope.
+    [[nodiscard]] auto all_overridden_keys() const -> std::vector<std::string>;
+
 private:
     Config& app_config_;
     Config* workspace_config_{nullptr};

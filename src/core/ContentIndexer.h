@@ -57,6 +57,15 @@ public:
     // Check if a MIME type has a registered extractor.
     [[nodiscard]] auto can_extract(const std::string& mime_type) const -> bool;
 
+    /// (#180) Return the number of registered content extractors.
+    [[nodiscard]] auto extractor_count() const -> std::size_t;
+
+    /// (#181) Return all MIME types with registered extractors.
+    [[nodiscard]] auto supported_mime_types() const -> std::vector<std::string>;
+
+    /// (#182) Check if the content index is empty.
+    [[nodiscard]] auto is_empty() const -> bool;
+
 private:
     EventBus& event_bus_;
     std::vector<std::unique_ptr<IContentExtractor>> extractors_;

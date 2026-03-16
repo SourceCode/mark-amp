@@ -9,6 +9,8 @@
 
 #include <wx/timer.h>
 
+#include <algorithm>
+#include <cstddef>
 #include <functional>
 #include <string>
 #include <vector>
@@ -123,6 +125,77 @@ public:
     {
         is_group_focused_ = focused;
         Refresh();
+    }
+
+    // ── 100 Editor UX/UI Improvements: Batch 4 — Tab State Convenience Accessors (#31–#40) ──
+
+    /// #31 True when there are no tabs.
+    [[nodiscard]] inline auto is_empty() const noexcept -> bool
+    {
+        return tabs_.empty();
+    }
+
+    /// #32 True when any tab has unsaved modifications.
+    [[nodiscard]] inline auto has_modified_tabs() const noexcept -> bool
+    {
+        return std::ranges::any_of(tabs_, [](const TabInfo& tab) { return tab.is_modified; });
+    }
+
+    /// #33 Number of pinned tabs.
+    [[nodiscard]] inline auto pinned_tab_count() const noexcept -> int
+    {
+        return static_cast<int>(
+            std::ranges::count_if(tabs_, [](const TabInfo& tab) { return tab.is_pinned; }));
+    }
+
+    /// #34 True when at least one tab is pinned.
+    [[nodiscard]] inline auto has_pinned_tabs() const noexcept -> bool
+    {
+        return std::ranges::any_of(tabs_, [](const TabInfo& tab) { return tab.is_pinned; });
+    }
+
+    /// #35 Number of preview-mode tabs.
+    [[nodiscard]] inline auto preview_tab_count() const noexcept -> int
+    {
+        return static_cast<int>(
+            std::ranges::count_if(tabs_, [](const TabInfo& tab) { return tab.is_preview; }));
+    }
+
+    /// #36 True when at least one tab is in preview mode.
+    [[nodiscard]] inline auto has_preview_tabs() const noexcept -> bool
+    {
+        return std::ranges::any_of(tabs_, [](const TabInfo& tab) { return tab.is_preview; });
+    }
+
+    /// #37 Index of the currently active tab, or -1 if none.
+    [[nodiscard]] inline auto active_tab_index() const noexcept -> int
+    {
+        for (std::size_t idx = 0; idx < tabs_.size(); ++idx)
+        {
+            if (tabs_[idx].is_active)
+            {
+                return static_cast<int>(idx);
+            }
+        }
+        return -1;
+    }
+
+    /// #38 True when a tab drag-reorder is in progress.
+    [[nodiscard]] inline auto is_dragging() const noexcept -> bool
+    {
+        return is_dragging_;
+    }
+
+    /// #39 Current horizontal scroll offset of the tab strip.
+    [[nodiscard]] inline auto scroll_offset() const noexcept -> int
+    {
+        return scroll_offset_;
+    }
+
+    /// #40 True when a workspace root path is set.
+    [[nodiscard]] inline auto has_workspace_root() const noexcept -> bool
+    {
+        return !workspace_root_.empty();
     }
 
     [[nodiscard]] auto GetEventBus() -> core::EventBus&

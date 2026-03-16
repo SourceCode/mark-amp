@@ -407,6 +407,23 @@ public:
         return true;
     }
 
+    // ── Batch 32 (#188-189) ───────────────────────────────────
+
+    /// (#188) Return the number of pinned saved searches.
+    [[nodiscard]] auto pinned_count() const noexcept -> std::size_t
+    {
+        return static_cast<std::size_t>(
+            std::count_if(searches_.begin(),
+                          searches_.end(),
+                          [](const SavedSearch& saved) { return saved.is_pinned; }));
+    }
+
+    /// (#189) Check if a saved search with the given name exists.
+    [[nodiscard]] auto has_search(const std::string& search_name) const -> bool
+    {
+        return find_index(search_name).has_value();
+    }
+
 private:
     std::vector<SavedSearch> searches_;
 

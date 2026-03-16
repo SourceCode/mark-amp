@@ -45,6 +45,12 @@ struct SnapResult
     double snapped_y{0.0};
     bool snapped{false};
     std::vector<GuideLine> guide_lines;
+
+    /// Number of guide lines produced by the snap.
+    [[nodiscard]] auto guide_count() const noexcept -> std::size_t
+    {
+        return guide_lines.size();
+    }
 };
 
 /// Provides snap-to-grid and snap-to-object alignment during drag/resize.
@@ -94,6 +100,59 @@ public:
     [[nodiscard]] auto custom_guides() const -> const std::vector<GuideLine>&;
     auto add_custom_guide(const GuideLine& guide) -> void;
     auto clear_custom_guides() -> void;
+
+    /// (#88) Check if any snap mode is currently active.
+    [[nodiscard]] auto is_enabled() const -> bool;
+
+    /// Number of user-defined custom guide lines.
+    [[nodiscard]] auto custom_guide_count() const noexcept -> std::size_t
+    {
+        return custom_guides_.size();
+    }
+
+    /// Current grid spacing value.
+    [[nodiscard]] auto grid_spacing() const noexcept -> double
+    {
+        return config_.grid_spacing;
+    }
+
+    /// Current snap threshold in screen pixels.
+    [[nodiscard]] auto snap_threshold() const noexcept -> double
+    {
+        return config_.snap_threshold;
+    }
+
+    // ── Batch 5 (#41-45) ──────────────────────────────────────────
+
+    /// (#41) Whether grid snapping is active.
+    [[nodiscard]] auto is_grid_enabled() const noexcept -> bool
+    {
+        return config_.grid_enabled;
+    }
+
+    /// (#42) Whether object-to-object snapping is active.
+    [[nodiscard]] auto is_object_snap_enabled() const noexcept -> bool
+    {
+        return config_.object_snap_enabled;
+    }
+
+    /// (#43) Whether angle snapping is active.
+    [[nodiscard]] auto is_angle_snap_enabled() const noexcept -> bool
+    {
+        return config_.snap_angle_enabled;
+    }
+
+    /// (#44) Current guide line color.
+    [[nodiscard]] auto guide_color() const noexcept -> const CanvasColor&
+    {
+        return config_.guide_color;
+    }
+
+    /// (#45) Update grid spacing.
+    auto set_grid_spacing(double spacing) -> void
+    {
+        config_.grid_spacing = spacing;
+    }
 
 private:
     SnapConfig config_;

@@ -151,6 +151,12 @@ public:
         return height_;
     }
 
+    /// Whether any scroll delta has accumulated since last reset.
+    [[nodiscard]] auto has_accumulated_scroll() const noexcept -> bool
+    {
+        return total_dy_ != 0 || total_dx_ != 0;
+    }
+
 private:
     int32_t width_{0};
     int32_t height_{0};

@@ -31,6 +31,12 @@ public:
     /// Render a stats summary bar.
     [[nodiscard]] static auto render_stats_bar(const core::DiffStats& stats) -> std::string;
 
+    /// Number of render modes (inline and side-by-side).
+    [[nodiscard]] static constexpr auto total_render_modes() noexcept -> int
+    {
+        return 2;
+    }
+
 private:
     /// CSS class for a diff type.
     [[nodiscard]] static auto css_class_for(core::DiffType type) -> std::string;

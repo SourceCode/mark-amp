@@ -26,6 +26,26 @@ struct TableCell
     CanvasColor text_color{0, 0, 0, 255};     // Black text.
     bool bold{false};
     TableCellAlignment alignment{TableCellAlignment::kLeft};
+
+    // ── Round 2 Batch 2 (#18-20) ──────────────────────────────────
+
+    /// (#18) Whether the cell text is empty.
+    [[nodiscard]] auto is_empty() const noexcept -> bool
+    {
+        return text.empty();
+    }
+
+    /// (#19) Whether the cell is bold.
+    [[nodiscard]] auto is_bold() const noexcept -> bool
+    {
+        return bold;
+    }
+
+    /// (#20) Whether the cell has a non-transparent fill.
+    [[nodiscard]] auto has_fill() const noexcept -> bool
+    {
+        return fill_color.a > 0;
+    }
 };
 
 /// Column definition for a TableObject.
@@ -95,6 +115,50 @@ public:
     [[nodiscard]] auto clone() const -> std::unique_ptr<CanvasObject> override;
     [[nodiscard]] auto to_json() const -> std::string override;
     auto from_json(const std::string& json) -> void override;
+
+    // ── Round 2 Batch 2 (#11-17) ──────────────────────────────────
+
+    /// (#11) Whether the table has no data rows.
+    [[nodiscard]] auto is_empty() const noexcept -> bool
+    {
+        return rows_.empty();
+    }
+
+    /// (#12) Whether the table has data rows.
+    [[nodiscard]] auto has_rows() const noexcept -> bool
+    {
+        return !rows_.empty();
+    }
+
+    /// (#13) Total number of cells (rows × columns).
+    [[nodiscard]] auto cell_count() const noexcept -> size_t
+    {
+        return rows_.size() * columns_.size();
+    }
+
+    /// (#14) Whether the table has columns defined.
+    [[nodiscard]] auto has_columns() const noexcept -> bool
+    {
+        return !columns_.empty();
+    }
+
+    /// (#15) Total area of the table (width × height).
+    [[nodiscard]] auto total_area() const noexcept -> double
+    {
+        return total_width() * total_height();
+    }
+
+    /// (#16) Whether the table has exactly one column.
+    [[nodiscard]] auto is_single_column() const noexcept -> bool
+    {
+        return columns_.size() == 1;
+    }
+
+    /// (#17) Whether the table has exactly one row.
+    [[nodiscard]] auto is_single_row() const noexcept -> bool
+    {
+        return rows_.size() == 1;
+    }
 
 private:
     std::vector<TableColumn> columns_;

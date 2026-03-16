@@ -23,6 +23,38 @@ struct ViewportState
     double zoom{1.0};         ///< Current zoom level
     double width{0.0};        ///< Viewport width in world units
     double height{0.0};       ///< Viewport height in world units
+
+    /// The viewport area in world units².
+    [[nodiscard]] auto area() const noexcept -> double
+    {
+        return width * height;
+    }
+
+    /// Whether zoom is at default (1.0).
+    [[nodiscard]] auto is_default_zoom() const noexcept -> bool
+    {
+        return zoom == 1.0;
+    }
+
+    // ── Round 3 Batch 6 (#54-56) ────────────────────────────────
+
+    /// (#54) Whether zoomed in (> 1.0).
+    [[nodiscard]] auto is_zoomed_in() const noexcept -> bool
+    {
+        return zoom > 1.0;
+    }
+
+    /// (#55) Whether zoomed out (< 1.0).
+    [[nodiscard]] auto is_zoomed_out() const noexcept -> bool
+    {
+        return zoom < 1.0;
+    }
+
+    /// (#56) Viewport aspect ratio.
+    [[nodiscard]] auto aspect_ratio() const noexcept -> double
+    {
+        return height > 0.0 ? width / height : 0.0;
+    }
 };
 
 /// Follow mode status.
@@ -42,6 +74,38 @@ struct FollowModeConfig
     bool break_on_zoom{true};                ///< Stop following on manual zoom
     bool break_on_object_interaction{false}; ///< Stop following on object click
     double viewport_dead_zone{5.0};          ///< Ignore viewport changes smaller than this
+
+    /// Whether any interaction type breaks follow mode.
+    [[nodiscard]] auto breaks_on_input() const noexcept -> bool
+    {
+        return break_on_pan || break_on_zoom || break_on_object_interaction;
+    }
+
+    /// Whether a dead zone is configured.
+    [[nodiscard]] auto has_dead_zone() const noexcept -> bool
+    {
+        return viewport_dead_zone > 0.0;
+    }
+
+    // ── Round 3 Batch 6 (#57-59) ────────────────────────────────
+
+    /// (#57) Whether panning breaks follow mode.
+    [[nodiscard]] auto breaks_on_pan() const noexcept -> bool
+    {
+        return break_on_pan;
+    }
+
+    /// (#58) Whether zooming breaks follow mode.
+    [[nodiscard]] auto breaks_on_zoom() const noexcept -> bool
+    {
+        return break_on_zoom;
+    }
+
+    /// (#59) Whether object interaction breaks follow mode.
+    [[nodiscard]] auto breaks_on_objects() const noexcept -> bool
+    {
+        return break_on_object_interaction;
+    }
 };
 
 /// Controls follow-mode and presenter-mode for collaborative canvas sessions.
@@ -122,6 +186,26 @@ public:
 
     /// Get a human-readable status name.
     [[nodiscard]] static auto status_name(FollowStatus follow_status) -> std::string;
+
+    /// Whether the controller is idle (not following or presenting).
+    [[nodiscard]] auto is_idle() const noexcept -> bool
+    {
+        return status_ == FollowStatus::kNone;
+    }
+
+    /// Whether a status change callback is registered.
+    [[nodiscard]] auto has_callback() const noexcept -> bool
+    {
+        return on_status_change_ != nullptr;
+    }
+
+    // ── Round 3 Batch 6 (#60) ───────────────────────────────────
+
+    /// (#60) Whether the controller is active (following or presenting).
+    [[nodiscard]] auto is_active() const noexcept -> bool
+    {
+        return status_ != FollowStatus::kNone;
+    }
 
 private:
     core::EventBus& event_bus_;

@@ -65,6 +65,20 @@ private:
 
     static constexpr double kMinWidth = 150.0;
     static constexpr double kMinHeight = 100.0;
+
+    // ── Round 3 Batch 10 (#91-92) ────────────────────────────────
+
+    /// (#91) Section area in world units².
+    [[nodiscard]] auto area() const noexcept -> double
+    {
+        return width_ * height_;
+    }
+
+    /// (#92) Whether the section is expanded (not collapsed).
+    [[nodiscard]] auto is_expanded() const noexcept -> bool
+    {
+        return !collapsed_;
+    }
 };
 
 } // namespace markamp::canvas

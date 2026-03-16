@@ -313,6 +313,31 @@ void SettingsCatalog::merge_catalog(const SettingsCatalog& other)
     }
 }
 
+// ── Batch 19-22 improvements (#116-118) ──
+
+auto SettingsCatalog::group_count() const -> std::size_t
+{
+    return unique_groups().size();
+}
+
+auto SettingsCatalog::scope_count(ConfigScope scope) const -> std::size_t
+{
+    std::size_t count = 0;
+    for (const auto& entry : entries_)
+    {
+        if (entry.scope == scope)
+        {
+            ++count;
+        }
+    }
+    return count;
+}
+
+auto SettingsCatalog::keyword_search_count(std::string_view query) const -> std::size_t
+{
+    return search(query).size();
+}
+
 // ──────────────────────────────────────────────────────────────────────────
 // Built-in settings — migrated from SettingsPanel::RegisterBuiltinSettings
 // ──────────────────────────────────────────────────────────────────────────

@@ -15,6 +15,32 @@ struct KeyBinding
     std::string shortcut; ///< e.g., "Ctrl+D", "V"
     std::string category; ///< e.g., "tool", "edit", "navigate", "arrange"
     bool active{true};
+
+    // ── Round 5 Batch 7 (#66-69) ────────────────────────────────
+
+    /// (#66) Whether a shortcut is bound.
+    [[nodiscard]] auto has_shortcut() const noexcept -> bool
+    {
+        return !shortcut.empty();
+    }
+
+    /// (#67) Whether a label is set.
+    [[nodiscard]] auto has_label() const noexcept -> bool
+    {
+        return !label.empty();
+    }
+
+    /// (#68) Whether this binding is active.
+    [[nodiscard]] auto is_active() const noexcept -> bool
+    {
+        return active;
+    }
+
+    /// (#69) Whether a category is set.
+    [[nodiscard]] auto has_category() const noexcept -> bool
+    {
+        return !category.empty();
+    }
 };
 
 /// Nudge direction.
@@ -61,6 +87,14 @@ private:
     std::vector<KeyBinding> bindings_;
     double nudge_step_{1.0};
     bool grid_nudge_{false};
+
+    // ── Round 5 Batch 7 (#70) ───────────────────────────────────
+
+    /// (#70) Number of registered bindings.
+    [[nodiscard]] auto binding_count() const noexcept -> size_t
+    {
+        return bindings_.size();
+    }
 };
 
 } // namespace markamp::canvas

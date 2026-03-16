@@ -31,6 +31,14 @@ struct PropertyValue
 {
     std::string value;
     bool is_mixed{false};
+
+    // ── Round 5 Batch 1 (#8) ───────────────────────────────────
+
+    /// (#8) Whether a value is set.
+    [[nodiscard]] auto has_value() const noexcept -> bool
+    {
+        return !value.empty();
+    }
 };
 
 /// Testable model for Canvas Inspector (Phase 60).
@@ -90,6 +98,20 @@ private:
     std::vector<std::pair<std::string, PropertyEntry>> properties_;
     std::vector<std::pair<std::string, Constraint>> constraints_;
     bool has_copied_style_{false};
+
+    // ── Round 5 Batch 1 (#9-10) ─────────────────────────────────
+
+    /// (#9) Whether objects are selected.
+    [[nodiscard]] auto has_selection() const noexcept -> bool
+    {
+        return selected_count_ > 0;
+    }
+
+    /// (#10) Number of visible sections.
+    [[nodiscard]] auto section_count() const noexcept -> size_t
+    {
+        return visible_sections_.size();
+    }
 };
 
 } // namespace markamp::canvas

@@ -75,6 +75,23 @@ public:
     /// Reset counters.
     void reset_counters();
 
+    /// Total render attempts (success + fallback).
+    [[nodiscard]] auto total_count() const noexcept -> size_t
+    {
+        return success_count_ + fallback_count_;
+    }
+
+    /// Fallback rate as a percentage (0.0-100.0).
+    [[nodiscard]] auto fallback_rate() const noexcept -> double
+    {
+        const auto total = total_count();
+        if (total == 0)
+        {
+            return 0.0;
+        }
+        return (static_cast<double>(fallback_count_) / static_cast<double>(total)) * 100.0;
+    }
+
 private:
     size_t fallback_count_{0};
     size_t success_count_{0};

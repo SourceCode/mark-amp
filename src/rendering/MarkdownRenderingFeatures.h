@@ -46,6 +46,18 @@ struct DirtyRegion
     int start_line{0};
     int end_line{0};
     bool full_rerender{false}; ///< True if structural change requires full rerender
+
+    /// Number of lines in the dirty region.
+    [[nodiscard]] auto line_count() const noexcept -> int
+    {
+        return (end_line > start_line) ? (end_line - start_line) : 0;
+    }
+
+    /// Whether the region is empty (zero-length).
+    [[nodiscard]] auto is_empty() const noexcept -> bool
+    {
+        return end_line <= start_line && !full_rerender;
+    }
 };
 
 /// Result of an incremental render operation.
@@ -74,6 +86,18 @@ struct CodeBlockConfig
     bool show_language_label{true}; ///< Show the language name label
     int collapse_threshold{20};     ///< Lines above which code blocks are collapsible
     bool auto_collapse_long{true};  ///< Auto-collapse blocks exceeding threshold
+
+    /// Whether auto-collapse is active (threshold > 0 and enabled).
+    [[nodiscard]] auto is_auto_collapse_enabled() const noexcept -> bool
+    {
+        return auto_collapse_long && collapse_threshold > 0;
+    }
+
+    /// Total number of configurable options.
+    [[nodiscard]] static constexpr auto option_count() noexcept -> int
+    {
+        return 4;
+    }
 };
 
 // ═══════════════════════════════════════════════════════
@@ -174,6 +198,30 @@ struct HeadingNavState
     bool visible{false};
     std::vector<HeadingNavEntry> entries;
     int active_index{-1}; ///< Index of the currently active entry
+
+    /// Whether the navigation has any entries.
+    [[nodiscard]] auto has_entries() const noexcept -> bool
+    {
+        return !entries.empty();
+    }
+
+    /// Number of navigation entries.
+    [[nodiscard]] auto entry_count() const noexcept -> std::size_t
+    {
+        return entries.size();
+    }
+
+    /// Whether an entry is currently active.
+    [[nodiscard]] auto has_active() const noexcept -> bool
+    {
+        return active_index >= 0 && static_cast<std::size_t>(active_index) < entries.size();
+    }
+
+    /// Whether the overlay is visible with entries.
+    [[nodiscard]] auto is_showing() const noexcept -> bool
+    {
+        return visible && !entries.empty();
+    }
 };
 
 } // namespace markamp::rendering

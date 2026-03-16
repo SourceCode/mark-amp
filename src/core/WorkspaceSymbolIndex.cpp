@@ -105,4 +105,16 @@ void WorkspaceSymbolIndex::clear()
     index_.clear();
 }
 
+// (#166) Check if a document is already indexed.
+auto WorkspaceSymbolIndex::has_document(const std::string& document_id) const -> bool
+{
+    return index_.contains(document_id);
+}
+
+// (#167) Check if the index is empty.
+auto WorkspaceSymbolIndex::is_empty() const -> bool
+{
+    return index_.empty();
+}
+
 } // namespace markamp::core

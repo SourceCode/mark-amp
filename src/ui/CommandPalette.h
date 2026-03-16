@@ -77,6 +77,56 @@ public:
     wxCoord MeasureListItem(size_t n) const;
     void DrawListItemBackground(wxDC& dc, const wxRect& rect, size_t n) const;
 
+    // ── 100 Editor UX/UI Improvements: Batch 9 — Command Palette Accessors (#81–#88) ──
+
+    /// #81 Total number of registered commands.
+    [[nodiscard]] inline auto command_count() const noexcept -> std::size_t
+    {
+        return all_commands_.size();
+    }
+
+    /// #82 True when at least one command is registered.
+    [[nodiscard]] inline auto has_commands() const noexcept -> bool
+    {
+        return !all_commands_.empty();
+    }
+
+    /// #83 Number of display items (after filtering).
+    [[nodiscard]] inline auto display_item_count() const noexcept -> std::size_t
+    {
+        return display_items_.size();
+    }
+
+    /// #84 Current filter string.
+    [[nodiscard]] inline auto current_filter() const noexcept -> const std::string&
+    {
+        return current_filter_;
+    }
+
+    /// #85 True when a filter is active.
+    [[nodiscard]] inline auto has_filter() const noexcept -> bool
+    {
+        return !current_filter_.empty();
+    }
+
+    /// #86 True when the palette is in closing animation.
+    [[nodiscard]] inline auto is_closing() const noexcept -> bool
+    {
+        return is_closing_;
+    }
+
+    /// #87 True when a CommandRegistry is attached.
+    [[nodiscard]] inline auto has_registry() const noexcept -> bool
+    {
+        return registry_ != nullptr;
+    }
+
+    /// #88 Number of most-recently-used command entries.
+    [[nodiscard]] inline auto mru_count() const noexcept -> std::size_t
+    {
+        return mru_history_.size();
+    }
+
 private:
     void OnFilterChanged(wxCommandEvent& event);
     void OnCommandSelected(wxCommandEvent& event);

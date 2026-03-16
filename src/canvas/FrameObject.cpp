@@ -161,9 +161,64 @@ auto FrameObject::to_json() const -> std::string
     return oss.str();
 }
 
-auto FrameObject::from_json(const std::string& /*json*/) -> void
+auto FrameObject::from_json(const std::string& json) -> void
 {
-    // Stub: real JSON parsing would populate fields.
+    auto extract_string = [&](const std::string& key) -> std::string
+    {
+        const std::string needle = "\"" + key + "\":\"";
+        const auto pos = json.find(needle);
+        if (pos == std::string::npos)
+        {
+            return {};
+        }
+        const auto val_start = pos + needle.size();
+        const auto val_end = json.find('"', val_start);
+        if (val_end == std::string::npos)
+        {
+            return {};
+        }
+        return json.substr(val_start, val_end - val_start);
+    };
+
+    auto extract_number = [&](const std::string& key) -> double
+    {
+        const std::string needle = "\"" + key + "\":";
+        const auto pos = json.find(needle);
+        if (pos == std::string::npos)
+        {
+            return 0.0;
+        }
+        const auto val_start = pos + needle.size();
+        return std::stod(json.substr(val_start));
+    };
+
+    auto extract_bool = [&](const std::string& key) -> bool
+    {
+        const std::string needle = "\"" + key + "\":";
+        const auto pos = json.find(needle);
+        if (pos == std::string::npos)
+        {
+            return false;
+        }
+        const auto val_start = pos + needle.size();
+        return json.substr(val_start, 4) == "true";
+    };
+
+    set_title(extract_string("title"));
+    set_sequence_number(static_cast<int>(extract_number("sequence")));
+    set_show_title(extract_bool("show_title"));
+    resize(extract_number("width"), extract_number("height"));
+
+    const std::string bg_hex = extract_string("bg_color");
+    if (!bg_hex.empty())
+    {
+        set_background_color(CanvasColor::from_hex(bg_hex));
+    }
+    const std::string border_hex = extract_string("border_color");
+    if (!border_hex.empty())
+    {
+        set_border_color(CanvasColor::from_hex(border_hex));
+    }
 }
 
 } // namespace markamp::canvas

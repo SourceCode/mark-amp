@@ -13,16 +13,112 @@ RunConfigService::RunConfigService(EventBus& event_bus)
 
 auto RunConfigService::load_from_file(const std::string& path) -> bool
 {
-    const std::ifstream file(path);
+    std::ifstream file(path);
     if (!file.is_open())
     {
         return false;
     }
 
-    // Read JSON content (simplified: one config per object in an array)
-    // In production this would use a JSON library; for now, parse via EventBus signal
-    // Placeholder: mark as loaded
-    return true;
+    // Read entire file content.
+    std::string content((std::istreambuf_iterator<char>(file)),
+                         std::istreambuf_iterator<char>());
+
+    if (content.empty())
+    {
+        return false;
+    }
+
+    // Simple JSON field extraction (production would use nlohmann/json).
+    auto extract_string = [](const std::string& json, const std::string& key,
+                             std::size_t start_pos = 0) -> std::pair<std::string, std::size_t>
+    {
+        const std::string search = "\"" + key + "\"";
+        auto key_pos = json.find(search, start_pos);
+        if (key_pos == std::string::npos)
+        {
+            return {"", std::string::npos};
+        }
+        auto colon = json.find(':', key_pos + search.size());
+        if (colon == std::string::npos)
+        {
+            return {"", std::string::npos};
+        }
+        auto quote_start = json.find('"', colon + 1);
+        if (quote_start == std::string::npos)
+        {
+            return {"", std::string::npos};
+        }
+        auto quote_end = json.find('"', quote_start + 1);
+        if (quote_end == std::string::npos)
+        {
+            return {"", std::string::npos};
+        }
+        return {json.substr(quote_start + 1, quote_end - quote_start - 1), quote_end};
+    };
+
+    auto extract_bool = [](const std::string& json, const std::string& key,
+                           std::size_t start_pos = 0) -> bool
+    {
+        const std::string search = "\"" + key + "\"";
+        auto key_pos = json.find(search, start_pos);
+        if (key_pos == std::string::npos)
+        {
+            return false;
+        }
+        auto colon = json.find(':', key_pos + search.size());
+        if (colon == std::string::npos)
+        {
+            return false;
+        }
+        auto val_start = json.find_first_not_of(" \t\n\r", colon + 1);
+        if (val_start == std::string::npos)
+        {
+            return false;
+        }
+        return json.substr(val_start, 4) == "true";
+    };
+
+    // Parse configuration objects: find each config block between { and }.
+    configurations_.clear();
+    std::size_t pos = 0;
+    while (pos < content.size())
+    {
+        auto obj_start = content.find('{', pos);
+        if (obj_start == std::string::npos)
+        {
+            break;
+        }
+        auto obj_end = content.find('}', obj_start);
+        if (obj_end == std::string::npos)
+        {
+            break;
+        }
+
+        auto obj_text = content.substr(obj_start, obj_end - obj_start + 1);
+        auto [name_val, name_end] = extract_string(obj_text, "name");
+        auto [cmd_val, cmd_end] = extract_string(obj_text, "command");
+
+        if (!name_val.empty() && !cmd_val.empty())
+        {
+            RunConfiguration config;
+            config.name = name_val;
+            config.command = cmd_val;
+            config.type = extract_string(obj_text, "type").first;
+            config.build_before_run = extract_bool(obj_text, "build_before_run");
+            configurations_.push_back(std::move(config));
+        }
+
+        pos = obj_end + 1;
+    }
+
+    // Parse active configuration name.
+    auto [active_val, active_end] = extract_string(content, "active");
+    if (!active_val.empty())
+    {
+        active_name_ = active_val;
+    }
+
+    return !configurations_.empty();
 }
 
 auto RunConfigService::save_to_file(const std::string& path) const -> bool

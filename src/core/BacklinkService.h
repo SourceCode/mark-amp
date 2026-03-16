@@ -40,6 +40,18 @@ public:
 
     void rebuild_backlink_index();
 
+    /// (#153) Check if a block has any backlinks.
+    [[nodiscard]] auto has_backlinks(const BlockId& block_id) -> bool;
+
+    /// (#154) Return the total link count (backlinks + mentions) for a block.
+    [[nodiscard]] auto total_link_count(const BlockId& block_id) -> std::size_t;
+
+    /// (#178) Return the mention-to-total-link percentage for a block.
+    [[nodiscard]] auto mention_percentage(const BlockId& block_id) -> double;
+
+    /// (#179) Return the total link count across all indexed blocks.
+    [[nodiscard]] auto linked_block_count() -> std::size_t;
+
 private:
     EventBus& event_bus_;
     Config& config_;

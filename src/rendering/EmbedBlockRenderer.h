@@ -42,6 +42,12 @@ public:
     /// Extract block ID from embed syntax.
     [[nodiscard]] static auto extract_block_id(std::string_view embed_text) -> std::string;
 
+    /// Whether a block resolver callback has been set.
+    [[nodiscard]] auto has_resolver() const -> bool
+    {
+        return resolver_ != nullptr;
+    }
+
 private:
     BlockResolver resolver_;
 };

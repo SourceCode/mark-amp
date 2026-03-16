@@ -102,6 +102,62 @@ public:
     [[nodiscard]] auto to_json() const -> std::string override;
     auto from_json(const std::string& json) -> void override;
 
+    /// Whether the note has no text.
+    [[nodiscard]] auto is_empty() const noexcept -> bool
+    {
+        return text_.empty();
+    }
+
+    /// Whether the note has text content.
+    [[nodiscard]] auto has_text() const noexcept -> bool
+    {
+        return !text_.empty();
+    }
+
+    /// Whether any text formatting (bold/italic) is applied.
+    [[nodiscard]] auto is_formatted() const noexcept -> bool
+    {
+        return bold_ || italic_;
+    }
+
+    /// Whether a custom font family is set.
+    [[nodiscard]] auto has_custom_font() const noexcept -> bool
+    {
+        return font_family_ != "sans-serif";
+    }
+
+    // ── Batch 7 (#61-64) ──────────────────────────────────────────
+
+    /// (#61) Count of text lines (newlines + 1).
+    [[nodiscard]] auto text_line_count() const noexcept -> size_t
+    {
+        if (text_.empty()) { return 0; }
+        size_t count = 1;
+        for (const char chr : text_)
+        {
+            if (chr == '\n') { ++count; }
+        }
+        return count;
+    }
+
+    /// (#62) Whether the note is using the default yellow color.
+    [[nodiscard]] auto is_default_color() const noexcept -> bool
+    {
+        return note_color_ == StickyNoteColor::kYellow;
+    }
+
+    /// (#63) Area of the sticky note (width × height).
+    [[nodiscard]] auto area() const noexcept -> double
+    {
+        return width_ * height_;
+    }
+
+    /// (#64) Whether both pinned and locked.
+    [[nodiscard]] auto is_pinned_and_locked() const noexcept -> bool
+    {
+        return pinned_ && locked_;
+    }
+
 private:
     std::string text_;
     StickyNoteColor note_color_{StickyNoteColor::kYellow};

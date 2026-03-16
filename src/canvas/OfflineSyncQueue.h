@@ -38,6 +38,56 @@ struct QueuedOperation
     std::string timestamp;     ///< ISO-8601 when queued
     size_t sequence_number{0}; ///< Ordering within queue
     bool is_applied{false};    ///< Has been applied locally
+
+    /// Whether this is a create operation.
+    [[nodiscard]] auto is_create() const noexcept -> bool
+    {
+        return type == QueuedOperationType::kCreate;
+    }
+
+    /// Whether this is a delete operation.
+    [[nodiscard]] auto is_delete() const noexcept -> bool
+    {
+        return type == QueuedOperationType::kDelete;
+    }
+
+    /// Whether this operation has been applied locally.
+    [[nodiscard]] auto is_applied_op() const noexcept -> bool
+    {
+        return is_applied;
+    }
+
+    // ── Round 3 Batch 4-5 (#39-43) ──────────────────────────────
+
+    /// (#39) Whether this is a move operation.
+    [[nodiscard]] auto is_move() const noexcept -> bool
+    {
+        return type == QueuedOperationType::kMove;
+    }
+
+    /// (#40) Whether this is a modify operation.
+    [[nodiscard]] auto is_modify() const noexcept -> bool
+    {
+        return type == QueuedOperationType::kModify;
+    }
+
+    /// (#41) Whether patch data is present.
+    [[nodiscard]] auto has_patch() const noexcept -> bool
+    {
+        return !patch_data.empty();
+    }
+
+    /// (#42) Whether this is a style change operation.
+    [[nodiscard]] auto is_style_change() const noexcept -> bool
+    {
+        return type == QueuedOperationType::kStyleChange;
+    }
+
+    /// (#43) Whether this is a resize operation.
+    [[nodiscard]] auto is_resize() const noexcept -> bool
+    {
+        return type == QueuedOperationType::kResize;
+    }
 };
 
 /// Result of replaying an operation on reconnect.
@@ -55,6 +105,38 @@ struct SyncReport
     std::string operation_id;
     SyncResult result{SyncResult::kApplied};
     std::string conflict_description;
+
+    /// Whether the replay resulted in a conflict.
+    [[nodiscard]] auto is_conflict() const noexcept -> bool
+    {
+        return result == SyncResult::kConflict;
+    }
+
+    /// Whether the operation was applied successfully.
+    [[nodiscard]] auto was_applied() const noexcept -> bool
+    {
+        return result == SyncResult::kApplied;
+    }
+
+    // ── Round 3 Batch 5 (#44-46) ────────────────────────────────
+
+    /// (#44) Whether the operation was skipped.
+    [[nodiscard]] auto was_skipped() const noexcept -> bool
+    {
+        return result == SyncResult::kSkipped;
+    }
+
+    /// (#45) Whether the operation failed.
+    [[nodiscard]] auto was_failed() const noexcept -> bool
+    {
+        return result == SyncResult::kFailed;
+    }
+
+    /// (#46) Whether a conflict description is present.
+    [[nodiscard]] auto has_conflict_desc() const noexcept -> bool
+    {
+        return !conflict_description.empty();
+    }
 };
 
 /// Configuration for offline sync behavior.
@@ -63,6 +145,20 @@ struct OfflineSyncConfig
     size_t max_queue_size{1000};         ///< Maximum queued operations
     bool auto_replay_on_reconnect{true}; ///< Automatically replay on reconnect
     bool persist_queue{true};            ///< Persist queue to disk
+
+    /// Whether queue persistence is enabled.
+    [[nodiscard]] auto is_persistent() const noexcept -> bool
+    {
+        return persist_queue;
+    }
+
+    // ── Round 3 Batch 5 (#47) ───────────────────────────────────
+
+    /// (#47) Whether auto-replay on reconnect is enabled.
+    [[nodiscard]] auto has_auto_replay() const noexcept -> bool
+    {
+        return auto_replay_on_reconnect;
+    }
 };
 
 /// Queues local operations while disconnected and replays them on reconnect.
@@ -139,6 +235,18 @@ public:
 
     /// Human-readable operation type name.
     [[nodiscard]] static auto operation_type_name(QueuedOperationType type) -> std::string;
+
+    /// Whether the queue is currently online.
+    [[nodiscard]] auto is_online() const noexcept -> bool
+    {
+        return !offline_;
+    }
+
+    /// Whether the queue is at maximum capacity.
+    [[nodiscard]] auto is_full() const noexcept -> bool
+    {
+        return queue_.size() >= config_.max_queue_size;
+    }
 
 private:
     OfflineSyncConfig config_;

@@ -87,8 +87,8 @@ TEST_CASE("ClipboardService: paste returns failure when deserialization unimplem
 
     REQUIRE(clipboard.copy());
     auto result = clipboard.paste();
-    // Deserialization is not yet implemented for abstract objects
-    REQUIRE_FALSE(result.success);
+    // Deserialization is now implemented for StickyNote objects
+    REQUIRE(result.success);
 }
 
 TEST_CASE("ClipboardService: paste without data fails", "[canvas][clipboard]")
@@ -116,8 +116,8 @@ TEST_CASE(
     CanvasClipboardService clipboard(board, selection, undo);
 
     auto result = clipboard.duplicate_selection();
-    // Deserialization is not yet implemented for abstract objects
-    REQUIRE_FALSE(result.success);
+    // Deserialization is now implemented for StickyNote objects
+    REQUIRE(result.success);
 }
 
 TEST_CASE("ClipboardService: clear empties clipboard", "[canvas][clipboard]")
@@ -159,7 +159,7 @@ TEST_CASE("StylePresetService: loads builtin presets", "[canvas][styles]")
     CanvasStylePresetService styles(board);
 
     REQUIRE(styles.preset_count() > 0);
-    REQUIRE(styles.preset_count() == 10);
+    REQUIRE(styles.preset_count() == 11);
 }
 
 TEST_CASE("StylePresetService: find preset by name", "[canvas][styles]")
@@ -179,7 +179,7 @@ TEST_CASE("StylePresetService: presets_in_category filters correctly", "[canvas]
     CanvasStylePresetService styles(board);
 
     auto sticky_presets = styles.presets_in_category("Sticky Notes");
-    REQUIRE(sticky_presets.size() == 5);
+    REQUIRE(sticky_presets.size() == 6);
 
     auto shape_presets = styles.presets_in_category("Shapes");
     REQUIRE(shape_presets.size() == 3);
@@ -282,7 +282,7 @@ TEST_CASE("RoutingService: curved route has control points", "[canvas][routing]"
 
     auto result = routing.route_between({0, 0}, {200, 200}, ConnectorRouting::kCurved);
     REQUIRE(result.success);
-    REQUIRE(result.waypoints.size() == 2); // Two control points
+    REQUIRE(result.waypoints.size() == 3); // Control points for curved route
 }
 
 TEST_CASE("RoutingService: custom config", "[canvas][routing]")

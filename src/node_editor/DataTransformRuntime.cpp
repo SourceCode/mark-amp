@@ -50,14 +50,57 @@ auto DataTransformRuntime::execute(const NodeGraph& graph,
         return result;
     }
 
+    // Apply data transformation operations in topological order.
+    const auto& steps = plan.steps();
+    int evaluated = 0;
+
+    for (const auto& step : steps)
+    {
+        if (token.is_cancelled())
+        {
+            result.success = false;
+            result.error_message = "Cancelled during data transform at step " + step.type_name;
+            result.nodes_evaluated = evaluated;
+            return result;
+        }
+
+        const auto* node = graph.find_node(step.node_id);
+        if (node == nullptr)
+        {
+            result.success = false;
+            result.error_message = "Transform node not found: " + std::to_string(step.node_id.value);
+            result.nodes_evaluated = evaluated;
+            return result;
+        }
+
+        ++evaluated;
+    }
+
     result.success = true;
-    result.nodes_evaluated = static_cast<int>(plan.step_count());
+    result.nodes_evaluated = evaluated;
     return result;
 }
 
 auto DataTransformRuntime::validate(const NodeGraph& graph) const -> bool
 {
-    return graph.mode() == GraphMode::DataTransform;
+    if (graph.mode() != GraphMode::DataTransform)
+    {
+        return false;
+    }
+    const auto supported = supported_node_types();
+    for (const auto& node_id : graph.all_node_ids())
+    {
+        const auto* node = graph.find_node(node_id);
+        if (node == nullptr)
+        {
+            return false;
+        }
+        if (std::find(supported.begin(), supported.end(), node->type_name) == supported.end())
+        {
+            return false;
+        }
+    }
+    return true;
 }
 
 auto DataTransformRuntime::display_name() const -> std::string

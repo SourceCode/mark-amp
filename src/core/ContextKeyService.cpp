@@ -1,5 +1,7 @@
 #include "ContextKeyService.h"
 
+#include <algorithm>
+
 namespace markamp::core
 {
 
@@ -156,6 +158,23 @@ void ContextKeyService::fire_change(const std::string& key)
     {
         listener(key);
     }
+}
+
+// (#80) Return all defined context key names for debugging.
+auto ContextKeyService::get_all_keys() const -> std::vector<std::string>
+{
+    std::vector<std::string> keys;
+    for (const auto& scope : scopes_)
+    {
+        for (const auto& [key, val] : scope)
+        {
+            keys.push_back(key);
+        }
+    }
+    // Deduplicate
+    std::sort(keys.begin(), keys.end());
+    keys.erase(std::unique(keys.begin(), keys.end()), keys.end());
+    return keys;
 }
 
 } // namespace markamp::core

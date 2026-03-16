@@ -20,6 +20,20 @@ struct BudgetViolation
     double current_value{0.0};
     double threshold{0.0};
     std::string suggestion; ///< Remediation hint
+
+    /// Whether this violation is about frame timing.
+    [[nodiscard]] auto is_frame_time() const noexcept -> bool
+    {
+        return metric_name == "frame_time_ms";
+    }
+
+    // ── Round 2 Batch 7 (#70) ───────────────────────────────────
+
+    /// (#70) How much the value exceeds the threshold.
+    [[nodiscard]] auto overshoot() const noexcept -> double
+    {
+        return current_value - threshold;
+    }
 };
 
 /// Performance budget thresholds.
@@ -32,6 +46,20 @@ struct CanvasPerformanceBudget
     double max_memory_mb{512.0};
     double max_render_time_ms{12.0}; ///< Leave 4ms headroom for input
     size_t max_undo_stack_depth{200};
+
+    /// Whether the budget targets high FPS (>= 60).
+    [[nodiscard]] auto is_high_fps_target() const noexcept -> bool
+    {
+        return target_fps >= 60.0;
+    }
+
+    // ── Round 2 Batch 7 (#69) ───────────────────────────────────
+
+    /// (#69) Headroom between frame budget and max render time.
+    [[nodiscard]] auto frame_headroom_ms() const noexcept -> double
+    {
+        return frame_budget_ms - max_render_time_ms;
+    }
 };
 
 /// Snapshot of current performance metrics.
@@ -46,6 +74,32 @@ struct CanvasPerformanceSnapshot
     size_t undo_stack_depth{0};
     uint64_t frame_number{0};
     std::chrono::steady_clock::time_point timestamp;
+
+    /// Whether FPS is above the target (default 60).
+    [[nodiscard]] auto is_above_target(double target = 60.0) const noexcept -> bool
+    {
+        return fps >= target;
+    }
+
+    /// Whether the canvas has many objects (> 1000).
+    [[nodiscard]] auto is_heavy() const noexcept -> bool
+    {
+        return total_objects > 1000;
+    }
+
+    // ── Round 2 Batch 7 (#67-68) ──────────────────────────────────
+
+    /// (#67) Number of objects culled (not rendered).
+    [[nodiscard]] auto culled_objects() const noexcept -> size_t
+    {
+        return total_objects > visible_objects ? total_objects - visible_objects : 0;
+    }
+
+    /// (#68) Whether FPS is critically low (< 30).
+    [[nodiscard]] auto is_low_fps() const noexcept -> bool
+    {
+        return fps < 30.0;
+    }
 };
 
 /// Health status classification.
@@ -123,6 +177,18 @@ public:
 
     /// Reset all accumulated metrics.
     auto reset() -> void;
+
+    /// Whether the canvas is in a healthy state.
+    [[nodiscard]] auto is_healthy() const noexcept -> bool
+    {
+        return smoothed_fps_ >= budget_.target_fps * 0.9;
+    }
+
+    /// Whether the canvas is in a critical performance state.
+    [[nodiscard]] auto is_critical() const noexcept -> bool
+    {
+        return smoothed_fps_ < budget_.target_fps * 0.5;
+    }
 
 private:
     CanvasPerformanceBudget budget_;

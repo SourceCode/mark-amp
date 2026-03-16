@@ -55,6 +55,12 @@ public:
     /// Check if a point is within the lightbulb icon bounds.
     [[nodiscard]] auto HitTest(int click_x, int click_y) const -> bool;
 
+    /// Whether the primary action kind is a quick fix.
+    [[nodiscard]] auto is_quick_fix() const -> bool
+    {
+        return kind_ == core::CodeActionKind::kQuickFix;
+    }
+
 private:
     bool visible_{false};
     int line_{-1};

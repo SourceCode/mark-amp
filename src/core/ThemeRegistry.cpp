@@ -376,4 +376,32 @@ auto ThemeRegistry::generate_unique_id(const std::string& base_id) const -> std:
     return base_id + "-custom-" + std::to_string(millis);
 }
 
+// ── Batch 19-22 improvements (#133-134) ──
+
+auto ThemeRegistry::builtin_count() const -> std::size_t
+{
+    std::size_t count = 0;
+    for (const auto& theme : themes_)
+    {
+        if (is_builtin(theme.id))
+        {
+            ++count;
+        }
+    }
+    return count;
+}
+
+auto ThemeRegistry::custom_count() const -> std::size_t
+{
+    std::size_t count = 0;
+    for (const auto& theme : themes_)
+    {
+        if (!is_builtin(theme.id))
+        {
+            ++count;
+        }
+    }
+    return count;
+}
+
 } // namespace markamp::core

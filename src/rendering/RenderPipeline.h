@@ -206,6 +206,31 @@ public:
         return initialized_;
     }
 
+    /// Total viewport area in square pixels.
+    [[nodiscard]] auto viewport_area() const noexcept -> int64_t
+    {
+        return static_cast<int64_t>(viewport_width_) * viewport_height_;
+    }
+
+    /// Whether there are pending dirty regions.
+    [[nodiscard]] auto has_pending_dirty() const noexcept -> bool
+    {
+        return dirty_regions_.has_dirty();
+    }
+
+    /// Current line height estimate in pixels.
+    [[nodiscard]] auto line_height() const noexcept -> int32_t
+    {
+        return line_height_estimate_;
+    }
+
+    /// Whether dirty regions are pending (alias for has_pending_dirty).
+    [[nodiscard]] auto is_full_viewport_dirty() const noexcept -> bool
+    {
+        // Approximate: if dirty region count > 0, assume viewport needs work.
+        return dirty_regions_.count() > 0;
+    }
+
 private:
     DirtyRegionAccumulator dirty_regions_;
     ScrollBlit scroll_blit_;

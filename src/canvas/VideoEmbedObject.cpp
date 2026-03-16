@@ -87,9 +87,51 @@ auto VideoEmbedObject::to_json() const -> std::string
     return oss.str();
 }
 
-auto VideoEmbedObject::from_json(const std::string& /*json*/) -> void
+auto VideoEmbedObject::from_json(const std::string& json) -> void
 {
-    // Stub — real implementation with nlohmann::json or similar.
+    auto extract_string = [&](const std::string& key) -> std::string
+    {
+        const std::string needle = "\"" + key + "\":\"";
+        const auto pos = json.find(needle);
+        if (pos == std::string::npos)
+        {
+            return {};
+        }
+        const auto val_start = pos + needle.size();
+        const auto val_end = json.find('"', val_start);
+        if (val_end == std::string::npos)
+        {
+            return {};
+        }
+        return json.substr(val_start, val_end - val_start);
+    };
+
+    auto extract_number = [&](const std::string& key) -> double
+    {
+        const std::string needle = "\"" + key + "\":";
+        const auto pos = json.find(needle);
+        if (pos == std::string::npos)
+        {
+            return 0.0;
+        }
+        const auto val_start = pos + needle.size();
+        return std::stod(json.substr(val_start));
+    };
+
+    set_url(extract_string("url"));
+
+    OEmbedData data;
+    data.title = extract_string("title");
+    data.provider_name = extract_string("provider");
+    set_oembed(data);
+
+    set_display_dimensions(extract_number("width"), extract_number("height"));
+
+    const std::string local = extract_string("local_file");
+    if (!local.empty())
+    {
+        set_local_file(std::filesystem::path{local});
+    }
 }
 
 auto VideoEmbedObject::clone() const -> std::unique_ptr<CanvasObject>

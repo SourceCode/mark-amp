@@ -41,6 +41,17 @@ auto CanvasContextMenu::build_object_menu(ObjectId /*obj_id*/) const
     groups.push_back(build_clipboard_group());
     groups.push_back(build_arrange_group());
     groups.push_back(build_group_lock_group());
+
+    // Export selection group
+    ContextMenuGroup export_grp;
+    export_grp.group_name = "Export";
+    const bool has_sel = selection_.selection_count() > 0;
+    export_grp.actions.push_back(
+        {"export_selection_svg", "Export Selection as SVG", "", "download", has_sel, false, false});
+    export_grp.actions.push_back(
+        {"export_selection_json", "Export Selection as JSON", "", "file-json", has_sel, false, false});
+    groups.push_back(std::move(export_grp));
+
     groups.push_back(build_view_group());
     return groups;
 }

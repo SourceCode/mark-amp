@@ -116,6 +116,36 @@ public:
         return source_line_mappings_;
     }
 
+    /// Number of heading anchors collected from the most recent render.
+    [[nodiscard]] auto heading_count() const -> int
+    {
+        return static_cast<int>(heading_anchors_.size());
+    }
+
+    /// Whether a Mermaid renderer is configured.
+    [[nodiscard]] auto has_mermaid() const -> bool
+    {
+        return mermaid_renderer_ != nullptr && mermaid_enabled_;
+    }
+
+    /// Whether a math renderer is configured.
+    [[nodiscard]] auto has_math() const -> bool
+    {
+        return math_renderer_ != nullptr && math_enabled_;
+    }
+
+    /// Number of source-line mappings from the most recent render.
+    [[nodiscard]] auto source_line_count() const -> int
+    {
+        return static_cast<int>(source_line_mappings_.size());
+    }
+
+    /// Whether a base path for image resolution is set.
+    [[nodiscard]] auto has_base_path() const -> bool
+    {
+        return !base_path_.empty();
+    }
+
     // ── Phase 8: Code Block Controls ─────────────────────
 
     /// Set code block rendering configuration.

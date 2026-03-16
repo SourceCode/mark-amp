@@ -41,6 +41,20 @@ struct SelectionRect
     double y{0.0};
     double width{100.0};
     double height{100.0};
+
+    // ── Round 5 Batch 4 (#34-35) ────────────────────────────────
+
+    /// (#34) Area of the selection rect.
+    [[nodiscard]] auto area() const noexcept -> double
+    {
+        return width * height;
+    }
+
+    /// (#35) Whether an object ID is set.
+    [[nodiscard]] auto has_id() const noexcept -> bool
+    {
+        return !object_id.empty();
+    }
 };
 
 /// Testable model for Selection, Transform & Alignment (Phase 48).
@@ -84,6 +98,38 @@ private:
     double pivot_x_{0.5};
     double pivot_y_{0.5};
     HandleType active_handle_{HandleType::kMove};
+
+    // ── Round 5 Batch 4 (#36-40) ────────────────────────────────
+
+    /// (#36) Whether objects are selected.
+    [[nodiscard]] auto has_selection() const noexcept -> bool
+    {
+        return !selection_.empty();
+    }
+
+    /// (#37) Whether the active handle is move.
+    [[nodiscard]] auto is_move() const noexcept -> bool
+    {
+        return active_handle_ == HandleType::kMove;
+    }
+
+    /// (#38) Whether the active handle is scale.
+    [[nodiscard]] auto is_scale() const noexcept -> bool
+    {
+        return active_handle_ == HandleType::kScale;
+    }
+
+    /// (#39) Whether the active handle is rotate.
+    [[nodiscard]] auto is_rotate() const noexcept -> bool
+    {
+        return active_handle_ == HandleType::kRotate;
+    }
+
+    /// (#40) Whether pivot is at center.
+    [[nodiscard]] auto is_center_pivot() const noexcept -> bool
+    {
+        return pivot_x_ == 0.5 && pivot_y_ == 0.5;
+    }
 };
 
 } // namespace markamp::canvas

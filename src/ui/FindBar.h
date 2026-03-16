@@ -107,6 +107,26 @@ public:
     /// Set total match count and optionally current match.
     void SetMatchCount(int total, int current = 1);
 
+    // ── 100 Editor UX/UI Improvements: Batch 7 — Find Bar Accessors (#68–#70) ──
+
+    /// #68 True when there are search matches.
+    [[nodiscard]] inline auto has_matches() const noexcept -> bool
+    {
+        return state_.total_matches > 0;
+    }
+
+    /// #69 True when case-sensitive search is enabled.
+    [[nodiscard]] inline auto is_case_sensitive() const noexcept -> bool
+    {
+        return state_.case_sensitive;
+    }
+
+    /// #70 True when regex search mode is enabled.
+    [[nodiscard]] inline auto is_regex_mode() const noexcept -> bool
+    {
+        return state_.use_regex;
+    }
+
 private:
     core::ThemeEngine& theme_engine_;
     [[maybe_unused]] core::EventBus& event_bus_;

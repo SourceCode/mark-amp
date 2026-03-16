@@ -23,6 +23,26 @@ struct RoutingConfig
     bool avoid_objects{true};          ///< Whether to route around objects
     bool prefer_straight{true};        ///< Prefer straighter paths when possible
     int max_waypoints{20};             ///< Maximum waypoints for a single route
+
+    /// Whether obstacle avoidance routing is enabled.
+    [[nodiscard]] auto is_avoid_enabled() const noexcept -> bool
+    {
+        return avoid_objects;
+    }
+
+    // ── Round 3 Batch 2 (#11-12) ────────────────────────────────
+
+    /// (#11) Whether straight paths are preferred.
+    [[nodiscard]] auto is_straight_preferred() const noexcept -> bool
+    {
+        return prefer_straight;
+    }
+
+    /// (#12) Whether obstacle padding is configured.
+    [[nodiscard]] auto has_obstacle_padding() const noexcept -> bool
+    {
+        return obstacle_padding > 0.0;
+    }
 };
 
 /// Result of a routing computation.
@@ -33,6 +53,32 @@ struct RoutingResult
     AnchorPosition start_anchor{AnchorPosition::kAuto};
     AnchorPosition end_anchor{AnchorPosition::kAuto};
     double total_length{0.0};
+
+    /// Whether the route has computed waypoints.
+    [[nodiscard]] auto has_waypoints() const noexcept -> bool
+    {
+        return !waypoints.empty();
+    }
+
+    // ── Round 3 Batch 2 (#13-15) ────────────────────────────────
+
+    /// (#13) Whether the routing computation failed.
+    [[nodiscard]] auto failed() const noexcept -> bool
+    {
+        return !success;
+    }
+
+    /// (#14) Number of computed waypoints.
+    [[nodiscard]] auto waypoint_count() const noexcept -> size_t
+    {
+        return waypoints.size();
+    }
+
+    /// (#15) Whether the route is a direct connection (≤ 2 waypoints).
+    [[nodiscard]] auto is_direct() const noexcept -> bool
+    {
+        return waypoints.size() <= 2;
+    }
 };
 
 /// Anchor suggestion for a connector endpoint.
@@ -95,6 +141,9 @@ public:
 
     [[nodiscard]] auto config() const -> const RoutingConfig&;
     auto set_config(const RoutingConfig& config) -> void;
+
+    /// (#89) Count the number of connector objects on the board.
+    [[nodiscard]] auto connector_count() const -> std::size_t;
 
 private:
     const Board& board_;

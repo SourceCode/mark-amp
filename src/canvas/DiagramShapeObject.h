@@ -95,6 +95,26 @@ private:
     double height_{120.0};
     CanvasColor fill_color_{255, 255, 200, 255};
     CanvasColor stroke_color_{0, 0, 0, 255};
+
+    // ── Round 3 Batch 10 (#97-99) ────────────────────────────────
+
+    /// (#97) Whether this is a UML diagram shape.
+    [[nodiscard]] auto is_uml() const noexcept -> bool
+    {
+        return library_ == DiagramLibrary::UML;
+    }
+
+    /// (#98) Whether this is a BPMN diagram shape.
+    [[nodiscard]] auto is_bpmn() const noexcept -> bool
+    {
+        return library_ == DiagramLibrary::BPMN;
+    }
+
+    /// (#99) Whether compartments are populated.
+    [[nodiscard]] auto has_compartments() const noexcept -> bool
+    {
+        return !compartments_.empty();
+    }
 };
 
 } // namespace markamp::canvas

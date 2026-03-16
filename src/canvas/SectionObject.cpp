@@ -135,9 +135,58 @@ auto SectionObject::to_json() const -> std::string
     return oss.str();
 }
 
-auto SectionObject::from_json(const std::string& /*json*/) -> void
+auto SectionObject::from_json(const std::string& json) -> void
 {
-    // Stub: real JSON parsing would populate fields.
+    auto extract_string = [&](const std::string& key) -> std::string
+    {
+        const std::string needle = "\"" + key + "\":\"";
+        const auto pos = json.find(needle);
+        if (pos == std::string::npos)
+        {
+            return {};
+        }
+        const auto val_start = pos + needle.size();
+        const auto val_end = json.find('"', val_start);
+        if (val_end == std::string::npos)
+        {
+            return {};
+        }
+        return json.substr(val_start, val_end - val_start);
+    };
+
+    auto extract_number = [&](const std::string& key) -> double
+    {
+        const std::string needle = "\"" + key + "\":";
+        const auto pos = json.find(needle);
+        if (pos == std::string::npos)
+        {
+            return 0.0;
+        }
+        const auto val_start = pos + needle.size();
+        return std::stod(json.substr(val_start));
+    };
+
+    auto extract_bool = [&](const std::string& key) -> bool
+    {
+        const std::string needle = "\"" + key + "\":";
+        const auto pos = json.find(needle);
+        if (pos == std::string::npos)
+        {
+            return false;
+        }
+        const auto val_start = pos + needle.size();
+        return json.substr(val_start, 4) == "true";
+    };
+
+    set_title(extract_string("title"));
+    set_collapsed(extract_bool("collapsed"));
+    resize(extract_number("width"), extract_number("height"));
+
+    const std::string tint_hex = extract_string("tint_color");
+    if (!tint_hex.empty())
+    {
+        set_tint_color(CanvasColor::from_hex(tint_hex));
+    }
 }
 
 } // namespace markamp::canvas

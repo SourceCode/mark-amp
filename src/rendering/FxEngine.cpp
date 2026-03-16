@@ -202,6 +202,21 @@ auto FxEngine::has_pass_type(FxPassType pass_type) const noexcept -> bool
         passes_, [pass_type](const auto& pass_ptr) { return pass_ptr->type() == pass_type; });
 }
 
+// (#67) Return unique pass types currently in the pipeline.
+auto FxEngine::pass_types() const -> std::vector<FxPassType>
+{
+    std::vector<FxPassType> types;
+    for (const auto& pass : passes_)
+    {
+        const auto pass_t = pass->type();
+        if (std::ranges::find(types, pass_t) == types.end())
+        {
+            types.push_back(pass_t);
+        }
+    }
+    return types;
+}
+
 auto FxEngine::tier_name(QualityTier tier) -> std::string_view
 {
     switch (tier)

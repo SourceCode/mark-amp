@@ -27,6 +27,9 @@ public:
 
     /// Recursively ungroup all nested groups under the given group.
     static auto flatten_group(Board& board, ObjectId group_id) -> void;
+
+    /// (#83) Check if an object belongs to any group.
+    [[nodiscard]] static auto is_grouped(const Board& board, ObjectId obj_id) -> bool;
 };
 
 } // namespace markamp::canvas

@@ -28,6 +28,12 @@ public:
 
     /// Get the MIME type for an audio file extension.
     [[nodiscard]] static auto mime_type(std::string_view extension) -> std::string_view;
+
+    /// Number of supported audio file extensions.
+    [[nodiscard]] static constexpr auto supported_extension_count() noexcept -> int
+    {
+        return 7;
+    }
 };
 
 } // namespace markamp::rendering

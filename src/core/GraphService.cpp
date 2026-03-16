@@ -1,5 +1,6 @@
 #include "GraphService.h"
 
+#include "Events.h"
 #include "ReferenceScanner.h"
 
 #include <algorithm>
@@ -404,9 +405,24 @@ auto GraphService::bfs_local(const std::string& center_id, int depth) const -> s
 
 void GraphService::subscribe_to_changes()
 {
-    // EventBus subscriptions for cache invalidation will be wired
-    // when the service is registered with the application.
-    // Placeholder: actual subscriptions depend on event handler registration API.
+    // Subscribe to file change events for real-time graph cache invalidation.
+    [[maybe_unused]] auto sub1 = event_bus_.subscribe<events::FileChangedEvent>(
+        [this](const events::FileChangedEvent& /*evt*/)
+        {
+            invalidate_cache();
+        });
+
+    [[maybe_unused]] auto sub2 = event_bus_.subscribe<events::FileContentChangedEvent>(
+        [this](const events::FileContentChangedEvent& /*evt*/)
+        {
+            invalidate_cache();
+        });
+
+    [[maybe_unused]] auto sub3 = event_bus_.subscribe<events::FilesTrashedEvent>(
+        [this](const events::FilesTrashedEvent& /*evt*/)
+        {
+            invalidate_cache();
+        });
 }
 
 } // namespace markamp::core

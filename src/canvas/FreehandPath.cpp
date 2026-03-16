@@ -357,9 +357,80 @@ auto FreehandPath::to_json() const -> std::string
     return oss.str();
 }
 
-auto FreehandPath::from_json(const std::string& /*json*/) -> void
+auto FreehandPath::from_json(const std::string& json) -> void
 {
-    // Stub: real JSON parsing would populate fields.
+    auto extract_number = [&](const std::string& key) -> double
+    {
+        const std::string needle = "\"" + key + "\":";
+        const auto pos = json.find(needle);
+        if (pos == std::string::npos)
+        {
+            return 0.0;
+        }
+        const auto val_start = pos + needle.size();
+        return std::stod(json.substr(val_start));
+    };
+
+    auto extract_string = [&](const std::string& key) -> std::string
+    {
+        const std::string needle = "\"" + key + "\":\"";
+        const auto pos = json.find(needle);
+        if (pos == std::string::npos)
+        {
+            return {};
+        }
+        const auto val_start = pos + needle.size();
+        const auto val_end = json.find('"', val_start);
+        if (val_end == std::string::npos)
+        {
+            return {};
+        }
+        return json.substr(val_start, val_end - val_start);
+    };
+
+    set_stroke_width(extract_number("stroke_width"));
+    set_smoothing_factor(extract_number("smoothing"));
+
+    const std::string hex_color = extract_string("stroke_color");
+    if (!hex_color.empty())
+    {
+        set_stroke_color(CanvasColor::from_hex(hex_color));
+    }
+
+    // Parse points array: "points":[{"x":1,"y":2},...]
+    points_.clear();
+    const std::string points_key = "\"points\":[";
+    auto pts_pos = json.find(points_key);
+    if (pts_pos != std::string::npos)
+    {
+        auto cursor = pts_pos + points_key.size();
+        while (cursor < json.size())
+        {
+            const auto x_pos = json.find("\"x\":", cursor);
+            if (x_pos == std::string::npos)
+            {
+                break;
+            }
+            const double px = std::stod(json.substr(x_pos + 4));
+            const auto y_pos = json.find("\"y\":", x_pos);
+            if (y_pos == std::string::npos)
+            {
+                break;
+            }
+            const double py = std::stod(json.substr(y_pos + 4));
+            points_.push_back({px, py});
+
+            // Advance past the closing brace of this point object.
+            const auto brace = json.find('}', y_pos);
+            if (brace == std::string::npos)
+            {
+                break;
+            }
+            cursor = brace + 1;
+        }
+    }
+
+    mark_dirty();
 }
 
 } // namespace markamp::canvas

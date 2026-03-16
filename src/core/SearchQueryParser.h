@@ -65,6 +65,12 @@ public:
     /// Convenience: parse + build in one step.
     [[nodiscard]] auto parse_and_build(const std::string& input) const -> SearchQuery;
 
+    /// (#151) Return the number of parsed tokens in a query string.
+    [[nodiscard]] auto token_count(const std::string& input) const -> std::size_t;
+
+    /// (#152) Check if a query string contains quoted phrase tokens.
+    [[nodiscard]] auto has_phrases(const std::string& input) const -> bool;
+
 private:
     [[nodiscard]] auto parse_quoted(const std::string& input, size_t& pos) const
         -> ParsedQueryToken;

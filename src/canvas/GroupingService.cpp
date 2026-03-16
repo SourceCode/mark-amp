@@ -115,4 +115,15 @@ auto GroupingService::flatten_group(Board& board, ObjectId group_id) -> void
     ungroup(board, group_id);
 }
 
+// (#83) Check if an object is part of any group.
+auto GroupingService::is_grouped(const Board& board, ObjectId obj_id) -> bool
+{
+    const auto* obj_ptr = board.get_object(obj_id);
+    if (obj_ptr == nullptr)
+    {
+        return false;
+    }
+    return obj_ptr->parent_id() != kInvalidObjectId;
+}
+
 } // namespace markamp::canvas

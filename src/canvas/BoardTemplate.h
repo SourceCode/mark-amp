@@ -26,6 +26,32 @@ struct TemplateInfo
     std::vector<std::string> tags; // (#29) searchable tags
     double rating{0.0};            // (#29) user rating 0-5
     int usage_count{0};            // (#29) how often used
+
+    // ── Round 3 Batch 8 (#75-78) ────────────────────────────────
+
+    /// (#75) Whether a description is provided.
+    [[nodiscard]] auto has_description() const noexcept -> bool
+    {
+        return !description.empty();
+    }
+
+    /// (#76) Whether a thumbnail path is set.
+    [[nodiscard]] auto has_thumbnail() const noexcept -> bool
+    {
+        return !thumbnail_path.empty();
+    }
+
+    /// (#77) Whether tags are present.
+    [[nodiscard]] auto has_tags() const noexcept -> bool
+    {
+        return !tags.empty();
+    }
+
+    /// (#78) Whether the template has been rated.
+    [[nodiscard]] auto is_rated() const noexcept -> bool
+    {
+        return rating > 0.0;
+    }
 };
 
 /// Manages a library of board templates (built-in and user-created).

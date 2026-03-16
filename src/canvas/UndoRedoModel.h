@@ -13,6 +13,20 @@ struct UndoAction
     std::string label;
     std::string action_type;
     int byte_estimate{0};
+
+    // ── Round 5 Batch 7 (#61-62) ────────────────────────────────
+
+    /// (#61) Whether a label is set.
+    [[nodiscard]] auto has_label() const noexcept -> bool
+    {
+        return !label.empty();
+    }
+
+    /// (#62) Whether an action type is set.
+    [[nodiscard]] auto has_type() const noexcept -> bool
+    {
+        return !action_type.empty();
+    }
 };
 
 /// Testable model for Undo/Redo Transaction System (Phase 67).
@@ -65,6 +79,26 @@ private:
     bool in_compound_{false};
     std::string compound_label_;
     std::vector<UndoAction> compound_buffer_;
+
+    // ── Round 5 Batch 7 (#63-65) ────────────────────────────────
+
+    /// (#63) Whether both stacks are empty.
+    [[nodiscard]] auto is_empty() const noexcept -> bool
+    {
+        return undo_stack_.empty() && redo_stack_.empty();
+    }
+
+    /// (#64) Whether a compound label is set.
+    [[nodiscard]] auto has_compound_label() const noexcept -> bool
+    {
+        return !compound_label_.empty();
+    }
+
+    /// (#65) Whether undo stack is near the limit.
+    [[nodiscard]] auto is_near_limit() const noexcept -> bool
+    {
+        return static_cast<int>(undo_stack_.size()) >= max_steps_ - 10;
+    }
 };
 
 } // namespace markamp::canvas

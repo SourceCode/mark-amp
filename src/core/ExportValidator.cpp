@@ -377,4 +377,11 @@ auto ExportValidator::extract_link_targets(const std::string& content)
     return results;
 }
 
+// (#100) Return the number of available validation checks.
+auto ExportValidator::check_count() -> std::size_t
+{
+    // links, assets, frontmatter, format_compatibility, size, duplicate_headings
+    return 6;
+}
+
 } // namespace markamp::core

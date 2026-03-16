@@ -31,6 +31,18 @@ struct LockedRegion
     std::string locked_by;    ///< Participant who locked it
     bool allow_view{true};    ///< Others can still view
     bool allow_select{false}; ///< Others can select objects (read-only)
+
+    /// Whether the region is view-only (can view but not select).
+    [[nodiscard]] auto is_view_only() const noexcept -> bool
+    {
+        return allow_view && !allow_select;
+    }
+
+    /// Whether the region is fully locked (no view, no select).
+    [[nodiscard]] auto is_fully_locked() const noexcept -> bool
+    {
+        return !allow_view && !allow_select;
+    }
 };
 
 /// Result of a lock operation.
@@ -38,6 +50,12 @@ struct LockResult
 {
     bool success{false};
     std::string error_message;
+
+    /// Whether the lock operation failed.
+    [[nodiscard]] auto failed() const noexcept -> bool
+    {
+        return !success;
+    }
 };
 
 /// Controls board-level and region-level locking for collaborative sessions.
@@ -116,6 +134,38 @@ public:
 
     /// Human-readable lock scope name.
     [[nodiscard]] static auto scope_name(LockScope scope) -> std::string;
+
+    /// Whether any region locks exist.
+    [[nodiscard]] auto has_region_locks() const noexcept -> bool
+    {
+        return !regions_.empty();
+    }
+
+    /// Whether the board is completely unlocked.
+    [[nodiscard]] auto is_unlocked() const noexcept -> bool
+    {
+        return !board_locked_ && regions_.empty();
+    }
+
+    // ── Round 2 Batch 10 (#96-98) ────────────────────────────────
+
+    /// (#96) Whether the entire board is locked.
+    [[nodiscard]] auto is_full_board_lock() const noexcept -> bool
+    {
+        return board_locked_;
+    }
+
+    /// (#97) Whether any regions (but not the full board) are locked.
+    [[nodiscard]] auto is_region_lock_only() const noexcept -> bool
+    {
+        return !board_locked_ && !regions_.empty();
+    }
+
+    /// (#98) Whether no lock scope is active.
+    [[nodiscard]] auto is_no_lock() const noexcept -> bool
+    {
+        return !board_locked_ && regions_.empty();
+    }
 
 private:
     core::EventBus& event_bus_;

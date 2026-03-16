@@ -18,6 +18,12 @@ struct BoardInfo
     std::string name;
     std::filesystem::path path;
     std::chrono::system_clock::time_point modified_at; // (#31)
+
+    /// Whether a filesystem path is set.
+    [[nodiscard]] auto has_path() const noexcept -> bool
+    {
+        return !path.empty();
+    }
 };
 
 /// Scans a workspace directory for board files and provides navigation
@@ -54,6 +60,27 @@ public:
 
     /// Sort boards alphabetically by name.
     auto sort_boards_by_name() -> void;
+
+    /// (#97) Return the total number of discovered boards.
+    [[nodiscard]] auto board_count() const -> std::size_t;
+
+    /// Whether any boards have been discovered.
+    [[nodiscard]] auto has_boards() const noexcept -> bool
+    {
+        return !boards_.empty();
+    }
+
+    /// Whether any boards are marked as favorites.
+    [[nodiscard]] auto has_favorites() const noexcept -> bool
+    {
+        return !favorite_ids_.empty();
+    }
+
+    /// Whether an open callback is registered.
+    [[nodiscard]] auto has_open_callback() const noexcept -> bool
+    {
+        return on_board_open_ != nullptr;
+    }
 
 private:
     std::vector<BoardInfo> boards_;

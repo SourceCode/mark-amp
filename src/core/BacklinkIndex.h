@@ -99,6 +99,21 @@ public:
     [[nodiscard]] auto get_most_linked(int limit = 20) const
         -> std::vector<std::pair<std::string, int>>;
 
+    /// (#109) Return the number of documents tracked in the forward index.
+    [[nodiscard]] auto indexed_document_count() const -> std::size_t;
+
+    /// (#110) Return the total number of links across all documents.
+    [[nodiscard]] auto total_link_count() const -> std::size_t;
+
+    /// (#168) Check if a document has any backlinks (incoming wikilinks).
+    [[nodiscard]] auto has_backlinks(const std::string& document_id) const -> bool;
+
+    /// (#169) Return the number of orphan documents.
+    [[nodiscard]] auto orphan_count() const -> std::size_t;
+
+    /// (#170) Return the number of outgoing links from a document.
+    [[nodiscard]] auto forward_link_count(const std::string& document_id) const -> std::size_t;
+
 private:
     EventBus& event_bus_;
     VaultService& vault_service_;

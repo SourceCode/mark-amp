@@ -19,7 +19,8 @@ enum class RecognizedShape : uint8_t
     kRectangle,
     kEllipse,
     kTriangle,
-    kArrow
+    kArrow,
+    kStar
 };
 
 /// Result of shape recognition analysis.
@@ -29,6 +30,38 @@ struct RecognitionResult
     double confidence{0.0}; ///< 0.0–1.0, higher = better match.
     AABB bounds;            ///< Bounding box of the detected shape.
     double angle{0.0};      ///< Rotation angle in radians (for lines/arrows).
+
+    /// Whether a shape was recognized.
+    [[nodiscard]] auto is_recognized() const noexcept -> bool
+    {
+        return shape != RecognizedShape::kNone;
+    }
+
+    /// Whether the recognition confidence meets the minimum threshold (0.65).
+    [[nodiscard]] auto is_confident() const noexcept -> bool
+    {
+        return confidence >= 0.65;
+    }
+
+    // ── Round 3 Batch 9 (#85-87) ────────────────────────────────
+
+    /// (#85) Whether a line was recognized.
+    [[nodiscard]] auto is_line() const noexcept -> bool
+    {
+        return shape == RecognizedShape::kLine;
+    }
+
+    /// (#86) Whether a rectangle was recognized.
+    [[nodiscard]] auto is_rectangle() const noexcept -> bool
+    {
+        return shape == RecognizedShape::kRectangle;
+    }
+
+    /// (#87) Whether an ellipse was recognized.
+    [[nodiscard]] auto is_ellipse() const noexcept -> bool
+    {
+        return shape == RecognizedShape::kEllipse;
+    }
 };
 
 /// Analyzes freehand point sequences and detects basic geometric shapes.
@@ -46,6 +79,9 @@ public:
     [[nodiscard]] static auto to_shape_object(const RecognitionResult& result)
         -> std::unique_ptr<ShapeObject>;
 
+    /// (#103) Return the number of shape types the recognizer supports.
+    [[nodiscard]] static auto supported_shape_count() -> std::size_t;
+
 private:
     /// Individual shape detectors. Each returns a confidence score (0.0–1.0).
     [[nodiscard]] static auto detect_line(const std::vector<Point2D>& points,
@@ -62,6 +98,9 @@ private:
 
     [[nodiscard]] static auto detect_arrow(const std::vector<Point2D>& points,
                                            RecognitionResult& result) -> double;
+
+    [[nodiscard]] static auto detect_star(const std::vector<Point2D>& points,
+                                          RecognitionResult& result) -> double;
 
     /// Helper: compute centroid of a point sequence.
     [[nodiscard]] static auto centroid(const std::vector<Point2D>& points) -> Point2D;

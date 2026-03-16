@@ -223,20 +223,33 @@ auto MergeEngine::merge(std::string_view base_text,
                     conflict.yours_lines.push_back(yours[static_cast<size_t>(y)]);
                 }
 
-                // Insert conflict markers as placeholder lines.
+                // Insert conflict markers with line-level context and origin labels.
+                // Show the original base content for easier resolution.
                 result.lines.push_back(
-                    {.content = "<<<<<<< YOURS", .origin = MergeOrigin::Conflict});
+                    {.content = "<<<<<<< YOURS (local changes)",
+                     .origin = MergeOrigin::Conflict});
                 for (const auto& line : conflict.yours_lines)
                 {
                     result.lines.push_back({.content = line, .origin = MergeOrigin::Yours});
                 }
-                result.lines.push_back({.content = "=======", .origin = MergeOrigin::Conflict});
+                result.lines.push_back(
+                    {.content = "||||||| BASE (original, lines " +
+                                std::to_string(conflict_base_start + 1) + "-" +
+                                std::to_string(conflict_base_end) + ")",
+                     .origin = MergeOrigin::Conflict});
+                for (const auto& line : conflict.base_lines)
+                {
+                    result.lines.push_back({.content = line, .origin = MergeOrigin::Base});
+                }
+                result.lines.push_back(
+                    {.content = "=======", .origin = MergeOrigin::Conflict});
                 for (const auto& line : conflict.theirs_lines)
                 {
                     result.lines.push_back({.content = line, .origin = MergeOrigin::Theirs});
                 }
                 result.lines.push_back(
-                    {.content = ">>>>>>> THEIRS", .origin = MergeOrigin::Conflict});
+                    {.content = ">>>>>>> THEIRS (incoming changes)",
+                     .origin = MergeOrigin::Conflict});
 
                 conflict.end_line = static_cast<int>(result.lines.size());
                 result.conflicts.push_back(std::move(conflict));

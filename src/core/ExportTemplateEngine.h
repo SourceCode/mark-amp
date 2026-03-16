@@ -117,6 +117,37 @@ public:
     /// Return the template_id string for a BuiltinTemplate enum value.
     [[nodiscard]] static auto builtin_id(BuiltinTemplate bt) -> std::string;
 
+    /// (#96) Return the total number of registered templates.
+    [[nodiscard]] auto template_count() const -> std::size_t;
+
+    // ── Batch 33 (#193-195) ─────────────────────────────────
+
+    /// (#193) Return the number of built-in templates.
+    [[nodiscard]] auto builtin_count() const -> std::size_t
+    {
+        std::size_t count = 0;
+        for (const auto& [_, tpl] : templates_)
+        {
+            if (tpl.is_builtin)
+            {
+                ++count;
+            }
+        }
+        return count;
+    }
+
+    /// (#194) Check if a template with the given ID is registered.
+    [[nodiscard]] auto has_template(const std::string& template_id) const -> bool
+    {
+        return templates_.contains(template_id);
+    }
+
+    /// (#195) Return the number of user-added (non-builtin) templates.
+    [[nodiscard]] auto custom_template_count() const -> std::size_t
+    {
+        return template_count() - builtin_count();
+    }
+
 private:
     std::unordered_map<std::string, ExportTemplate> templates_;
 

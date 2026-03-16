@@ -15,6 +15,26 @@ struct ChecklistItem
 {
     std::string text;
     bool done{false};
+
+    // ── Round 3 Batch 2 (#16-18) ────────────────────────────────
+
+    /// (#16) Whether this item is completed.
+    [[nodiscard]] auto is_done() const noexcept -> bool
+    {
+        return done;
+    }
+
+    /// (#17) Whether this item is still pending.
+    [[nodiscard]] auto is_pending() const noexcept -> bool
+    {
+        return !done;
+    }
+
+    /// (#18) Whether this item has text content.
+    [[nodiscard]] auto has_text() const noexcept -> bool
+    {
+        return !text.empty();
+    }
 };
 
 /// Sort order for cards within a Kanban column.
@@ -105,6 +125,50 @@ private:
     int attachment_count_{0};
     int comment_count_{0};
     bool archived_{false};
+
+    // ── Round 3 Batch 2-3 (#19-25) ──────────────────────────────
+
+    /// (#19) Whether the card has a description.
+    [[nodiscard]] auto has_description_text() const noexcept -> bool
+    {
+        return !description_.empty();
+    }
+
+    /// (#20) Whether an assignee is set.
+    [[nodiscard]] auto has_assignee_set() const noexcept -> bool
+    {
+        return !assignee_.empty();
+    }
+
+    /// (#21) Whether a due date is set.
+    [[nodiscard]] auto has_due_date_set() const noexcept -> bool
+    {
+        return !due_date_.empty();
+    }
+
+    /// (#22) Whether the card has labels.
+    [[nodiscard]] auto has_labels_set() const noexcept -> bool
+    {
+        return !labels_.empty();
+    }
+
+    /// (#23) Whether the card has a checklist.
+    [[nodiscard]] auto has_checklist_items() const noexcept -> bool
+    {
+        return !checklist_.empty();
+    }
+
+    /// (#24) Whether story points are assigned.
+    [[nodiscard]] auto has_story_points_set() const noexcept -> bool
+    {
+        return story_points_ > 0;
+    }
+
+    /// (#25) Whether the card has been completed.
+    [[nodiscard]] auto is_completed() const noexcept -> bool
+    {
+        return !completed_at_.empty();
+    }
 };
 
 /// A column in a Kanban board containing an ordered list of cards.
@@ -161,6 +225,20 @@ private:
     bool collapsed_{false};
     KanbanSortOrder sort_order_{KanbanSortOrder::kManual};
     std::string description_;
+
+    // ── Round 3 Batch 3 (#26-27) ────────────────────────────────
+
+    /// (#26) Whether a WIP limit is set.
+    [[nodiscard]] auto has_wip_limit_set() const noexcept -> bool
+    {
+        return wip_limit_ > 0;
+    }
+
+    /// (#27) Whether the column has no cards.
+    [[nodiscard]] auto is_empty_column() const noexcept -> bool
+    {
+        return card_ids_.empty();
+    }
 };
 
 } // namespace markamp::canvas

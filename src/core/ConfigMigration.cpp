@@ -67,4 +67,37 @@ auto ConfigMigration::rules() const -> const std::vector<MigrationRule>&
     return rules_;
 }
 
+// (#91) Check if a migration rule exists for a given old key.
+auto ConfigMigration::has_rule(const std::string& old_key) const -> bool
+{
+    for (const auto& rule : rules_)
+    {
+        if (rule.old_key == old_key)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+// ── Batch 19-22 improvements (#122-123) ──
+
+auto ConfigMigration::pending_count(const Config& config) const -> std::size_t
+{
+    std::size_t count = 0;
+    for (const auto& rule : rules_)
+    {
+        if (config.has_key(rule.old_key))
+        {
+            ++count;
+        }
+    }
+    return count;
+}
+
+void ConfigMigration::clear_rules()
+{
+    rules_.clear();
+}
+
 } // namespace markamp::core

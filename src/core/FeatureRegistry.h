@@ -57,6 +57,9 @@ public:
     /// Get all registered feature infos.
     [[nodiscard]] auto get_all_features() const -> std::vector<FeatureInfo>;
 
+    /// (#75) Get only enabled features.
+    [[nodiscard]] auto get_enabled_features() const -> std::vector<FeatureInfo>;
+
     /// Get a single feature's info. Returns nullptr if not found.
     [[nodiscard]] auto get_feature(const std::string& feature_id) const -> const FeatureInfo*;
 

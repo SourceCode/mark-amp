@@ -249,12 +249,92 @@ RemotePatchCommand::RemotePatchCommand(Board& board,
 auto RemotePatchCommand::execute() -> void
 {
     // Save state for undo.
-    const auto* obj = board_.get_object(target_id_);
-    if (obj != nullptr)
+    auto* obj = board_.get_object_mut(target_id_);
+    if (obj == nullptr)
     {
-        previous_state_ = obj->to_json();
+        return;
     }
-    // Apply patch — stub: real implementation would parse patch_json_.
+    previous_state_ = obj->to_json();
+
+    // Parse patch_json_ and apply the appropriate transformation.
+    // Patch format: {"op":"move","dx":10,"dy":20} or {"op":"text","value":"new text"}
+    // or {"op":"style","color_r":255,"color_g":0,"color_b":0} etc.
+    auto find_str = [&](const std::string& key) -> std::string
+    {
+        const std::string needle = "\"" + key + "\":\"";
+        auto pos = patch_json_.find(needle);
+        if (pos == std::string::npos)
+        {
+            return "";
+        }
+        pos += needle.size();
+        const auto end_pos = patch_json_.find('"', pos);
+        if (end_pos == std::string::npos)
+        {
+            return "";
+        }
+        return patch_json_.substr(pos, end_pos - pos);
+    };
+
+    auto find_num = [&](const std::string& key) -> double
+    {
+        const std::string needle = "\"" + key + "\":";
+        auto pos = patch_json_.find(needle);
+        if (pos == std::string::npos)
+        {
+            return 0.0;
+        }
+        pos += needle.size();
+        return std::stod(patch_json_.substr(pos));
+    };
+
+    const std::string operation = find_str("op");
+
+    if (operation == "move")
+    {
+        auto xform = obj->transform();
+        xform.tx += find_num("dx");
+        xform.ty += find_num("dy");
+        obj->set_transform(xform);
+    }
+    else if (operation == "resize")
+    {
+        auto xform = obj->transform();
+        const double scale_x = find_num("scale_x");
+        const double scale_y = find_num("scale_y");
+        if (scale_x > 0.0)
+        {
+            xform.scale_x = scale_x;
+        }
+        if (scale_y > 0.0)
+        {
+            xform.scale_y = scale_y;
+        }
+        obj->set_transform(xform);
+    }
+    else if (operation == "text")
+    {
+        const std::string new_text = find_str("value");
+        obj->set_name(new_text);
+    }
+    else if (operation == "style")
+    {
+        const auto color_r = static_cast<uint8_t>(find_num("color_r"));
+        const auto color_g = static_cast<uint8_t>(find_num("color_g"));
+        const auto color_b = static_cast<uint8_t>(find_num("color_b"));
+        obj->set_custom_color({color_r, color_g, color_b, 255});
+    }
+    else if (operation == "visibility")
+    {
+        obj->set_visible(find_num("visible") > 0.5);
+    }
+    else if (operation == "rotate")
+    {
+        auto xform = obj->transform();
+        xform.rotation = find_num("angle");
+        obj->set_transform(xform);
+    }
+    obj->mark_dirty();
 }
 
 auto RemotePatchCommand::undo() -> void

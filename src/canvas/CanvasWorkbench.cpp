@@ -143,9 +143,33 @@ auto CanvasWorkbench::set_active_board(const std::string& board_id) -> bool
         return false;
     }
 
+    // Save current viewport state before switching.
+    if (!active_board_id_.empty())
+    {
+        ViewportState saved;
+        saved.zoom = viewport_.zoom();
+        saved.pan = viewport_.pan();
+        board_viewports_[active_board_id_] = saved;
+    }
+
     active_board_id_ = board_id;
     state_.active_board_id = board_id;
     selection_.clear_selection();
+
+    // Restore viewport state for the target board.
+    auto vp_iter = board_viewports_.find(board_id);
+    if (vp_iter != board_viewports_.end())
+    {
+        viewport_.set_zoom(vp_iter->second.zoom);
+        viewport_.set_pan(vp_iter->second.pan);
+    }
+    else
+    {
+        // First time opening: reset to default viewport.
+        viewport_.set_zoom(1.0);
+        viewport_.set_pan({0.0, 0.0});
+    }
+
     return true;
 }
 

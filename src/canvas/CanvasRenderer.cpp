@@ -63,6 +63,12 @@ auto CanvasRenderer::render_frame(wxGraphicsContext& gc,
         }
 
         ++stats.objects_rendered;
+
+        // Render type-specific labels when debug wireframes are enabled.
+        if (debug_wireframes_)
+        {
+            render_object_label(gc, *obj, viewport);
+        }
     }
 
     const auto end = std::chrono::high_resolution_clock::now();
@@ -282,6 +288,58 @@ auto CanvasRenderer::debug_wireframes() const -> bool
 auto CanvasRenderer::set_debug_wireframes(bool enabled) -> void
 {
     debug_wireframes_ = enabled;
+}
+
+auto CanvasRenderer::render_object_label(wxGraphicsContext& gc,
+                                         const CanvasObject& obj,
+                                         const ViewportTransform& viewport) -> void
+{
+    // Map CanvasObjectType to a human-readable label.
+    static const auto type_label = [](CanvasObjectType obj_type) -> std::string
+    {
+        switch (obj_type)
+        {
+            case CanvasObjectType::StickyNote: return "StickyNote";
+            case CanvasObjectType::TextBox: return "TextBox";
+            case CanvasObjectType::Shape: return "Shape";
+            case CanvasObjectType::Frame: return "Frame";
+            case CanvasObjectType::Image: return "Image";
+            case CanvasObjectType::Group: return "Group";
+            case CanvasObjectType::Icon: return "Icon";
+            case CanvasObjectType::Connector: return "Connector";
+            case CanvasObjectType::Section: return "Section";
+            case CanvasObjectType::FreehandPath: return "Freehand";
+            case CanvasObjectType::VideoEmbed: return "Video";
+            case CanvasObjectType::Table: return "Table";
+            case CanvasObjectType::DiagramShape: return "Diagram";
+            case CanvasObjectType::Comment: return "Comment";
+            case CanvasObjectType::AppWidget: return "Widget";
+            default: return "Object";
+        }
+    };
+
+    const auto world_box = obj.world_bounds();
+    const auto screen_box = viewport.world_to_screen(world_box);
+    const auto label = type_label(obj.type());
+
+    // Draw a small semi-transparent label below the object.
+    constexpr double kLabelHeight = 14.0;
+    const double label_y = screen_box.max_y + 2.0;
+
+    gc.SetFont(gc.CreateFont(wxFont(9, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL), wxColour(80, 80, 80)));
+
+    double text_width = 0.0;
+    double text_height = 0.0;
+    gc.GetTextExtent(wxString(label), &text_width, &text_height);
+
+    const double label_x = screen_box.min_x + (screen_box.width() - text_width) / 2.0;
+
+    // Background pill.
+    gc.SetBrush(gc.CreateBrush(wxBrush(wxColour(240, 240, 240, 180))));
+    gc.SetPen(gc.CreatePen(wxGraphicsPenInfo(wxColour(180, 180, 180, 150)).Width(1)));
+    gc.DrawRoundedRectangle(label_x - 4.0, label_y, text_width + 8.0, kLabelHeight, 3.0);
+
+    gc.DrawText(wxString(label), label_x, label_y);
 }
 
 } // namespace markamp::canvas

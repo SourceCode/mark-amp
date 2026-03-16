@@ -22,6 +22,26 @@ struct CropRegion
     double top{0.0};
     double right{1.0};
     double bottom{1.0};
+
+    // ── Round 6 Batch 2 (#11-13) ────────────────────────────────
+
+    /// (#11) Whether crop is full (no crop applied).
+    [[nodiscard]] auto is_full() const noexcept -> bool
+    {
+        return left == 0.0 && top == 0.0 && right == 1.0 && bottom == 1.0;
+    }
+
+    /// (#12) Crop region width (normalized).
+    [[nodiscard]] auto width() const noexcept -> double
+    {
+        return right - left;
+    }
+
+    /// (#13) Crop region height (normalized).
+    [[nodiscard]] auto height() const noexcept -> double
+    {
+        return bottom - top;
+    }
 };
 
 /// Testable model for Image Asset Workflows (Phase 53).
@@ -65,6 +85,32 @@ private:
     ImageFitMode fit_mode_{ImageFitMode::kFit};
     CropRegion crop_;
     double render_quality_{0.8};
+
+    // ── Round 6 Batch 2 (#14-17) ────────────────────────────────
+
+    /// (#14) Whether a source path is set.
+    [[nodiscard]] auto has_source() const noexcept -> bool
+    {
+        return !source_.empty();
+    }
+
+    /// (#15) Whether fit mode is fit.
+    [[nodiscard]] auto is_fit() const noexcept -> bool
+    {
+        return fit_mode_ == ImageFitMode::kFit;
+    }
+
+    /// (#16) Whether fit mode is fill.
+    [[nodiscard]] auto is_fill() const noexcept -> bool
+    {
+        return fit_mode_ == ImageFitMode::kFill;
+    }
+
+    /// (#17) Whether render quality is high.
+    [[nodiscard]] auto is_high_quality() const noexcept -> bool
+    {
+        return render_quality_ >= 0.9;
+    }
 };
 
 } // namespace markamp::canvas

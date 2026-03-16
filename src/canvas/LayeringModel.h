@@ -22,6 +22,32 @@ struct LayerEntry
     std::string label;
     int z_order{0};
     LayerState state{LayerState::kNormal};
+
+    // ── Round 5 Batch 8 (#71-74) ────────────────────────────────
+
+    /// (#71) Whether this layer is locked.
+    [[nodiscard]] auto is_locked() const noexcept -> bool
+    {
+        return state == LayerState::kLocked;
+    }
+
+    /// (#72) Whether this layer is hidden.
+    [[nodiscard]] auto is_hidden() const noexcept -> bool
+    {
+        return state == LayerState::kHidden;
+    }
+
+    /// (#73) Whether this layer is in normal state.
+    [[nodiscard]] auto is_normal() const noexcept -> bool
+    {
+        return state == LayerState::kNormal;
+    }
+
+    /// (#74) Whether a label is set.
+    [[nodiscard]] auto has_label() const noexcept -> bool
+    {
+        return !label.empty();
+    }
 };
 
 /// Testable model for Layering, Z-Order & Locking (Phase 50).
@@ -61,6 +87,14 @@ private:
     std::vector<LayerEntry> layers_;
 
     auto find_index(const std::string& object_id) -> int;
+
+    // ── Round 5 Batch 8 (#75) ───────────────────────────────────
+
+    /// (#75) Number of layers.
+    [[nodiscard]] auto layer_count() const noexcept -> size_t
+    {
+        return layers_.size();
+    }
 };
 
 } // namespace markamp::canvas

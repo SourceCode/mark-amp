@@ -59,6 +59,18 @@ public:
     [[nodiscard]] auto snapshot_count() const -> int;
     void clear_snapshots();
 
+    // ── Batch 19-22 (#127-129) ──
+
+    /// (#127) Return all snapshots for a given workspace name.
+    [[nodiscard]] auto snapshots_for_workspace(const std::string& workspace_name) const
+        -> std::vector<const SessionSnapshot*>;
+
+    /// (#128) Return the total number of files tracked across all snapshots.
+    [[nodiscard]] auto total_file_count() const -> std::size_t;
+
+    /// (#129) Check if a snapshot exists by ID.
+    [[nodiscard]] auto has_snapshot(const std::string& snapshot_id) const -> bool;
+
 private:
     std::vector<SessionSnapshot> snapshots_;
     RestorePolicy policy_;

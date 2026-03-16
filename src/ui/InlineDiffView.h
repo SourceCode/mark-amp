@@ -65,6 +65,40 @@ public:
         return static_cast<int>(change_line_indices_.size());
     }
 
+    /// Number of added lines.
+    [[nodiscard]] auto added_count() const -> int
+    {
+        int count = 0;
+        for (const auto& line : lines_)
+        {
+            if (line.type == core::DiffLineType::Addition)
+            {
+                ++count;
+            }
+        }
+        return count;
+    }
+
+    /// Number of deleted lines.
+    [[nodiscard]] auto deleted_count() const -> int
+    {
+        int count = 0;
+        for (const auto& line : lines_)
+        {
+            if (line.type == core::DiffLineType::Deletion)
+            {
+                ++count;
+            }
+        }
+        return count;
+    }
+
+    /// Whether the diff view has any changes (added or deleted lines).
+    [[nodiscard]] auto has_changes() const -> bool
+    {
+        return change_count() > 0;
+    }
+
 private:
     std::vector<InlineDiffLine> lines_;
     std::vector<int> change_line_indices_;

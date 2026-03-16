@@ -91,6 +91,9 @@ public:
     /// Total number of stored profiles.
     [[nodiscard]] auto count() const -> size_t;
 
+    /// (#101) Check if a profile with the given ID exists.
+    [[nodiscard]] auto has_profile(const std::string& profile_id) const -> bool;
+
 private:
     std::vector<PublishingProfile> profiles_;
     int32_t next_id_{1};

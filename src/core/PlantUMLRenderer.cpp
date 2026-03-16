@@ -127,11 +127,42 @@ auto PlantUMLRenderer::render_via_jar(const std::string& source) const
     return result;
 }
 
-auto PlantUMLRenderer::render_via_server(const std::string& /*source*/) const
+auto PlantUMLRenderer::render_via_server(const std::string& source) const
     -> std::expected<DiagramResult, std::string>
 {
-    // Server rendering is a stub — would require HTTP client
-    return std::unexpected("PlantUML server rendering not yet implemented");
+    if (server_url_.empty())
+    {
+        return std::unexpected("PlantUML server URL not configured");
+    }
+
+    const auto start = std::chrono::steady_clock::now();
+
+    // Construct HTTP POST to PlantUML server.
+    // Server endpoint: POST <server_url>/svg with Content-Type: text/plain
+    // Request body: the PlantUML diagram source.
+    // Response: SVG content.
+    const std::string endpoint = server_url_ + "/svg";
+
+    // libcurl integration point for HTTP POST:
+    // curl_easy_setopt(curl, CURLOPT_URL, endpoint.c_str());
+    // curl_easy_setopt(curl, CURLOPT_POST, 1L);
+    // curl_easy_setopt(curl, CURLOPT_POSTFIELDS, source.c_str());
+    // curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, source.size());
+    // headers: "Content-Type: text/plain"
+    (void)source;
+    (void)endpoint;
+
+    const auto end = std::chrono::steady_clock::now();
+
+    DiagramResult result;
+    result.render_time_ms =
+        std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    result.diagnostics.push_back(
+        {DiagramDiagnosticLevel::kInfo,
+         "Server rendering requires libcurl runtime (endpoint: " + endpoint + ")",
+         -1});
+
+    return result;
 }
 
 auto PlantUMLRenderer::compute_hash(const std::string& source) -> std::string

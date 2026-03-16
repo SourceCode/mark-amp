@@ -20,6 +20,32 @@ struct BookmarkMetadata
     std::string image_url;
     std::filesystem::path cached_image_path;
     std::filesystem::path cached_favicon_path;
+
+    /// Whether a title has been scraped.
+    [[nodiscard]] auto has_title() const noexcept -> bool
+    {
+        return !title.empty();
+    }
+
+    /// Whether an image URL was scraped.
+    [[nodiscard]] auto has_image() const noexcept -> bool
+    {
+        return !image_url.empty();
+    }
+
+    /// Whether a favicon URL was scraped.
+    [[nodiscard]] auto has_favicon() const noexcept -> bool
+    {
+        return !favicon_url.empty();
+    }
+
+    // ── Round 2 Batch 4 (#40) ────────────────────────────────────
+
+    /// (#40) Whether a description was scraped.
+    [[nodiscard]] auto has_description() const noexcept -> bool
+    {
+        return !description.empty();
+    }
 };
 
 /// A canvas object that displays a rich URL preview card with scraped metadata.
@@ -45,6 +71,26 @@ public:
     [[nodiscard]] auto to_json() const -> std::string override;
     auto from_json(const std::string& json) -> void override;
     [[nodiscard]] auto clone() const -> std::unique_ptr<CanvasObject> override;
+
+    /// Whether a URL is set on this card.
+    [[nodiscard]] auto has_url() const noexcept -> bool
+    {
+        return !url_.empty();
+    }
+
+    /// Whether scraped metadata is available (has at least a title).
+    [[nodiscard]] auto has_metadata() const noexcept -> bool
+    {
+        return !metadata_.title.empty();
+    }
+
+    // ── Round 2 Batch 4 (#39) ────────────────────────────────────
+
+    /// (#39) Card area in world units².
+    [[nodiscard]] auto card_area() const noexcept -> double
+    {
+        return card_width_ * card_height_;
+    }
 
 private:
     std::string url_;

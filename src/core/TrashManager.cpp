@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <array>
 #include <chrono>
+#include <filesystem>
 
 namespace markamp::core
 {
@@ -63,6 +64,37 @@ auto TrashManager::restore(const std::string& trash_id) -> std::expected<void, s
     }
 
     auto original_path = iter->second.original_path;
+    auto trash_path = iter->second.trash_path;
+
+    // Attempt filesystem restore only if the trash file actually exists on disk.
+    std::error_code error_code;
+    if (!trash_path.empty() && !original_path.empty() &&
+        std::filesystem::exists(trash_path, error_code))
+    {
+        // Create parent directories if they were deleted.
+        auto parent_path = std::filesystem::path(original_path).parent_path();
+        if (!parent_path.empty())
+        {
+            std::filesystem::create_directories(parent_path, error_code);
+            // Non-fatal if directory creation fails (directory may already exist).
+        }
+
+        // Move file from trash to original location.
+        std::filesystem::rename(trash_path, original_path, error_code);
+        if (error_code)
+        {
+            // If rename fails (e.g., cross-device), try copy + remove.
+            std::filesystem::copy(trash_path, original_path,
+                                  std::filesystem::copy_options::overwrite_existing, error_code);
+            if (error_code)
+            {
+                return std::unexpected("Failed to restore file: " + error_code.message());
+            }
+            std::filesystem::remove_all(trash_path, error_code);
+            // Non-fatal if cleanup fails.
+        }
+    }
+
     items_.erase(iter);
 
     // Publish event.

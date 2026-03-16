@@ -130,10 +130,11 @@ auto AssetOptimizer::is_optimizable(const AssetInfo& asset) -> bool
     {
         return false;
     }
-    // Only raster image formats are optimizable
+    // Only raster image formats are optimizable.
+    // (#60) Added image/gif support.
     return asset.mime_type == "image/png" || asset.mime_type == "image/jpeg" ||
            asset.mime_type == "image/webp" || asset.mime_type == "image/bmp" ||
-           asset.mime_type == "image/tiff";
+           asset.mime_type == "image/tiff" || asset.mime_type == "image/gif";
 }
 
 } // namespace markamp::core

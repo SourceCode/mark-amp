@@ -26,6 +26,44 @@ struct ObjectCreationParams
     CanvasColor stroke_color{0, 0, 0, 255};     ///< Default stroke
     std::string text_content;                   ///< Initial text (for TextBox, StickyNote)
     int layer_index{0};
+
+    /// Whether a custom name was provided.
+    [[nodiscard]] auto has_name() const noexcept -> bool
+    {
+        return !name.empty();
+    }
+
+    /// Whether initial text content was provided.
+    [[nodiscard]] auto has_text() const noexcept -> bool
+    {
+        return !text_content.empty();
+    }
+
+    // ── Round 2 Batch 9 (#83-86) ──────────────────────────────────
+
+    /// (#83) Whether the position is at the default origin.
+    [[nodiscard]] auto is_default_position() const noexcept -> bool
+    {
+        return position.x == 0.0 && position.y == 0.0;
+    }
+
+    /// (#84) Whether the size matches the default 200×150.
+    [[nodiscard]] auto is_default_size() const noexcept -> bool
+    {
+        return size.width == 200.0 && size.height == 150.0;
+    }
+
+    /// (#85) Whether the fill color is non-transparent.
+    [[nodiscard]] auto has_fill() const noexcept -> bool
+    {
+        return fill_color.a > 0;
+    }
+
+    /// (#86) Whether the stroke color is non-transparent.
+    [[nodiscard]] auto has_stroke() const noexcept -> bool
+    {
+        return stroke_color.a > 0;
+    }
 };
 
 /// Result of a factory creation attempt.
@@ -34,6 +72,26 @@ struct ObjectCreationResult
     std::unique_ptr<CanvasObject> object;
     bool success{false};
     std::string error_message; ///< Non-empty if !success
+
+    /// Whether the creation result contains a valid object.
+    [[nodiscard]] auto has_object() const noexcept -> bool
+    {
+        return object != nullptr;
+    }
+
+    /// Whether the creation failed.
+    [[nodiscard]] auto failed() const noexcept -> bool
+    {
+        return !success;
+    }
+
+    // ── Round 2 Batch 9 (#87) ───────────────────────────────────
+
+    /// (#87) Whether there's an error message.
+    [[nodiscard]] auto has_error() const noexcept -> bool
+    {
+        return !error_message.empty();
+    }
 };
 
 /// Factory for creating typed canvas objects with sane defaults.
@@ -73,6 +131,9 @@ public:
     [[nodiscard]] auto
     create_grid(CanvasObjectType type, size_t count, Point2D origin, double spacing = 30.0) const
         -> std::vector<std::unique_ptr<CanvasObject>>;
+
+    /// Reconstruct a CanvasObject from JSON by dispatching on the "type" field.
+    [[nodiscard]] auto from_json(const std::string& json) const -> std::unique_ptr<CanvasObject>;
 
 private:
     [[nodiscard]] auto create_sticky_note(const ObjectCreationParams& params) const

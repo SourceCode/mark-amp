@@ -2,6 +2,7 @@
 
 #include "canvas/Board.h"
 #include "canvas/CanvasObject.h"
+#include "canvas/CanvasObjectFactory.h"
 #include "canvas/CanvasTypes.h"
 
 #include <functional>
@@ -43,8 +44,35 @@ public:
     /// File format version.
     static constexpr int kFormatVersion = 2;
 
+    /// Number of registered object factories.
+    [[nodiscard]] auto factory_count() const noexcept -> std::size_t
+    {
+        return factories_.size();
+    }
+
+    /// Whether the given version matches the current format version.
+    [[nodiscard]] static constexpr auto is_current_version(int version) noexcept -> bool
+    {
+        return version == kFormatVersion;
+    }
+
+    // ── Round 2 Batch 9 (#81-82) ──────────────────────────────────
+
+    /// (#81) Whether any object factories are registered.
+    [[nodiscard]] auto has_factories() const noexcept -> bool
+    {
+        return !factories_.empty();
+    }
+
+    /// (#82) Whether no factories are registered.
+    [[nodiscard]] auto is_factory_empty() const noexcept -> bool
+    {
+        return factories_.empty();
+    }
+
 private:
     std::unordered_map<uint8_t, ObjectFactory> factories_;
+    CanvasObjectFactory factory_;
 
     [[nodiscard]] auto serialize_metadata(const BoardMetadata& meta) const -> std::string;
 };

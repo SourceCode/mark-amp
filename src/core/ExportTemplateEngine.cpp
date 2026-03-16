@@ -334,7 +334,12 @@ auto ExportTemplateEngine::substitute(const std::string& text, const TemplateCon
         {
             result.append(ctx_iter->second);
         }
-        // If not found, leave the placeholder removed (empty replacement).
+        else
+        {
+            // Variable not found — insert a visible commented placeholder
+            // so the user can see what was missing, rather than silently removing it.
+            result.append("<!-- MISSING: {{" + var_name + "}} -->");
+        }
 
         last_pos = match_start + static_cast<size_t>(match.length());
     }
@@ -419,6 +424,12 @@ auto ExportTemplateEngine::extract_variables(const std::string& html_template)
         }
     }
     return vars;
+}
+
+// (#96) Return the number of registered templates.
+auto ExportTemplateEngine::template_count() const -> std::size_t
+{
+    return templates_.size();
 }
 
 } // namespace markamp::core

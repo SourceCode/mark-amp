@@ -28,6 +28,32 @@ struct ShapeStyle
     double stroke_width{2.0};
     double corner_radius{0.0};
     double opacity{1.0};
+
+    // ── Round 5 Batch 8 (#76-79) ────────────────────────────────
+
+    /// (#76) Whether a fill color is set.
+    [[nodiscard]] auto has_fill() const noexcept -> bool
+    {
+        return !fill_color.empty();
+    }
+
+    /// (#77) Whether a stroke color is set.
+    [[nodiscard]] auto has_stroke() const noexcept -> bool
+    {
+        return !stroke_color.empty();
+    }
+
+    /// (#78) Whether corner radius is set.
+    [[nodiscard]] auto has_radius() const noexcept -> bool
+    {
+        return corner_radius > 0.0;
+    }
+
+    /// (#79) Whether opacity is full.
+    [[nodiscard]] auto is_fully_opaque() const noexcept -> bool
+    {
+        return opacity == 1.0;
+    }
 };
 
 /// Geometry bounds.
@@ -37,6 +63,14 @@ struct Bounds
     double y{0.0};
     double width{100.0};
     double height{100.0};
+
+    // ── Round 5 Batch 8 (#80) ───────────────────────────────────
+
+    /// (#80) Area of the bounds.
+    [[nodiscard]] auto area() const noexcept -> double
+    {
+        return width * height;
+    }
 };
 
 /// Testable model for Shape Tools & Geometry Editing (Phase 43).
@@ -89,6 +123,32 @@ private:
     ShapeStyle style_;
     ShapeStyle default_style_;
     bool constrained_{false};
+
+    // ── Round 5 Batch 9 (#81-84) ────────────────────────────────
+
+    /// (#81) Whether shape is a rectangle.
+    [[nodiscard]] auto is_rectangle() const noexcept -> bool
+    {
+        return type_ == ShapeType::kRectangle;
+    }
+
+    /// (#82) Whether shape is an ellipse.
+    [[nodiscard]] auto is_ellipse() const noexcept -> bool
+    {
+        return type_ == ShapeType::kEllipse;
+    }
+
+    /// (#83) Whether shape is a line.
+    [[nodiscard]] auto is_line() const noexcept -> bool
+    {
+        return type_ == ShapeType::kLine;
+    }
+
+    /// (#84) Whether the shape has a visible corner radius.
+    [[nodiscard]] auto has_corner_radius() const noexcept -> bool
+    {
+        return bounds_.width > 0.0 && style_.corner_radius > 0.0;
+    }
 };
 
 } // namespace markamp::canvas

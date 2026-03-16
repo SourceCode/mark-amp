@@ -107,6 +107,12 @@ auto WorkspaceService::text_documents() const -> std::vector<TextDocumentItem>
     return result;
 }
 
+// (#68) Convenience accessor for tracked document count.
+auto WorkspaceService::document_count() const -> std::size_t
+{
+    return documents_.size();
+}
+
 // ── Document Events ──
 
 auto WorkspaceService::on_did_open(DocumentCallback callback) -> std::size_t

@@ -24,6 +24,7 @@ enum class ToolState : uint8_t
     kDrag,
     kCommit,
     kCancel,
+    kTextEditing, ///< Double-click initiated in-place text editing
 };
 
 /// Modifier key flags for tool behavior.
@@ -42,6 +43,20 @@ struct ToolTransition
     ToolState from{ToolState::kIdle};
     ToolState to{ToolState::kIdle};
     bool valid{false};
+
+    // ── Round 4 Batch 10 (#99-100) ───────────────────────────────
+
+    /// (#99) Whether this transition is valid.
+    [[nodiscard]] auto is_valid() const noexcept -> bool
+    {
+        return valid;
+    }
+
+    /// (#100) Whether this is a no-op transition (same state).
+    [[nodiscard]] auto is_noop() const noexcept -> bool
+    {
+        return from == to;
+    }
 };
 
 /**

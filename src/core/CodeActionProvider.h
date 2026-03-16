@@ -77,6 +77,18 @@ public:
     /// Get the number of registered extension providers.
     [[nodiscard]] auto extension_provider_count() const -> size_t;
 
+    /// Check if a provider with the given ID is registered.
+    [[nodiscard]] auto has_provider(const std::string& provider_id) const -> bool
+    {
+        return extension_providers_.contains(provider_id);
+    }
+
+    /// Number of distinct code action kinds (QuickFix, Refactor, RefactorExtract, Source, SourceFixAll).
+    [[nodiscard]] static constexpr auto total_action_kinds() noexcept -> int
+    {
+        return 5;
+    }
+
 private:
     DiagnosticsService& diagnostics_service_;
 

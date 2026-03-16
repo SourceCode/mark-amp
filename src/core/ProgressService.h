@@ -84,6 +84,9 @@ public:
     /// Get the current active progress reporter (for testing/UI integration).
     [[nodiscard]] auto current_reporter() -> ProgressReporter*;
 
+    /// (#81) Convenience to check current progress percentage.
+    [[nodiscard]] auto current_percentage() const -> int;
+
 private:
     bool active_{false};
     ProgressReporter current_reporter_;

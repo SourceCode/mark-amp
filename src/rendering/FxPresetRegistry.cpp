@@ -74,6 +74,20 @@ auto FxPresetRegistry::preset_count() const noexcept -> std::size_t
     return presets_.size();
 }
 
+// (#78) Return only built-in preset names for category display.
+auto FxPresetRegistry::list_builtin_presets() const -> std::vector<std::string>
+{
+    std::vector<std::string> names;
+    for (const auto& preset : presets_)
+    {
+        if (preset.is_builtin)
+        {
+            names.push_back(preset.name);
+        }
+    }
+    return names;
+}
+
 auto FxPresetRegistry::has_preset(const std::string& preset_name) const -> bool
 {
     return std::ranges::any_of(presets_,

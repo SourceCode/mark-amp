@@ -28,6 +28,50 @@ struct CollabOperation
     std::string patch_data;         ///< JSON patch for undo/redo
     std::string reverse_patch_data; ///< JSON patch for reverse (undo)
     bool is_undone{false};
+
+    /// Whether this operation has been undone.
+    [[nodiscard]] auto is_undone_op() const noexcept -> bool
+    {
+        return is_undone;
+    }
+
+    /// Whether this is a create operation.
+    [[nodiscard]] auto is_create() const noexcept -> bool
+    {
+        return operation_type == "create";
+    }
+
+    // ── Round 3 Batch 1 (#1-5) ──────────────────────────────────
+
+    /// (#1) Whether this is a delete operation.
+    [[nodiscard]] auto is_delete() const noexcept -> bool
+    {
+        return operation_type == "delete";
+    }
+
+    /// (#2) Whether this is a modify operation.
+    [[nodiscard]] auto is_modify() const noexcept -> bool
+    {
+        return operation_type == "modify";
+    }
+
+    /// (#3) Whether this is a move operation.
+    [[nodiscard]] auto is_move() const noexcept -> bool
+    {
+        return operation_type == "move";
+    }
+
+    /// (#4) Whether patch data is present.
+    [[nodiscard]] auto has_patch() const noexcept -> bool
+    {
+        return !patch_data.empty();
+    }
+
+    /// (#5) Whether reverse patch data is present.
+    [[nodiscard]] auto has_reverse_patch() const noexcept -> bool
+    {
+        return !reverse_patch_data.empty();
+    }
 };
 
 /// Conflict when undoing an operation that was modified by another user.
@@ -38,6 +82,26 @@ struct UndoConflict
     std::string conflicting_participant_id;
     ObjectId object_id{kInvalidObjectId};
     std::string conflict_description;
+
+    /// Whether the conflict involves a specific object.
+    [[nodiscard]] auto involves_object(ObjectId obj_id) const noexcept -> bool
+    {
+        return object_id == obj_id;
+    }
+
+    // ── Round 3 Batch 1 (#6-7) ──────────────────────────────────
+
+    /// (#6) Whether a conflict description is provided.
+    [[nodiscard]] auto has_description() const noexcept -> bool
+    {
+        return !conflict_description.empty();
+    }
+
+    /// (#7) Whether the conflict is between the same user.
+    [[nodiscard]] auto is_same_user() const noexcept -> bool
+    {
+        return original_participant_id == conflicting_participant_id;
+    }
 };
 
 /// Result of an undo/redo operation.
@@ -47,6 +111,38 @@ struct CollabUndoResult
     bool had_conflict{false};
     std::string error_message;
     std::vector<UndoConflict> conflicts;
+
+    /// Whether the undo/redo had conflicts.
+    [[nodiscard]] auto had_conflicts() const noexcept -> bool
+    {
+        return had_conflict;
+    }
+
+    /// Whether the result was clean (success, no conflicts).
+    [[nodiscard]] auto is_clean() const noexcept -> bool
+    {
+        return success && !had_conflict;
+    }
+
+    // ── Round 3 Batch 1 (#8-10) ─────────────────────────────────
+
+    /// (#8) Whether the undo/redo failed.
+    [[nodiscard]] auto failed() const noexcept -> bool
+    {
+        return !success;
+    }
+
+    /// (#9) Whether there's an error message.
+    [[nodiscard]] auto has_error() const noexcept -> bool
+    {
+        return !error_message.empty();
+    }
+
+    /// (#10) Number of conflicts encountered.
+    [[nodiscard]] auto conflict_count() const noexcept -> size_t
+    {
+        return conflicts.size();
+    }
 };
 
 /// Per-user collaborative undo/redo management.
@@ -113,6 +209,18 @@ public:
     /// Set maximum undo stack depth per user.
     auto set_max_undo_depth(size_t depth) -> void;
     [[nodiscard]] auto max_undo_depth() const -> size_t;
+
+    /// Number of participants with active undo stacks.
+    [[nodiscard]] auto participant_count() const noexcept -> std::size_t
+    {
+        return undo_stacks_.size();
+    }
+
+    /// Whether any operations have been recorded.
+    [[nodiscard]] auto has_history() const noexcept -> bool
+    {
+        return !undo_stacks_.empty();
+    }
 
 private:
     [[maybe_unused]] Board& board_;

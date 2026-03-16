@@ -36,6 +36,26 @@ struct ConnectorAnchor
 
     /// Get position as string.
     [[nodiscard]] auto position_name() const -> std::string;
+
+    // ── Round 4 Batch 7 (#64-66) ────────────────────────────────
+
+    /// (#64) Whether the anchor uses auto-positioning.
+    [[nodiscard]] auto is_auto() const noexcept -> bool
+    {
+        return position == AnchorPosition::kAuto;
+    }
+
+    /// (#65) Whether a manual offset is applied.
+    [[nodiscard]] auto has_offset() const noexcept -> bool
+    {
+        return offset_x != 0.0 || offset_y != 0.0;
+    }
+
+    /// (#66) Whether an object is attached.
+    [[nodiscard]] auto has_object() const noexcept -> bool
+    {
+        return !object_id.empty();
+    }
 };
 
 /// Object bounds for anchor recalculation.
@@ -46,6 +66,20 @@ struct ObjectBounds
     double pos_y{0.0};
     double width{100.0};
     double height{100.0};
+
+    // ── Round 4 Batch 7 (#67-68) ────────────────────────────────
+
+    /// (#67) Area of the bounding box.
+    [[nodiscard]] auto area() const noexcept -> double
+    {
+        return width * height;
+    }
+
+    /// (#68) Whether an object ID is set.
+    [[nodiscard]] auto has_id() const noexcept -> bool
+    {
+        return !object_id.empty();
+    }
 };
 
 /**

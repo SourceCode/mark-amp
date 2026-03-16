@@ -132,6 +132,160 @@ public:
     selected_types(const std::vector<std::unique_ptr<CanvasObject>>& objects) const
         -> std::vector<CanvasObjectType>;
 
+    // ── Batch 10 (#100) ───────────────────────────────────────────
+
+    /// Context menu action descriptor for multi-select operations.
+    struct MultiSelectAction
+    {
+        std::string label;
+        std::string icon_name;
+        bool enabled{true};
+        int action_id{0};
+    };
+
+    /// Build a list of applicable context-menu actions for the current multi-selection.
+    [[nodiscard]] auto build_multi_select_menu(
+        const std::vector<std::unique_ptr<CanvasObject>>& objects) const
+        -> std::vector<MultiSelectAction>;
+
+    /// Whether anything is selected.
+    [[nodiscard]] auto has_selection() const noexcept -> bool
+    {
+        return !selection_.empty();
+    }
+
+    /// Whether exactly one object is selected.
+    [[nodiscard]] auto is_single_selection() const noexcept -> bool
+    {
+        return selection_.size() == 1;
+    }
+
+    /// Whether multiple objects are selected.
+    [[nodiscard]] auto is_multi_selection() const noexcept -> bool
+    {
+        return selection_.size() > 1;
+    }
+
+    /// Whether any interactive transform (move/resize/rotate) is active.
+    [[nodiscard]] auto is_transforming() const noexcept -> bool
+    {
+        return is_moving_ || is_resizing_ || is_rotating_;
+    }
+
+    /// Whether transform snapshots exist (operation in progress).
+    [[nodiscard]] auto has_snapshots() const noexcept -> bool
+    {
+        return !snapshots_.empty();
+    }
+
+    // ── Batch 6 (#51-60) ──────────────────────────────────────────
+
+    /// (#51) First selected object ID (or kInvalidObjectId).
+    [[nodiscard]] auto first_selected_id() const -> ObjectId
+    {
+        if (selection_.empty()) { return kInvalidObjectId; }
+        return *selection_.begin();
+    }
+
+    /// (#52) Last selected object ID (or kInvalidObjectId).
+    [[nodiscard]] auto last_selected_id() const -> ObjectId
+    {
+        if (selection_.empty()) { return kInvalidObjectId; }
+        ObjectId last = kInvalidObjectId;
+        for (const auto& oid : selection_) { last = oid; }
+        return last;
+    }
+
+    /// (#53) Whether selection contains an object of a specific type.
+    [[nodiscard]] auto contains_type(
+        CanvasObjectType type,
+        const std::vector<std::unique_ptr<CanvasObject>>& objects) const -> bool
+    {
+        for (const auto& obj : objects)
+        {
+            if (obj && is_selected(obj->id()) && obj->type() == type) { return true; }
+        }
+        return false;
+    }
+
+    /// (#54) Whether every selected object is locked.
+    [[nodiscard]] auto all_locked(
+        const std::vector<std::unique_ptr<CanvasObject>>& objects) const -> bool
+    {
+        if (selection_.empty()) { return false; }
+        for (const auto& obj : objects)
+        {
+            if (obj && is_selected(obj->id()) && !obj->is_locked()) { return false; }
+        }
+        return true;
+    }
+
+    /// (#55) Whether any selected object is locked.
+    [[nodiscard]] auto any_locked(
+        const std::vector<std::unique_ptr<CanvasObject>>& objects) const -> bool
+    {
+        for (const auto& obj : objects)
+        {
+            if (obj && is_selected(obj->id()) && obj->is_locked()) { return true; }
+        }
+        return false;
+    }
+
+    /// (#56) Count of selected objects matching a specific type.
+    [[nodiscard]] auto selected_count_of_type(
+        CanvasObjectType type,
+        const std::vector<std::unique_ptr<CanvasObject>>& objects) const -> size_t
+    {
+        size_t count = 0;
+        for (const auto& obj : objects)
+        {
+            if (obj && is_selected(obj->id()) && obj->type() == type) { ++count; }
+        }
+        return count;
+    }
+
+    /// (#57) Remove locked objects from selection.
+    auto deselect_locked(
+        const std::vector<std::unique_ptr<CanvasObject>>& objects) -> void
+    {
+        std::vector<ObjectId> to_remove;
+        for (const auto& obj : objects)
+        {
+            if (obj && is_selected(obj->id()) && obj->is_locked())
+            {
+                to_remove.push_back(obj->id());
+            }
+        }
+        for (const auto& oid : to_remove)
+        {
+            remove_from_selection(oid);
+        }
+    }
+
+    /// (#58) Alias for contains_type.
+    [[nodiscard]] auto has_type(
+        CanvasObjectType type,
+        const std::vector<std::unique_ptr<CanvasObject>>& objects) const -> bool
+    {
+        return contains_type(type, objects);
+    }
+
+    /// (#59) Center point of the selection bounds.
+    [[nodiscard]] auto selection_center(
+        const std::vector<std::unique_ptr<CanvasObject>>& objects) const
+        -> std::optional<Point2D>
+    {
+        auto bounds = selection_bounds(objects);
+        if (!bounds.has_value()) { return std::nullopt; }
+        return bounds->center();
+    }
+
+    /// (#60) Total number of snapshots saved.
+    [[nodiscard]] auto snapshot_count() const noexcept -> size_t
+    {
+        return snapshots_.size();
+    }
+
 private:
     std::shared_ptr<core::EventBus> event_bus_;
     std::unordered_set<ObjectId> selection_;

@@ -60,6 +60,28 @@ public:
     /// Clear all profiles.
     auto clear_all() -> void;
 
+    /// Whether no profiles are stored.
+    [[nodiscard]] auto is_empty() const noexcept -> bool
+    {
+        return profiles_.empty();
+    }
+
+    /// Whether at least one profile is stored.
+    [[nodiscard]] auto has_data() const noexcept -> bool
+    {
+        return !profiles_.empty();
+    }
+
+    /// Name of the most recently added profile (empty if none).
+    [[nodiscard]] auto newest_profile_name() const -> std::string
+    {
+        if (profiles_.empty())
+        {
+            return {};
+        }
+        return profiles_.back().first;
+    }
+
 private:
     std::vector<std::pair<std::string, FxPreset>> profiles_;
 };

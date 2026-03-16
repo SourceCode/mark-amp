@@ -342,4 +342,34 @@ auto LayoutEngine::compute_compact_layout(const std::vector<std::pair<ObjectId, 
     return results;
 }
 
+// (#113) Return the number of available layout types.
+auto LayoutEngine::layout_count() -> std::size_t
+{
+    return available_layouts().size();
+}
+
+// (#114) Check if a LayoutType value is valid.
+auto LayoutEngine::is_valid_type(LayoutType type) -> bool
+{
+    switch (type)
+    {
+        case LayoutType::Grid:
+        case LayoutType::Radial:
+        case LayoutType::Tree:
+        case LayoutType::ForceDirected:
+        case LayoutType::Horizontal:
+        case LayoutType::Vertical:
+        case LayoutType::Circular:
+        case LayoutType::Spiral:
+            return true;
+    }
+    return false;
+}
+
+// (#115) Return default layout options.
+auto LayoutEngine::default_options() -> LayoutOptions
+{
+    return LayoutOptions{};
+}
+
 } // namespace markamp::canvas

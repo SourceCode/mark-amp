@@ -619,4 +619,49 @@ auto BacklinkIndex::to_lower(const std::string& str) -> std::string
     return result;
 }
 
+// (#109) Return the number of documents tracked in the forward index.
+auto BacklinkIndex::indexed_document_count() const -> std::size_t
+{
+    std::lock_guard guard(mutex_);
+    return forward_index_.size();
+}
+
+// (#110) Return the total number of links across all documents.
+auto BacklinkIndex::total_link_count() const -> std::size_t
+{
+    std::lock_guard guard(mutex_);
+    std::size_t total = 0;
+    for (const auto& [doc_id, entries] : forward_index_)
+    {
+        total += entries.size();
+    }
+    return total;
+}
+
+// (#168) Check if a document has any backlinks (incoming wikilinks).
+auto BacklinkIndex::has_backlinks(const std::string& document_id) const -> bool
+{
+    std::lock_guard guard(mutex_);
+    auto reverse_it = reverse_index_.find(document_id);
+    return reverse_it != reverse_index_.end() && !reverse_it->second.empty();
+}
+
+// (#169) Return the number of orphan documents (no incoming or outgoing links).
+auto BacklinkIndex::orphan_count() const -> std::size_t
+{
+    return get_orphan_documents().size();
+}
+
+// (#170) Return the number of outgoing links from a document.
+auto BacklinkIndex::forward_link_count(const std::string& document_id) const -> std::size_t
+{
+    std::lock_guard guard(mutex_);
+    auto forward_it = forward_index_.find(document_id);
+    if (forward_it != forward_index_.end())
+    {
+        return forward_it->second.size();
+    }
+    return 0;
+}
+
 } // namespace markamp::core

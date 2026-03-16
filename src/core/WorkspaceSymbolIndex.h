@@ -52,6 +52,12 @@ public:
     /// Clear the entire index.
     void clear();
 
+    /// (#166) Check if a document is already indexed.
+    [[nodiscard]] auto has_document(const std::string& document_id) const -> bool;
+
+    /// (#167) Check if the index is empty.
+    [[nodiscard]] auto is_empty() const -> bool;
+
 private:
     /// Per-document symbol storage.
     std::unordered_map<std::string, std::vector<SymbolInfo>> index_;

@@ -29,6 +29,12 @@ struct ObjectShadow
     double offset_y{4.0};
     double blur{8.0};
     CanvasColor color{0, 0, 0, 80};
+
+    /// Whether the shadow effect is active.
+    [[nodiscard]] auto is_enabled() const noexcept -> bool
+    {
+        return enabled;
+    }
 };
 
 /// Border/stroke settings for a canvas object.
@@ -44,6 +50,12 @@ struct ObjectBorder
     double width{1.0};
     CanvasColor color{0, 0, 0, 255};
     Style style{Style::kSolid};
+
+    /// Whether the border is active.
+    [[nodiscard]] auto is_visible() const noexcept -> bool
+    {
+        return enabled && width > 0.0;
+    }
 };
 
 /// Base class for all objects that live on the infinite canvas.
@@ -182,6 +194,117 @@ public:
     [[nodiscard]] auto is_dirty() const -> bool;
     auto mark_dirty() -> void;
     auto mark_clean() -> void;
+
+    /// Whether the object has any tags.
+    [[nodiscard]] auto has_tags() const noexcept -> bool
+    {
+        return !tags_.empty();
+    }
+
+    /// Whether the object has a parent group.
+    [[nodiscard]] auto has_parent() const noexcept -> bool
+    {
+        return parent_id_ != kInvalidObjectId;
+    }
+
+    /// Whether the object has a hyperlink set.
+    [[nodiscard]] auto has_hyperlink() const noexcept -> bool
+    {
+        return !hyperlink_.empty();
+    }
+
+    /// Whether the object has a tooltip set.
+    [[nodiscard]] auto has_tooltip() const noexcept -> bool
+    {
+        return !tooltip_.empty();
+    }
+
+    /// Whether the object has an annotation.
+    [[nodiscard]] auto has_annotation() const noexcept -> bool
+    {
+        return !annotation_.empty();
+    }
+
+    /// Whether the object has a non-default custom color.
+    [[nodiscard]] auto has_shadow() const noexcept -> bool
+    {
+        return shadow_.enabled;
+    }
+
+    /// Number of metadata entries.
+    [[nodiscard]] auto metadata_count() const noexcept -> std::size_t
+    {
+        return metadata_.size();
+    }
+
+    /// Tag count.
+    [[nodiscard]] auto tag_count() const noexcept -> std::size_t
+    {
+        return tags_.size();
+    }
+
+    // ── Batch 2 (#11-20) ──────────────────────────────────────────
+
+    /// (#11) Whether the object is fully opaque (opacity == 1.0).
+    [[nodiscard]] auto is_fully_opaque() const noexcept -> bool
+    {
+        return opacity_ == 1.0;
+    }
+
+    /// (#12) Whether the object is fully transparent (opacity <= 0.0).
+    [[nodiscard]] auto is_transparent() const noexcept -> bool
+    {
+        return opacity_ <= 0.0;
+    }
+
+    /// (#13) Whether the object has an active border.
+    [[nodiscard]] auto has_border() const noexcept -> bool
+    {
+        return border_.enabled;
+    }
+
+    /// (#14) Whether a non-default custom color is set.
+    [[nodiscard]] auto has_custom_color() const noexcept -> bool
+    {
+        return !(custom_color_.r == 128 && custom_color_.g == 128 &&
+                 custom_color_.b == 128 && custom_color_.a == 255);
+    }
+
+    /// (#15) Whether the object is on the default layer (layer 0).
+    [[nodiscard]] auto is_on_default_layer() const noexcept -> bool
+    {
+        return layer_ == 0;
+    }
+
+    /// (#16) Whether a metadata key exists.
+    [[nodiscard]] auto has_metadata_key(const std::string& key) const noexcept -> bool
+    {
+        return metadata_.find(key) != metadata_.end();
+    }
+
+    /// (#17) Width of the world_bounds AABB.
+    [[nodiscard]] auto world_width() const -> double
+    {
+        return world_bounds().width();
+    }
+
+    /// (#18) Height of the world_bounds AABB.
+    [[nodiscard]] auto world_height() const -> double
+    {
+        return world_bounds().height();
+    }
+
+    /// (#19) Whether the object has a display name.
+    [[nodiscard]] auto has_name() const noexcept -> bool
+    {
+        return !name_.empty();
+    }
+
+    /// (#20) Whether the object is flipped on either axis.
+    [[nodiscard]] auto is_flipped() const noexcept -> bool
+    {
+        return flip_horizontal_ || flip_vertical_;
+    }
 
 protected:
     ObjectId id_;

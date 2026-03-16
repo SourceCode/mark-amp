@@ -58,6 +58,18 @@ public:
     /// Get z-order stack (front to back).
     [[nodiscard]] auto z_order() const -> const std::vector<std::string>&;
 
+    /// Check if a toolbar with the given ID is registered.
+    [[nodiscard]] auto has_toolbar(const std::string& toolbar_id) const -> bool
+    {
+        return toolbars_.contains(toolbar_id);
+    }
+
+    /// Check if any positions have been saved.
+    [[nodiscard]] auto has_saved_positions() const -> bool
+    {
+        return !saved_positions_.empty();
+    }
+
 private:
     [[maybe_unused]] wxWindow* parent_;
     [[maybe_unused]] core::ThemeEngine&

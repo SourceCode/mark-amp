@@ -265,4 +265,61 @@ auto ScopedConfig::catalog_default(std::string_view key) const -> std::string
     return {};
 }
 
+// ── Batch 19-22 improvements (#119-121) ──
+
+auto ScopedConfig::scope_count() const -> int
+{
+    int count = 1; // app_config_ always present
+    if (workspace_config_ != nullptr)
+    {
+        ++count;
+    }
+    if (project_config_ != nullptr)
+    {
+        ++count;
+    }
+    return count;
+}
+
+auto ScopedConfig::active_scope_count() const -> int
+{
+    int count = 0;
+    if (app_config_.key_count() > 0)
+    {
+        ++count;
+    }
+    if (workspace_config_ != nullptr && workspace_config_->key_count() > 0)
+    {
+        ++count;
+    }
+    if (project_config_ != nullptr && project_config_->key_count() > 0)
+    {
+        ++count;
+    }
+    return count;
+}
+
+auto ScopedConfig::all_overridden_keys() const -> std::vector<std::string>
+{
+    std::vector<std::string> keys;
+    if (workspace_config_ != nullptr)
+    {
+        for (const auto& key : workspace_config_->all_keys())
+        {
+            keys.push_back(key);
+        }
+    }
+    if (project_config_ != nullptr)
+    {
+        for (const auto& key : project_config_->all_keys())
+        {
+            if (std::find(keys.begin(), keys.end(), key) == keys.end())
+            {
+                keys.push_back(key);
+            }
+        }
+    }
+    return keys;
+}
+
 } // namespace markamp::core

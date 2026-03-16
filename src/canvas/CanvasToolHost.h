@@ -32,6 +32,26 @@ struct HostedTool
     int priority{0};                      ///< Ordering within category (lower = first)
     bool is_built_in{false};              ///< True for engine-provided tools
     ToolActivationCallback on_activation; ///< Called on activate/deactivate
+
+    // ── Round 3 Batch 8-9 (#79-81) ──────────────────────────────
+
+    /// (#79) Whether this is an extension-contributed tool.
+    [[nodiscard]] auto is_extension_tool() const noexcept -> bool
+    {
+        return !extension_id.empty();
+    }
+
+    /// (#80) Whether a human-readable label is set.
+    [[nodiscard]] auto has_label() const noexcept -> bool
+    {
+        return !label.empty();
+    }
+
+    /// (#81) Whether an icon path is set.
+    [[nodiscard]] auto has_icon() const noexcept -> bool
+    {
+        return !icon.empty();
+    }
 };
 
 /// Result of tool activation.
@@ -40,6 +60,26 @@ struct ToolActivationResult
     bool success{false};
     std::string error_message;
     std::string deactivated_tool_id; ///< Previously active tool (if any)
+
+    // ── Round 3 Batch 9 (#82-84) ────────────────────────────────
+
+    /// (#82) Whether the activation failed.
+    [[nodiscard]] auto failed() const noexcept -> bool
+    {
+        return !success;
+    }
+
+    /// (#83) Whether a previous tool was deactivated.
+    [[nodiscard]] auto deactivated_previous() const noexcept -> bool
+    {
+        return !deactivated_tool_id.empty();
+    }
+
+    /// (#84) Whether there's an error message.
+    [[nodiscard]] auto has_error() const noexcept -> bool
+    {
+        return !error_message.empty();
+    }
 };
 
 /// Unified host for built-in and extension canvas tools.

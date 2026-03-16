@@ -61,6 +61,55 @@ public:
     /// Return the configured max depth of the tree.
     [[nodiscard]] auto depth() const -> int;
 
+    /// Return the configured max entries per node.
+    [[nodiscard]] auto max_entries_per_node() const noexcept -> int
+    {
+        return max_entries_per_node_;
+    }
+
+    /// Whether the tree contains any entries.
+    [[nodiscard]] auto has_entries() const noexcept -> bool
+    {
+        return total_entries_ > 0;
+    }
+
+    // ── Batch 5 (#46-50) ──────────────────────────────────────────
+
+    /// (#46) World-space bounds of the root node.
+    [[nodiscard]] auto bounds() const noexcept -> const AABB&
+    {
+        return root_->bounds;
+    }
+
+    /// (#47) Configured maximum tree depth.
+    [[nodiscard]] auto max_depth_limit() const noexcept -> int
+    {
+        return max_depth_;
+    }
+
+    /// (#48) Whether an object ID exists in the tree.
+    [[nodiscard]] auto contains(ObjectId obj_id) const -> bool
+    {
+        const auto results = query_region(root_->bounds);
+        for (const auto& oid : results)
+        {
+            if (oid == obj_id) { return true; }
+        }
+        return false;
+    }
+
+    /// (#49) Count of entries at a specific point.
+    [[nodiscard]] auto query_point_count(const Point2D& point) const -> size_t
+    {
+        return query_point(point).size();
+    }
+
+    /// (#50) Alias for size().
+    [[nodiscard]] auto entry_count() const -> size_t
+    {
+        return size();
+    }
+
 private:
     struct Node
     {

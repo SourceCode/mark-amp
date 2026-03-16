@@ -213,7 +213,39 @@ auto ThemeCompatibilityScorer::suggest_repairs(const Theme& theme)
         suggestions.emplace_back("MinimapBg", "#141426");
     }
 
+    // (#55) Suggest repairs for missing syntax tokens.
+    if (is_default_color(theme.syntax.keyword))
+    {
+        suggestions.emplace_back("SyntaxKeyword", "#c792ea");
+    }
+    if (is_default_color(theme.syntax.comment))
+    {
+        suggestions.emplace_back("SyntaxComment", "#676e95");
+    }
+    if (is_default_color(theme.syntax.string_literal))
+    {
+        suggestions.emplace_back("SyntaxString", "#c3e88d");
+    }
+    if (is_default_color(theme.syntax.function_name))
+    {
+        suggestions.emplace_back("SyntaxFunction", "#82aaff");
+    }
+
     return suggestions;
+}
+
+// (#104) Return the total number of tokens in the compatibility catalog.
+auto ThemeCompatibilityScorer::token_count() -> std::size_t
+{
+    return token_names().size();
+}
+
+// ── Batch 23-25 (#143) ──
+
+auto ThemeCompatibilityScorer::coverage_percentage(const Theme& theme) -> double
+{
+    auto result = score_theme(theme);
+    return result.score * 100.0;
 }
 
 } // namespace markamp::core

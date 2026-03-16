@@ -79,6 +79,12 @@ public:
                             const std::string& replacement_text,
                             const std::string& workspace_root) -> bool;
 
+    /// (#164) Check if a cancellation has been requested.
+    [[nodiscard]] auto is_cancelled() const -> bool;
+
+    /// (#165) Return the total match count from a SearchResult.
+    [[nodiscard]] static auto match_count(const SearchResult& result) -> std::size_t;
+
 private:
     std::atomic<bool> is_cancelled_{false};
     ProgressCallback progress_callback_;

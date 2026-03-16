@@ -47,6 +47,33 @@ public:
     /// Get the currently selected index.
     [[nodiscard]] auto GetSelectedIndex() const -> int;
 
+    /// Whether any displayed action is marked as preferred.
+    [[nodiscard]] auto has_preferred() const -> bool
+    {
+        for (const auto& item : items_)
+        {
+            if (item.is_preferred)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /// Number of clickable action items (excluding category headers).
+    [[nodiscard]] auto action_count() const -> int
+    {
+        int count = 0;
+        for (const auto& item : items_)
+        {
+            if (item.type == MenuItemType::kAction)
+            {
+                ++count;
+            }
+        }
+        return count;
+    }
+
 private:
     void OnPaint(wxPaintEvent& event);
     void OnKeyDown(wxKeyEvent& event);

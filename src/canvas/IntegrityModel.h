@@ -22,6 +22,26 @@ struct ValidationIssue
     std::string field;
     std::string message;
     ValidationSeverity severity{ValidationSeverity::kWarning};
+
+    // ── Round 6 Batch 2 (#18-20) ────────────────────────────────
+
+    /// (#18) Whether severity is error.
+    [[nodiscard]] auto is_error() const noexcept -> bool
+    {
+        return severity == ValidationSeverity::kError;
+    }
+
+    /// (#19) Whether severity is warning.
+    [[nodiscard]] auto is_warning() const noexcept -> bool
+    {
+        return severity == ValidationSeverity::kWarning;
+    }
+
+    /// (#20) Whether a message is set.
+    [[nodiscard]] auto has_message() const noexcept -> bool
+    {
+        return !message.empty();
+    }
 };
 
 /// Testable model for Canvas Validation / Data Integrity (Phase 76).
@@ -63,6 +83,38 @@ private:
     std::string precondition_reason_;
     int orphan_count_{0};
     int invalid_link_count_{0};
+
+    // ── Round 6 Batch 3 (#21-25) ────────────────────────────────
+
+    /// (#21) Whether issues exist.
+    [[nodiscard]] auto has_issues() const noexcept -> bool
+    {
+        return !issues_.empty();
+    }
+
+    /// (#22) Number of issues.
+    [[nodiscard]] auto issue_count() const noexcept -> size_t
+    {
+        return issues_.size();
+    }
+
+    /// (#23) Whether orphan references exist.
+    [[nodiscard]] auto has_orphans() const noexcept -> bool
+    {
+        return orphan_count_ > 0;
+    }
+
+    /// (#24) Whether invalid links exist.
+    [[nodiscard]] auto has_invalid_links() const noexcept -> bool
+    {
+        return invalid_link_count_ > 0;
+    }
+
+    /// (#25) Whether a precondition reason is set.
+    [[nodiscard]] auto has_precondition_reason() const noexcept -> bool
+    {
+        return !precondition_reason_.empty();
+    }
 };
 
 } // namespace markamp::canvas

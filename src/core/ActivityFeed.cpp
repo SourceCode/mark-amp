@@ -186,6 +186,16 @@ void ActivityFeed::set_max_entries(int max_entries)
     enforce_limit();
 }
 
+// (#64) Clear entries of a specific category, preserving pinned.
+void ActivityFeed::clear_category(ActivityCategory category)
+{
+    entries_.erase(std::remove_if(entries_.begin(),
+                                  entries_.end(),
+                                  [category](const ActivityEntry& entry)
+                                  { return entry.category == category && !entry.pinned; }),
+                   entries_.end());
+}
+
 void ActivityFeed::clear_all()
 {
     entries_.clear();

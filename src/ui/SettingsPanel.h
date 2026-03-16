@@ -164,6 +164,68 @@ public:
     /// Reset all settings in a category to their default values.
     void ResetCategoryToDefaults(const std::string& category);
 
+    // ── 100 Editor UX/UI Improvements: Batch 10 — Settings Panel Accessors (#91–#100) ──
+
+    /// #91 True when staged-edit mode is active (alias for is_staged_mode).
+    [[nodiscard]] inline auto is_staged_edit_mode() const noexcept -> bool
+    {
+        return catalog_ != nullptr;
+    }
+
+    /// #92 True when there is undo history.
+    [[nodiscard]] inline auto has_undo_history() const noexcept -> bool
+    {
+        return !undo_stack_.empty();
+    }
+
+    /// #93 True when there is redo history.
+    [[nodiscard]] inline auto has_redo_history() const noexcept -> bool
+    {
+        return !redo_stack_.empty();
+    }
+
+    /// #94 Number of entries in the undo stack.
+    [[nodiscard]] inline auto undo_stack_size() const noexcept -> std::size_t
+    {
+        return undo_stack_.size();
+    }
+
+    /// #95 Number of entries in the redo stack.
+    [[nodiscard]] inline auto redo_stack_size() const noexcept -> std::size_t
+    {
+        return redo_stack_.size();
+    }
+
+    /// #96 Currently active category filter (empty = all).
+    [[nodiscard]] inline auto active_category() const noexcept -> const std::string&
+    {
+        return active_category_;
+    }
+
+    /// #97 True when a SettingsCatalog is attached.
+    [[nodiscard]] inline auto has_catalog() const noexcept -> bool
+    {
+        return catalog_ != nullptr;
+    }
+
+    /// #98 Number of collapsed categories.
+    [[nodiscard]] inline auto collapsed_category_count() const noexcept -> std::size_t
+    {
+        return collapsed_categories_.size();
+    }
+
+    /// #99 Total number of setting definitions.
+    [[nodiscard]] inline auto definition_count() const noexcept -> std::size_t
+    {
+        return definitions_.size();
+    }
+
+    /// #100 True when search is active (search control has text).
+    [[nodiscard]] inline auto is_search_active() const noexcept -> bool
+    {
+        return search_ctrl_ != nullptr && !search_ctrl_->IsEmpty();
+    }
+
 private:
     core::ThemeEngine& theme_engine_;
     core::EventBus& event_bus_;

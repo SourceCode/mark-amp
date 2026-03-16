@@ -106,7 +106,7 @@ TEST_CASE("CssSnippetLibrary — load builtins", "[phase38][snippets]")
 {
     CssSnippetLibrary library;
     library.load_builtins();
-    REQUIRE(library.snippet_count() == 4);
+    REQUIRE(library.snippet_count() == 5);
 
     REQUIRE(library.find_snippet("Dark Headers") != nullptr);
     REQUIRE(library.find_snippet("Soft Pastels") != nullptr);

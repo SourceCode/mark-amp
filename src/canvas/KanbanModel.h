@@ -27,6 +27,44 @@ struct KanbanCard
     CardPriority priority{CardPriority::kNone};
     std::string label;
     std::string color;
+
+    // ── Round 6 Batch 3-4 (#26-31) ──────────────────────────────
+
+    /// (#26) Whether a title is set.
+    [[nodiscard]] auto has_title() const noexcept -> bool
+    {
+        return !title.empty();
+    }
+
+    /// (#27) Whether a label is set.
+    [[nodiscard]] auto has_label() const noexcept -> bool
+    {
+        return !label.empty();
+    }
+
+    /// (#28) Whether a color is set.
+    [[nodiscard]] auto has_color() const noexcept -> bool
+    {
+        return !color.empty();
+    }
+
+    /// (#29) Whether priority is critical.
+    [[nodiscard]] auto is_critical() const noexcept -> bool
+    {
+        return priority == CardPriority::kCritical;
+    }
+
+    /// (#30) Whether priority is high.
+    [[nodiscard]] auto is_high() const noexcept -> bool
+    {
+        return priority == CardPriority::kHigh;
+    }
+
+    /// (#31) Whether any priority is set.
+    [[nodiscard]] auto has_priority() const noexcept -> bool
+    {
+        return priority != CardPriority::kNone;
+    }
 };
 
 /// Kanban lane.
@@ -36,6 +74,20 @@ struct KanbanLane
     std::string title;
     int position{0};
     double width{250.0};
+
+    // ── Round 6 Batch 4 (#32-33) ────────────────────────────────
+
+    /// (#32) Whether a title is set.
+    [[nodiscard]] auto has_title() const noexcept -> bool
+    {
+        return !title.empty();
+    }
+
+    /// (#33) Whether a lane ID is set.
+    [[nodiscard]] auto has_id() const noexcept -> bool
+    {
+        return !lane_id.empty();
+    }
 };
 
 /// Testable model for Kanban Object Fundamentals (Phase 59).
@@ -72,6 +124,26 @@ public:
 private:
     std::vector<KanbanLane> lanes_;
     std::vector<KanbanCard> cards_;
+
+    // ── Round 6 Batch 4 (#34-36) ────────────────────────────────
+
+    /// (#34) Number of lanes.
+    [[nodiscard]] auto lane_count() const noexcept -> size_t
+    {
+        return lanes_.size();
+    }
+
+    /// (#35) Number of cards.
+    [[nodiscard]] auto card_count() const noexcept -> size_t
+    {
+        return cards_.size();
+    }
+
+    /// (#36) Whether cards exist.
+    [[nodiscard]] auto has_cards() const noexcept -> bool
+    {
+        return !cards_.empty();
+    }
 };
 
 } // namespace markamp::canvas

@@ -66,6 +66,18 @@ public:
 
     /// Check if a preset has any visual effects active.
     [[nodiscard]] static auto has_active_effects(const FxPreset& preset) -> bool;
+
+    /// Number of CSS generation methods (text, ui, editor, canvas).
+    [[nodiscard]] static constexpr auto total_generators() noexcept -> int
+    {
+        return 4;
+    }
+
+    /// Number of static utility methods (css_color, css_text_shadow, has_active_effects).
+    [[nodiscard]] static constexpr auto total_utilities() noexcept -> int
+    {
+        return 3;
+    }
 };
 
 } // namespace markamp::rendering

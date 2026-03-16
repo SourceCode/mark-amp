@@ -356,9 +356,27 @@ auto ConnectorObject::to_json() const -> std::string
     return oss.str();
 }
 
-auto ConnectorObject::from_json(const std::string& /*json*/) -> void
+auto ConnectorObject::from_json(const std::string& json) -> void
 {
-    // Stub.
+    // Helper to extract a numeric value.
+    auto get_num = [&](const std::string& key) -> double
+    {
+        const std::string needle = "\"" + key + "\":";
+        auto pos = json.find(needle);
+        if (pos == std::string::npos)
+        {
+            return 0.0;
+        }
+        pos += needle.size();
+        return std::stod(json.substr(pos));
+    };
+
+    line_width_ = get_num("line_width");
+    line_style_ = static_cast<ConnectorLineStyle>(static_cast<int>(get_num("line_style")));
+    start_arrow_ = static_cast<ArrowheadStyle>(static_cast<int>(get_num("start_arrow")));
+    end_arrow_ = static_cast<ArrowheadStyle>(static_cast<int>(get_num("end_arrow")));
+    // waypoint_count is informational in the serialized form;
+    // waypoints are stored separately and would be populated by the board serializer.
 }
 
 } // namespace markamp::canvas

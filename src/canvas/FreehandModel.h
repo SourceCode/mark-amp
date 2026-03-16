@@ -30,6 +30,14 @@ struct StrokePoint
     double y{0.0};
     double pressure{1.0};  ///< 0.0–1.0, default full pressure
     double timestamp{0.0}; ///< ms since stroke start
+
+    // ── Round 5 Batch 10 (#91) ─────────────────────────────────
+
+    /// (#91) Whether pressure varies from default (non-full).
+    [[nodiscard]] auto has_pressure() const noexcept -> bool
+    {
+        return pressure < 1.0;
+    }
 };
 
 /// Testable model for Freehand Drawing Engine (Phase 42).
@@ -82,6 +90,38 @@ private:
     StrokePreset preset_{StrokePreset::kPen};
     EraserMode eraser_mode_{EraserMode::kObject};
     bool recording_{false};
+
+    // ── Round 5 Batch 10 (#92-96) ───────────────────────────────
+
+    /// (#92) Whether a stroke is being recorded.
+    [[nodiscard]] auto is_recording() const noexcept -> bool
+    {
+        return recording_;
+    }
+
+    /// (#93) Whether preset is pen.
+    [[nodiscard]] auto is_pen() const noexcept -> bool
+    {
+        return preset_ == StrokePreset::kPen;
+    }
+
+    /// (#94) Whether preset is highlighter.
+    [[nodiscard]] auto is_highlighter() const noexcept -> bool
+    {
+        return preset_ == StrokePreset::kHighlighter;
+    }
+
+    /// (#95) Whether eraser mode is object.
+    [[nodiscard]] auto is_object_eraser() const noexcept -> bool
+    {
+        return eraser_mode_ == EraserMode::kObject;
+    }
+
+    /// (#96) Whether points have been recorded.
+    [[nodiscard]] auto has_points() const noexcept -> bool
+    {
+        return !points_.empty();
+    }
 };
 
 } // namespace markamp::canvas

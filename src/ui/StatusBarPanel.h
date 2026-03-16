@@ -126,6 +126,67 @@ public:
     {
         return right_items_;
     }
+    // ── 100 Editor UX/UI Improvements: Batch 5 — Status Bar State Accessors (#41–#50) ──
+
+    /// #41 Current document line count.
+    [[nodiscard]] inline auto line_count() const noexcept -> int
+    {
+        return line_count_;
+    }
+
+    /// #42 Current selection length in characters.
+    [[nodiscard]] inline auto selection_len() const noexcept -> int
+    {
+        return selection_len_;
+    }
+
+    /// #43 True when text is selected.
+    [[nodiscard]] inline auto has_selection() const noexcept -> bool
+    {
+        return selection_len_ > 0;
+    }
+
+    /// #44 Current filename.
+    [[nodiscard]] inline auto filename() const noexcept -> const std::string&
+    {
+        return filename_;
+    }
+
+    /// #45 Current language identifier.
+    [[nodiscard]] inline auto language() const noexcept -> const std::string&
+    {
+        return language_;
+    }
+
+    /// #46 True when a filename is set.
+    [[nodiscard]] inline auto has_filename() const noexcept -> bool
+    {
+        return !filename_.empty();
+    }
+
+    /// #47 Current end-of-line mode string (e.g. "LF", "CRLF").
+    [[nodiscard]] inline auto eol_mode() const noexcept -> const std::string&
+    {
+        return eol_mode_;
+    }
+
+    /// #48 Current indentation mode string (e.g. "Spaces: 4").
+    [[nodiscard]] inline auto indent_mode() const noexcept -> const std::string&
+    {
+        return indent_mode_;
+    }
+
+    /// #49 Current zoom level percentage.
+    [[nodiscard]] inline auto zoom_level() const noexcept -> int
+    {
+        return zoom_level_;
+    }
+
+    /// #50 True when a progress indicator is active.
+    [[nodiscard]] inline auto is_progress_active() const noexcept -> bool
+    {
+        return progress_active_;
+    }
 
 protected:
     void OnThemeChanged(const core::Theme& new_theme) override;

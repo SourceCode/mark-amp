@@ -89,6 +89,18 @@ auto CloudSyncService::sync(const CloudSyncConfig& cloud_config, CloudProgressCa
     if (progress)
         progress("", 100, result.status);
     last_result_ = result;
+
+    // (#42) Publish sync completion event.
+    events::NotificationEvent evt(
+        result.status == CloudSyncStatus::Completed
+            ? "Cloud sync completed: " + std::to_string(result.files_uploaded) + " uploaded, "
+                  + std::to_string(result.files_downloaded) + " downloaded"
+            : "Cloud sync failed: " + (result.errors.empty() ? "unknown error" : result.errors[0]),
+        result.status == CloudSyncStatus::Completed ? events::NotificationLevel::Success
+                                                    : events::NotificationLevel::Error,
+        3000);
+    event_bus_.publish(evt);
+
     return result;
 }
 
@@ -374,12 +386,99 @@ auto CloudSyncService::download_snapshot(const CloudSyncConfig& cloud_config,
                                          CloudProgressCallback progress)
     -> std::expected<int32_t, std::string>
 {
-    // Stub: list remote objects, download each to target_dir.
-    (void)cloud_config;
-    (void)target_dir;
+    // (#41) List remote objects and download each to target_dir.
+    int32_t downloaded = 0;
+
+    if (cloud_config.provider == CloudProvider::S3)
+    {
+        auto client = create_s3_client(cloud_config.s3);
+        auto listing = client->list_objects("");
+        if (!listing)
+        {
+            return std::unexpected(listing.error());
+        }
+
+        const int total = static_cast<int>(listing->size());
+        int current = 0;
+        for (const auto& remote_obj : *listing)
+        {
+            ++current;
+            if (progress)
+            {
+                progress(remote_obj.key,
+                         total > 0 ? (current * 100 / total) : 100,
+                         CloudSyncStatus::Downloading);
+            }
+
+            auto local_path = target_dir / remote_obj.key;
+            std::error_code err_code;
+            std::filesystem::create_directories(local_path.parent_path(), err_code);
+
+            auto get_result = client->get_object(remote_obj.key, local_path);
+            if (get_result)
+            {
+                // (#41) Decrypt if encryption enabled.
+                if (cloud_config.encryption.enabled)
+                {
+                    auto temp_path = local_path;
+                    temp_path += ".dec";
+                    auto dec_result = decrypt_file(local_path, temp_path, cloud_config.encryption);
+                    if (dec_result)
+                    {
+                        std::filesystem::rename(temp_path, local_path, err_code);
+                    }
+                    else
+                    {
+                        std::filesystem::remove(temp_path, err_code);
+                    }
+                }
+                ++downloaded;
+            }
+        }
+    }
+    else
+    {
+        auto client = create_webdav_client(cloud_config.webdav);
+        auto listing = client->list(cloud_config.webdav.remote_path);
+        if (!listing)
+        {
+            return std::unexpected(listing.error());
+        }
+
+        const int total = static_cast<int>(listing->size());
+        int current = 0;
+        for (const auto& remote_res : *listing)
+        {
+            if (remote_res.is_collection)
+            {
+                continue; // Skip directories.
+            }
+            ++current;
+            if (progress)
+            {
+                progress(remote_res.path,
+                         total > 0 ? (current * 100 / total) : 100,
+                         CloudSyncStatus::Downloading);
+            }
+
+            auto local_path = target_dir / remote_res.path;
+            std::error_code err_code;
+            std::filesystem::create_directories(local_path.parent_path(), err_code);
+
+            auto download_result = client->download(
+                cloud_config.webdav.remote_path + remote_res.path, local_path);
+            if (download_result)
+            {
+                ++downloaded;
+            }
+        }
+    }
+
     if (progress)
+    {
         progress("", 100, CloudSyncStatus::Downloading);
-    return 0;
+    }
+    return downloaded;
 }
 
 auto CloudSyncService::encrypt_file(const std::filesystem::path& source,

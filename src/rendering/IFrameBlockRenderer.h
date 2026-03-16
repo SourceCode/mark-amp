@@ -35,6 +35,12 @@ public:
 
     /// Parse iframe dimensions from a markdown code block info string.
     [[nodiscard]] static auto parse_dimensions(std::string_view info_string) -> std::pair<int, int>;
+
+    /// Whether iframes are sandboxed by default.
+    [[nodiscard]] static constexpr auto is_sandboxed_by_default() noexcept -> bool
+    {
+        return true;
+    }
 };
 
 } // namespace markamp::rendering

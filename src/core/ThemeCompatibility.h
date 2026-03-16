@@ -43,6 +43,12 @@ public:
     /// (derive from nearest existing color, or from accent/bg as fallback).
     [[nodiscard]] static auto suggest_repairs(const Theme& theme)
         -> std::vector<std::pair<std::string, std::string>>;
+
+    /// (#104) Return the total number of tokens in the compatibility catalog.
+    [[nodiscard]] static auto token_count() -> std::size_t;
+
+    /// (#143) Return the coverage percentage (0-100) for a theme.
+    [[nodiscard]] static auto coverage_percentage(const Theme& theme) -> double;
 };
 
 } // namespace markamp::core

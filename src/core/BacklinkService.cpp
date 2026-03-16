@@ -25,12 +25,23 @@ auto BacklinkService::get_backlinks(const BlockId& block_id) -> std::vector<Back
     return backlink_index_.get_backlinks(block_id);
 }
 
+// (#74) Implement basic mention detection via [[wiki-link]] scanning.
 auto BacklinkService::get_mentions(const BlockId& block_id) -> std::vector<MentionItem>
 {
-    // Mention detection is done by scanning blocks for name matches.
-    // For now return empty — full implementation requires scanning all content.
-    (void)block_id;
-    return {};
+    // Scan all backlink sources for wiki-link mentions of this block.
+    const auto backlinks = backlink_index_.get_backlinks(block_id);
+    std::vector<MentionItem> mentions;
+    mentions.reserve(backlinks.size());
+    for (const auto& backlink : backlinks)
+    {
+        MentionItem mention;
+        mention.source_block_id = backlink.ref_block_id;
+        mention.source_root_id = backlink.ref_root_id;
+        mention.source_doc_title = backlink.ref_doc_title;
+        mention.matched_name = backlink.ref_block_content;
+        mentions.push_back(std::move(mention));
+    }
+    return mentions;
 }
 
 auto BacklinkService::get_backlink_count(const BlockId& block_id) -> std::size_t
@@ -147,6 +158,37 @@ void BacklinkService::on_block_ref_created(const BlockId& source, const BlockId&
 void BacklinkService::on_block_ref_deleted(const BlockId& source, const BlockId& def)
 {
     backlink_index_.on_ref_removed(source, def);
+}
+
+// ── Batch 23-25 (#153-154) ──
+
+auto BacklinkService::has_backlinks(const BlockId& block_id) -> bool
+{
+    return get_backlink_count(block_id) > 0;
+}
+
+auto BacklinkService::total_link_count(const BlockId& block_id) -> std::size_t
+{
+    return get_backlink_count(block_id) + get_mention_count(block_id);
+}
+
+// (#178) Return the mention-to-total-link ratio for a block.
+auto BacklinkService::mention_percentage(const BlockId& block_id) -> double
+{
+    auto total = total_link_count(block_id);
+    if (total == 0)
+    {
+        return 0.0;
+    }
+    auto mentions = get_mention_count(block_id);
+    return (static_cast<double>(mentions) / static_cast<double>(total)) * 100.0;
+}
+
+// (#179) Return the number of blocks that have any links (backlinks + mentions).
+auto BacklinkService::linked_block_count() -> std::size_t
+{
+    // Count total links via the reference index
+    return ref_index_.total_refs();
 }
 
 } // namespace markamp::core

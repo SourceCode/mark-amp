@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <cctype>
 #include <chrono>
+#include <fstream>
 #include <sstream>
 
 namespace markamp::core
@@ -129,10 +130,16 @@ auto BatchExportEngine::execute(const BatchExportJob& job, BatchProgressCallback
         ++index;
     }
 
-    // Generate index page if requested and any items succeeded.
+    // (#44) Generate and write index page if requested and any items succeeded.
     if (job.generate_index_page && result.succeeded > 0)
     {
         result.index_path = job.output_directory + "/index.html";
+        auto index_html = generate_index("Batch Export", result.items);
+        std::ofstream index_file(result.index_path);
+        if (index_file)
+        {
+            index_file << index_html;
+        }
     }
 
     auto end_time = std::chrono::steady_clock::now();
@@ -260,6 +267,12 @@ auto BatchExportEngine::generate_index(const std::string& batch_title,
 
     oss << "</table>\n</body>\n</html>\n";
     return oss.str();
+}
+
+// (#102) Return the number of documents in a batch export job.
+auto BatchExportEngine::document_count(const BatchExportJob& job) -> std::size_t
+{
+    return job.documents.size();
 }
 
 } // namespace markamp::core

@@ -23,6 +23,12 @@ public:
 
     /// Generate VSCode-compatible JSON string from a Theme.
     [[nodiscard]] static auto to_vscode_json(const Theme& theme) -> std::string;
+
+    /// (#95) Return the total number of color tokens emitted during export.
+    [[nodiscard]] static auto color_count() -> std::size_t;
+
+    /// (#158) Return the number of syntax token colors included in export.
+    [[nodiscard]] static auto syntax_token_count() -> std::size_t;
 };
 
 } // namespace markamp::core

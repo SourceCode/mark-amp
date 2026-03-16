@@ -23,6 +23,32 @@ struct AuditGate
     std::string category; ///< "fundamentals", "performance", "accessibility", "platform"
     GateStatus status{GateStatus::kNotRun};
     std::string notes;
+
+    // ── Round 4 Batch 8 (#74-77) ────────────────────────────────
+
+    /// (#74) Whether this gate passed.
+    [[nodiscard]] auto is_passed() const noexcept -> bool
+    {
+        return status == GateStatus::kPassed;
+    }
+
+    /// (#75) Whether this gate failed.
+    [[nodiscard]] auto is_failed() const noexcept -> bool
+    {
+        return status == GateStatus::kFailed;
+    }
+
+    /// (#76) Whether this gate has not been run.
+    [[nodiscard]] auto is_not_run() const noexcept -> bool
+    {
+        return status == GateStatus::kNotRun;
+    }
+
+    /// (#77) Whether notes are attached.
+    [[nodiscard]] auto has_notes() const noexcept -> bool
+    {
+        return !notes.empty();
+    }
 };
 
 /// Testable model for Final Canvas Audit (Phase 80).
@@ -55,6 +81,14 @@ public:
 
 private:
     std::vector<AuditGate> gates_;
+
+    // ── Round 4 Batch 8 (#78) ───────────────────────────────────
+
+    /// (#78) Total number of gates.
+    [[nodiscard]] auto gate_count() const noexcept -> size_t
+    {
+        return gates_.size();
+    }
 };
 
 } // namespace markamp::canvas

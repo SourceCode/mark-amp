@@ -81,6 +81,12 @@ public:
     /// V16 Phase 17: Map a TextMate scope to internal syntax token key.
     /// Returns empty string if no mapping exists.
     [[nodiscard]] static auto map_vscode_scope(const std::string& scope) -> std::string;
+
+    /// (#149) Return the number of mapped VSCode color keys.
+    [[nodiscard]] static auto mapped_color_count() -> std::size_t;
+
+    /// (#150) Return the number of mapped VSCode scope keys.
+    [[nodiscard]] static auto mapped_scope_count() -> std::size_t;
 };
 
 } // namespace markamp::core

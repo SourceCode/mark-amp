@@ -229,6 +229,20 @@ auto ConnectorRoutingService::set_config(const RoutingConfig& config) -> void
     config_ = config;
 }
 
+// (#89) Count connectors on the board.
+auto ConnectorRoutingService::connector_count() const -> std::size_t
+{
+    std::size_t count = 0;
+    for (const auto& obj_ptr : board_.objects())
+    {
+        if (obj_ptr && obj_ptr->type() == CanvasObjectType::Connector)
+        {
+            ++count;
+        }
+    }
+    return count;
+}
+
 // ── Private Helpers ───────────────────────────────────────────────
 
 auto ConnectorRoutingService::collect_obstacles(const std::vector<ObjectId>& exclude) const
@@ -312,15 +326,18 @@ auto ConnectorRoutingService::route_orthogonal(const Point2D& start_point,
 auto ConnectorRoutingService::route_curved(const Point2D& start_point, const Point2D& end_point)
     -> std::vector<Point2D>
 {
-    // Generate control points for a cubic Bézier curve
+    // Generate control points for a cubic Bézier curve.
     const double route_dx = end_point.x - start_point.x;
     const double route_dy = end_point.y - start_point.y;
     constexpr double kControlPointRatio = 0.4;
 
     std::vector<Point2D> control_points;
-    // Control point 1: extend horizontally from start
+    // Control point 1: extend horizontally from start.
     control_points.push_back({start_point.x + route_dx * kControlPointRatio, start_point.y});
-    // Control point 2: extend horizontally from end (backwards)
+    // (#66) Add midpoint for smoother S-curve routing.
+    control_points.push_back(
+        {(start_point.x + end_point.x) / 2.0, (start_point.y + end_point.y) / 2.0});
+    // Control point 2: extend horizontally from end (backwards).
     control_points.push_back(
         {end_point.x - route_dx * kControlPointRatio, end_point.y - route_dy * kControlPointRatio});
 

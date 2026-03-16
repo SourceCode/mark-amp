@@ -68,6 +68,9 @@ public:
     /// Unsubscribe from changes.
     void remove_change_listener(std::size_t listener_id);
 
+    /// (#80) Return all defined context key names across all scopes.
+    [[nodiscard]] auto get_all_keys() const -> std::vector<std::string>;
+
 private:
     /// Each scope is a flat key→value map.
     using Scope = std::unordered_map<std::string, ContextKeyValue>;

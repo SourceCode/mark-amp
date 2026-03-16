@@ -118,6 +118,38 @@ public:
     [[nodiscard]] auto to_json() const -> std::string override;
     auto from_json(const std::string& json) -> void override;
 
+    /// Whether alt text is set.
+    [[nodiscard]] auto has_alt_text() const noexcept -> bool
+    {
+        return !alt_text_.empty();
+    }
+
+    /// Whether the image has an active crop region.
+    [[nodiscard]] auto is_cropped() const noexcept -> bool
+    {
+        return crop_region_.has_value();
+    }
+
+    /// Whether this is a vector format image.
+    [[nodiscard]] auto is_vector() const noexcept -> bool
+    {
+        return format_ == ImageFormat::kSvg;
+    }
+
+    // ── Batch 8 (#79-80) ──────────────────────────────────────────
+
+    /// (#79) Whether the image is landscape (width > height).
+    [[nodiscard]] auto is_landscape() const noexcept -> bool
+    {
+        return width_ > height_;
+    }
+
+    /// (#80) Whether the image is portrait (height > width).
+    [[nodiscard]] auto is_portrait() const noexcept -> bool
+    {
+        return height_ > width_;
+    }
+
 private:
     std::string file_path_;
     double width_{200.0};

@@ -95,6 +95,21 @@ public:
     /// Check if any pass of a given type exists.
     [[nodiscard]] auto has_pass_type(FxPassType pass_type) const noexcept -> bool;
 
+    /// (#67) Get unique pass types in the pipeline.
+    [[nodiscard]] auto pass_types() const -> std::vector<FxPassType>;
+
+    /// Number of passes that are disabled or below the current quality tier.
+    [[nodiscard]] auto disabled_pass_count() const noexcept -> std::size_t
+    {
+        return pass_count() - active_pass_count();
+    }
+
+    /// Check if a pass with the given name exists.
+    [[nodiscard]] auto has_pass(const std::string& pass_name) const -> bool
+    {
+        return get_pass(pass_name) != nullptr;
+    }
+
     /// Convert quality tier to display string.
     [[nodiscard]] static auto tier_name(QualityTier tier) -> std::string_view;
 

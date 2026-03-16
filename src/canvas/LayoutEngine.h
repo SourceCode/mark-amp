@@ -32,6 +32,24 @@ struct LayoutOptions
     double animation_duration{0.5}; // Seconds
     double padding{0.0};            // Extra padding around each object
     Point2D center{0.0, 0.0};       // Layout center point
+
+    /// Whether layout animation is enabled.
+    [[nodiscard]] auto is_animated() const noexcept -> bool
+    {
+        return animate;
+    }
+
+    /// Whether columns are auto-computed (grid layout).
+    [[nodiscard]] auto is_auto_columns() const noexcept -> bool
+    {
+        return columns == 0;
+    }
+
+    /// Whether this is a grid layout.
+    [[nodiscard]] auto is_grid() const noexcept -> bool
+    {
+        return type == LayoutType::Grid;
+    }
 };
 
 struct LayoutResult
@@ -62,6 +80,17 @@ public:
     [[nodiscard]] auto compute_compact_layout(const std::vector<std::pair<ObjectId, AABB>>& objects,
                                               double padding = 5.0) const
         -> std::vector<LayoutResult>;
+
+    // ── Batch 16-18 (#113-115) ────────────────────────────────────
+
+    /// (#113) Return the number of available layout types.
+    [[nodiscard]] static auto layout_count() -> std::size_t;
+
+    /// (#114) Check if a LayoutType value is valid.
+    [[nodiscard]] static auto is_valid_type(LayoutType type) -> bool;
+
+    /// (#115) Return default layout options.
+    [[nodiscard]] static auto default_options() -> LayoutOptions;
 
 private:
     [[nodiscard]] auto layout_grid(const std::vector<std::pair<ObjectId, AABB>>& objects,

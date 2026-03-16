@@ -47,6 +47,16 @@ public:
     /// Get workspace root.
     [[nodiscard]] auto workspace_root() const -> const std::string&;
 
+    /// (#176) Return the total number of backlinks for a target.
+    [[nodiscard]] auto backlink_count(const std::string& target_name,
+                                      const std::vector<std::string>& workspace_files) const
+        -> std::size_t;
+
+    /// (#177) Check if any references exist for a target.
+    [[nodiscard]] auto has_references(const std::string& target_name,
+                                      const std::vector<std::string>& workspace_files) const
+        -> bool;
+
 private:
     std::string workspace_root_;
 

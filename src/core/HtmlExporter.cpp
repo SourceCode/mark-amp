@@ -152,6 +152,22 @@ auto HtmlExporter::md_to_html(const std::string& markdown) -> std::string
             continue;
         }
 
+        // (#35) Ordered lists.
+        if (line.size() >= 3 && std::isdigit(static_cast<unsigned char>(line[0])))
+        {
+            auto dot_pos = line.find(". ");
+            if (dot_pos != std::string::npos && dot_pos <= 3)
+            {
+                if (!in_list)
+                {
+                    html << "<ol>\n";
+                    in_list = true;
+                }
+                html << "  <li>" << line.substr(dot_pos + 2) << "</li>\n";
+                continue;
+            }
+        }
+
         // Blockquote.
         if (line.starts_with("> "))
         {
@@ -198,6 +214,39 @@ auto HtmlExporter::md_to_html(const std::string& markdown) -> std::string
                     processed += "<em>" + line.substr(i + 1, end - i - 1) + "</em>";
                     i = end;
                     continue;
+                }
+            }
+            // (#34) Markdown links: [text](url)
+            if (line[i] == '[')
+            {
+                auto bracket_end = line.find(']', i + 1);
+                if (bracket_end != std::string::npos && bracket_end + 1 < line.size()
+                    && line[bracket_end + 1] == '(')
+                {
+                    auto paren_end = line.find(')', bracket_end + 2);
+                    if (paren_end != std::string::npos)
+                    {
+                        // Check if it's an image ![alt](url).
+                        if (i > 0 && line[i - 1] == '!')
+                        {
+                            // Remove the '!' we already appended.
+                            if (!processed.empty() && processed.back() == '!')
+                            {
+                                processed.pop_back();
+                            }
+                            auto alt = line.substr(i + 1, bracket_end - i - 1);
+                            auto url = line.substr(bracket_end + 2, paren_end - bracket_end - 2);
+                            processed += "<img src=\"" + url + "\" alt=\"" + alt + "\">";
+                        }
+                        else
+                        {
+                            auto text = line.substr(i + 1, bracket_end - i - 1);
+                            auto url = line.substr(bracket_end + 2, paren_end - bracket_end - 2);
+                            processed += "<a href=\"" + url + "\">" + text + "</a>";
+                        }
+                        i = paren_end;
+                        continue;
+                    }
                 }
             }
             processed += line[i];

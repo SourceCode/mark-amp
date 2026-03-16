@@ -313,6 +313,27 @@ void SnippetEngine::clear()
     prefix_index_.clear();
 }
 
+// (#69) Remove a single snippet by name.
+auto SnippetEngine::remove_snippet(const std::string& name) -> bool
+{
+    auto iter = std::find_if(snippets_.begin(),
+                             snippets_.end(),
+                             [&name](const Snippet& snippet) { return snippet.name == name; });
+    if (iter == snippets_.end())
+    {
+        return false;
+    }
+    prefix_index_.erase(iter->prefix);
+    snippets_.erase(iter);
+    // Rebuild the prefix index since indices shifted.
+    prefix_index_.clear();
+    for (std::size_t idx = 0; idx < snippets_.size(); ++idx)
+    {
+        prefix_index_[snippets_[idx].prefix] = idx;
+    }
+    return true;
+}
+
 auto SnippetEngine::expand_body(const std::string& body) -> std::string
 {
     // Expand a snippet body by resolving tab stops:

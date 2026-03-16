@@ -21,6 +21,26 @@ struct FrameStyle
     std::string tint_color{"#E8E8E8"};
     std::string border_style{"solid"};
     double border_width{1.0};
+
+    // ── Round 6 Batch 1 (#1-3) ──────────────────────────────────
+
+    /// (#1) Whether a title is set.
+    [[nodiscard]] auto has_title() const noexcept -> bool
+    {
+        return !title.empty();
+    }
+
+    /// (#2) Whether a tint color is set.
+    [[nodiscard]] auto has_tint() const noexcept -> bool
+    {
+        return !tint_color.empty();
+    }
+
+    /// (#3) Whether border style is solid.
+    [[nodiscard]] auto is_solid_border() const noexcept -> bool
+    {
+        return border_style == "solid";
+    }
 };
 
 /// A child in a container.
@@ -29,6 +49,20 @@ struct ContainedObject
     std::string object_id;
     double rel_x{0.0}; ///< Relative to container origin
     double rel_y{0.0};
+
+    // ── Round 6 Batch 1 (#4-5) ──────────────────────────────────
+
+    /// (#4) Whether an object ID is set.
+    [[nodiscard]] auto has_id() const noexcept -> bool
+    {
+        return !object_id.empty();
+    }
+
+    /// (#5) Whether the object is at relative origin.
+    [[nodiscard]] auto is_at_origin() const noexcept -> bool
+    {
+        return rel_x == 0.0 && rel_y == 0.0;
+    }
 };
 
 /// Testable model for Frames, Sections & Containers (Phase 51).
@@ -74,6 +108,38 @@ private:
     std::vector<std::string> frame_ids_;
     std::string active_frame_;
     ContainerSelectMode select_mode_{ContainerSelectMode::kContainerOnly};
+
+    // ── Round 6 Batch 1 (#6-10) ─────────────────────────────────
+
+    /// (#6) Whether children exist.
+    [[nodiscard]] auto has_children() const noexcept -> bool
+    {
+        return !children_.empty();
+    }
+
+    /// (#7) Whether frames are registered.
+    [[nodiscard]] auto has_frames() const noexcept -> bool
+    {
+        return !frame_ids_.empty();
+    }
+
+    /// (#8) Number of frames.
+    [[nodiscard]] auto frame_count() const noexcept -> size_t
+    {
+        return frame_ids_.size();
+    }
+
+    /// (#9) Whether select mode is container-only.
+    [[nodiscard]] auto is_container_only() const noexcept -> bool
+    {
+        return select_mode_ == ContainerSelectMode::kContainerOnly;
+    }
+
+    /// (#10) Whether select mode is select-children.
+    [[nodiscard]] auto is_select_children() const noexcept -> bool
+    {
+        return select_mode_ == ContainerSelectMode::kSelectChildren;
+    }
 };
 
 } // namespace markamp::canvas

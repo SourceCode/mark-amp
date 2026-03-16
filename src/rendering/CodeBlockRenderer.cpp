@@ -122,6 +122,12 @@ auto CodeBlockRenderer::get_block_source(int block_id) const -> std::string
     return {};
 }
 
+// (#77) Report the number of code blocks rendered so far.
+auto CodeBlockRenderer::block_count() const -> int
+{
+    return block_counter_;
+}
+
 auto CodeBlockRenderer::parse_highlight_spec(const std::string& spec) -> std::set<int>
 {
     std::set<int> lines;

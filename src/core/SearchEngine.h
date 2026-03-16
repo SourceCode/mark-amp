@@ -112,6 +112,23 @@ public:
     /// Get index statistics.
     [[nodiscard]] auto index_stats() const -> std::pair<int, int>; // (doc_count, term_count)
 
+    // ── Batch 19-22 (#135-136) ──
+
+    /// (#135) Return the number of indexed documents.
+    [[nodiscard]] auto document_count() const -> int;
+
+    /// (#136) Return the number of unique indexed terms.
+    [[nodiscard]] auto term_count() const -> int;
+
+    /// (#171) Return the average document length for BM25 scoring.
+    [[nodiscard]] auto avg_doc_length() const -> double;
+
+    /// (#172) Check if a specific document is present in the index.
+    [[nodiscard]] auto has_document(const std::string& document_id) const -> bool;
+
+    /// (#173) Check if the search index has any documents.
+    [[nodiscard]] auto is_indexed() const -> bool;
+
 private:
     EventBus& event_bus_;
     VaultService& vault_service_;

@@ -115,6 +115,21 @@ auto FeatureRegistry::get_all_features() const -> std::vector<FeatureInfo>
     return result;
 }
 
+// (#75) Return only enabled features for quick UI display.
+auto FeatureRegistry::get_enabled_features() const -> std::vector<FeatureInfo>
+{
+    const std::lock_guard lock(mutex_);
+    std::vector<FeatureInfo> result;
+    for (const auto& [id, entry] : features_)
+    {
+        if (entry.enabled)
+        {
+            result.push_back(entry.info);
+        }
+    }
+    return result;
+}
+
 auto FeatureRegistry::get_feature(const std::string& feature_id) const -> const FeatureInfo*
 {
     const std::lock_guard lock(mutex_);

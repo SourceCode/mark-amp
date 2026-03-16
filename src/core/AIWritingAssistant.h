@@ -64,6 +64,12 @@ public:
     /// Get the AIAction enum for a tone value.
     [[nodiscard]] static auto tone_to_string(AIWritingTone tone) -> std::string;
 
+    /// (#201) Return the number of available writing tones.
+    [[nodiscard]] static auto tone_count() -> std::size_t;
+
+    /// (#202) Return the number of available translation languages.
+    [[nodiscard]] static auto language_count() -> std::size_t;
+
 private:
     AIService& ai_service_;
 };

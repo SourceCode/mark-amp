@@ -89,9 +89,52 @@ auto PDFPageObject::to_json() const -> std::string
     return oss.str();
 }
 
-auto PDFPageObject::from_json(const std::string& /*json*/) -> void
+auto PDFPageObject::from_json(const std::string& json) -> void
 {
-    // Stub — real implementation with nlohmann::json or similar.
+    auto extract_string = [&](const std::string& key) -> std::string
+    {
+        const std::string needle = "\"" + key + "\":\"";
+        const auto pos = json.find(needle);
+        if (pos == std::string::npos)
+        {
+            return {};
+        }
+        const auto val_start = pos + needle.size();
+        const auto val_end = json.find('"', val_start);
+        if (val_end == std::string::npos)
+        {
+            return {};
+        }
+        return json.substr(val_start, val_end - val_start);
+    };
+
+    auto extract_number = [&](const std::string& key) -> double
+    {
+        const std::string needle = "\"" + key + "\":";
+        const auto pos = json.find(needle);
+        if (pos == std::string::npos)
+        {
+            return 0.0;
+        }
+        const auto val_start = pos + needle.size();
+        return std::stod(json.substr(val_start));
+    };
+
+    const std::string pdf_path = extract_string("source_pdf");
+    if (!pdf_path.empty())
+    {
+        set_source_pdf(std::filesystem::path{pdf_path});
+    }
+
+    set_page_number(static_cast<int>(extract_number("page_number")));
+    set_total_pages(static_cast<int>(extract_number("total_pages")));
+    set_dimensions(extract_number("width"), extract_number("height"));
+
+    const std::string rendered_path = extract_string("rendered_image");
+    if (!rendered_path.empty())
+    {
+        set_rendered_image_path(std::filesystem::path{rendered_path});
+    }
 }
 
 auto PDFPageObject::clone() const -> std::unique_ptr<CanvasObject>

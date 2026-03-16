@@ -13,6 +13,26 @@ struct CanvasToken
     std::string token_name;
     std::string value;    ///< Current resolved value (hex color, etc.)
     std::string fallback; ///< Fallback if token missing
+
+    // ── Round 4 Batch 4 (#38-40) ────────────────────────────────
+
+    /// (#38) Whether a resolved value is set.
+    [[nodiscard]] auto has_value() const noexcept -> bool
+    {
+        return !value.empty();
+    }
+
+    /// (#39) Whether a fallback is configured.
+    [[nodiscard]] auto has_fallback() const noexcept -> bool
+    {
+        return !fallback.empty();
+    }
+
+    /// (#40) Whether a token name is set.
+    [[nodiscard]] auto has_name() const noexcept -> bool
+    {
+        return !token_name.empty();
+    }
 };
 
 /// Board background preset.
@@ -58,6 +78,38 @@ private:
     std::vector<CanvasToken> tokens_;
     BoardBackground background_{BoardBackground::kWhite};
     double min_contrast_{3.0};
+
+    // ── Round 4 Batch 5 (#41-45) ────────────────────────────────
+
+    /// (#41) Whether tokens are loaded.
+    [[nodiscard]] auto has_tokens() const noexcept -> bool
+    {
+        return !tokens_.empty();
+    }
+
+    /// (#42) Number of registered tokens.
+    [[nodiscard]] auto token_count() const noexcept -> size_t
+    {
+        return tokens_.size();
+    }
+
+    /// (#43) Whether the background is dot grid.
+    [[nodiscard]] auto is_dot_grid() const noexcept -> bool
+    {
+        return background_ == BoardBackground::kDotGrid;
+    }
+
+    /// (#44) Whether the background is line grid.
+    [[nodiscard]] auto is_line_grid() const noexcept -> bool
+    {
+        return background_ == BoardBackground::kLineGrid;
+    }
+
+    /// (#45) Whether the background is transparent.
+    [[nodiscard]] auto is_transparent() const noexcept -> bool
+    {
+        return background_ == BoardBackground::kTransparent;
+    }
 };
 
 } // namespace markamp::canvas

@@ -115,4 +115,18 @@ auto AIWritingAssistant::tone_to_string(AIWritingTone tone) -> std::string
     return "Formal";
 }
 
+// ── Batch 35 (#201-202) ─────────────────────────────────────────────────────
+
+/// (#201) Return the number of available writing tones.
+auto AIWritingAssistant::tone_count() -> std::size_t
+{
+    return available_tones().size();
+}
+
+/// (#202) Return the number of available translation languages.
+auto AIWritingAssistant::language_count() -> std::size_t
+{
+    return available_languages().size();
+}
+
 } // namespace markamp::core

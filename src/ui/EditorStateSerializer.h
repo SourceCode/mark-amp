@@ -104,6 +104,26 @@ public:
         return snap;
     }
 
+    /// Total number of fields in the serialization format.
+    [[nodiscard]] static constexpr auto field_count() noexcept -> int
+    {
+        return 20;
+    }
+
+    /// Check if a snapshot has all default values.
+    [[nodiscard]] static auto is_default(const EditorSessionSnapshot& snap) -> bool
+    {
+        const EditorSessionSnapshot defaults;
+        return snap.cursor_position == defaults.cursor_position &&
+               snap.first_visible_line == defaults.first_visible_line &&
+               snap.wrap_mode == defaults.wrap_mode &&
+               snap.show_line_numbers == defaults.show_line_numbers &&
+               snap.font_size == defaults.font_size &&
+               snap.tab_size == defaults.tab_size &&
+               snap.zoom_level == defaults.zoom_level &&
+               snap.font_family == defaults.font_family;
+    }
+
 private:
     static auto bool_str(bool val) -> const char*
     {

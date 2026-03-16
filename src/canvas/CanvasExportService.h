@@ -37,6 +37,26 @@ struct ExportOptions
     bool fit_to_content{true};                        ///< Auto-size to content bounds
     double min_width{0.0};                            ///< Minimum export width
     double min_height{0.0};                           ///< Minimum export height
+
+    /// Whether the export will use a transparent background.
+    [[nodiscard]] auto is_transparent_bg() const noexcept -> bool
+    {
+        return transparent_background;
+    }
+
+    /// Whether the DPI is above standard (retina/HiDPI).
+    [[nodiscard]] auto is_retina() const noexcept -> bool
+    {
+        return png_dpi > 96;
+    }
+
+    // ── Batch 10 (#97) ───────────────────────────────────────────
+
+    /// (#97) Whether a non-zero margin is set.
+    [[nodiscard]] auto has_margin() const noexcept -> bool
+    {
+        return margin > 0.0;
+    }
 };
 
 /// Result of an export operation.
@@ -49,6 +69,32 @@ struct ExportResult
     double height{0.0};               ///< Exported height
     size_t object_count{0};           ///< Number of objects exported
     std::string error_message;
+
+    /// Whether the export produced data.
+    [[nodiscard]] auto has_data() const noexcept -> bool
+    {
+        return !data.empty() || !binary_data.empty();
+    }
+
+    /// Whether the export produced binary (PNG) data.
+    [[nodiscard]] auto has_binary() const noexcept -> bool
+    {
+        return !binary_data.empty();
+    }
+
+    /// Total exported area in world units².
+    [[nodiscard]] auto exported_area() const noexcept -> double
+    {
+        return width * height;
+    }
+
+    // ── Batch 10 (#98) ───────────────────────────────────────────
+
+    /// (#98) Whether the export failed.
+    [[nodiscard]] auto failed() const noexcept -> bool
+    {
+        return !success;
+    }
 };
 
 /// Canvas export service for exporting boards and selections.

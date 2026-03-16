@@ -157,4 +157,19 @@ auto BacklinkFinder::scan_file(const std::string& file_path,
     return results;
 }
 
+// (#176) Return the total number of backlinks for a target name.
+auto BacklinkFinder::backlink_count(const std::string& target_name,
+                                    const std::vector<std::string>& workspace_files) const
+    -> std::size_t
+{
+    return find_backlinks(target_name, workspace_files).size();
+}
+
+// (#177) Check if any references exist for a target name.
+auto BacklinkFinder::has_references(const std::string& target_name,
+                                    const std::vector<std::string>& workspace_files) const -> bool
+{
+    return !find_backlinks(target_name, workspace_files).empty();
+}
+
 } // namespace markamp::core

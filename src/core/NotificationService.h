@@ -101,6 +101,9 @@ public:
     /// Mark all stored notifications as read.
     void mark_all_read();
 
+    /// (#70) Dismiss a specific stored notification.
+    void dismiss_notification(const std::string& notification_id);
+
     /// Remove all stored notifications.
     void clear_all();
 

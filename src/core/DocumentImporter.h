@@ -93,6 +93,15 @@ public:
         -> std::vector<const ImportResult*>;
     void clear_history();
 
+    /// (#203) Return the number of failed imports.
+    [[nodiscard]] auto failed_count() const -> int;
+
+    /// (#204) Return the success rate as a percentage (0-100).
+    [[nodiscard]] auto success_rate() const -> double;
+
+    /// (#205) Return the number of supported import formats.
+    [[nodiscard]] static auto format_count() -> std::size_t;
+
 private:
     std::vector<ImportResult> imports_;
     int next_id_{1};

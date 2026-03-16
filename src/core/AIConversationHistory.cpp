@@ -142,13 +142,41 @@ auto AIConversationHistory::build_entry(const AISession& session) -> AIConversat
     entry.last_active = session.last_active;
     entry.message_count = static_cast<int32_t>(session.messages.size());
 
-    // Title from first user message, or session ID.
+    // (#13) Include model name and provider in entry.
+    entry.model_name = session.model.model_name;
+    entry.provider = static_cast<int32_t>(session.model.provider);
+
+    // (#14) Calculate total tokens from all messages.
+    int32_t total_tokens = 0;
+    for (const auto& msg : session.messages)
+    {
+        total_tokens += msg.token_count;
+    }
+    entry.total_tokens = total_tokens;
+
+    // (#15) Title from first user message, with improved cleanup.
     for (const auto& msg : session.messages)
     {
         if (msg.role == AIRole::User)
         {
-            entry.title = msg.content.substr(0, 80);
-            if (msg.content.size() > 80)
+            // Strip leading whitespace and newlines for a clean title.
+            std::string clean = msg.content;
+            size_t start_pos = clean.find_first_not_of(" \t\n\r");
+            if (start_pos != std::string::npos)
+            {
+                clean = clean.substr(start_pos);
+            }
+            // Replace embedded newlines with spaces.
+            for (auto& chr : clean)
+            {
+                if (chr == '\n' || chr == '\r')
+                {
+                    chr = ' ';
+                }
+            }
+            constexpr size_t kMaxTitleLen = 80;
+            entry.title = clean.substr(0, kMaxTitleLen);
+            if (clean.size() > kMaxTitleLen)
             {
                 entry.title += "...";
             }

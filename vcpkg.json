@@ -1,6 +1,6 @@
 {
   "name": "markamp",
-  "version-semver": "2.21.67",
+  "version-semver": "2.21.68",
   "description": "Cross-platform Markdown viewer and editor with retro-futuristic UI",
   "homepage": "https://github.com/markamp/markamp",
   "dependencies": [

@@ -120,6 +120,17 @@ public:
     /// Total number of registered shortcuts.
     [[nodiscard]] auto shortcut_count() const -> std::size_t;
 
+    // ── Batch 19-22 (#130-132) ──
+
+    /// (#130) Return the number of global (context-independent) shortcuts.
+    [[nodiscard]] auto global_shortcut_count() const -> std::size_t;
+
+    /// (#131) Return the number of shortcuts that have been remapped from defaults.
+    [[nodiscard]] auto remapped_count() const -> std::size_t;
+
+    /// (#132) Check if a shortcut with a given ID exists.
+    [[nodiscard]] auto has_shortcut(const std::string& shortcut_id) const -> bool;
+
 private:
     std::vector<Shortcut> shortcuts_;
     std::vector<Shortcut> default_shortcuts_; // Saved for reset_to_defaults()

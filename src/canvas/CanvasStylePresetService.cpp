@@ -241,6 +241,23 @@ auto CanvasStylePresetService::load_builtin_presets() -> void
                         std::nullopt,
                         std::nullopt});
 
+    // (#65) Add Purple Sticky builtin preset.
+    presets_.push_back({"Purple Sticky",
+                        "Sticky Notes",
+                        CanvasColor{206, 147, 216, 255},
+                        std::nullopt,
+                        std::nullopt,
+                        std::nullopt,
+                        std::nullopt,
+                        std::nullopt,
+                        std::nullopt,
+                        CanvasColor{33, 33, 33, 255},
+                        std::nullopt,
+                        std::nullopt,
+                        std::nullopt,
+                        std::nullopt,
+                        std::nullopt});
+
     // Shape presets
     presets_.push_back({"Blue Shape",
                         "Shapes",
@@ -332,6 +349,12 @@ auto CanvasStylePresetService::preset_count() const -> size_t
 auto CanvasStylePresetService::category_names() -> std::vector<std::string>
 {
     return {"Sticky Notes", "Shapes", "Connectors", "Text", "Custom"};
+}
+
+// (#90) Check whether a preset exists by name.
+auto CanvasStylePresetService::has_preset(const std::string& name) const -> bool
+{
+    return find_preset(name) != nullptr;
 }
 
 // ── Private Helpers ───────────────────────────────────────────────

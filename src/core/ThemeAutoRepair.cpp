@@ -103,6 +103,26 @@ auto ThemeAutoRepair::fill_missing_tokens(Theme& theme) -> std::vector<RepairAct
     fill("peek_view_border", theme.colors.peek_view_border, theme.colors.accent_primary);
     fill("notebook_cell_bg", theme.colors.notebook_cell_bg, theme.colors.bg_panel);
 
+    // (#54) Auto-fill missing syntax tokens from theme colors.
+    auto fill_syntax = [&](const std::string& name, Color& target, const Color& fallback)
+    {
+        if (is_default_black(target))
+        {
+            RepairAction action;
+            action.token_name = "syntax." + name;
+            action.repair_type = "missing_syntax_fill";
+            action.old_value = "none";
+            action.new_value = color_to_hex(fallback);
+            target = fallback;
+            actions.push_back(std::move(action));
+        }
+    };
+    fill_syntax("keyword", theme.syntax.keyword, theme.colors.accent_primary);
+    fill_syntax("comment", theme.syntax.comment, theme.colors.text_muted);
+    fill_syntax("string_literal", theme.syntax.string_literal, theme.colors.accent_secondary);
+    fill_syntax("function_name", theme.syntax.function_name, theme.colors.text_main);
+    fill_syntax("type_name", theme.syntax.type_name, theme.colors.accent_primary);
+
     return actions;
 }
 
@@ -136,6 +156,23 @@ auto ThemeAutoRepair::fix_contrast_violations(Theme& theme) -> std::vector<Repai
     fix_pair("tab_inactive_fg", theme.colors.tab_inactive_fg, theme.colors.tab_inactive_bg);
 
     return actions;
+}
+
+// (#99) Return the number of repairs that would be performed (dry-run).
+auto ThemeAutoRepair::repair_count(const Theme& theme) -> std::size_t
+{
+    Theme copy = theme;
+    auto actions = repair(copy);
+    return actions.size();
+}
+
+// ── Batch 23-25 (#142) ──
+
+auto ThemeAutoRepair::has_contrast_issues(const Theme& theme) -> bool
+{
+    Theme copy = theme;
+    auto actions = fix_contrast_violations(copy);
+    return !actions.empty();
 }
 
 } // namespace markamp::core

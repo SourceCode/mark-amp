@@ -36,6 +36,14 @@ struct PropertyDescriptor
     PropertyValue value;     ///< Current value
     bool is_readonly{false}; ///< Greyed out in the UI
     bool is_visible{true};   ///< Whether to show in inspector
+
+    // ── Round 2 Batch 10 (#91) ──────────────────────────────────
+
+    /// (#91) Whether this property is editable (not readonly).
+    [[nodiscard]] auto is_editable() const noexcept -> bool
+    {
+        return !is_readonly;
+    }
 };
 
 /// Result of applying a property change.
@@ -120,6 +128,32 @@ public:
 
     /// Register a callback that fires after any property change.
     auto set_on_property_changed(PropertyChangedCallback callback) -> void;
+
+    // ── Round 2 Batch 10 (#92-95) ────────────────────────────────
+
+    /// (#92) Number of properties currently shown.
+    [[nodiscard]] auto property_count() const noexcept -> size_t
+    {
+        return current_properties_.size();
+    }
+
+    /// (#93) Whether the inspector has properties loaded.
+    [[nodiscard]] auto has_properties() const noexcept -> bool
+    {
+        return !current_properties_.empty();
+    }
+
+    /// (#94) Whether inspecting a single object.
+    [[nodiscard]] auto is_single_inspect() const noexcept -> bool
+    {
+        return inspected_id_.has_value();
+    }
+
+    /// (#95) Whether a property-changed callback is registered.
+    [[nodiscard]] auto has_callback() const noexcept -> bool
+    {
+        return static_cast<bool>(on_changed_);
+    }
 
 private:
     Board& board_;

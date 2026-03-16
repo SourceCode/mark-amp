@@ -58,6 +58,9 @@ public:
     void set_language(const std::string& lang);
     void set_machine_id(const std::string& machine_id);
 
+    /// (#87) Check if the OS is using dark mode.
+    [[nodiscard]] auto is_dark_mode() const -> bool;
+
 private:
     std::string app_root_;
     std::string language_;

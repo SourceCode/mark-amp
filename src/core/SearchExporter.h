@@ -253,6 +253,13 @@ private:
         }
         return "Unknown";
     }
+    // ── Batch 32 (#190) ──────────────────────────────────────
+
+    /// (#190) Return the number of supported export formats.
+    [[nodiscard]] static constexpr auto format_count() noexcept -> std::size_t
+    {
+        return 3; // Markdown, CSV, JSON
+    }
 };
 
 } // namespace markamp::core

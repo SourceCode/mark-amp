@@ -31,6 +31,32 @@ struct ExportSettings
     int dpi{150};
     double scale{1.0};
     bool transparent_bg{false};
+
+    // ── Round 5 Batch 10 (#97-100) ───────────────────────────────
+
+    /// (#97) Whether format is PNG.
+    [[nodiscard]] auto is_png() const noexcept -> bool
+    {
+        return format == ExportFormat::kPng;
+    }
+
+    /// (#98) Whether format is SVG.
+    [[nodiscard]] auto is_svg() const noexcept -> bool
+    {
+        return format == ExportFormat::kSvg;
+    }
+
+    /// (#99) Whether scope is full board.
+    [[nodiscard]] auto is_full_board() const noexcept -> bool
+    {
+        return scope == ExportScope::kFullBoard;
+    }
+
+    /// (#100) Whether scope is selection.
+    [[nodiscard]] auto is_selection() const noexcept -> bool
+    {
+        return scope == ExportScope::kSelection;
+    }
 };
 
 /// Page tile for print pagination.

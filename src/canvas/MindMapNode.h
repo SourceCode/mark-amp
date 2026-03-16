@@ -63,6 +63,56 @@ public:
     /// Returns true if this node has no children.
     [[nodiscard]] auto is_leaf() const -> bool;
 
+    // ── Round 2 Batch 4 (#31-38) ──────────────────────────────────
+
+    /// (#31) Whether this node is the root (no parent).
+    [[nodiscard]] auto is_root() const noexcept -> bool
+    {
+        return parent_node_id_ == kInvalidObjectId;
+    }
+
+    /// (#32) Number of child nodes.
+    [[nodiscard]] auto child_count() const noexcept -> size_t
+    {
+        return child_node_ids_.size();
+    }
+
+    /// (#33) Whether a connector is attached.
+    [[nodiscard]] auto has_connector() const noexcept -> bool
+    {
+        return connector_id_ != kInvalidObjectId;
+    }
+
+    /// (#34) Whether the node has notes text.
+    [[nodiscard]] auto has_notes() const noexcept -> bool
+    {
+        return !notes_.empty();
+    }
+
+    /// (#35) Whether the node has an icon.
+    [[nodiscard]] auto has_icon() const noexcept -> bool
+    {
+        return !icon_.empty();
+    }
+
+    /// (#36) Whether progress is 100%.
+    [[nodiscard]] auto is_complete() const noexcept -> bool
+    {
+        return progress_ == 100;
+    }
+
+    /// (#37) Whether progress is between 1-99%.
+    [[nodiscard]] auto is_in_progress() const noexcept -> bool
+    {
+        return progress_ > 0 && progress_ < 100;
+    }
+
+    /// (#38) Node area in world units².
+    [[nodiscard]] auto area() const noexcept -> double
+    {
+        return width_ * height_;
+    }
+
     [[nodiscard]] auto local_bounds() const -> AABB override;
     [[nodiscard]] auto to_json() const -> std::string override;
     auto from_json(const std::string& json) -> void override;

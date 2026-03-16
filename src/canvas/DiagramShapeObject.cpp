@@ -120,8 +120,70 @@ auto DiagramShapeObject::to_json() const -> std::string
     return oss.str();
 }
 
-auto DiagramShapeObject::from_json(const std::string& /*json*/) -> void
-{ /* stub */
+auto DiagramShapeObject::from_json(const std::string& json) -> void
+{
+    // Helper to extract a numeric value.
+    auto get_num = [&](const std::string& key) -> double
+    {
+        const std::string needle = "\"" + key + "\":";
+        auto pos = json.find(needle);
+        if (pos == std::string::npos)
+        {
+            return 0.0;
+        }
+        pos += needle.size();
+        return std::stod(json.substr(pos));
+    };
+
+    // Helper to extract a string value.
+    auto get_str = [&](const std::string& key) -> std::string
+    {
+        const std::string needle = "\"" + key + "\":\"";
+        auto pos = json.find(needle);
+        if (pos == std::string::npos)
+        {
+            return "";
+        }
+        pos += needle.size();
+        const auto end_pos = json.find('"', pos);
+        if (end_pos == std::string::npos)
+        {
+            return "";
+        }
+        return json.substr(pos, end_pos - pos);
+    };
+
+    library_ = static_cast<DiagramLibrary>(static_cast<int>(get_num("library")));
+    uml_type_ = static_cast<UMLShapeType>(static_cast<int>(get_num("uml_type")));
+    bpmn_type_ = static_cast<BPMNShapeType>(static_cast<int>(get_num("bpmn_type")));
+    title_ = get_str("title");
+    width_ = get_num("width");
+    height_ = get_num("height");
+
+    // Parse compartments array.
+    compartments_.clear();
+    auto comp_pos = json.find("\"compartments\":[");
+    if (comp_pos != std::string::npos)
+    {
+        comp_pos += 16; // Skip past "compartments":[
+        const auto arr_end = json.find(']', comp_pos);
+        if (arr_end != std::string::npos)
+        {
+            const std::string arr_str = json.substr(comp_pos, arr_end - comp_pos);
+            size_t pos = 0;
+            while ((pos = arr_str.find('"', pos)) != std::string::npos)
+            {
+                ++pos; // Skip opening quote.
+                const auto str_end = arr_str.find('"', pos);
+                if (str_end == std::string::npos)
+                {
+                    break;
+                }
+                compartments_.push_back(arr_str.substr(pos, str_end - pos));
+                pos = str_end + 1;
+            }
+        }
+    }
 }
 
 auto DiagramShapeObject::clone() const -> std::unique_ptr<CanvasObject>

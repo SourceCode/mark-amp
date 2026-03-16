@@ -190,7 +190,27 @@ auto ThemeOverrideService::import_overrides(const std::string& json_data) -> int
 
         if (!token.empty() && !override_val.empty())
         {
-            set_override(token, original, override_val);
+            // (#56) Parse scope from JSON so overrides restore correctly.
+            OverrideScope parsed_scope = OverrideScope::kVault;
+            auto scope_pos = json_data.find(R"("scope":")", token_end);
+            if (scope_pos != std::string::npos && scope_pos < token_end + 400)
+            {
+                scope_pos += 9;
+                auto scope_end = json_data.find('"', scope_pos);
+                if (scope_end != std::string::npos)
+                {
+                    const auto scope_str = json_data.substr(scope_pos, scope_end - scope_pos);
+                    if (scope_str == "workspace")
+                    {
+                        parsed_scope = OverrideScope::kWorkspace;
+                    }
+                    else if (scope_str == "global")
+                    {
+                        parsed_scope = OverrideScope::kGlobal;
+                    }
+                }
+            }
+            set_override(token, original, override_val, parsed_scope);
             ++count;
         }
     }
@@ -209,6 +229,20 @@ auto ThemeOverrideService::scope_name(OverrideScope scope) -> std::string
             return "global";
     }
     return "vault";
+}
+
+// (#105) Check if an override exists for a token name and scope.
+auto ThemeOverrideService::has_override(const std::string& token_name, OverrideScope scope) const
+    -> bool
+{
+    return get_override(token_name, scope) != nullptr;
+}
+
+// ── Batch 23-25 (#144) ──
+
+auto ThemeOverrideService::vault_override_count() const -> std::size_t
+{
+    return overrides_for_scope(OverrideScope::kVault).size();
 }
 
 } // namespace markamp::core

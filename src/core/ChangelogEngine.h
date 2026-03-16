@@ -36,6 +36,11 @@ public:
     [[nodiscard]] auto entry_count() const -> int;
     void clear();
 
+    // (#59) Version removal and entry search.
+    void remove_entries_for_version(const std::string& version);
+    [[nodiscard]] auto search_entries(const std::string& keyword) const
+        -> std::vector<ChangelogEntry>;
+
 private:
     std::vector<ChangelogEntry> entries_;
 };

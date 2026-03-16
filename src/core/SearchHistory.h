@@ -300,6 +300,25 @@ public:
         }
     }
 
+    // ── Batch 32 (#186-187) ───────────────────────────────────
+
+    /// (#186) Return the sum of all execution counts across history.
+    [[nodiscard]] auto total_executions() const noexcept -> int
+    {
+        int total = 0;
+        for (const auto& entry : entries_)
+        {
+            total += entry.execution_count;
+        }
+        return total;
+    }
+
+    /// (#187) Check if the history is at capacity.
+    [[nodiscard]] auto is_full() const noexcept -> bool
+    {
+        return entries_.size() >= kMaxEntries;
+    }
+
 private:
     std::vector<SearchHistoryEntry> entries_;
 

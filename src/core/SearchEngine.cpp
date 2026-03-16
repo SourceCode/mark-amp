@@ -1005,4 +1005,39 @@ auto SearchEngine::index_stats() const -> std::pair<int, int>
     return {total_documents_, static_cast<int>(inverted_index_.size())};
 }
 
+// ── Batch 19-22 improvements (#135-136) ──
+
+auto SearchEngine::document_count() const -> int
+{
+    const std::lock_guard index_lock(mutex_);
+    return total_documents_;
+}
+
+auto SearchEngine::term_count() const -> int
+{
+    const std::lock_guard index_lock(mutex_);
+    return static_cast<int>(inverted_index_.size());
+}
+
+// (#171) Return the average document length used for BM25 scoring.
+auto SearchEngine::avg_doc_length() const -> double
+{
+    const std::lock_guard index_lock(mutex_);
+    return avg_doc_length_;
+}
+
+// (#172) Check if a specific document is present in the index.
+auto SearchEngine::has_document(const std::string& document_id) const -> bool
+{
+    const std::lock_guard index_lock(mutex_);
+    return doc_meta_.contains(document_id);
+}
+
+// (#173) Check if the search index contains any documents.
+auto SearchEngine::is_indexed() const -> bool
+{
+    const std::lock_guard index_lock(mutex_);
+    return total_documents_ > 0;
+}
+
 } // namespace markamp::core

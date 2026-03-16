@@ -70,7 +70,7 @@ auto BoardSerializer::deserialize(const std::string& json_data) const -> Board
         }
     }
 
-    // Parse objects array — find each object's type and delegate to factories
+    // Parse objects array — find each object's type and delegate to factory.
     const auto objects_pos = json_data.find("\"objects\"");
     if (objects_pos != std::string::npos)
     {
@@ -87,7 +87,7 @@ auto BoardSerializer::deserialize(const std::string& json_data) const -> Board
                     break;
                 }
 
-                // Find matching closing brace (simplified: no nesting in object JSON)
+                // Find matching closing brace (handles nesting).
                 int brace_depth = 1;
                 auto obj_end = obj_start + 1;
                 while (obj_end < json_data.size() && brace_depth > 0)
@@ -99,17 +99,11 @@ auto BoardSerializer::deserialize(const std::string& json_data) const -> Board
 
                 const auto obj_json = json_data.substr(obj_start, obj_end - obj_start);
 
-                // Extract type field to determine which factory to use
-                const auto type_pos = obj_json.find("\"type\"");
-                if (type_pos != std::string::npos)
+                // Use CanvasObjectFactory to reconstruct the object from JSON.
+                auto obj = factory_.from_json(obj_json);
+                if (obj)
                 {
-                    const auto quote_start = obj_json.find('"', type_pos + 6);
-                    const auto quote_end = obj_json.find('"', quote_start + 1);
-                    if (quote_start != std::string::npos && quote_end != std::string::npos)
-                    {
-                        // Type string extracted for factory lookup
-                        // Factory creates and populates the object via from_json
-                    }
+                    board.add_object(std::move(obj));
                 }
 
                 pos = obj_end;

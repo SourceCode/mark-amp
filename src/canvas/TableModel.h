@@ -20,6 +20,26 @@ struct TableCell
 {
     std::string value;
     std::string format{"text"}; ///< "text", "number", "date"
+
+    // ── Round 6 Batch 10 (#91-93) ───────────────────────────────
+
+    /// (#91) Whether a value is set.
+    [[nodiscard]] auto has_value() const noexcept -> bool
+    {
+        return !value.empty();
+    }
+
+    /// (#92) Whether format is text.
+    [[nodiscard]] auto is_text() const noexcept -> bool
+    {
+        return format == "text";
+    }
+
+    /// (#93) Whether format is number.
+    [[nodiscard]] auto is_number() const noexcept -> bool
+    {
+        return format == "number";
+    }
 };
 
 /// Column sort state.
@@ -27,6 +47,26 @@ struct ColumnSort
 {
     int column{-1};
     SortDirection direction{SortDirection::kNone};
+
+    // ── Round 6 Batch 10 (#94-96) ───────────────────────────────
+
+    /// (#94) Whether sorting is active.
+    [[nodiscard]] auto is_sorted() const noexcept -> bool
+    {
+        return direction != SortDirection::kNone;
+    }
+
+    /// (#95) Whether sorting is ascending.
+    [[nodiscard]] auto is_ascending() const noexcept -> bool
+    {
+        return direction == SortDirection::kAscending;
+    }
+
+    /// (#96) Whether sorting is descending.
+    [[nodiscard]] auto is_descending() const noexcept -> bool
+    {
+        return direction == SortDirection::kDescending;
+    }
 };
 
 /// Testable model for Table Object Editing (Phase 56).
@@ -88,6 +128,32 @@ private:
     ColumnSort sort_;
     bool header_row_{true};
     bool alternate_rows_{false};
+
+    // ── Round 6 Batch 10 (#97-100) ───────────────────────────────
+
+    /// (#97) Whether the table has no data.
+    [[nodiscard]] auto is_empty() const noexcept -> bool
+    {
+        return rows_ == 0 || cols_ == 0;
+    }
+
+    /// (#98) Total number of cells.
+    [[nodiscard]] auto cell_count() const noexcept -> int
+    {
+        return rows_ * cols_;
+    }
+
+    /// (#99) Whether active cell is in the first row.
+    [[nodiscard]] auto is_first_row() const noexcept -> bool
+    {
+        return active_row_ == 0;
+    }
+
+    /// (#100) Whether active cell is in the first column.
+    [[nodiscard]] auto is_first_col() const noexcept -> bool
+    {
+        return active_col_ == 0;
+    }
 };
 
 } // namespace markamp::canvas

@@ -100,6 +100,26 @@ public:
         return cache_.size();
     }
 
+    /// Whether no wrap results are cached.
+    [[nodiscard]] auto is_empty() const noexcept -> bool
+    {
+        return cache_.empty();
+    }
+
+    /// Number of logical lines that require wrapping (have break offsets).
+    [[nodiscard]] auto wrapped_line_count() const noexcept -> std::size_t
+    {
+        std::size_t count = 0;
+        for (const auto& entry : cache_)
+        {
+            if (entry.is_wrapped())
+            {
+                ++count;
+            }
+        }
+        return count;
+    }
+
     /// Check if a line has a valid cached result for the given wrap width.
     [[nodiscard]] auto is_valid(std::size_t line, uint32_t wrap_width) const noexcept -> bool
     {

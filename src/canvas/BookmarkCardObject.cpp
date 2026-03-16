@@ -79,9 +79,60 @@ auto BookmarkCardObject::to_json() const -> std::string
     return oss.str();
 }
 
-auto BookmarkCardObject::from_json(const std::string& /*json*/) -> void
+auto BookmarkCardObject::from_json(const std::string& json) -> void
 {
-    // Stub — real implementation with nlohmann::json or similar.
+    // Helper lambdas for lightweight JSON parsing (matches to_json() string format).
+    auto extract_string = [&](const std::string& key) -> std::string
+    {
+        const std::string needle = "\"" + key + "\":\"";
+        const auto pos = json.find(needle);
+        if (pos == std::string::npos)
+        {
+            return {};
+        }
+        const auto val_start = pos + needle.size();
+        const auto val_end = json.find('"', val_start);
+        if (val_end == std::string::npos)
+        {
+            return {};
+        }
+        return json.substr(val_start, val_end - val_start);
+    };
+
+    auto extract_number = [&](const std::string& key) -> double
+    {
+        const std::string needle = "\"" + key + "\":";
+        const auto pos = json.find(needle);
+        if (pos == std::string::npos)
+        {
+            return 0.0;
+        }
+        const auto val_start = pos + needle.size();
+        return std::stod(json.substr(val_start));
+    };
+
+    auto extract_bool = [&](const std::string& key) -> bool
+    {
+        const std::string needle = "\"" + key + "\":";
+        const auto pos = json.find(needle);
+        if (pos == std::string::npos)
+        {
+            return false;
+        }
+        const auto val_start = pos + needle.size();
+        return json.substr(val_start, 4) == "true";
+    };
+
+    set_url(extract_string("url"));
+
+    BookmarkMetadata meta;
+    meta.title = extract_string("title");
+    meta.description = extract_string("description");
+    meta.site_name = extract_string("site_name");
+    set_bookmark_metadata(meta);
+
+    set_show_image(extract_bool("show_image"));
+    set_card_dimensions(extract_number("width"), extract_number("height"));
 }
 
 auto BookmarkCardObject::clone() const -> std::unique_ptr<CanvasObject>

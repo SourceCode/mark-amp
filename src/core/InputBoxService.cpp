@@ -100,4 +100,10 @@ void InputHistory::clear_all()
     history_.clear();
 }
 
+// (#86) Return the number of prompt types with stored history.
+auto InputHistory::history_count() const -> std::size_t
+{
+    return history_.size();
+}
+
 } // namespace markamp::core

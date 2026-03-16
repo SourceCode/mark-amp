@@ -98,6 +98,18 @@ public:
     /// Get the current window size.
     [[nodiscard]] auto window_size() const noexcept -> uint32_t;
 
+    /// Number of tracked pass data entries.
+    [[nodiscard]] auto pass_data_count() const noexcept -> std::size_t
+    {
+        return pass_data_.size();
+    }
+
+    /// Whether any quality degradation events have occurred.
+    [[nodiscard]] auto has_degradations() const noexcept -> bool
+    {
+        return degradation_count_ > 0;
+    }
+
 private:
     static constexpr uint32_t kDefaultWindowSize = 120;
 

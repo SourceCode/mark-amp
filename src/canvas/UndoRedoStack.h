@@ -104,6 +104,69 @@ public:
     /// Trim undo history to keep at most N entries.
     auto trim_to(size_t max_entries) -> void;
 
+    // ── Batch 16-18 (#106-108) ────────────────────────────────────
+
+    /// (#106) Total entries across both undo and redo stacks.
+    [[nodiscard]] auto total_count() const -> size_t;
+
+    /// (#107) Check if both stacks are empty.
+    [[nodiscard]] auto is_empty() const -> bool;
+
+    /// (#108) Return the configured maximum history limit.
+    [[nodiscard]] auto max_history() const -> size_t;
+
+    /// Whether the undo stack has reached the maximum history limit.
+    [[nodiscard]] auto is_at_limit() const -> bool
+    {
+        return undo_stack_.size() >= max_history_;
+    }
+
+    /// Whether any remote commands are in the undo stack.
+    [[nodiscard]] auto has_remote_commands() const -> bool
+    {
+        for (const auto& cmd : undo_stack_)
+        {
+            if (cmd && cmd->is_remote())
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // ── Batch 9 (#81-85) ──────────────────────────────────────────
+
+    /// (#81) Alias for can_undo().
+    [[nodiscard]] auto has_undo() const -> bool
+    {
+        return can_undo();
+    }
+
+    /// (#82) Alias for can_redo().
+    [[nodiscard]] auto has_redo() const -> bool
+    {
+        return can_redo();
+    }
+
+    /// (#83) Number of entries in the undo stack.
+    [[nodiscard]] auto undo_stack_size() const noexcept -> size_t
+    {
+        return undo_stack_.size();
+    }
+
+    /// (#84) Number of entries in the redo stack.
+    [[nodiscard]] auto redo_stack_size() const noexcept -> size_t
+    {
+        return redo_stack_.size();
+    }
+
+    /// (#85) Ratio of undo entries to max history limit (0.0 to 1.0+).
+    [[nodiscard]] auto ratio_used() const noexcept -> double
+    {
+        if (max_history_ == 0) { return 0.0; }
+        return static_cast<double>(undo_stack_.size()) / static_cast<double>(max_history_);
+    }
+
 private:
     std::vector<std::unique_ptr<ICanvasCommand>> undo_stack_;
     std::vector<std::unique_ptr<ICanvasCommand>> redo_stack_;

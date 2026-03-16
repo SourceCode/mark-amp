@@ -36,6 +36,12 @@ public:
 
     /// Generate CSS for super block containers.
     [[nodiscard]] static auto css() -> std::string;
+
+    /// Number of layout directions (horizontal and vertical).
+    [[nodiscard]] static constexpr auto total_layouts() noexcept -> int
+    {
+        return 2;
+    }
 };
 
 } // namespace markamp::rendering

@@ -25,6 +25,32 @@ struct ToolEntry
     std::string name;
     ToolGroup group{ToolGroup::kSelect};
     bool visible{true};
+
+    // ── Round 5 Batch 2 (#11-14) ────────────────────────────────
+
+    /// (#11) Whether this tool is visible.
+    [[nodiscard]] auto is_visible() const noexcept -> bool
+    {
+        return visible;
+    }
+
+    /// (#12) Whether a name is set.
+    [[nodiscard]] auto has_name() const noexcept -> bool
+    {
+        return !name.empty();
+    }
+
+    /// (#13) Whether this is a draw-group tool.
+    [[nodiscard]] auto is_draw_group() const noexcept -> bool
+    {
+        return group == ToolGroup::kDraw;
+    }
+
+    /// (#14) Whether this is a select-group tool.
+    [[nodiscard]] auto is_select_group() const noexcept -> bool
+    {
+        return group == ToolGroup::kSelect;
+    }
 };
 
 /// Testable model for Canvas Tool Rail (Phase 61).
@@ -67,6 +93,26 @@ private:
     std::vector<std::string> recent_stack_;
     std::vector<std::string> context_actions_;
     static constexpr int kMaxRecent = 5;
+
+    // ── Round 5 Batch 2 (#15-17) ────────────────────────────────
+
+    /// (#15) Number of registered tools.
+    [[nodiscard]] auto tool_count() const noexcept -> size_t
+    {
+        return tools_.size();
+    }
+
+    /// (#16) Whether an active tool is set.
+    [[nodiscard]] auto has_active() const noexcept -> bool
+    {
+        return !active_tool_.empty();
+    }
+
+    /// (#17) Whether context actions exist.
+    [[nodiscard]] auto has_context_actions() const noexcept -> bool
+    {
+        return !context_actions_.empty();
+    }
 };
 
 } // namespace markamp::canvas

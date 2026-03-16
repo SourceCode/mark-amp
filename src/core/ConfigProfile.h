@@ -60,6 +60,9 @@ public:
     /// Export a profile to a JSON-like string.
     [[nodiscard]] auto export_profile(const std::string& name) const -> std::string;
 
+    /// Import a profile from a JSON string.
+    auto import_profile(const std::string& json_str) -> bool;
+
     /// Create a custom profile from the current diff between a Config and its defaults.
     [[nodiscard]] auto create_from_diff(const std::string& name,
                                         const Config& current,

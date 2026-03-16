@@ -145,9 +145,90 @@ auto GroupObject::to_json() const -> std::string
     return oss.str();
 }
 
-auto GroupObject::from_json(const std::string& /*json*/) -> void
+auto GroupObject::from_json(const std::string& json) -> void
 {
-    // Deserialization stub — would parse children array.
+    // Helper to extract a numeric value.
+    auto get_num = [&](const std::string& key) -> double
+    {
+        const std::string needle = "\"" + key + "\":";
+        auto pos = json.find(needle);
+        if (pos == std::string::npos)
+        {
+            return 0.0;
+        }
+        pos += needle.size();
+        return std::stod(json.substr(pos));
+    };
+
+    // Helper to extract a bool value.
+    auto get_bool = [&](const std::string& key) -> bool
+    {
+        const std::string needle = "\"" + key + "\":";
+        auto pos = json.find(needle);
+        if (pos == std::string::npos)
+        {
+            return false;
+        }
+        pos += needle.size();
+        return json.substr(pos, 4) == "true";
+    };
+
+    // Helper to extract a string value.
+    auto get_str = [&](const std::string& key) -> std::string
+    {
+        const std::string needle = "\"" + key + "\":\"";
+        auto pos = json.find(needle);
+        if (pos == std::string::npos)
+        {
+            return "";
+        }
+        pos += needle.size();
+        const auto end_pos = json.find('"', pos);
+        if (end_pos == std::string::npos)
+        {
+            return "";
+        }
+        return json.substr(pos, end_pos - pos);
+    };
+
+    set_name(get_str("name"));
+    set_z_index(static_cast<int>(get_num("z_index")));
+    set_locked(get_bool("locked"));
+    set_visible(get_bool("visible"));
+    set_opacity(get_num("opacity"));
+
+    // Parse children array.
+    children_ids_.clear();
+    auto children_pos = json.find("\"children\":[");
+    if (children_pos != std::string::npos)
+    {
+        children_pos += 12; // Skip past "children":[
+        const auto arr_end = json.find(']', children_pos);
+        if (arr_end != std::string::npos)
+        {
+            const std::string arr_str = json.substr(children_pos, arr_end - children_pos);
+            // Parse comma-delimited integer IDs.
+            size_t pos = 0;
+            while (pos < arr_str.size())
+            {
+                // Skip whitespace and commas.
+                while (pos < arr_str.size() && (arr_str[pos] == ',' || arr_str[pos] == ' '))
+                {
+                    ++pos;
+                }
+                if (pos >= arr_str.size())
+                {
+                    break;
+                }
+                children_ids_.push_back(static_cast<ObjectId>(std::stoi(arr_str.substr(pos))));
+                // Advance past the number.
+                while (pos < arr_str.size() && arr_str[pos] != ',')
+                {
+                    ++pos;
+                }
+            }
+        }
+    }
 }
 
 } // namespace markamp::canvas

@@ -403,7 +403,14 @@ auto GrammarEngine::resolve_include(const std::string& ref,
         }
     }
 
-    // External grammar reference: "scope.name" - not yet supported
+    // External grammar reference: "scope.name"
+    // Search loaded definitions for a matching top-level pattern.
+    auto ext_def = definitions_.find(ref);
+    if (ext_def != definitions_.end() && !ext_def->second.patterns.empty())
+    {
+        return &ext_def->second.patterns.front();
+    }
+
     return nullptr;
 }
 

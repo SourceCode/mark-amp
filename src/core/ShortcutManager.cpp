@@ -618,4 +618,48 @@ auto ShortcutManager::shortcut_count() const -> std::size_t
     return shortcuts_.size();
 }
 
+// ── Batch 19-22 improvements (#130-132) ──
+
+auto ShortcutManager::global_shortcut_count() const -> std::size_t
+{
+    std::size_t count = 0;
+    for (const auto& shortcut : shortcuts_)
+    {
+        if (shortcut.context == "global")
+        {
+            ++count;
+        }
+    }
+    return count;
+}
+
+auto ShortcutManager::remapped_count() const -> std::size_t
+{
+    if (default_shortcuts_.empty())
+    {
+        return 0;
+    }
+
+    std::size_t count = 0;
+    for (const auto& shortcut : shortcuts_)
+    {
+        auto def_iter = std::find_if(default_shortcuts_.begin(),
+                                     default_shortcuts_.end(),
+                                     [&shortcut](const Shortcut& def)
+                                     { return def.id == shortcut.id; });
+        if (def_iter != default_shortcuts_.end() &&
+            (shortcut.key_code != def_iter->key_code ||
+             shortcut.modifiers != def_iter->modifiers))
+        {
+            ++count;
+        }
+    }
+    return count;
+}
+
+auto ShortcutManager::has_shortcut(const std::string& shortcut_id) const -> bool
+{
+    return find_shortcut(shortcut_id) != nullptr;
+}
+
 } // namespace markamp::core

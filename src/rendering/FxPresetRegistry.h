@@ -55,6 +55,9 @@ public:
     /// List all registered preset names.
     [[nodiscard]] auto list_presets() const -> std::vector<std::string>;
 
+    /// (#78) List only built-in preset names.
+    [[nodiscard]] auto list_builtin_presets() const -> std::vector<std::string>;
+
     /// Total number of registered presets.
     [[nodiscard]] auto preset_count() const noexcept -> std::size_t;
 
@@ -78,6 +81,25 @@ public:
 
     /// Initialize built-in presets.
     void initialize_builtins();
+
+    /// Number of built-in presets.
+    [[nodiscard]] auto builtin_count() const -> std::size_t
+    {
+        return static_cast<std::size_t>(std::ranges::count_if(
+            presets_, [](const FxPreset& preset) { return preset.is_builtin; }));
+    }
+
+    /// Number of user-created (non-built-in) presets.
+    [[nodiscard]] auto user_count() const -> std::size_t
+    {
+        return preset_count() - builtin_count();
+    }
+
+    /// Number of theme bindings.
+    [[nodiscard]] auto binding_count() const noexcept -> std::size_t
+    {
+        return theme_bindings_.size();
+    }
 
 private:
     core::EventBus& event_bus_;

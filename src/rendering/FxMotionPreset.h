@@ -83,6 +83,18 @@ public:
     /// Convert preset ID to display string.
     [[nodiscard]] static auto preset_name(MotionPresetId preset_id) -> std::string_view;
 
+    /// Whether the current preset is user-defined (custom).
+    [[nodiscard]] auto is_custom() const noexcept -> bool
+    {
+        return current_preset_.preset_id == MotionPresetId::kCustom;
+    }
+
+    /// Number of built-in preset IDs (excluding kCustom).
+    [[nodiscard]] static constexpr auto total_builtin_presets() noexcept -> int
+    {
+        return 4;
+    }
+
 private:
     core::EventBus& event_bus_;
     MotionPreset current_preset_;

@@ -69,4 +69,10 @@ auto ProgressService::current_reporter() -> ProgressReporter*
     return &current_reporter_;
 }
 
+// (#81) Quick convenience to check current progress percentage.
+auto ProgressService::current_percentage() const -> int
+{
+    return current_reporter_.percentage();
+}
+
 } // namespace markamp::core

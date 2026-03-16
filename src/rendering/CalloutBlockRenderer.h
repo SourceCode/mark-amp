@@ -61,6 +61,18 @@ public:
     /// Get the CSS color class for a callout type.
     [[nodiscard]] static auto type_css_class(CalloutType type) -> std::string_view;
 
+    /// Total number of CalloutType values.
+    [[nodiscard]] static constexpr auto type_count() noexcept -> int
+    {
+        return 5;
+    }
+
+    /// Number of registered callout type strings in the lookup map.
+    [[nodiscard]] auto supported_type_count() const -> int
+    {
+        return static_cast<int>(type_map_.size());
+    }
+
 private:
     std::unordered_map<std::string, CalloutType> type_map_;
 };

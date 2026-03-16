@@ -24,6 +24,18 @@ struct SelectionEntry
     std::vector<ObjectId> selected_ids;  ///< Objects selected by this participant
     double border_width{2.0};            ///< Selection border thickness
     bool show_badge{true};               ///< Show participant name badge
+
+    /// Whether this participant has no selections.
+    [[nodiscard]] auto is_empty() const noexcept -> bool
+    {
+        return selected_ids.empty();
+    }
+
+    /// Number of objects selected by this participant.
+    [[nodiscard]] auto object_count() const noexcept -> std::size_t
+    {
+        return selected_ids.size();
+    }
 };
 
 /// Conflict info when multiple participants select the same object.
@@ -31,6 +43,12 @@ struct SelectionConflict
 {
     ObjectId object_id{kInvalidObjectId};
     std::vector<std::string> participant_ids; ///< All participants selecting this object
+
+    /// Number of participants in this conflict.
+    [[nodiscard]] auto participant_count() const noexcept -> std::size_t
+    {
+        return participant_ids.size();
+    }
 };
 
 /// Configuration for the selection overlay renderer.
@@ -42,6 +60,12 @@ struct SelectionOverlayConfig
     double conflict_border_width{3.0};  ///< Thicker border for conflicts
     bool show_conflict_indicator{true}; ///< Show indicator for multi-select conflicts
     bool show_badges{true};             ///< Show name badges on selections
+
+    /// Whether conflict indicators are enabled.
+    [[nodiscard]] auto has_conflict_indicator() const noexcept -> bool
+    {
+        return show_conflict_indicator;
+    }
 };
 
 /// Overlay that highlights objects selected by remote participants.
@@ -106,6 +130,12 @@ public:
     /// Toggle badge visibility globally.
     auto set_badges_visible(bool visible) -> void;
     [[nodiscard]] auto badges_visible() const -> bool;
+
+    /// Whether any remote selections are tracked.
+    [[nodiscard]] auto has_selections() const noexcept -> bool
+    {
+        return !selections_.empty();
+    }
 
 private:
     SelectionOverlayConfig config_;

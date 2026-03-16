@@ -184,6 +184,12 @@ auto CanvasClipboardService::clipboard_info() const -> const ClipboardData&
     return clipboard_;
 }
 
+// (#71) Report clipboard object types for UI.
+auto CanvasClipboardService::clipboard_types() const -> const std::vector<CanvasObjectType>&
+{
+    return clipboard_.types;
+}
+
 // ── Configuration ─────────────────────────────────────────────────
 
 auto CanvasClipboardService::set_paste_offset(const Point2D& offset) -> void
@@ -226,9 +232,40 @@ auto CanvasClipboardService::deserialize_objects(const std::string& json)
 {
     std::vector<std::unique_ptr<CanvasObject>> result;
 
-    // Clipboard deserialization is not fully implemented for abstract objects.
-    // In a full implementation, each type would be reconstructed from JSON.
-    (void)json;
+    // Parse the JSON array and reconstruct each object via factory.
+    if (json.empty() || json.front() != '[')
+    {
+        return result;
+    }
+
+    // Find each object block { } within the array.
+    size_t pos = 1;
+    while (pos < json.size())
+    {
+        const auto obj_start = json.find('{', pos);
+        if (obj_start == std::string::npos)
+        {
+            break;
+        }
+
+        int brace_depth = 1;
+        auto obj_end = obj_start + 1;
+        while (obj_end < json.size() && brace_depth > 0)
+        {
+            if (json[obj_end] == '{') ++brace_depth;
+            if (json[obj_end] == '}') --brace_depth;
+            ++obj_end;
+        }
+
+        const auto obj_json = json.substr(obj_start, obj_end - obj_start);
+        auto obj = factory_.from_json(obj_json);
+        if (obj)
+        {
+            result.push_back(std::move(obj));
+        }
+
+        pos = obj_end;
+    }
 
     return result;
 }

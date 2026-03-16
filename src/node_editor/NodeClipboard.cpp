@@ -1,5 +1,7 @@
 #include "NodeClipboard.h"
 
+#include "node_editor/GraphSerializer.h"
+
 #include <unordered_set>
 
 namespace markamp::node_editor
@@ -39,9 +41,8 @@ auto NodeClipboard::copy(const NodeGraph& graph, const std::vector<NodeId>& sele
     }
 
     data.link_count = link_count;
-    // Serialized JSON is a simplified placeholder — real implementation would use GraphSerializer
-    data.serialized_json = "{\"nodes\":" + std::to_string(data.node_count) +
-                           ",\"links\":" + std::to_string(data.link_count) + "}";
+    // Use GraphSerializer for proper JSON serialization.
+    data.serialized_json = GraphSerializer::serialize(graph);
 
     last_copied_ = data;
     return data;
@@ -63,20 +64,42 @@ auto NodeClipboard::cut(NodeGraph& graph, const std::vector<NodeId>& selected_id
 auto NodeClipboard::paste(NodeGraph& graph, const ClipboardData& data, Vec2 position)
     -> std::vector<NodeId>
 {
-    if (!data.valid)
+    if (!data.valid || data.serialized_json.empty())
     {
         return {};
     }
 
-    // Create placeholder nodes at the paste position.
-    // Real implementation would deserialize from data.serialized_json.
+    // Deserialize from clipboard JSON using GraphSerializer.
+    auto source_graph = GraphSerializer::deserialize(data.serialized_json);
+
+    // Re-create nodes into the target graph at the paste position with new IDs.
     std::vector<NodeId> new_ids;
-    for (std::size_t idx = 0; idx < data.node_count; ++idx)
+    std::unordered_map<NodeId, NodeId> id_remap;
+
+    std::size_t node_idx = 0;
+    for (const auto& src_node_id : source_graph.all_node_ids())
     {
-        const Vec2 kOffset{position.x + static_cast<float>(idx) * 20.0F,
-                           position.y + static_cast<float>(idx) * 20.0F};
-        auto node_id = graph.add_node("pasted_node", kOffset);
-        new_ids.push_back(node_id);
+        const auto* src_node = source_graph.find_node(src_node_id);
+        if (src_node == nullptr)
+        {
+            continue;
+        }
+
+        const Vec2 kPastePos{position.x + static_cast<float>(node_idx) * 20.0F,
+                             position.y + static_cast<float>(node_idx) * 20.0F};
+        auto new_id = graph.add_node(src_node->type_name, kPastePos);
+
+        // Copy node properties.
+        auto* new_node = graph.find_node_mut(new_id);
+        if (new_node != nullptr)
+        {
+            new_node->label = src_node->label;
+            new_node->dimensions = src_node->dimensions;
+        }
+
+        id_remap[src_node_id] = new_id;
+        new_ids.push_back(new_id);
+        ++node_idx;
     }
 
     return new_ids;

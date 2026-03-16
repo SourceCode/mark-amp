@@ -21,6 +21,20 @@ struct FrameMarker
     std::string label;
     double center_x{0.0};
     double center_y{0.0};
+
+    // ── Round 5 Batch 2 (#18-19) ────────────────────────────────
+
+    /// (#18) Whether a label is set.
+    [[nodiscard]] auto has_label() const noexcept -> bool
+    {
+        return !label.empty();
+    }
+
+    /// (#19) Whether a frame ID is set.
+    [[nodiscard]] auto has_id() const noexcept -> bool
+    {
+        return !frame_id.empty();
+    }
 };
 
 /// Testable model for Minimap & Board Navigator (Phase 64).
@@ -74,6 +88,44 @@ private:
         double snap_h;
     };
     std::vector<ViewportSnapshot> history_;
+
+    // ── Round 5 Batch 2-3 (#20-25) ──────────────────────────────
+
+    /// (#20) Whether minimap is in simplified mode.
+    [[nodiscard]] auto is_simplified() const noexcept -> bool
+    {
+        return mode_ == MinimapMode::kSimplified;
+    }
+
+    /// (#21) Whether minimap is in detailed mode.
+    [[nodiscard]] auto is_detailed() const noexcept -> bool
+    {
+        return mode_ == MinimapMode::kDetailed;
+    }
+
+    /// (#22) Whether frame markers exist.
+    [[nodiscard]] auto has_markers() const noexcept -> bool
+    {
+        return !markers_.empty();
+    }
+
+    /// (#23) Number of frame markers.
+    [[nodiscard]] auto marker_count() const noexcept -> size_t
+    {
+        return markers_.size();
+    }
+
+    /// (#24) Whether navigation history exists.
+    [[nodiscard]] auto has_history() const noexcept -> bool
+    {
+        return !history_.empty();
+    }
+
+    /// (#25) Viewport area in board units².
+    [[nodiscard]] auto viewport_area() const noexcept -> double
+    {
+        return vp_w_ * vp_h_;
+    }
 };
 
 } // namespace markamp::canvas

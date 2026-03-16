@@ -75,6 +75,56 @@ private:
     int render_dpi_{150};
     std::string source_path_;
     PdfLinkState link_state_{PdfLinkState::kLinked};
+
+    // ── Round 6 Batch 7 (#63-70) ────────────────────────────────
+
+    /// (#63) Whether import mode is single page.
+    [[nodiscard]] auto is_single_page() const noexcept -> bool
+    {
+        return import_mode_ == PdfImportMode::kSinglePage;
+    }
+
+    /// (#64) Whether import mode is all pages.
+    [[nodiscard]] auto is_all_pages() const noexcept -> bool
+    {
+        return import_mode_ == PdfImportMode::kAllPages;
+    }
+
+    /// (#65) Whether at the first page.
+    [[nodiscard]] auto is_first_page() const noexcept -> bool
+    {
+        return current_page_ == 1;
+    }
+
+    /// (#66) Whether at the last page.
+    [[nodiscard]] auto is_last_page() const noexcept -> bool
+    {
+        return current_page_ == total_pages_;
+    }
+
+    /// (#67) Whether a source path is set.
+    [[nodiscard]] auto has_source() const noexcept -> bool
+    {
+        return !source_path_.empty();
+    }
+
+    /// (#68) Whether PDF is linked.
+    [[nodiscard]] auto is_linked() const noexcept -> bool
+    {
+        return link_state_ == PdfLinkState::kLinked;
+    }
+
+    /// (#69) Whether PDF link is broken.
+    [[nodiscard]] auto is_broken() const noexcept -> bool
+    {
+        return link_state_ == PdfLinkState::kBroken;
+    }
+
+    /// (#70) Whether PDF is embedded.
+    [[nodiscard]] auto is_embedded() const noexcept -> bool
+    {
+        return link_state_ == PdfLinkState::kEmbedded;
+    }
 };
 
 } // namespace markamp::canvas

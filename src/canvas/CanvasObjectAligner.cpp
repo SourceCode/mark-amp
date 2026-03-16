@@ -352,4 +352,26 @@ auto CanvasObjectAligner::move_object_to(ObjectId obj_id, double new_x, double n
     }
 }
 
+// (#82) Compute combined bounding box of a set of objects.
+auto CanvasObjectAligner::compute_bounds(const std::vector<ObjectId>& ids) const -> AABB
+{
+    const auto data = collect_align_data(ids);
+    if (data.empty())
+    {
+        return {0.0, 0.0, 0.0, 0.0};
+    }
+    double min_x = data.front().left;
+    double min_y = data.front().top;
+    double max_x = data.front().right;
+    double max_y = data.front().bottom;
+    for (const auto& entry : data)
+    {
+        min_x = std::min(min_x, entry.left);
+        min_y = std::min(min_y, entry.top);
+        max_x = std::max(max_x, entry.right);
+        max_y = std::max(max_y, entry.bottom);
+    }
+    return {min_x, min_y, max_x, max_y};
+}
+
 } // namespace markamp::canvas

@@ -73,6 +73,15 @@ public:
     /// Number of pieces in the piece sequence (diagnostic).
     [[nodiscard]] auto piece_count() const noexcept -> std::size_t;
 
+    /// Number of lines in the text (count of '\n' + 1 for non-empty).
+    [[nodiscard]] auto line_count() const -> std::size_t;
+
+    /// Size of the append buffer in bytes (diagnostic).
+    [[nodiscard]] auto append_buffer_size() const noexcept -> std::size_t;
+
+    /// Size of the original buffer in bytes.
+    [[nodiscard]] auto original_size() const noexcept -> std::size_t;
+
 private:
     std::string original_buffer_;
     std::string append_buffer_;

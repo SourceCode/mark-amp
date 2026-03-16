@@ -29,6 +29,32 @@ struct ContextMenuAction
     bool enabled{true};
     bool is_separator{false};   ///< If true, rendered as a separator line
     bool is_destructive{false}; ///< Red-tinted for destructive actions (delete)
+
+    // ── Round 2 Batch 6 (#51-54) ──────────────────────────────────
+
+    /// (#51) Whether the action is enabled.
+    [[nodiscard]] auto is_enabled() const noexcept -> bool
+    {
+        return enabled;
+    }
+
+    /// (#52) Whether the action is disabled.
+    [[nodiscard]] auto is_disabled() const noexcept -> bool
+    {
+        return !enabled;
+    }
+
+    /// (#53) Whether a shortcut hint is available.
+    [[nodiscard]] auto has_shortcut() const noexcept -> bool
+    {
+        return !shortcut_hint.empty();
+    }
+
+    /// (#54) Whether an icon is assigned.
+    [[nodiscard]] auto has_icon() const noexcept -> bool
+    {
+        return !icon_name.empty();
+    }
 };
 
 /// Groups of context menu actions.
@@ -36,6 +62,20 @@ struct ContextMenuGroup
 {
     std::string group_name;
     std::vector<ContextMenuAction> actions;
+
+    // ── Round 2 Batch 6 (#55-56) ──────────────────────────────────
+
+    /// (#55) Whether this group has no actions.
+    [[nodiscard]] auto is_empty() const noexcept -> bool
+    {
+        return actions.empty();
+    }
+
+    /// (#56) Number of actions in this group.
+    [[nodiscard]] auto action_count() const noexcept -> size_t
+    {
+        return actions.size();
+    }
 };
 
 /// Builds context-sensitive menus for canvas interactions.

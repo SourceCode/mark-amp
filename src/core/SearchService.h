@@ -58,6 +58,23 @@ public:
     /// Initialize the FTS5 virtual table with tokenizer configuration.
     void configure_fts();
 
+    // ── Batch 19-22 (#137-139) ──
+
+    /// (#137) Return the number of groups in a search result.
+    [[nodiscard]] static auto result_group_count(const SearchResult& result) -> std::size_t;
+
+    /// (#138) Check if a search result has any document groups.
+    [[nodiscard]] static auto is_grouped(const SearchResult& result) -> bool;
+
+    /// (#139) Return the total hit count from a search result.
+    [[nodiscard]] static auto total_hit_count(const SearchResult& result) -> std::size_t;
+
+    /// (#174) Check if the FTS index has been initialized.
+    [[nodiscard]] auto has_fts_index() const -> bool;
+
+    /// (#175) Return the number of indexed blocks.
+    [[nodiscard]] auto indexed_block_count() const -> int;
+
 private:
     EventBus& event_bus_;
     Config& config_;

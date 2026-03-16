@@ -124,4 +124,42 @@ auto WorkspaceSessionRestore::find_snapshot_mut(const std::string& snapshot_id) 
     return nullptr;
 }
 
+// ── Batch 19-22 improvements (#127-129) ──
+
+auto WorkspaceSessionRestore::snapshots_for_workspace(const std::string& workspace_name) const
+    -> std::vector<const SessionSnapshot*>
+{
+    std::vector<const SessionSnapshot*> result;
+    for (const auto& snap : snapshots_)
+    {
+        if (snap.workspace_name == workspace_name)
+        {
+            result.push_back(&snap);
+        }
+    }
+    return result;
+}
+
+auto WorkspaceSessionRestore::total_file_count() const -> std::size_t
+{
+    std::size_t total = 0;
+    for (const auto& snap : snapshots_)
+    {
+        total += snap.open_files.size();
+    }
+    return total;
+}
+
+auto WorkspaceSessionRestore::has_snapshot(const std::string& snapshot_id) const -> bool
+{
+    for (const auto& snap : snapshots_)
+    {
+        if (snap.snapshot_id == snapshot_id)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 } // namespace markamp::core

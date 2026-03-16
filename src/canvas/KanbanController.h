@@ -55,6 +55,12 @@ public:
         size_t card_count{0};
         bool wip_exceeded{false};
         int total_story_points{0};
+
+        /// Whether the column exceeds its WIP limit.
+        [[nodiscard]] auto is_over_wip() const noexcept -> bool
+        {
+            return wip_exceeded;
+        }
     };
 
     /// Return statistics for a column.
@@ -69,6 +75,18 @@ public:
 
     /// Sum story points across all columns.
     [[nodiscard]] auto total_story_points() const -> int;
+
+    /// Number of columns in the kanban board.
+    [[nodiscard]] auto column_count() const noexcept -> std::size_t
+    {
+        return column_ids_.size();
+    }
+
+    /// Whether the kanban board has any columns.
+    [[nodiscard]] auto has_columns() const noexcept -> bool
+    {
+        return !column_ids_.empty();
+    }
 
 private:
     Board& board_;

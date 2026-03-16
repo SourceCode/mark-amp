@@ -41,6 +41,50 @@ struct StylePreset
     std::optional<bool> has_shadow;
     std::optional<double> shadow_blur;
     std::optional<CanvasColor> shadow_color;
+
+    /// Whether fill color is set.
+    [[nodiscard]] auto has_fill() const noexcept -> bool
+    {
+        return fill_color.has_value();
+    }
+
+    /// Whether any text styling is set.
+    [[nodiscard]] auto has_text_style() const noexcept -> bool
+    {
+        return font_family.has_value() || font_size.has_value() || text_color.has_value();
+    }
+
+    /// Whether shadow configuration is set.
+    [[nodiscard]] auto has_shadow_config() const noexcept -> bool
+    {
+        return has_shadow.has_value();
+    }
+
+    // ── Round 2 Batch 7 (#61-64) ──────────────────────────────────
+
+    /// (#61) Whether border color is set.
+    [[nodiscard]] auto has_border() const noexcept -> bool
+    {
+        return border_color.has_value();
+    }
+
+    /// (#62) Whether opacity is set.
+    [[nodiscard]] auto has_opacity() const noexcept -> bool
+    {
+        return opacity.has_value();
+    }
+
+    /// (#63) Whether the preset has a name.
+    [[nodiscard]] auto has_name() const noexcept -> bool
+    {
+        return !name.empty();
+    }
+
+    /// (#64) Whether this is a custom preset.
+    [[nodiscard]] auto is_custom() const noexcept -> bool
+    {
+        return category == "Custom";
+    }
 };
 
 /// Result of applying a style preset.
@@ -49,6 +93,20 @@ struct StyleApplyResult
     bool success{false};
     size_t objects_modified{0};
     std::string error_message;
+
+    // ── Round 2 Batch 7 (#65-66) ──────────────────────────────────
+
+    /// (#65) Whether the style application failed.
+    [[nodiscard]] auto failed() const noexcept -> bool
+    {
+        return !success;
+    }
+
+    /// (#66) Whether there's an error message.
+    [[nodiscard]] auto has_error() const noexcept -> bool
+    {
+        return !error_message.empty();
+    }
 };
 
 /// Built-in preset categories.
@@ -127,6 +185,9 @@ public:
 
     /// Available category names.
     [[nodiscard]] static auto category_names() -> std::vector<std::string>;
+
+    /// (#90) Check whether a preset exists by name.
+    [[nodiscard]] auto has_preset(const std::string& name) const -> bool;
 
 private:
     Board& board_;

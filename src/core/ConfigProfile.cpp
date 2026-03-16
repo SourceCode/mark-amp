@@ -109,6 +109,34 @@ auto ConfigProfileManager::export_profile(const std::string& name) const -> std:
     return json_obj.dump(2);
 }
 
+// (#49) Import a profile from a JSON string.
+auto ConfigProfileManager::import_profile(const std::string& json_str) -> bool
+{
+    try
+    {
+        auto json_obj = nlohmann::json::parse(json_str);
+        ConfigProfile profile;
+        profile.name = json_obj.value("name", "Imported");
+        profile.description = json_obj.value("description", "");
+        profile.profile_id = ProfileId::kCustom;
+        if (json_obj.contains("overrides") && json_obj["overrides"].is_object())
+        {
+            for (const auto& [key, val] : json_obj["overrides"].items())
+            {
+                profile.overrides[key] = val.get<std::string>();
+            }
+        }
+        register_profile(std::move(profile));
+        MARKAMP_LOG_INFO("Imported config profile: {}", profile.name);
+        return true;
+    }
+    catch (const nlohmann::json::exception& err)
+    {
+        MARKAMP_LOG_WARN("Failed to import config profile: {}", err.what());
+        return false;
+    }
+}
+
 auto ConfigProfileManager::create_from_diff(const std::string& name,
                                             const Config& current,
                                             const Config& defaults) -> ConfigProfile

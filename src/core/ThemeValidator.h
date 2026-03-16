@@ -62,6 +62,15 @@ public:
     /// Check if a string contains control characters (< 0x20, excluding tab/newline).
     [[nodiscard]] static auto contains_control_chars(const std::string& str) -> bool;
 
+    /// (#98) Return the number of required color keys for validation.
+    [[nodiscard]] static auto required_key_count() -> std::size_t;
+
+    /// (#140) Return the number of errors in a validation result.
+    [[nodiscard]] static auto error_count(const ValidationResult& result) -> std::size_t;
+
+    /// (#141) Return the number of warnings in a validation result.
+    [[nodiscard]] static auto warning_count(const ValidationResult& result) -> std::size_t;
+
 private:
     void check_required_fields(const nlohmann::json& json, ValidationResult& result) const;
     void check_color_values(const nlohmann::json& colors, ValidationResult& result) const;

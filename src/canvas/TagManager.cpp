@@ -198,4 +198,10 @@ auto TagManager::most_used_tags(size_t top_n) const -> std::vector<TagInfo>
     return sorted;
 }
 
+// (#94) Check if a specific tag exists in the index.
+auto TagManager::has_tag(const std::string& tag_name) const -> bool
+{
+    return tags_.contains(tag_name);
+}
+
 } // namespace markamp::canvas

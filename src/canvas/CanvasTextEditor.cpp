@@ -1,5 +1,7 @@
 #include "CanvasTextEditor.h"
 
+#include <algorithm>
+
 namespace markamp::canvas
 {
 
@@ -113,6 +115,66 @@ auto CanvasTextEditor::estimated_height() const -> double
     }
 
     return line_count * typography_.font_size * typography_.line_spacing;
+}
+
+void CanvasTextEditor::set_caret_position(int position)
+{
+    caret_position_ = std::clamp(position, 0, static_cast<int>(text_.size()));
+    selection_start_ = caret_position_;
+    selection_end_ = caret_position_;
+}
+
+auto CanvasTextEditor::caret_position() const -> int
+{
+    return caret_position_;
+}
+
+void CanvasTextEditor::select_range(int start, int end)
+{
+    const int max_pos = static_cast<int>(text_.size());
+    selection_start_ = std::clamp(start, 0, max_pos);
+    selection_end_ = std::clamp(end, 0, max_pos);
+    caret_position_ = selection_end_;
+}
+
+auto CanvasTextEditor::selection_start() const -> int
+{
+    return selection_start_;
+}
+
+auto CanvasTextEditor::selection_end() const -> int
+{
+    return selection_end_;
+}
+
+auto CanvasTextEditor::has_selection() const -> bool
+{
+    return selection_start_ != selection_end_;
+}
+
+auto CanvasTextEditor::selected_text() const -> std::string
+{
+    if (!has_selection())
+    {
+        return {};
+    }
+    const int from = std::min(selection_start_, selection_end_);
+    const int to = std::max(selection_start_, selection_end_);
+    return text_.substr(static_cast<size_t>(from),
+                        static_cast<size_t>(to - from));
+}
+
+auto CanvasTextEditor::caret_position_from_click(double click_x) const -> int
+{
+    // Approximate character position from click X coordinate.
+    // Each character is roughly font_size * 0.6 wide.
+    const double char_width = typography_.font_size * 0.6;
+    if (char_width < 1.0)
+    {
+        return 0;
+    }
+    const int char_pos = static_cast<int>(click_x / char_width);
+    return std::clamp(char_pos, 0, static_cast<int>(text_.size()));
 }
 
 } // namespace markamp::canvas

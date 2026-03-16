@@ -24,6 +24,20 @@ struct LayoutObject
     double width{100.0};
     double height{100.0};
     std::string container_id; ///< Empty if no container
+
+    // ── Round 4 Batch 8 (#79-80) ────────────────────────────────
+
+    /// (#79) Whether this object belongs to a container.
+    [[nodiscard]] auto has_container() const noexcept -> bool
+    {
+        return !container_id.empty();
+    }
+
+    /// (#80) Area of the object.
+    [[nodiscard]] auto area() const noexcept -> double
+    {
+        return width * height;
+    }
 };
 
 /// Testable model for Smart Layout/Auto-Arrange (Phase 75).

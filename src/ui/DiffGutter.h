@@ -73,6 +73,18 @@ public:
     /// Get the line number of a change by index.
     [[nodiscard]] auto change_line(int change_index) const -> int;
 
+    /// Number of left (old) side gutter decorations.
+    [[nodiscard]] auto left_count() const -> int
+    {
+        return static_cast<int>(left_decorations_.size());
+    }
+
+    /// Number of right (new) side gutter decorations.
+    [[nodiscard]] auto right_count() const -> int
+    {
+        return static_cast<int>(right_decorations_.size());
+    }
+
 private:
     std::vector<GutterDecoration> left_decorations_;
     std::vector<GutterDecoration> right_decorations_;

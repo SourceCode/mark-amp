@@ -32,6 +32,12 @@ public:
     [[nodiscard]] auto metrics() const -> const ThemePerformanceMetrics&;
     void reset();
 
+    /// (#145) Return the total number of theme operations (cache rebuilds + window applies).
+    [[nodiscard]] auto total_operations() const -> std::size_t;
+
+    /// (#146) Return the average cache rebuild time in microseconds.
+    [[nodiscard]] auto avg_cache_rebuild_us() const -> double;
+
 private:
     ThemePerformanceMetrics metrics_;
 };

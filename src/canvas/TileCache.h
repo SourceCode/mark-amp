@@ -18,6 +18,14 @@ struct TileKey
     int zoom_level{0};
 
     auto operator==(const TileKey& rhs) const -> bool = default;
+
+    // ── Round 3 Batch 8 (#71) ───────────────────────────────────
+
+    /// (#71) Whether this tile is at the origin.
+    [[nodiscard]] auto is_origin() const noexcept -> bool
+    {
+        return col == 0 && row == 0;
+    }
 };
 
 } // namespace markamp::canvas
@@ -48,6 +56,20 @@ struct TileEntry
     // In a real implementation, this would hold a wxBitmap or similar.
     // For now we track metadata only; the actual pixel data is managed by
     // the CanvasPanel's wxBitmap cache.
+
+    /// Whether this tile entry is still valid.
+    [[nodiscard]] auto is_valid_entry() const noexcept -> bool
+    {
+        return valid;
+    }
+
+    // ── Round 3 Batch 8 (#72) ───────────────────────────────────
+
+    /// (#72) Whether this tile is stale (invalidated).
+    [[nodiscard]] auto is_stale() const noexcept -> bool
+    {
+        return !valid;
+    }
 };
 
 /// Off-screen tile cache for the canvas rendering engine.
@@ -88,6 +110,32 @@ public:
 
     /// Convert zoom factor to discrete zoom level (for tile grid alignment).
     [[nodiscard]] static auto zoom_to_level(double zoom) -> int;
+
+    /// Whether the cache is empty.
+    [[nodiscard]] auto is_empty() const noexcept -> bool
+    {
+        return tiles_.empty();
+    }
+
+    /// Whether the cache is at max capacity.
+    [[nodiscard]] auto is_full() const noexcept -> bool
+    {
+        return tiles_.size() >= max_tiles_;
+    }
+
+    // ── Round 3 Batch 8 (#73-74) ────────────────────────────────
+
+    /// (#73) Remaining tile capacity.
+    [[nodiscard]] auto remaining_capacity() const noexcept -> size_t
+    {
+        return tiles_.size() < max_tiles_ ? max_tiles_ - tiles_.size() : 0;
+    }
+
+    /// (#74) Cache utilization ratio (0.0 to 1.0).
+    [[nodiscard]] auto utilization() const noexcept -> double
+    {
+        return max_tiles_ > 0 ? static_cast<double>(tiles_.size()) / static_cast<double>(max_tiles_) : 0.0;
+    }
 
 private:
     std::unordered_map<TileKey, TileEntry> tiles_;

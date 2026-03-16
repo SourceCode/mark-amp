@@ -41,6 +41,14 @@ public:
     /// Sanitize a theme name for use as a filename (lowercase, underscores, no special chars).
     [[nodiscard]] static auto sanitize_filename(const std::string& name) -> std::string;
 
+    // ── Batch 19-22 (#133-134) ──
+
+    /// (#133) Return the count of built-in themes.
+    [[nodiscard]] auto builtin_count() const -> std::size_t;
+
+    /// (#134) Return the count of user/custom themes.
+    [[nodiscard]] auto custom_count() const -> std::size_t;
+
 private:
     std::vector<Theme> themes_;
     void load_builtin_themes();

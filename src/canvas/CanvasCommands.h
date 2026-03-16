@@ -62,6 +62,21 @@ private:
     std::vector<ObjectId> target_ids_;
     double delta_x_;
     double delta_y_;
+
+public:
+    // ── Batch 9 (#89-90) ──────────────────────────────────────────
+
+    /// (#89) Number of target objects in this move.
+    [[nodiscard]] auto target_count() const noexcept -> size_t
+    {
+        return target_ids_.size();
+    }
+
+    /// (#90) Movement delta as a Point2D.
+    [[nodiscard]] auto delta() const noexcept -> Point2D
+    {
+        return {delta_x_, delta_y_};
+    }
 };
 
 /// Compound command: groups multiple commands into one undo/redo unit.
@@ -79,6 +94,21 @@ public:
 private:
     std::string description_;
     std::vector<std::unique_ptr<ICanvasCommand>> commands_;
+
+public:
+    // ── Batch 9 (#86-87) ──────────────────────────────────────────
+
+    /// (#86) Whether the compound command has no sub-commands.
+    [[nodiscard]] auto is_empty() const noexcept -> bool
+    {
+        return commands_.empty();
+    }
+
+    /// (#87) Whether the compound command has any sub-commands.
+    [[nodiscard]] auto has_commands() const noexcept -> bool
+    {
+        return !commands_.empty();
+    }
 };
 
 /// Change the z-index of an object.
@@ -214,6 +244,15 @@ private:
     std::vector<ObjectId> source_ids_;
     Point2D offset_;
     std::vector<ObjectId> created_ids_;
+
+public:
+    // ── Batch 9 (#88) ───────────────────────────────────────────
+
+    /// (#88) Number of duplicated objects created.
+    [[nodiscard]] auto duplicated_count() const noexcept -> size_t
+    {
+        return created_ids_.size();
+    }
 };
 
 } // namespace markamp::canvas

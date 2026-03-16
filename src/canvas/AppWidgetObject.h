@@ -32,6 +32,14 @@ struct WidgetDataBinding
     std::string field_name;  ///< Widget field to bind
     std::string source_path; ///< Provider data path (e.g. "issues[0].title")
     std::string transform;   ///< Optional transform expression
+
+    // ── Round 2 Batch 5 (#49) ────────────────────────────────────
+
+    /// (#49) Whether a transform expression is set.
+    [[nodiscard]] auto has_transform() const noexcept -> bool
+    {
+        return !transform.empty();
+    }
 };
 
 /// In-canvas widget host object.
@@ -145,6 +153,61 @@ public:
     }
     auto add_binding(const WidgetDataBinding& binding) -> void;
     auto clear_bindings() -> void;
+
+    // ── Serialization ─────────────────────────────────────────────
+
+    /// Populate fields from a JSON string.
+    auto from_json(const std::string& json) -> void override;
+
+    // ── Round 2 Batch 5 (#41-48) ──────────────────────────────────
+
+    /// (#41) Whether the widget is currently syncing.
+    [[nodiscard]] auto is_syncing() const noexcept -> bool
+    {
+        return sync_status_ == WidgetSyncStatus::kSyncing;
+    }
+
+    /// (#42) Whether the widget is synced.
+    [[nodiscard]] auto is_synced() const noexcept -> bool
+    {
+        return sync_status_ == WidgetSyncStatus::kSynced;
+    }
+
+    /// (#43) Whether the widget has a sync error.
+    [[nodiscard]] auto has_error() const noexcept -> bool
+    {
+        return sync_status_ == WidgetSyncStatus::kError;
+    }
+
+    /// (#44) Whether state JSON is populated.
+    [[nodiscard]] auto has_state() const noexcept -> bool
+    {
+        return !state_json_.empty();
+    }
+
+    /// (#45) Whether config JSON is populated.
+    [[nodiscard]] auto has_config() const noexcept -> bool
+    {
+        return !config_json_.empty();
+    }
+
+    /// (#46) Number of data bindings.
+    [[nodiscard]] auto binding_count() const noexcept -> size_t
+    {
+        return bindings_.size();
+    }
+
+    /// (#47) Whether the widget has data bindings.
+    [[nodiscard]] auto has_bindings() const noexcept -> bool
+    {
+        return !bindings_.empty();
+    }
+
+    /// (#48) Widget area in pixels.
+    [[nodiscard]] auto widget_area() const noexcept -> int
+    {
+        return width_ * height_;
+    }
 
 private:
     std::string widget_id_;

@@ -355,6 +355,65 @@ auto ShapeRecognizer::detect_arrow(const std::vector<Point2D>& points, Recogniti
 
     return confidence;
 }
+// ── Detection: Star ─────────────────────────────────────────────
+
+auto ShapeRecognizer::detect_star(const std::vector<Point2D>& points, RecognitionResult& result)
+    -> double
+{
+    if (points.size() < 10 || !is_closed(points))
+    {
+        return 0.0;
+    }
+
+    // Stars have many sharp corners (5+ for a 5-pointed star).
+    const size_t corners = count_corners(points, 30.0);
+    if (corners < 5)
+    {
+        return 0.0;
+    }
+
+    // Check radial distance variation from centroid.
+    // A star alternates between inner and outer radii.
+    const Point2D center_pt = centroid(points);
+    std::vector<double> distances;
+    distances.reserve(points.size());
+    for (const auto& point : points)
+    {
+        distances.push_back(center_pt.distance_to(point));
+    }
+
+    // Count alternations between "peaks" and "valleys".
+    const double avg_dist =
+        std::accumulate(distances.begin(), distances.end(), 0.0) /
+        static_cast<double>(distances.size());
+
+    size_t alternation_count = 0;
+    bool was_above = distances.front() > avg_dist;
+    for (size_t idx = 1; idx < distances.size(); ++idx)
+    {
+        const bool is_above = distances[idx] > avg_dist;
+        if (is_above != was_above)
+        {
+            ++alternation_count;
+            was_above = is_above;
+        }
+    }
+
+    // A 5-pointed star has ~10 alternations (5 peaks + 5 valleys).
+    const double alternation_score =
+        (alternation_count >= 8) ? 1.0 : (alternation_count >= 6) ? 0.7 : 0.3;
+
+    const double corner_score = (corners >= 8) ? 1.0 : (corners >= 5) ? 0.8 : 0.5;
+    const double star_confidence = alternation_score * 0.6 + corner_score * 0.4;
+
+    if (star_confidence > 0.0)
+    {
+        result.shape = RecognizedShape::kStar;
+        result.bounds = compute_bounds(points);
+    }
+
+    return star_confidence;
+}
 
 // ── Main Recognition ────────────────────────────────────────────
 
@@ -414,6 +473,15 @@ auto ShapeRecognizer::recognize(const std::vector<Point2D>& points) -> Recogniti
         best.confidence = arrow_conf;
     }
 
+    RecognitionResult star_result;
+    const double star_conf = detect_star(points, star_result);
+    if (star_conf > best_conf)
+    {
+        best = star_result;
+        best_conf = star_conf;
+        best.confidence = star_conf;
+    }
+
     return best;
 }
 
@@ -444,6 +512,9 @@ auto ShapeRecognizer::to_shape_object(const RecognitionResult& result)
         case RecognizedShape::kArrow:
             shape->set_shape_type(ShapeType::kRectangle); // Simplified: lines as thin rects.
             break;
+        case RecognizedShape::kStar:
+            shape->set_shape_type(ShapeType::kStar);
+            break;
         case RecognizedShape::kNone:
             return nullptr;
     }
@@ -453,6 +524,13 @@ auto ShapeRecognizer::to_shape_object(const RecognitionResult& result)
     shape->set_position(result.bounds.min_x, result.bounds.min_y);
 
     return shape;
+}
+
+// (#103) Return the number of shape types the recognizer supports.
+auto ShapeRecognizer::supported_shape_count() -> std::size_t
+{
+    // Line, Rectangle, Ellipse, Triangle, Arrow, Star
+    return 6;
 }
 
 } // namespace markamp::canvas

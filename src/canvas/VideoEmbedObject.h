@@ -20,6 +20,14 @@ struct OEmbedData
     std::filesystem::path thumbnail_path; // Local cached thumbnail
     int width{480};
     int height{270};
+
+    // ── Round 3 Batch 10 (#100) ─────────────────────────────────
+
+    /// (#100) Whether oEmbed title is present.
+    [[nodiscard]] auto has_title() const noexcept -> bool
+    {
+        return !title.empty();
+    }
 };
 
 /// A canvas object that embeds a video (URL or local file) with oEmbed metadata.

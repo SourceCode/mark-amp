@@ -115,6 +115,21 @@ public:
     /// V9: Cancel preview and revert to previous theme.
     void cancel_preview();
 
+    /// (#159) Return the number of cached color entries.
+    [[nodiscard]] auto cached_color_count() const -> std::size_t;
+
+    /// (#160) Return the current undo stack depth.
+    [[nodiscard]] auto undo_depth() const -> std::size_t;
+
+    /// (#161) Return the current redo stack depth.
+    [[nodiscard]] auto redo_depth() const -> std::size_t;
+
+    /// (#162) Check if the engine is currently in preview mode.
+    [[nodiscard]] auto is_previewing() const -> bool;
+
+    /// (#163) Return the number of registered scoped tokens.
+    [[nodiscard]] auto scoped_token_count() const -> std::size_t;
+
 private:
     EventBus& event_bus_;
     ThemeRegistry& registry_;

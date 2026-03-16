@@ -14,6 +14,26 @@ struct WalkthroughStep
     std::string title;
     std::string instruction;
     bool completed{false};
+
+    // ── Round 5 Batch 3 (#26-28) ────────────────────────────────
+
+    /// (#26) Whether a title is set.
+    [[nodiscard]] auto has_title() const noexcept -> bool
+    {
+        return !title.empty();
+    }
+
+    /// (#27) Whether an instruction is set.
+    [[nodiscard]] auto has_instruction() const noexcept -> bool
+    {
+        return !instruction.empty();
+    }
+
+    /// (#28) Whether this step is completed.
+    [[nodiscard]] auto is_done() const noexcept -> bool
+    {
+        return completed;
+    }
 };
 
 /// Starter template entry.
@@ -22,6 +42,20 @@ struct StarterTemplate
     std::string template_id;
     std::string name;
     std::string category; ///< "flowchart", "brainstorm", "roadmap", "diagram"
+
+    // ── Round 5 Batch 3 (#29-30) ────────────────────────────────
+
+    /// (#29) Whether a name is set.
+    [[nodiscard]] auto has_name() const noexcept -> bool
+    {
+        return !name.empty();
+    }
+
+    /// (#30) Whether a category is set.
+    [[nodiscard]] auto has_category() const noexcept -> bool
+    {
+        return !category.empty();
+    }
 };
 
 /// Testable model for Canvas Onboarding / Tutorials (Phase 78).
@@ -62,6 +96,26 @@ private:
     std::vector<std::string> dismissed_hints_;
     std::vector<StarterTemplate> starter_templates_;
     bool reference_visible_{false};
+
+    // ── Round 5 Batch 4 (#31-33) ────────────────────────────────
+
+    /// (#31) Number of walkthrough steps.
+    [[nodiscard]] auto step_count() const noexcept -> size_t
+    {
+        return steps_.size();
+    }
+
+    /// (#32) Whether starter templates are loaded.
+    [[nodiscard]] auto has_templates() const noexcept -> bool
+    {
+        return !starter_templates_.empty();
+    }
+
+    /// (#33) Number of starter templates.
+    [[nodiscard]] auto template_count() const noexcept -> size_t
+    {
+        return starter_templates_.size();
+    }
 };
 
 } // namespace markamp::canvas

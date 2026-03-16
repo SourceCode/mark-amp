@@ -21,6 +21,20 @@ struct AnchorPoint
     std::string object_id;
     double offset_x{0.5}; ///< 0–1 normalized position on object bounds
     double offset_y{0.5};
+
+    // ── Round 4 Batch 6 (#56-57) ────────────────────────────────
+
+    /// (#56) Whether an object is attached.
+    [[nodiscard]] auto has_object() const noexcept -> bool
+    {
+        return !object_id.empty();
+    }
+
+    /// (#57) Whether the anchor is at the center (default).
+    [[nodiscard]] auto is_centered() const noexcept -> bool
+    {
+        return offset_x == 0.5 && offset_y == 0.5;
+    }
 };
 
 /// A bend point for manual route tuning.
@@ -35,6 +49,20 @@ struct ConnectorLabel
 {
     std::string text;
     double position{0.5}; ///< 0–1 along the connector's length
+
+    // ── Round 4 Batch 6 (#58-59) ────────────────────────────────
+
+    /// (#58) Whether label text is set.
+    [[nodiscard]] auto has_text() const noexcept -> bool
+    {
+        return !text.empty();
+    }
+
+    /// (#59) Whether the label is at the midpoint.
+    [[nodiscard]] auto is_midpoint() const noexcept -> bool
+    {
+        return position == 0.5;
+    }
 };
 
 /// Testable model for Connector Routing & Line Editing (Phase 44).
@@ -80,6 +108,32 @@ private:
     RoutingMode routing_{RoutingMode::kStraight};
     std::vector<BendPoint> bends_;
     ConnectorLabel label_;
+
+    // ── Round 4 Batch 6-7 (#60-63) ──────────────────────────────
+
+    /// (#60) Whether routing is straight.
+    [[nodiscard]] auto is_straight() const noexcept -> bool
+    {
+        return routing_ == RoutingMode::kStraight;
+    }
+
+    /// (#61) Whether routing is orthogonal.
+    [[nodiscard]] auto is_orthogonal() const noexcept -> bool
+    {
+        return routing_ == RoutingMode::kOrthogonal;
+    }
+
+    /// (#62) Whether routing is curved.
+    [[nodiscard]] auto is_curved() const noexcept -> bool
+    {
+        return routing_ == RoutingMode::kCurved;
+    }
+
+    /// (#63) Whether manual bend points exist.
+    [[nodiscard]] auto has_bends() const noexcept -> bool
+    {
+        return !bends_.empty();
+    }
 };
 
 } // namespace markamp::canvas

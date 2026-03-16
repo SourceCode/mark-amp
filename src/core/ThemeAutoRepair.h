@@ -32,6 +32,12 @@ public:
     /// Check if a theme needs repair (has missing or problematic tokens).
     [[nodiscard]] static auto needs_repair(const Theme& theme) -> bool;
 
+    /// (#99) Return the number of repairs that would be performed (dry-run).
+    [[nodiscard]] static auto repair_count(const Theme& theme) -> std::size_t;
+
+    /// (#142) Check if the theme has contrast violations without modifying it.
+    [[nodiscard]] static auto has_contrast_issues(const Theme& theme) -> bool;
+
 private:
     /// Fill missing tokens (values at 0,0,0) from sensible defaults.
     static auto fill_missing_tokens(Theme& theme) -> std::vector<RepairAction>;

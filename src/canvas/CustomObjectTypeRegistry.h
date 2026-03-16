@@ -33,6 +33,32 @@ struct CustomObjectTypeDescriptor
     std::string category;     ///< Palette category ("shapes", "data", "custom")
     Size2D default_size{200.0, 150.0};
     CustomObjectFactory factory; ///< Creates an instance of this type
+
+    /// Whether an icon path is set.
+    [[nodiscard]] auto has_icon() const noexcept -> bool
+    {
+        return !icon.empty();
+    }
+
+    /// Whether a factory function is set.
+    [[nodiscard]] auto has_factory() const noexcept -> bool
+    {
+        return factory != nullptr;
+    }
+
+    // ── Round 3 Batch 9 (#88-89) ────────────────────────────────
+
+    /// (#88) Whether a category is set.
+    [[nodiscard]] auto has_category() const noexcept -> bool
+    {
+        return !category.empty();
+    }
+
+    /// (#89) Whether a display name is set.
+    [[nodiscard]] auto has_display_name() const noexcept -> bool
+    {
+        return !display_name.empty();
+    }
 };
 
 /// Result of a registration attempt.
@@ -40,6 +66,20 @@ struct TypeRegistrationResult
 {
     bool success{false};
     std::string error_message;
+
+    /// Whether the registration failed.
+    [[nodiscard]] auto failed() const noexcept -> bool
+    {
+        return !success;
+    }
+
+    // ── Round 3 Batch 9 (#90) ───────────────────────────────────
+
+    /// (#90) Whether there's an error message.
+    [[nodiscard]] auto has_error() const noexcept -> bool
+    {
+        return !error_message.empty();
+    }
 };
 
 /// Registry for extension-contributed canvas object types.
@@ -103,6 +143,12 @@ public:
 
     /// Remove all registered types.
     auto clear() -> void;
+
+    /// Whether the registry is empty.
+    [[nodiscard]] auto is_empty() const noexcept -> bool
+    {
+        return types_.empty();
+    }
 
 private:
     core::EventBus& event_bus_;

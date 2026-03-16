@@ -82,6 +82,18 @@ public:
         order_.clear();
     }
 
+    /// Whether the cache is empty.
+    [[nodiscard]] auto is_empty() const noexcept -> bool
+    {
+        return map_.empty();
+    }
+
+    /// Maximum number of entries this cache can hold.
+    [[nodiscard]] static constexpr auto capacity() noexcept -> std::size_t
+    {
+        return MaxEntries;
+    }
+
 private:
     using ListType = std::list<std::pair<Key, Value>>;
     ListType order_;
@@ -113,6 +125,12 @@ struct ViewportState
     {
         auto raw_end = first_visible_line + visible_line_count + prefetch_margin;
         return raw_end < total_lines ? raw_end : total_lines;
+    }
+
+    /// Number of lines in the render range (visible + prefetch margin).
+    [[nodiscard]] auto render_line_count(std::size_t total_lines) const noexcept -> std::size_t
+    {
+        return render_end(total_lines) - render_start(total_lines);
     }
 };
 
@@ -223,6 +241,12 @@ public:
     [[nodiscard]] auto size() const noexcept -> std::size_t
     {
         return measurements_.size();
+    }
+
+    /// Whether output cache is empty.
+    [[nodiscard]] auto is_empty() const noexcept -> bool
+    {
+        return measurements_.empty();
     }
 
 private:

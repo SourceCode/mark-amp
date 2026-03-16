@@ -120,6 +120,50 @@ public:
     {
         reading_profile_ = profile;
     }
+    // ── 100 Editor UX/UI Improvements: Batch 7 — Preview Accessors (#61–#67) ──
+
+    /// #61 True when pending content is non-empty.
+    [[nodiscard]] inline auto has_content() const noexcept -> bool
+    {
+        return !pending_content_.empty();
+    }
+
+    /// #62 True when a base path for image resolution is set.
+    [[nodiscard]] inline auto has_base_path() const noexcept -> bool
+    {
+        return !base_path_.empty();
+    }
+
+    /// #63 True when scroll sync is active.
+    [[nodiscard]] inline auto is_scroll_sync_active() const noexcept -> bool
+    {
+        return scroll_sync_enabled_;
+    }
+
+    /// #64 Current zoom level.
+    [[nodiscard]] inline auto current_zoom_level() const noexcept -> int
+    {
+        return zoom_level_;
+    }
+
+    /// #65 Current render debounce in milliseconds.
+    [[nodiscard]] inline auto render_debounce_ms() const noexcept -> int
+    {
+        return render_debounce_ms_;
+    }
+
+    /// #66 True when the panel has been destroyed (guard for timer callbacks).
+    [[nodiscard]] inline auto is_destroyed() const noexcept -> bool
+    {
+        return destroyed_;
+    }
+
+    /// #67 Current reading profile preset.
+    [[nodiscard]] inline auto current_reading_profile() const noexcept
+        -> rendering::ReadingProfilePreset
+    {
+        return reading_profile_;
+    }
 
 protected:
     void OnThemeChanged(const core::Theme& new_theme) override;

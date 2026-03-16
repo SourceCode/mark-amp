@@ -486,4 +486,16 @@ auto WorkspaceSearchEngine::ReplaceSingleMatch(const SearchMatch& match,
     return ReplaceMatches({match}, replacement_text, workspace_root) > 0;
 }
 
+// (#164) Check if a cancellation has been requested.
+auto WorkspaceSearchEngine::is_cancelled() const -> bool
+{
+    return is_cancelled_.load();
+}
+
+// (#165) Return the total match count from a SearchResult.
+auto WorkspaceSearchEngine::match_count(const SearchResult& result) -> std::size_t
+{
+    return result.matches.size();
+}
+
 } // namespace markamp::core

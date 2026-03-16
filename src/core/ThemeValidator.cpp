@@ -99,6 +99,22 @@ auto ThemeValidator::validate_theme(const Theme& theme) const -> ValidationResul
 
     check_contrast_ratios(theme, result);
 
+    // (#51) Validate syntax tokens — warn if any are default black.
+    auto check_syntax = [&](const std::string& name, const Color& clr)
+    {
+        if (clr.r == 0 && clr.g == 0 && clr.b == 0)
+        {
+            result.warnings.emplace_back(
+                "Syntax token '" + name + "' is default black (#000000) — may be unset");
+        }
+    };
+    check_syntax("keyword", theme.syntax.keyword);
+    check_syntax("comment", theme.syntax.comment);
+    check_syntax("string_literal", theme.syntax.string_literal);
+    check_syntax("number", theme.syntax.number);
+    check_syntax("function_name", theme.syntax.function_name);
+    check_syntax("type_name", theme.syntax.type_name);
+
     return result;
 }
 
@@ -221,6 +237,24 @@ auto ThemeValidator::contains_control_chars(const std::string& str) -> bool
         }
     }
     return false;
+}
+
+// (#98) Return the number of required color keys.
+auto ThemeValidator::required_key_count() -> std::size_t
+{
+    return kRequiredColorKeys.size();
+}
+
+// ── Batch 23-25 (#140-141) ──
+
+auto ThemeValidator::error_count(const ValidationResult& result) -> std::size_t
+{
+    return result.errors.size();
+}
+
+auto ThemeValidator::warning_count(const ValidationResult& result) -> std::size_t
+{
+    return result.warnings.size();
 }
 
 } // namespace markamp::core

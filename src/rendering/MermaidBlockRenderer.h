@@ -42,6 +42,12 @@ public:
     [[nodiscard]] static auto
     render_diagnostics(const std::vector<core::MermaidDiagnosticInfo>& diagnostics) -> std::string;
 
+    /// Number of static rendering helper methods (error, unavailable, placeholder, diagnostics).
+    [[nodiscard]] static constexpr auto total_static_renderers() noexcept -> int
+    {
+        return 4;
+    }
+
 private:
     /// Escape HTML special characters in text.
     [[nodiscard]] static auto escape_html(std::string_view text) -> std::string;

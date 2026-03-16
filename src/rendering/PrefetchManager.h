@@ -98,6 +98,18 @@ public:
         return scrolling_down_;
     }
 
+    /// Default extra prefetch margin in lines.
+    [[nodiscard]] static constexpr auto default_margin() noexcept -> std::size_t
+    {
+        return 20;
+    }
+
+    /// Total number of scroll direction enum values.
+    [[nodiscard]] static constexpr auto total_direction_count() noexcept -> int
+    {
+        return 5;
+    }
+
 private:
     std::size_t extra_margin_{20}; // Extra lines beyond ViewportState prefetch
     bool scrolling_down_{true};    // Default bias

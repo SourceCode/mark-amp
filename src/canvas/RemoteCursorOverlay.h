@@ -42,6 +42,50 @@ struct CursorEntry
 
     /// Timestamp of last update (for idle detection)
     std::chrono::steady_clock::time_point last_update{std::chrono::steady_clock::now()};
+
+    /// Whether the cursor is using the pointer tool.
+    [[nodiscard]] auto is_pointer() const noexcept -> bool
+    {
+        return tool == RemoteToolType::kPointer;
+    }
+
+    /// Whether the cursor is drawing.
+    [[nodiscard]] auto is_drawing() const noexcept -> bool
+    {
+        return tool == RemoteToolType::kDraw;
+    }
+
+    // ── Round 3 Batch 5-6 (#48-52) ──────────────────────────────
+
+    /// (#48) Whether the cursor is using the text tool.
+    [[nodiscard]] auto is_text_tool() const noexcept -> bool
+    {
+        return tool == RemoteToolType::kText;
+    }
+
+    /// (#49) Whether the cursor is an eraser.
+    [[nodiscard]] auto is_eraser() const noexcept -> bool
+    {
+        return tool == RemoteToolType::kEraser;
+    }
+
+    /// (#50) Whether the cursor is a laser pointer.
+    [[nodiscard]] auto is_laser() const noexcept -> bool
+    {
+        return tool == RemoteToolType::kLaser;
+    }
+
+    /// (#51) Whether the cursor label is shown.
+    [[nodiscard]] auto has_label() const noexcept -> bool
+    {
+        return show_label;
+    }
+
+    /// (#52) Whether the cursor is visible (opacity > 0).
+    [[nodiscard]] auto is_visible() const noexcept -> bool
+    {
+        return opacity > 0.0;
+    }
 };
 
 /// Configuration for the cursor overlay renderer.
@@ -54,6 +98,20 @@ struct CursorOverlayConfig
     double label_offset_y{18.0};
     bool show_labels_by_default{true};
     double cursor_size{16.0}; ///< Base cursor icon size
+
+    /// Whether labels are shown by default.
+    [[nodiscard]] auto has_labels() const noexcept -> bool
+    {
+        return show_labels_by_default;
+    }
+
+    // ── Round 3 Batch 6 (#53) ───────────────────────────────────
+
+    /// (#53) Whether an idle timeout is configured.
+    [[nodiscard]] auto has_idle_timeout() const noexcept -> bool
+    {
+        return idle_timeout_seconds > 0.0;
+    }
 };
 
 /// Overlay that renders remote participant cursors on the canvas.
@@ -121,6 +179,18 @@ public:
 
     /// Get a default color palette for participants (up to 8 distinct colors).
     [[nodiscard]] static auto participant_color(size_t participant_index) -> CanvasColor;
+
+    /// Whether any cursors are being tracked.
+    [[nodiscard]] auto has_cursors() const noexcept -> bool
+    {
+        return !cursors_.empty();
+    }
+
+    /// Whether the overlay has no cursors.
+    [[nodiscard]] auto is_empty() const noexcept -> bool
+    {
+        return cursors_.empty();
+    }
 
 private:
     CursorOverlayConfig config_;

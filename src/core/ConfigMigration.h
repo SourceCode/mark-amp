@@ -41,6 +41,17 @@ public:
     /// Return all registered rules (for introspection).
     [[nodiscard]] auto rules() const -> const std::vector<MigrationRule>&;
 
+    /// (#91) Check if a migration rule exists for a given old key.
+    [[nodiscard]] auto has_rule(const std::string& old_key) const -> bool;
+
+    // ── Batch 19-22 (#122-123) ──
+
+    /// (#122) Return the number of rules that would trigger for a given Config.
+    [[nodiscard]] auto pending_count(const Config& config) const -> std::size_t;
+
+    /// (#123) Remove all registered migration rules.
+    void clear_rules();
+
 private:
     std::vector<MigrationRule> rules_;
 };

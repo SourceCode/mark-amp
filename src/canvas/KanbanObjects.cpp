@@ -242,8 +242,90 @@ auto KanbanCard::to_json() const -> std::string
     return oss.str();
 }
 
-auto KanbanCard::from_json(const std::string& /*json*/) -> void
-{ /* stub */
+auto KanbanCard::from_json(const std::string& json) -> void
+{
+    // Simple field extractor (production would use nlohmann/json).
+    auto extract_str = [&json](const std::string& key) -> std::string
+    {
+        const std::string search = "\"" + key + "\"";
+        auto key_pos = json.find(search);
+        if (key_pos == std::string::npos)
+        {
+            return {};
+        }
+        auto colon = json.find(':', key_pos + search.size());
+        if (colon == std::string::npos)
+        {
+            return {};
+        }
+        auto quote_start = json.find('"', colon + 1);
+        if (quote_start == std::string::npos)
+        {
+            return {};
+        }
+        auto quote_end = json.find('"', quote_start + 1);
+        if (quote_end == std::string::npos)
+        {
+            return {};
+        }
+        return json.substr(quote_start + 1, quote_end - quote_start - 1);
+    };
+
+    auto extract_int = [&json](const std::string& key) -> int
+    {
+        const std::string search = "\"" + key + "\"";
+        auto key_pos = json.find(search);
+        if (key_pos == std::string::npos)
+        {
+            return 0;
+        }
+        auto colon = json.find(':', key_pos + search.size());
+        if (colon == std::string::npos)
+        {
+            return 0;
+        }
+        auto val_start = json.find_first_not_of(" \t", colon + 1);
+        if (val_start == std::string::npos)
+        {
+            return 0;
+        }
+        try { return std::stoi(json.substr(val_start)); }
+        catch (...) { return 0; }
+    };
+
+    title_ = extract_str("title");
+    description_ = extract_str("description");
+    assignee_ = extract_str("assignee");
+    due_date_ = extract_str("due_date");
+    created_at_ = extract_str("created_at");
+    completed_at_ = extract_str("completed_at");
+    priority_ = extract_int("priority");
+    column_id_ = static_cast<ObjectId>(extract_int("column_id"));
+    card_index_ = extract_int("card_index");
+    story_points_ = extract_int("story_points");
+
+    // Parse labels array: ["label1", "label2", ...]
+    labels_.clear();
+    auto labels_pos = json.find("\"labels\"");
+    if (labels_pos != std::string::npos)
+    {
+        auto arr_start = json.find('[', labels_pos);
+        auto arr_end = json.find(']', arr_start);
+        if (arr_start != std::string::npos && arr_end != std::string::npos)
+        {
+            auto arr_content = json.substr(arr_start + 1, arr_end - arr_start - 1);
+            size_t pos = 0;
+            while (pos < arr_content.size())
+            {
+                auto qs = arr_content.find('"', pos);
+                if (qs == std::string::npos) { break; }
+                auto qe = arr_content.find('"', qs + 1);
+                if (qe == std::string::npos) { break; }
+                labels_.push_back(arr_content.substr(qs + 1, qe - qs - 1));
+                pos = qe + 1;
+            }
+        }
+    }
 }
 
 auto KanbanCard::clone() const -> std::unique_ptr<CanvasObject>
@@ -402,8 +484,97 @@ auto KanbanColumn::to_json() const -> std::string
     return oss.str();
 }
 
-auto KanbanColumn::from_json(const std::string& /*json*/) -> void
-{ /* stub */
+auto KanbanColumn::from_json(const std::string& json) -> void
+{
+    // Simple field extractor.
+    auto extract_str = [&json](const std::string& key) -> std::string
+    {
+        const std::string search = "\"" + key + "\"";
+        auto key_pos = json.find(search);
+        if (key_pos == std::string::npos) { return {}; }
+        auto colon = json.find(':', key_pos + search.size());
+        if (colon == std::string::npos) { return {}; }
+        auto quote_start = json.find('"', colon + 1);
+        if (quote_start == std::string::npos) { return {}; }
+        auto quote_end = json.find('"', quote_start + 1);
+        if (quote_end == std::string::npos) { return {}; }
+        return json.substr(quote_start + 1, quote_end - quote_start - 1);
+    };
+
+    auto extract_int = [&json](const std::string& key) -> int
+    {
+        const std::string search = "\"" + key + "\"";
+        auto key_pos = json.find(search);
+        if (key_pos == std::string::npos) { return 0; }
+        auto colon = json.find(':', key_pos + search.size());
+        if (colon == std::string::npos) { return 0; }
+        auto val_start = json.find_first_not_of(" \t", colon + 1);
+        if (val_start == std::string::npos) { return 0; }
+        try { return std::stoi(json.substr(val_start)); }
+        catch (...) { return 0; }
+    };
+
+    auto extract_double = [&json](const std::string& key) -> double
+    {
+        const std::string search = "\"" + key + "\"";
+        auto key_pos = json.find(search);
+        if (key_pos == std::string::npos) { return 0.0; }
+        auto colon = json.find(':', key_pos + search.size());
+        if (colon == std::string::npos) { return 0.0; }
+        auto val_start = json.find_first_not_of(" \t", colon + 1);
+        if (val_start == std::string::npos) { return 0.0; }
+        try { return std::stod(json.substr(val_start)); }
+        catch (...) { return 0.0; }
+    };
+
+    auto extract_bool = [&json](const std::string& key) -> bool
+    {
+        const std::string search = "\"" + key + "\"";
+        auto key_pos = json.find(search);
+        if (key_pos == std::string::npos) { return false; }
+        auto colon = json.find(':', key_pos + search.size());
+        if (colon == std::string::npos) { return false; }
+        auto val_start = json.find_first_not_of(" \t", colon + 1);
+        if (val_start == std::string::npos) { return false; }
+        return json.substr(val_start, 4) == "true";
+    };
+
+    title_ = extract_str("title");
+    description_ = extract_str("description");
+    wip_limit_ = extract_int("wip_limit");
+    column_width_ = extract_double("width");
+    if (column_width_ <= 0.0) { column_width_ = 280.0; }
+    collapsed_ = extract_bool("collapsed");
+    sort_order_ = static_cast<KanbanSortOrder>(extract_int("sort_order"));
+
+    // Parse card IDs array: [id1, id2, ...]
+    card_ids_.clear();
+    auto cards_pos = json.find("\"cards\"");
+    if (cards_pos != std::string::npos)
+    {
+        auto arr_start = json.find('[', cards_pos);
+        auto arr_end = json.find(']', arr_start);
+        if (arr_start != std::string::npos && arr_end != std::string::npos)
+        {
+            auto arr_content = json.substr(arr_start + 1, arr_end - arr_start - 1);
+            std::istringstream stream(arr_content);
+            std::string token;
+            while (std::getline(stream, token, ','))
+            {
+                try
+                {
+                    auto trimmed = token;
+                    trimmed.erase(0, trimmed.find_first_not_of(" \t"));
+                    trimmed.erase(trimmed.find_last_not_of(" \t") + 1);
+                    if (!trimmed.empty())
+                    {
+                        card_ids_.push_back(static_cast<ObjectId>(std::stoul(trimmed)));
+                    }
+                }
+                catch (...) {}
+            }
+        }
+    }
 }
 
 auto KanbanColumn::clone() const -> std::unique_ptr<CanvasObject>

@@ -43,6 +43,21 @@ public:
     /// Retrieve stored source for a block ID (for clipboard copy).
     [[nodiscard]] auto get_block_source(int block_id) const -> std::string;
 
+    /// (#77) Number of code blocks rendered so far.
+    [[nodiscard]] auto block_count() const -> int;
+
+    /// Whether any code blocks have been rendered since last reset.
+    [[nodiscard]] auto has_blocks() const -> bool
+    {
+        return block_counter_ > 0;
+    }
+
+    /// Number of stored block sources (for clipboard copy access).
+    [[nodiscard]] auto stored_source_count() const -> int
+    {
+        return static_cast<int>(block_sources_.size());
+    }
+
     /// Parse "{1,3-5}" notation into a set of 1-based line numbers.
     [[nodiscard]] static auto parse_highlight_spec(const std::string& spec) -> std::set<int>;
 

@@ -131,6 +131,18 @@ public:
         return extended_cache_.size();
     }
 
+    /// Maximum number of font slots.
+    [[nodiscard]] static constexpr auto max_fonts() noexcept -> uint16_t
+    {
+        return kMaxFonts;
+    }
+
+    /// Whether the extended (non-ASCII) cache is empty.
+    [[nodiscard]] auto is_empty() const noexcept -> bool
+    {
+        return extended_cache_.empty();
+    }
+
 private:
     static constexpr uint16_t kMaxFonts = 8;
 
@@ -182,6 +194,12 @@ public:
     [[nodiscard]] auto size() const noexcept -> std::size_t
     {
         return cache_.size();
+    }
+
+    /// Whether the cache is empty.
+    [[nodiscard]] auto is_empty() const noexcept -> bool
+    {
+        return cache_.empty();
     }
 
 private:

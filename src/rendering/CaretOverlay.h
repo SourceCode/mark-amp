@@ -94,6 +94,12 @@ public:
         blink_interval_ = interval;
     }
 
+    /// Whether the caret has been positioned (not at 0,0 default).
+    [[nodiscard]] auto has_position() const noexcept -> bool
+    {
+        return line_ > 0 || col_ > 0;
+    }
+
 private:
     std::size_t line_{0};
     std::size_t col_{0};

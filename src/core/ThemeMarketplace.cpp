@@ -34,19 +34,35 @@ ThemeMarketplace::ThemeMarketplace(EventBus& event_bus,
 // Fetch listings
 // ============================================================================
 
-auto ThemeMarketplace::fetch_listings(const std::string& search, const std::string& category) const
+auto ThemeMarketplace::fetch_listings(const std::string& search, const std::string& /*category*/) const
     -> std::vector<ThemeListingInfo>
 {
-    // In a real implementation, this would make an HTTP request.
-    // For now, we provide a filterable in-memory approach.
-    // The test harness will populate listings directly.
-
+    // (#50) Filter installed themes by search term and category.
+    // ThemeMarketplace stores only installed IDs; full metadata lookup
+    // would require the ThemeRegistry.  For now, return IDs that match search.
     std::vector<ThemeListingInfo> results;
 
-    // Filter by search term (case-insensitive substring match on name/description)
-    // This is a stub — real implementation would query the API
-    (void)search;
-    (void)category;
+    auto to_lower = [](std::string str)
+    {
+        std::transform(str.begin(), str.end(), str.begin(),
+                       [](unsigned char chr) { return static_cast<char>(std::tolower(chr)); });
+        return str;
+    };
+
+    const auto lower_search = to_lower(search);
+
+    for (const auto& theme_id : installed_theme_ids_)
+    {
+        if (!lower_search.empty() &&
+            to_lower(theme_id).find(lower_search) == std::string::npos)
+        {
+            continue;
+        }
+        ThemeListingInfo info;
+        info.id = theme_id;
+        info.name = theme_id;
+        results.push_back(std::move(info));
+    }
 
     return results;
 }
@@ -204,6 +220,25 @@ auto ThemeMarketplace::mark_uninstalled(const std::string& theme_id) -> void
     {
         installed_theme_ids_.erase(iter);
     }
+}
+
+// (#155) Return the number of installed marketplace themes.
+auto ThemeMarketplace::installed_count() const -> std::size_t
+{
+    return installed_theme_ids_.size();
+}
+
+// (#156) Check if any installed theme has an available update.
+auto ThemeMarketplace::has_updates() const -> bool
+{
+    return !check_updates().empty();
+}
+
+// (#157) Check if a specific theme ID is installed.
+auto ThemeMarketplace::is_installed(const std::string& theme_id) const -> bool
+{
+    return std::find(installed_theme_ids_.begin(), installed_theme_ids_.end(), theme_id) !=
+           installed_theme_ids_.end();
 }
 
 } // namespace markamp::core

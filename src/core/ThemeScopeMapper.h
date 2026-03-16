@@ -86,6 +86,12 @@ public:
     /// Clear all rules.
     void clear();
 
+    /// (#147) Check if a rule with the given selector exists.
+    [[nodiscard]] auto has_rule(const std::string& selector) const -> bool;
+
+    /// (#148) Return combined count of TextMate + semantic rules.
+    [[nodiscard]] auto total_rule_count() const -> int;
+
 private:
     std::vector<ScopeRule> textmate_rules_;
     std::vector<ScopeRule> semantic_overrides_;

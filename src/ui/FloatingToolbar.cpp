@@ -98,6 +98,38 @@ auto FloatingToolbar::is_draggable() const -> bool
     return draggable_;
 }
 
+auto FloatingToolbar::has_separator() const -> bool
+{
+    return std::any_of(
+        buttons_.begin(), buttons_.end(), [](const FloatingToolbarButton& btn) { return btn.is_separator; });
+}
+
+auto FloatingToolbar::enabled_count() const -> int
+{
+    int count = 0;
+    for (const auto& btn : buttons_)
+    {
+        if (!btn.is_separator && (!btn.is_enabled || btn.is_enabled()))
+        {
+            ++count;
+        }
+    }
+    return count;
+}
+
+auto FloatingToolbar::toggled_count() const -> int
+{
+    int count = 0;
+    for (const auto& btn : buttons_)
+    {
+        if (btn.is_toggled && btn.is_toggled())
+        {
+            ++count;
+        }
+    }
+    return count;
+}
+
 void FloatingToolbar::SetButtons(std::vector<FloatingToolbarButton> buttons)
 {
     buttons_ = std::move(buttons);

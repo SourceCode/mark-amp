@@ -48,6 +48,38 @@ public:
     auto set_space_held(bool held) -> void;
     [[nodiscard]] auto is_space_held() const -> bool;
 
+    // ── Round 2 Batch 8 (#76-80) ──────────────────────────────────
+
+    /// (#76) Whether an active tool is set.
+    [[nodiscard]] auto has_active_tool() const noexcept -> bool
+    {
+        return active_tool_ != nullptr;
+    }
+
+    /// (#77) Number of registered tools.
+    [[nodiscard]] auto tool_count() const noexcept -> size_t
+    {
+        return tools_.size();
+    }
+
+    /// (#78) Whether the current tool is Select.
+    [[nodiscard]] auto is_select_mode() const noexcept -> bool
+    {
+        return active_tool_mode_ == ToolMode::Select;
+    }
+
+    /// (#79) Whether the current tool is Pan.
+    [[nodiscard]] auto is_pan_mode() const noexcept -> bool
+    {
+        return active_tool_mode_ == ToolMode::Pan;
+    }
+
+    /// (#80) Whether the current tool is Draw.
+    [[nodiscard]] auto is_draw_mode() const noexcept -> bool
+    {
+        return active_tool_mode_ == ToolMode::Draw;
+    }
+
 private:
     CanvasPanel& panel_;
     std::shared_ptr<core::EventBus> event_bus_;

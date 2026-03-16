@@ -161,6 +161,12 @@ public:
         css += "}\n";
         return css;
     }
+
+    /// Total number of reading profile presets.
+    [[nodiscard]] static constexpr auto total_presets() noexcept -> int
+    {
+        return 5;
+    }
 };
 
 } // namespace markamp::rendering

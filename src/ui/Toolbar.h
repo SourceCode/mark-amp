@@ -53,6 +53,50 @@ public:
     /// Set whether a specific action button is enabled.
     void SetButtonEnabled(int icon_type, bool enabled);
 
+    // ── 100 Editor UX/UI Improvements: Batch 8 — Toolbar Accessors (#71–#77) ──
+
+    /// #71 True when focus mode is active.
+    [[nodiscard]] inline auto is_focus_mode() const noexcept -> bool
+    {
+        return focus_mode_active_;
+    }
+
+    /// #72 True when the toolbar is in compact (icons-only) mode.
+    [[nodiscard]] inline auto is_compact_mode() const noexcept -> bool
+    {
+        return compact_mode_;
+    }
+
+    /// #73 Number of left-zone (view mode) buttons.
+    [[nodiscard]] inline auto left_button_count() const noexcept -> std::size_t
+    {
+        return left_buttons_.size();
+    }
+
+    /// #74 Number of right-zone (action) buttons.
+    [[nodiscard]] inline auto right_button_count() const noexcept -> std::size_t
+    {
+        return right_buttons_.size();
+    }
+
+    /// #75 True when a process (run/debug) is active.
+    [[nodiscard]] inline auto is_process_running() const noexcept -> bool
+    {
+        return process_running_;
+    }
+
+    /// #76 Number of unread notifications.
+    [[nodiscard]] inline auto notification_count() const noexcept -> int
+    {
+        return notification_unread_count_;
+    }
+
+    /// #77 True when an overflow chevron is visible.
+    [[nodiscard]] inline auto has_overflow() const noexcept -> bool
+    {
+        return show_overflow_chevron_;
+    }
+
 protected:
     void OnThemeChanged(const core::Theme& new_theme) override;
 

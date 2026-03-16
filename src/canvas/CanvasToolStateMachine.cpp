@@ -26,6 +26,8 @@ auto CanvasToolStateMachine::state_name(ToolState state) -> std::string
             return "commit";
         case ToolState::kCancel:
             return "cancel";
+        case ToolState::kTextEditing:
+            return "text_editing";
     }
     return "unknown";
 }
@@ -42,9 +44,11 @@ auto CanvasToolStateMachine::can_transition(ToolState target) const -> bool
     switch (state_)
     {
         case ToolState::kIdle:
-            return target == ToolState::kHover || target == ToolState::kPressed;
+            return target == ToolState::kHover || target == ToolState::kPressed ||
+                   target == ToolState::kTextEditing;
         case ToolState::kHover:
-            return target == ToolState::kIdle || target == ToolState::kPressed;
+            return target == ToolState::kIdle || target == ToolState::kPressed ||
+                   target == ToolState::kTextEditing;
         case ToolState::kPressed:
             return target == ToolState::kDrag || target == ToolState::kCommit ||
                    target == ToolState::kCancel;
@@ -54,6 +58,9 @@ auto CanvasToolStateMachine::can_transition(ToolState target) const -> bool
             return target == ToolState::kIdle;
         case ToolState::kCancel:
             return target == ToolState::kIdle;
+        case ToolState::kTextEditing:
+            return target == ToolState::kIdle || target == ToolState::kCommit ||
+                   target == ToolState::kCancel;
     }
     return false;
 }

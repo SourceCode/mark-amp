@@ -111,6 +111,9 @@ public:
     [[nodiscard]] static auto check_duplicate_headings(const std::string& content)
         -> std::vector<ValidationIssue>;
 
+    /// (#100) Return the number of available validation checks.
+    [[nodiscard]] static auto check_count() -> std::size_t;
+
     // ----- Configuration ----------------------------------------------------
 
     /// Set the base directory for resolving relative asset paths.

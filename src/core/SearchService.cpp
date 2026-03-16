@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <filesystem>
 #include <regex>
 
 namespace markamp::core
@@ -141,16 +142,82 @@ auto SearchService::search_embed_blocks(const std::string& query) -> std::vector
 
 auto SearchService::search_templates(const std::string& query) -> std::vector<std::string>
 {
-    // Placeholder: would scan template directory for matching filenames.
-    (void)query;
-    return {};
+    // (#47) Scan for template files matching the query.
+    std::vector<std::string> results;
+    auto templates_dir = config_.get_string("templates_dir");
+    if (templates_dir.empty())
+    {
+        return results;
+    }
+
+    std::error_code err_code;
+    if (!std::filesystem::exists(templates_dir, err_code))
+    {
+        return results;
+    }
+
+    std::string lower_query = query;
+    std::transform(
+        lower_query.begin(), lower_query.end(), lower_query.begin(),
+        [](unsigned char chr) { return static_cast<char>(std::tolower(chr)); });
+
+    for (const auto& entry : std::filesystem::directory_iterator(templates_dir, err_code))
+    {
+        if (!entry.is_regular_file())
+        {
+            continue;
+        }
+        auto filename = entry.path().filename().string();
+        auto lower_filename = filename;
+        std::transform(
+            lower_filename.begin(), lower_filename.end(), lower_filename.begin(),
+            [](unsigned char chr) { return static_cast<char>(std::tolower(chr)); });
+        if (lower_filename.find(lower_query) != std::string::npos)
+        {
+            results.push_back(entry.path().string());
+        }
+    }
+    return results;
 }
 
 auto SearchService::search_assets(const std::string& query) -> std::vector<std::string>
 {
-    // Placeholder: would scan assets directory for matching filenames.
-    (void)query;
-    return {};
+    // (#48) Scan for asset files matching the query.
+    std::vector<std::string> results;
+    auto assets_dir = config_.get_string("assets_dir");
+    if (assets_dir.empty())
+    {
+        return results;
+    }
+
+    std::error_code err_code;
+    if (!std::filesystem::exists(assets_dir, err_code))
+    {
+        return results;
+    }
+
+    std::string lower_query = query;
+    std::transform(
+        lower_query.begin(), lower_query.end(), lower_query.begin(),
+        [](unsigned char chr) { return static_cast<char>(std::tolower(chr)); });
+
+    for (const auto& entry : std::filesystem::recursive_directory_iterator(assets_dir, err_code))
+    {
+        if (!entry.is_regular_file())
+        {
+            continue;
+        }
+        auto filename = entry.path().filename().string();
+        auto lower_filename = filename;
+        std::transform(
+            lower_filename.begin(), lower_filename.end(), lower_filename.begin(),
+            [](unsigned char chr) { return static_cast<char>(std::tolower(chr)); });
+        if (lower_filename.find(lower_query) != std::string::npos)
+        {
+            results.push_back(entry.path().string());
+        }
+    }
+    return results;
 }
 
 void SearchService::update_fts_index(const BlockId& block_id, std::string_view content)
@@ -343,6 +410,37 @@ void SearchService::group_by_document(SearchResult& result) const
               result.groups.end(),
               [](const SearchGroup& grp_a, const SearchGroup& grp_b)
               { return grp_a.doc_title < grp_b.doc_title; });
+}
+
+// ── Batch 19-22 improvements (#137-139) ──
+
+auto SearchService::result_group_count(const SearchResult& result) -> std::size_t
+{
+    return result.groups.size();
+}
+
+auto SearchService::is_grouped(const SearchResult& result) -> bool
+{
+    return !result.groups.empty();
+}
+
+auto SearchService::total_hit_count(const SearchResult& result) -> std::size_t
+{
+    return static_cast<std::size_t>(result.total_count);
+}
+
+// (#174) Check if the FTS index has been initialized.
+auto SearchService::has_fts_index() const -> bool
+{
+    auto stats = const_cast<SearchService*>(this)->get_search_statistics();
+    return stats.first > 0;
+}
+
+// (#175) Return the number of indexed blocks.
+auto SearchService::indexed_block_count() const -> int
+{
+    auto stats = const_cast<SearchService*>(this)->get_search_statistics();
+    return stats.first;
 }
 
 } // namespace markamp::core

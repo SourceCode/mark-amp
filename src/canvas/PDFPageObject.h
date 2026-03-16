@@ -43,6 +43,32 @@ private:
     double width_{842.0};   // A4 width at 72 DPI
     double height_{1191.0}; // A4 height at 72 DPI
     std::filesystem::path rendered_image_path_;
+
+    // ── Round 3 Batch 10 (#93-96) ────────────────────────────────
+
+    /// (#93) Whether this is the first page.
+    [[nodiscard]] auto is_first_page() const noexcept -> bool
+    {
+        return page_number_ == 0;
+    }
+
+    /// (#94) Whether this is the last page.
+    [[nodiscard]] auto is_last_page() const noexcept -> bool
+    {
+        return total_pages_ > 0 && page_number_ == total_pages_ - 1;
+    }
+
+    /// (#95) Page area in world units².
+    [[nodiscard]] auto area() const noexcept -> double
+    {
+        return width_ * height_;
+    }
+
+    /// (#96) Whether a rendered image path is set.
+    [[nodiscard]] auto has_rendered_image() const noexcept -> bool
+    {
+        return !rendered_image_path_.empty();
+    }
 };
 
 } // namespace markamp::canvas

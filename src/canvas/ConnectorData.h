@@ -62,6 +62,18 @@ struct ConnectorEndpoint
     {
         return object_id != kInvalidObjectId;
     }
+
+    /// Whether this is a free (unattached) endpoint.
+    [[nodiscard]] auto is_free() const noexcept -> bool
+    {
+        return object_id == kInvalidObjectId;
+    }
+
+    /// Whether anchor is auto-positioned.
+    [[nodiscard]] auto is_auto_anchor() const noexcept -> bool
+    {
+        return anchor == AnchorPosition::kAuto;
+    }
 };
 
 /// A connector (line/arrow) between two points or objects on the canvas.
@@ -155,6 +167,57 @@ public:
     [[nodiscard]] auto clone() const -> std::unique_ptr<CanvasObject> override;
     [[nodiscard]] auto to_json() const -> std::string override;
     auto from_json(const std::string& json) -> void override;
+
+    /// Whether this connector has a text label.
+    [[nodiscard]] auto has_label() const noexcept -> bool
+    {
+        return !label_.empty();
+    }
+
+    /// Whether this connector has waypoints.
+    [[nodiscard]] auto has_waypoints_data() const noexcept -> bool
+    {
+        return !waypoints_.empty();
+    }
+
+    /// Whether the connector is straight (no waypoints, straight routing).
+    [[nodiscard]] auto is_straight() const noexcept -> bool
+    {
+        return routing_ == ConnectorRouting::kStraight && waypoints_.empty();
+    }
+
+    // ── Batch 8 (#71-74) ──────────────────────────────────────────
+
+    /// (#71) Number of waypoints.
+    [[nodiscard]] auto waypoint_count() const noexcept -> size_t
+    {
+        return waypoints_.size();
+    }
+
+    /// (#72) Whether the start endpoint has an arrowhead.
+    [[nodiscard]] auto has_start_arrow() const noexcept -> bool
+    {
+        return start_arrow_ != ArrowheadStyle::kNone;
+    }
+
+    /// (#73) Whether the end endpoint has an arrowhead.
+    [[nodiscard]] auto has_end_arrow() const noexcept -> bool
+    {
+        return end_arrow_ != ArrowheadStyle::kNone;
+    }
+
+    /// (#74) Whether both endpoints are attached to objects.
+    [[nodiscard]] auto is_fully_attached() const noexcept -> bool
+    {
+        return start_.object_id != kInvalidObjectId &&
+               end_.object_id != kInvalidObjectId;
+    }
+
+    /// Whether the line is dashed.
+    [[nodiscard]] auto is_dashed() const noexcept -> bool
+    {
+        return line_style_ == ConnectorLineStyle::kDashed;
+    }
 
 private:
     ConnectorEndpoint start_;

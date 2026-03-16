@@ -214,9 +214,85 @@ auto ImageObject::to_json() const -> std::string
     return oss.str();
 }
 
-auto ImageObject::from_json(const std::string& /*json*/) -> void
+auto ImageObject::from_json(const std::string& json) -> void
 {
-    // Stub: real JSON parsing would populate fields.
+    auto extract_string = [&](const std::string& key) -> std::string
+    {
+        const std::string needle = "\"" + key + "\":\"";
+        const auto pos = json.find(needle);
+        if (pos == std::string::npos)
+        {
+            return {};
+        }
+        const auto val_start = pos + needle.size();
+        const auto val_end = json.find('"', val_start);
+        if (val_end == std::string::npos)
+        {
+            return {};
+        }
+        return json.substr(val_start, val_end - val_start);
+    };
+
+    auto extract_number = [&](const std::string& key) -> double
+    {
+        const std::string needle = "\"" + key + "\":";
+        const auto pos = json.find(needle);
+        if (pos == std::string::npos)
+        {
+            return 0.0;
+        }
+        const auto val_start = pos + needle.size();
+        return std::stod(json.substr(val_start));
+    };
+
+    auto extract_bool = [&](const std::string& key) -> bool
+    {
+        const std::string needle = "\"" + key + "\":";
+        const auto pos = json.find(needle);
+        if (pos == std::string::npos)
+        {
+            return false;
+        }
+        const auto val_start = pos + needle.size();
+        return json.substr(val_start, 4) == "true";
+    };
+
+    const std::string path = extract_string("file_path");
+    if (!path.empty())
+    {
+        load_from_file(path);
+    }
+
+    width_ = extract_number("width");
+    height_ = extract_number("height");
+    original_width_ = extract_number("original_width");
+    original_height_ = extract_number("original_height");
+    maintain_aspect_ = extract_bool("maintain_aspect");
+    alt_text_ = extract_string("alt_text");
+
+    // Parse optional crop region: "crop":{"min_x":...,"min_y":...,"max_x":...,"max_y":...}
+    const auto crop_pos = json.find("\"crop\":{");
+    if (crop_pos != std::string::npos)
+    {
+        // Extract numbers relative to the crop sub-object.
+        const auto crop_end = json.find('}', crop_pos + 8);
+        const std::string crop_json = json.substr(crop_pos, crop_end - crop_pos + 1);
+
+        auto crop_num = [&](const std::string& key) -> double
+        {
+            const std::string needle = "\"" + key + "\":";
+            const auto pos = crop_json.find(needle);
+            if (pos == std::string::npos)
+            {
+                return 0.0;
+            }
+            return std::stod(crop_json.substr(pos + needle.size()));
+        };
+
+        set_crop_region({crop_num("min_x"), crop_num("min_y"), crop_num("max_x"), crop_num("max_y")});
+    }
+
+    mark_dirty();
 }
 
 auto ImageObject::format() const -> ImageFormat

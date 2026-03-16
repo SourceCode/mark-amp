@@ -87,6 +87,9 @@ public:
     /// Clear all history.
     void clear_all();
 
+    /// (#86) Return number of distinct prompt types tracked.
+    [[nodiscard]] auto history_count() const -> std::size_t;
+
     /// Maximum entries per prompt type.
     static constexpr int kMaxPerType = 50;
 

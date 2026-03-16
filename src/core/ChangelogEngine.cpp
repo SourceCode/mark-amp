@@ -94,6 +94,46 @@ void ChangelogEngine::load_defaults()
     add_entry({"2026-02-17", "8.0.0", "Changed", "Multi-window workspace management"});
 }
 
+// (#59) Remove all entries for a specific version.
+void ChangelogEngine::remove_entries_for_version(const std::string& version)
+{
+    entries_.erase(std::remove_if(entries_.begin(),
+                                  entries_.end(),
+                                  [&version](const ChangelogEntry& entry)
+                                  { return entry.version == version; }),
+                   entries_.end());
+}
+
+// (#59) Search entries by keyword across message and category.
+auto ChangelogEngine::search_entries(const std::string& keyword) const
+    -> std::vector<ChangelogEntry>
+{
+    if (keyword.empty())
+    {
+        return entries_;
+    }
+    auto lower_kw = keyword;
+    std::transform(lower_kw.begin(),
+                   lower_kw.end(),
+                   lower_kw.begin(),
+                   [](unsigned char chr) { return static_cast<char>(std::tolower(chr)); });
+
+    std::vector<ChangelogEntry> results;
+    for (const auto& entry : entries_)
+    {
+        auto lower_msg = entry.message;
+        std::transform(lower_msg.begin(),
+                       lower_msg.end(),
+                       lower_msg.begin(),
+                       [](unsigned char chr) { return static_cast<char>(std::tolower(chr)); });
+        if (lower_msg.find(lower_kw) != std::string::npos)
+        {
+            results.push_back(entry);
+        }
+    }
+    return results;
+}
+
 auto ChangelogEngine::entry_count() const -> int
 {
     return static_cast<int>(entries_.size());

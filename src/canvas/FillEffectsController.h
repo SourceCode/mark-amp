@@ -97,6 +97,9 @@ public:
     /// Check if any effect is active.
     [[nodiscard]] auto has_effects() const -> bool;
 
+    /// Compute interpolated gradient color at a normalized position [0, 1].
+    [[nodiscard]] auto compute_gradient_color(double position) const -> uint32_t;
+
 private:
     FillSpec fill_;
     ShadowSpec shadow_;

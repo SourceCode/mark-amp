@@ -24,6 +24,44 @@ struct StencilDef
     StencilCategory category{StencilCategory::kGeneral};
     std::string default_fill{"#FFFFFF"};
     std::string default_stroke{"#333333"};
+
+    // ── Round 6 Batch 9 (#81-86) ────────────────────────────────
+
+    /// (#81) Whether a name is set.
+    [[nodiscard]] auto has_name() const noexcept -> bool
+    {
+        return !name.empty();
+    }
+
+    /// (#82) Whether a default fill is set.
+    [[nodiscard]] auto has_fill() const noexcept -> bool
+    {
+        return !default_fill.empty();
+    }
+
+    /// (#83) Whether a default stroke is set.
+    [[nodiscard]] auto has_stroke() const noexcept -> bool
+    {
+        return !default_stroke.empty();
+    }
+
+    /// (#84) Whether category is flowchart.
+    [[nodiscard]] auto is_flowchart() const noexcept -> bool
+    {
+        return category == StencilCategory::kFlowchart;
+    }
+
+    /// (#85) Whether category is architecture.
+    [[nodiscard]] auto is_architecture() const noexcept -> bool
+    {
+        return category == StencilCategory::kArchitecture;
+    }
+
+    /// (#86) Whether category is UI wireframe.
+    [[nodiscard]] auto is_wireframe() const noexcept -> bool
+    {
+        return category == StencilCategory::kUiWireframe;
+    }
 };
 
 /// Testable model for Diagram Library & Stencil System (Phase 57).
@@ -75,6 +113,32 @@ private:
     static constexpr int kMaxRecent = 8;
     std::string override_fill_;
     std::string override_stroke_;
+
+    // ── Round 6 Batch 9 (#87-90) ────────────────────────────────
+
+    /// (#87) Whether favorites exist.
+    [[nodiscard]] auto has_favorites() const noexcept -> bool
+    {
+        return !favorites_.empty();
+    }
+
+    /// (#88) Whether recents exist.
+    [[nodiscard]] auto has_recents() const noexcept -> bool
+    {
+        return !recents_.empty();
+    }
+
+    /// (#89) Number of favorites.
+    [[nodiscard]] auto favorite_count() const noexcept -> size_t
+    {
+        return favorites_.size();
+    }
+
+    /// (#90) Number of recents.
+    [[nodiscard]] auto recent_count() const noexcept -> size_t
+    {
+        return recents_.size();
+    }
 };
 
 } // namespace markamp::canvas

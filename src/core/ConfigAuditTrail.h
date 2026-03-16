@@ -46,6 +46,20 @@ public:
     /// Return the most recent entry, or nullptr if empty.
     [[nodiscard]] auto last_entry() const -> const AuditEntry*;
 
+    /// (#92) Return entries for a specific config key.
+    [[nodiscard]] auto entries_for_key(const std::string& key) const -> std::vector<AuditEntry>;
+
+    // ── Batch 19-22 (#124-126) ──
+
+    /// (#124) Return the number of distinct keys changed so far.
+    [[nodiscard]] auto unique_key_count() const -> std::size_t;
+
+    /// (#125) Return whether the ring buffer has wrapped.
+    [[nodiscard]] auto is_full() const -> bool;
+
+    /// (#126) Return the key with the highest number of recorded changes.
+    [[nodiscard]] auto most_changed_key() const -> std::string;
+
 private:
     std::vector<AuditEntry> ring_;
     std::size_t max_entries_;

@@ -225,4 +225,10 @@ auto SnapEngine::clear_custom_guides() -> void
     custom_guides_.clear();
 }
 
+// (#88) Check if any snap mode is currently enabled.
+auto SnapEngine::is_enabled() const -> bool
+{
+    return config_.grid_enabled || config_.object_snap_enabled;
+}
+
 } // namespace markamp::canvas

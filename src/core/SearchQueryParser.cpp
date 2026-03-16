@@ -244,4 +244,24 @@ auto SearchQueryParser::parse_scope_or_term(const std::string& input, size_t& po
     return token;
 }
 
+// ── Batch 23-25 (#151-152) ──
+
+auto SearchQueryParser::token_count(const std::string& input) const -> std::size_t
+{
+    return parse(input).size();
+}
+
+auto SearchQueryParser::has_phrases(const std::string& input) const -> bool
+{
+    auto tokens = parse(input);
+    for (const auto& tok : tokens)
+    {
+        if (tok.type == ParsedQueryToken::Type::Phrase)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 } // namespace markamp::core

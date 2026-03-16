@@ -104,6 +104,18 @@ public:
     /// Total number of transitions completed.
     [[nodiscard]] auto transitions_completed() const noexcept -> uint32_t;
 
+    /// Whether at least one transition has completed.
+    [[nodiscard]] auto has_completed() const noexcept -> bool
+    {
+        return transitions_completed_ > 0;
+    }
+
+    /// Alias for transitions_completed().
+    [[nodiscard]] auto transition_count() const noexcept -> uint32_t
+    {
+        return transitions_completed_;
+    }
+
 private:
     core::EventBus& event_bus_;
     std::optional<TransitionState> state_;

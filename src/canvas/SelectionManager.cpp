@@ -702,4 +702,72 @@ auto SelectionManager::selected_types(const std::vector<std::unique_ptr<CanvasOb
     return result;
 }
 
+auto SelectionManager::build_multi_select_menu(
+    const std::vector<std::unique_ptr<CanvasObject>>& objects) const
+    -> std::vector<MultiSelectAction>
+{
+    std::vector<MultiSelectAction> actions;
+    const auto count = selection_count();
+
+    if (count < 2)
+    {
+        return actions; // Multi-select menu only for 2+ objects.
+    }
+
+    // ── Alignment (requires 2+) ──────────────────────────────────
+    actions.push_back({.label = "Align Left", .icon_name = "align-left", .enabled = true, .action_id = 1});
+    actions.push_back({.label = "Align Center", .icon_name = "align-center-horizontal", .enabled = true, .action_id = 2});
+    actions.push_back({.label = "Align Right", .icon_name = "align-right", .enabled = true, .action_id = 3});
+    actions.push_back({.label = "Align Top", .icon_name = "align-top", .enabled = true, .action_id = 4});
+    actions.push_back({.label = "Align Middle", .icon_name = "align-center-vertical", .enabled = true, .action_id = 5});
+    actions.push_back({.label = "Align Bottom", .icon_name = "align-bottom", .enabled = true, .action_id = 6});
+
+    // ── Distribution (requires 3+) ───────────────────────────────
+    const bool can_distribute = (count >= 3);
+    actions.push_back({.label = "Distribute Horizontal", .icon_name = "distribute-horizontal", .enabled = can_distribute, .action_id = 7});
+    actions.push_back({.label = "Distribute Vertical", .icon_name = "distribute-vertical", .enabled = can_distribute, .action_id = 8});
+
+    // ── Separator placeholder ─────────────────────────────────────
+    actions.push_back({.label = "---", .icon_name = "", .enabled = false, .action_id = 0});
+
+    // ── Grouping ──────────────────────────────────────────────────
+    actions.push_back({.label = "Group", .icon_name = "group", .enabled = true, .action_id = 10});
+
+    // ── Lock/Unlock ───────────────────────────────────────────────
+    // Check if any selected objects are unlocked.
+    bool has_unlocked = false;
+    bool has_locked = false;
+    for (const auto& obj : objects)
+    {
+        if (obj && selection_.contains(obj->id()))
+        {
+            if (obj->is_locked())
+            {
+                has_locked = true;
+            }
+            else
+            {
+                has_unlocked = true;
+            }
+        }
+    }
+    if (has_unlocked)
+    {
+        actions.push_back({.label = "Lock All", .icon_name = "lock", .enabled = true, .action_id = 11});
+    }
+    if (has_locked)
+    {
+        actions.push_back({.label = "Unlock All", .icon_name = "unlock", .enabled = true, .action_id = 12});
+    }
+
+    // ── Separator ─────────────────────────────────────────────────
+    actions.push_back({.label = "---", .icon_name = "", .enabled = false, .action_id = 0});
+
+    // ── Batch operations ──────────────────────────────────────────
+    actions.push_back({.label = "Set Color…", .icon_name = "palette", .enabled = true, .action_id = 20});
+    actions.push_back({.label = "Delete Selected", .icon_name = "trash-2", .enabled = true, .action_id = 30});
+
+    return actions;
+}
+
 } // namespace markamp::canvas

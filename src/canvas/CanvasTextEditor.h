@@ -114,6 +114,32 @@ public:
     /// Estimate content height for current text and width.
     [[nodiscard]] auto estimated_height() const -> double;
 
+    // ── Selection & Caret ─────────────────────────────────────────
+
+    /// Set caret position (clears selection).
+    void set_caret_position(int position);
+
+    /// Get caret position.
+    [[nodiscard]] auto caret_position() const -> int;
+
+    /// Select a text range.
+    void select_range(int start, int end);
+
+    /// Get selection start.
+    [[nodiscard]] auto selection_start() const -> int;
+
+    /// Get selection end.
+    [[nodiscard]] auto selection_end() const -> int;
+
+    /// Whether there is an active selection.
+    [[nodiscard]] auto has_selection() const -> bool;
+
+    /// Get selected text substring.
+    [[nodiscard]] auto selected_text() const -> std::string;
+
+    /// Compute caret position from a click X coordinate.
+    [[nodiscard]] auto caret_position_from_click(double click_x) const -> int;
+
 private:
     TextEditState state_{TextEditState::kIdle};
     std::string text_;
@@ -122,6 +148,9 @@ private:
     TextSizeMode size_mode_{TextSizeMode::kAutoSize};
     double box_width_{200.0};
     double box_height_{50.0};
+    int caret_position_{0};
+    int selection_start_{0};
+    int selection_end_{0};
 };
 
 } // namespace markamp::canvas

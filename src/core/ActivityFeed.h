@@ -77,6 +77,7 @@ public:
 
     // ── Cleanup ───────────────────────────────────────────────────────
     void set_max_entries(int max_entries);
+    void clear_category(ActivityCategory category); // (#64)
     void clear_all();
 
 private:

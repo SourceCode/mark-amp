@@ -137,7 +137,10 @@ auto DiffRenderer::render_stats_bar(const core::DiffStats& stats) -> std::string
         << R"(    <span class="diff-stat-total">)" << stats.total_blocks << " blocks</span>\n"
         << R"(    <span class="diff-stat-add">+)" << stats.added_blocks << "</span>\n"
         << R"(    <span class="diff-stat-del">-)" << stats.deleted_blocks << "</span>\n"
-        << R"(    <span class="diff-stat-mod">~)" << stats.modified_blocks << "</span>\n";
+        << R"(    <span class="diff-stat-mod">~)" << stats.modified_blocks << "</span>\n"
+        // (#63) Show unchanged count for full context.
+        << R"(    <span class="diff-stat-unchanged">)" << stats.unchanged_blocks
+        << " unchanged</span>\n";
 
     if (stats.moved_blocks > 0)
     {

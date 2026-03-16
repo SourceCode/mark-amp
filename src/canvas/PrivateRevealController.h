@@ -43,6 +43,56 @@ struct RevealRound
 
     std::string started_at;  ///< ISO-8601
     std::string revealed_at; ///< ISO-8601
+
+    /// Whether the round is in the private phase.
+    [[nodiscard]] auto is_private() const noexcept -> bool
+    {
+        return state == RevealRoundState::kPrivatePhase;
+    }
+
+    /// Whether the round has been revealed.
+    [[nodiscard]] auto is_revealed() const noexcept -> bool
+    {
+        return state == RevealRoundState::kRevealed || state == RevealRoundState::kCompleted;
+    }
+
+    /// Number of participants in this round.
+    [[nodiscard]] auto participant_count() const noexcept -> std::size_t
+    {
+        return participant_objects.size();
+    }
+
+    /// Total objects submitted across all participants.
+    [[nodiscard]] auto total_objects() const noexcept -> std::size_t
+    {
+        return all_object_ids.size();
+    }
+
+    // ── Round 3 Batch 7 (#61-64) ────────────────────────────────
+
+    /// (#61) Whether the round has not yet started.
+    [[nodiscard]] auto is_not_started() const noexcept -> bool
+    {
+        return state == RevealRoundState::kNotStarted;
+    }
+
+    /// (#62) Whether the round is finalized.
+    [[nodiscard]] auto is_completed() const noexcept -> bool
+    {
+        return state == RevealRoundState::kCompleted;
+    }
+
+    /// (#63) Whether a topic prompt is set.
+    [[nodiscard]] auto has_topic() const noexcept -> bool
+    {
+        return !topic.empty();
+    }
+
+    /// (#64) Whether a start timestamp is recorded.
+    [[nodiscard]] auto has_started_at() const noexcept -> bool
+    {
+        return !started_at.empty();
+    }
 };
 
 /// Result of a private-reveal operation.
@@ -51,6 +101,26 @@ struct RevealResult
     bool success{false};
     size_t objects_revealed{0};
     std::string error_message;
+
+    /// Whether the reveal failed.
+    [[nodiscard]] auto failed() const noexcept -> bool
+    {
+        return !success;
+    }
+
+    // ── Round 3 Batch 7 (#65-66) ────────────────────────────────
+
+    /// (#65) Whether there's an error message.
+    [[nodiscard]] auto has_error() const noexcept -> bool
+    {
+        return !error_message.empty();
+    }
+
+    /// (#66) Whether the reveal produced zero objects.
+    [[nodiscard]] auto is_empty_reveal() const noexcept -> bool
+    {
+        return objects_revealed == 0;
+    }
 };
 
 /// Controls private-then-reveal facilitation mode.
@@ -113,6 +183,12 @@ public:
 
     /// Human-readable round state name.
     [[nodiscard]] static auto state_name(RevealRoundState state) -> std::string;
+
+    /// Whether there are any completed rounds.
+    [[nodiscard]] auto has_history() const noexcept -> bool
+    {
+        return rounds_.size() > 1 || (!rounds_.empty() && rounds_.back().state == RevealRoundState::kCompleted);
+    }
 
 private:
     Board& board_;

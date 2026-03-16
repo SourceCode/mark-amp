@@ -44,6 +44,12 @@ public:
     /// Full rebuild of BookmarkIndex from block database.
     void rebuild_index();
 
+    /// (#111) Return the total number of bookmarks across all labels.
+    [[nodiscard]] auto bookmark_count() -> std::size_t;
+
+    /// (#112) Return the number of unique bookmark labels.
+    [[nodiscard]] auto label_count() -> std::size_t;
+
 private:
     EventBus& event_bus_;
     Config& config_;

@@ -24,6 +24,12 @@ struct DeleteConfirmationConfig
     bool confirm_locked{true}; ///< Always confirm if selection contains locked objects
     bool confirm_groups{true}; ///< Confirm if deleting a group with children
     bool enabled{true};        ///< Master toggle
+
+    /// Whether delete confirmations are enabled.
+    [[nodiscard]] auto is_enabled_config() const noexcept -> bool
+    {
+        return enabled;
+    }
 };
 
 /// Result of a delete confirmation check.
@@ -44,6 +50,18 @@ struct DeleteConfirmationInfo
     size_t locked_count{0};
     size_t group_count{0};
     std::string message; ///< Human-readable explanation
+
+    /// Whether the deletion requires user confirmation.
+    [[nodiscard]] auto needs_confirmation() const noexcept -> bool
+    {
+        return reason != DeleteConfirmation::kNoConfirmNeeded;
+    }
+
+    /// Whether the user cancelled the deletion.
+    [[nodiscard]] auto is_cancelled() const noexcept -> bool
+    {
+        return reason == DeleteConfirmation::kCancelled;
+    }
 };
 
 // ── Accessibility ──────────────────────────────────────────────────
@@ -144,6 +162,18 @@ public:
 
     /// Maximum number of announcements to keep in history.
     static constexpr size_t kMaxAnnouncementHistory = 50;
+
+    /// Whether an object currently has keyboard focus.
+    [[nodiscard]] auto has_focus() const noexcept -> bool
+    {
+        return focused_id_ != kInvalidObjectId;
+    }
+
+    /// Number of announcements in history.
+    [[nodiscard]] auto announcement_count() const noexcept -> std::size_t
+    {
+        return announcement_history_.size();
+    }
 
 private:
     DeleteConfirmationConfig delete_config_;

@@ -290,11 +290,30 @@ auto ReviewSession::build_review_card(const FlashcardCard& card) -> ReviewCard
         review_card.back_html = "<p>Card " + card.id + " back</p>";
     }
 
-    // Placeholder intervals (real intervals come from FSRSEngine integration)
-    review_card.again_interval = "1m";
-    review_card.hard_interval = "6m";
-    review_card.good_interval = "10m";
-    review_card.easy_interval = "4d";
+    // Compute review intervals from card stability and state.
+    // FSRS-derived: intervals scale with stability.
+    auto format_interval = [](double days) -> std::string
+    {
+        if (days < 1.0 / 24.0)
+        {
+            const int minutes = std::max(1, static_cast<int>(days * 24.0 * 60.0));
+            return std::to_string(minutes) + "m";
+        }
+        if (days < 1.0)
+        {
+            const int hours = std::max(1, static_cast<int>(days * 24.0));
+            return std::to_string(hours) + "h";
+        }
+        const int whole_days = std::max(1, static_cast<int>(days));
+        return std::to_string(whole_days) + "d";
+    };
+
+    // Base intervals from card state and stability.
+    const double base_stability = std::max(0.4, card.stability);
+    review_card.again_interval = format_interval(base_stability * 0.01); // ~1% of stability
+    review_card.hard_interval = format_interval(base_stability * 0.5);   // 50% of stability
+    review_card.good_interval = format_interval(base_stability);         // 100% of stability
+    review_card.easy_interval = format_interval(base_stability * 2.5);   // 250% of stability
 
     return review_card;
 }

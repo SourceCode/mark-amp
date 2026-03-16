@@ -173,6 +173,67 @@ public:
     static constexpr int kSnapPointCount = 5;
     static constexpr std::array<double, kSnapPointCount> kSnapPoints = {
         0.25, 0.33, 0.50, 0.67, 0.75};
+    // ── 100 Editor UX/UI Improvements: Batch 6 — Split View Convenience Accessors (#51–#60) ──
+
+    /// #51 True when the current view mode is Split.
+    [[nodiscard]] inline auto is_split_mode() const noexcept -> bool
+    {
+        return current_mode_ == core::events::ViewMode::Split;
+    }
+
+    /// #52 True when the current view mode is Editor-only.
+    [[nodiscard]] inline auto is_editor_only() const noexcept -> bool
+    {
+        return current_mode_ == core::events::ViewMode::Editor;
+    }
+
+    /// #53 True when the current view mode is Preview-only.
+    [[nodiscard]] inline auto is_preview_only() const noexcept -> bool
+    {
+        return current_mode_ == core::events::ViewMode::Preview;
+    }
+
+    /// #54 True when the split divider is being dragged.
+    [[nodiscard]] inline auto is_dragging_divider() const noexcept -> bool
+    {
+        return is_dragging_;
+    }
+
+    /// #55 True when the mouse is hovering over the divider.
+    [[nodiscard]] inline auto is_divider_hovered() const noexcept -> bool
+    {
+        return divider_hovered_;
+    }
+
+    /// #56 True when a split ratio transition animation is in progress.
+    [[nodiscard]] inline auto is_transitioning() const noexcept -> bool
+    {
+        return transition_progress_ < 1.0;
+    }
+
+    /// #57 True when per-file state has been saved for at least one file.
+    [[nodiscard]] inline auto has_per_file_state() const noexcept -> bool
+    {
+        return !per_file_states_.empty();
+    }
+
+    /// #58 Number of per-file states stored.
+    [[nodiscard]] inline auto per_file_state_count() const noexcept -> std::size_t
+    {
+        return per_file_states_.size();
+    }
+
+    /// #59 Current file path being tracked.
+    [[nodiscard]] inline auto current_file_path() const noexcept -> const std::string&
+    {
+        return current_file_path_;
+    }
+
+    /// #60 True when preview is pinned and has frozen content.
+    [[nodiscard]] inline auto has_pinned_content() const noexcept -> bool
+    {
+        return pin_preview_ && !pinned_content_.empty();
+    }
 
 protected:
     void OnThemeChanged(const core::Theme& new_theme) override;

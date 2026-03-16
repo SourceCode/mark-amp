@@ -244,8 +244,28 @@ auto SyncEngine::apply_changes(const SnapshotDiff& diff,
                 break;
             }
             case FileChangeType::Renamed:
-                // Rename not yet supported in this implementation.
+            {
+                // Handle rename as copy-new + delete-old in sync target.
+                // The new_entry has the new path, old_entry has the old path.
+                if (!change.old_entry.relative_path.empty() &&
+                    !change.new_entry.relative_path.empty())
+                {
+                    auto old_target = target_root / change.old_entry.relative_path;
+                    auto new_target = target_root / change.new_entry.relative_path;
+                    auto new_source = source_root / change.new_entry.relative_path;
+
+                    // Copy from source to new target location.
+                    auto copy_res = copy_file_safe(new_source, new_target);
+                    if (copy_res)
+                    {
+                        // Remove old target file.
+                        auto del_res = delete_file_safe(old_target);
+                        (void)del_res;
+                        ++applied;
+                    }
+                }
                 break;
+            }
         }
     }
 

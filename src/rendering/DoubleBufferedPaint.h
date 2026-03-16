@@ -92,6 +92,18 @@ public:
         return is_initialized_;
     }
 
+    /// Total buffer area in pixels.
+    [[nodiscard]] auto buffer_area() const noexcept -> int64_t
+    {
+        return static_cast<int64_t>(buffer_width_) * static_cast<int64_t>(buffer_height_);
+    }
+
+    /// Number of pending dirty rectangles.
+    [[nodiscard]] auto dirty_rect_count() const noexcept -> std::size_t
+    {
+        return dirty_accumulator_.count();
+    }
+
 private:
     DirtyRegionAccumulator dirty_accumulator_{4}; // merge threshold of 4px
     int32_t buffer_width_{0};

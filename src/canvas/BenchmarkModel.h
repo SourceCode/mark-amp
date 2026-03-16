@@ -14,6 +14,26 @@ struct BenchmarkResult
     double elapsed_ms{0.0};
     double threshold_ms{0.0};
     bool passed{true};
+
+    // ── Round 4 Batch 9 (#81-83) ────────────────────────────────
+
+    /// (#81) Whether this benchmark failed.
+    [[nodiscard]] auto is_failed() const noexcept -> bool
+    {
+        return !passed;
+    }
+
+    /// (#82) Whether a benchmark name is set.
+    [[nodiscard]] auto has_name() const noexcept -> bool
+    {
+        return !name.empty();
+    }
+
+    /// (#83) How much the elapsed time exceeds the threshold.
+    [[nodiscard]] auto overshoot() const noexcept -> double
+    {
+        return elapsed_ms - threshold_ms;
+    }
 };
 
 /// Scenario fixture description.
@@ -23,6 +43,20 @@ struct ScenarioFixture
     std::string description;
     int object_count{0};
     std::string category; ///< "drawing", "diagram", "media", "dense"
+
+    // ── Round 4 Batch 9 (#84-85) ────────────────────────────────
+
+    /// (#84) Whether a description is provided.
+    [[nodiscard]] auto has_description() const noexcept -> bool
+    {
+        return !description.empty();
+    }
+
+    /// (#85) Whether a category is set.
+    [[nodiscard]] auto has_category() const noexcept -> bool
+    {
+        return !category.empty();
+    }
 };
 
 /// Testable model for Canvas Test Automation / Benchmarks (Phase 77).
@@ -58,6 +92,20 @@ private:
     std::vector<ScenarioFixture> fixtures_;
     std::vector<BenchmarkResult> results_;
     bool gate_passed_{false};
+
+    // ── Round 4 Batch 9 (#86-87) ────────────────────────────────
+
+    /// (#86) Number of benchmark results.
+    [[nodiscard]] auto result_count() const noexcept -> size_t
+    {
+        return results_.size();
+    }
+
+    /// (#87) Number of scenario fixtures.
+    [[nodiscard]] auto fixture_count() const noexcept -> size_t
+    {
+        return fixtures_.size();
+    }
 };
 
 } // namespace markamp::canvas

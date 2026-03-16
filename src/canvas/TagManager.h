@@ -18,6 +18,12 @@ struct TagInfo
     std::string name;
     CanvasColor color{100, 100, 100, 255};
     int usage_count{0};
+
+    /// Whether this tag has zero usages.
+    [[nodiscard]] auto is_unused() const noexcept -> bool
+    {
+        return usage_count == 0;
+    }
 };
 
 /// Indexes all tags across board objects, provides per-tag object lookup,
@@ -59,6 +65,15 @@ public:
 
     /// Return the top-N tags by usage_count (descending).
     [[nodiscard]] auto most_used_tags(size_t top_n) const -> std::vector<TagInfo>;
+
+    /// (#94) Check if a tag exists in the index.
+    [[nodiscard]] auto has_tag(const std::string& tag_name) const -> bool;
+
+    /// Whether the tag index is empty.
+    [[nodiscard]] auto is_empty() const noexcept -> bool
+    {
+        return tags_.empty();
+    }
 
 private:
     std::unordered_map<std::string, TagInfo> tags_;

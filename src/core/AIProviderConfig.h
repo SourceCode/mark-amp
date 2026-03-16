@@ -62,6 +62,12 @@ public:
     /// Get all configured providers.
     [[nodiscard]] auto configured_providers() const -> std::vector<AIProvider>;
 
+    /// (#199) Return the number of configured providers.
+    [[nodiscard]] auto provider_count() const -> std::size_t;
+
+    /// (#200) Check if the given provider has an API key set.
+    [[nodiscard]] auto has_api_key(AIProvider provider) const -> bool;
+
 private:
     EventBus& event_bus_;
     Config& config_;

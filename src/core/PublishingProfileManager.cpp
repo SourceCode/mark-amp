@@ -191,6 +191,9 @@ auto PublishingProfileManager::deserialize(const std::string& json_str) -> int
     static const std::regex kAutoOpenRe(R"xx("auto_open"\s*:\s*(true|false))xx");
     static const std::regex kFormatRe(R"xx("format"\s*:\s*(\d+))xx");
     static const std::regex kUseCountRe(R"xx("use_count"\s*:\s*(\d+))xx");
+    // (#52) Restore include_toc and include_frontmatter.
+    static const std::regex kIncludeTocRe(R"xx("include_toc"\s*:\s*(true|false))xx");
+    static const std::regex kIncludeFmRe(R"xx("include_frontmatter"\s*:\s*(true|false))xx");
 
     auto begin = std::sregex_iterator(json_str.begin(), json_str.end(), kProfileBlock);
     auto end_iter = std::sregex_iterator();
@@ -222,6 +225,15 @@ auto PublishingProfileManager::deserialize(const std::string& json_str) -> int
         if (std::regex_search(match_block, sub_match, kUseCountRe))
         {
             prof.use_count = std::stoi(sub_match[1].str());
+        }
+        // (#52) Restore include_toc and include_frontmatter.
+        if (std::regex_search(match_block, sub_match, kIncludeTocRe))
+        {
+            prof.export_options.include_toc = (sub_match[1].str() == "true");
+        }
+        if (std::regex_search(match_block, sub_match, kIncludeFmRe))
+        {
+            prof.export_options.include_frontmatter = (sub_match[1].str() == "true");
         }
 
         // Update next_id_ to avoid collisions.
@@ -288,6 +300,12 @@ auto PublishingProfileManager::find_iter(const std::string& profile_id) const
                         profiles_.end(),
                         [&](const PublishingProfile& prof)
                         { return prof.profile_id == profile_id; });
+}
+
+// (#101) Check for profile existence by ID.
+auto PublishingProfileManager::has_profile(const std::string& profile_id) const -> bool
+{
+    return find_iter(profile_id) != profiles_.end();
 }
 
 } // namespace markamp::core

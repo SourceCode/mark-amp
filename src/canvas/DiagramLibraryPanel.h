@@ -6,6 +6,12 @@
 #include <string>
 #include <vector>
 
+#include <wx/brush.h>
+#include <wx/colour.h>
+#include <wx/font.h>
+#include <wx/graphics.h>
+#include <wx/pen.h>
+
 class wxGraphicsContext;
 
 namespace markamp::canvas
@@ -42,9 +48,20 @@ public:
     [[nodiscard]] auto get_templates() const -> std::vector<DiagramShapeTemplate>;
 
 private:
+    /// Cached item layout for hit testing.
+    struct CachedItem
+    {
+        double x;
+        double y;
+        double width;
+        double height;
+        size_t template_index;
+    };
+
     DiagramLibrary active_library_{DiagramLibrary::UML};
     bool visible_{false};
     OnShapeSelected on_shape_selected_;
+    mutable std::vector<CachedItem> cached_items_;
 };
 
 } // namespace markamp::canvas

@@ -157,4 +157,10 @@ auto BoardNavigator::sort_boards_by_name() -> void
               [](const BoardInfo& lhs, const BoardInfo& rhs) { return lhs.name < rhs.name; });
 }
 
+// (#97) Return the total number of discovered boards.
+auto BoardNavigator::board_count() const -> std::size_t
+{
+    return boards_.size();
+}
+
 } // namespace markamp::canvas

@@ -72,6 +72,18 @@ public:
     /// Number of announcements made.
     [[nodiscard]] auto announcement_count() const noexcept -> std::size_t;
 
+    /// Whether any announcements have been recorded.
+    [[nodiscard]] auto has_history() const noexcept -> bool
+    {
+        return !history_.empty();
+    }
+
+    /// Whether the history is at maximum capacity.
+    [[nodiscard]] auto is_at_capacity() const noexcept -> bool
+    {
+        return history_.size() >= kMaxHistory;
+    }
+
 private:
     static constexpr std::size_t kMaxHistory = 100;
     std::vector<std::string> history_;

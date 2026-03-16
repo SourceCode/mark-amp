@@ -65,6 +65,36 @@ auto AIProviderConfig::configure(AIProvider provider,
         provider_config.api_base_url = endpoint;
     }
 
+    // (#8) Persist API key to config storage.
+    std::string provider_key;
+    switch (provider)
+    {
+        case AIProvider::OpenAI:
+            provider_key = "openai";
+            break;
+        case AIProvider::Anthropic:
+            provider_key = "anthropic";
+            break;
+        case AIProvider::Local:
+            provider_key = "local";
+            break;
+        case AIProvider::Custom:
+            provider_key = "custom";
+            break;
+    }
+    if (!api_key.empty())
+    {
+        config_.set("ai." + provider_key + ".api_key", api_key);
+    }
+    if (!model.empty())
+    {
+        config_.set("ai." + provider_key + ".model", model);
+    }
+    if (!endpoint.empty())
+    {
+        config_.set("ai." + provider_key + ".endpoint", endpoint);
+    }
+
     // Publish configuration event.
     events::AIProviderConfiguredEvent evt;
     evt.provider = static_cast<int>(provider);
@@ -86,6 +116,25 @@ auto AIProviderConfig::get_config(AIProvider provider) const
 auto AIProviderConfig::set_active_provider(AIProvider provider) -> void
 {
     active_provider_ = provider;
+
+    // (#10) Persist the active provider choice.
+    std::string provider_name;
+    switch (provider)
+    {
+        case AIProvider::OpenAI:
+            provider_name = "openai";
+            break;
+        case AIProvider::Anthropic:
+            provider_name = "anthropic";
+            break;
+        case AIProvider::Local:
+            provider_name = "local";
+            break;
+        case AIProvider::Custom:
+            provider_name = "custom";
+            break;
+    }
+    config_.set("ai.active_provider", provider_name);
 }
 
 auto AIProviderConfig::active_provider() const -> AIProvider
@@ -183,20 +232,51 @@ auto AIProviderConfig::default_config(AIProvider provider) -> AIModelConfig
         case AIProvider::OpenAI:
             model_config.model_name = "gpt-4";
             model_config.api_base_url = "https://api.openai.com/v1";
+            model_config.request_timeout_ms = 60000;   // (#9) 60s timeout
+            model_config.max_retries = 3;               // (#9) 3 retries
+            model_config.retry_base_delay_ms = 1000;    // (#9) 1s base delay
             break;
         case AIProvider::Anthropic:
             model_config.model_name = "claude-3-sonnet";
             model_config.api_base_url = "https://api.anthropic.com/v1";
+            model_config.request_timeout_ms = 90000;   // (#9) 90s for longer context
+            model_config.max_retries = 2;
+            model_config.retry_base_delay_ms = 1500;
             break;
         case AIProvider::Local:
             model_config.model_name = "llama3";
             model_config.api_base_url = "http://localhost:11434";
+            model_config.request_timeout_ms = 120000;  // (#9) 120s for local models
+            model_config.max_retries = 1;              // Local: retry rarely helps
+            model_config.retry_base_delay_ms = 500;
             break;
         case AIProvider::Custom:
             model_config.model_name = "custom-model";
+            model_config.request_timeout_ms = 60000;
+            model_config.max_retries = 2;
+            model_config.retry_base_delay_ms = 1000;
             break;
     }
     return model_config;
+}
+
+// ── Batch 34 (#199-200) ─────────────────────────────────────────────────────
+
+/// (#199) Return the number of configured providers (those with API keys or Local).
+auto AIProviderConfig::provider_count() const -> std::size_t
+{
+    return configured_providers().size();
+}
+
+/// (#200) Check if the given provider has an API key set.
+auto AIProviderConfig::has_api_key(AIProvider provider) const -> bool
+{
+    const auto iter = provider_configs_.find(static_cast<int>(provider));
+    if (iter == provider_configs_.end())
+    {
+        return false;
+    }
+    return !iter->second.api_key.empty();
 }
 
 } // namespace markamp::core

@@ -223,4 +223,18 @@ auto CanvasTemplateEngine::clear() -> void
     templates_.clear();
 }
 
+// (#93) Count built-in templates.
+auto CanvasTemplateEngine::builtin_count() const -> std::size_t
+{
+    std::size_t count = 0;
+    for (const auto& [tid, tmpl] : templates_)
+    {
+        if (tmpl.is_built_in)
+        {
+            ++count;
+        }
+    }
+    return count;
+}
+
 } // namespace markamp::canvas

@@ -30,6 +30,12 @@ public:
 
     /// Get the MIME type for a video file extension.
     [[nodiscard]] static auto mime_type(std::string_view extension) -> std::string_view;
+
+    /// Number of supported video file extensions.
+    [[nodiscard]] static constexpr auto supported_extension_count() noexcept -> int
+    {
+        return 6;
+    }
 };
 
 } // namespace markamp::rendering

@@ -32,6 +32,9 @@ public:
 
     /// Reassign z-indices 0..N-1 to remove gaps.
     static auto auto_distribute_z(Board& board) -> void;
+
+    /// (#79) Get object IDs sorted by z-index (front to back).
+    [[nodiscard]] static auto get_z_order(const Board& board) -> std::vector<ObjectId>;
 };
 
 } // namespace markamp::canvas

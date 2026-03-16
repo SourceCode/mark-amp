@@ -89,6 +89,69 @@ auto CanvasObjectFactory::create(CanvasObjectType type, const ObjectCreationPara
     return result;
 }
 
+auto CanvasObjectFactory::from_json(const std::string& json) const
+    -> std::unique_ptr<CanvasObject>
+{
+    // Extract type string from JSON.
+    const auto type_pos = json.find("\"type\"");
+    if (type_pos == std::string::npos)
+    {
+        return nullptr;
+    }
+    const auto quote_start = json.find('"', type_pos + 6);
+    const auto quote_end = json.find('"', quote_start + 1);
+    if (quote_start == std::string::npos || quote_end == std::string::npos)
+    {
+        return nullptr;
+    }
+    const auto type_string = json.substr(quote_start + 1, quote_end - quote_start - 1);
+
+    // Dispatch to the correct subclass.
+    std::unique_ptr<CanvasObject> obj;
+    if (type_string == "StickyNote")
+    {
+        auto note = std::make_unique<StickyNote>();
+        note->from_json(json);
+        obj = std::move(note);
+    }
+    else if (type_string == "TextBox")
+    {
+        obj = std::make_unique<TextBox>();
+    }
+    else if (type_string == "DiagramShape" || type_string == "Shape")
+    {
+        obj = std::make_unique<DiagramShapeObject>();
+    }
+    else if (type_string == "Frame")
+    {
+        obj = std::make_unique<FrameObject>();
+    }
+    else if (type_string == "Section")
+    {
+        obj = std::make_unique<SectionObject>();
+    }
+    else if (type_string == "Image")
+    {
+        obj = std::make_unique<ImageObject>();
+    }
+    else if (type_string == "Comment")
+    {
+        auto comment = std::make_unique<CommentObject>();
+        comment->from_json(json);
+        obj = std::move(comment);
+    }
+    else if (type_string == "Icon")
+    {
+        obj = std::make_unique<IconObject>();
+    }
+    else if (type_string == "Table")
+    {
+        obj = std::make_unique<TableObject>();
+    }
+
+    return obj;
+}
+
 auto CanvasObjectFactory::default_size(CanvasObjectType type) -> Size2D
 {
     switch (type)

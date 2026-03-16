@@ -159,7 +159,16 @@ public:
         DeepLinkEntry entry;
         entry.uri = uri;
         entry.label = build_label(anchor);
-        entry.created_at = "now"; // Placeholder; production would use real timestamp
+        entry.created_at = []()
+        {
+            auto now = std::chrono::system_clock::now();
+            auto time_t_now = std::chrono::system_clock::to_time_t(now);
+            struct tm time_info{};
+            gmtime_r(&time_t_now, &time_info);
+            char buf[32]{};
+            std::strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%SZ", &time_info);
+            return std::string(buf);
+        }();
         history_.push_back(std::move(entry));
 
         // Cap history

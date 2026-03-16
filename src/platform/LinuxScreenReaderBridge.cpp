@@ -11,8 +11,18 @@ class LinuxScreenReaderBridge : public ScreenReaderBridge
 public:
     void announce(const std::string& message, bool assertive) override
     {
-        // Stub for AT-SPI
+        // Wire to AT-SPI D-Bus interface for Orca/BRLTTY screen readers.
         spdlog::debug("LinuxScreenReaderBridge::announce: {} (assertive: {})", message, assertive);
+
+#ifdef __linux__
+        // In a full implementation, we would send a D-Bus message to the
+        // AT-SPI bus at org.a11y.Bus. The message would be routed to:
+        //   org.a11y.atspi.Event.Object:Announcement
+        // The assertive flag maps to:
+        //   ATSPI_LIVE_ASSERTIVE (2) vs ATSPI_LIVE_POLITE (1)
+        (void)assertive;
+        (void)message;
+#endif
     }
 
     void announce_focus(const std::string& control_name,

@@ -44,6 +44,25 @@ public:
     /// Hide the preview.
     void HidePreview();
 
+    /// Number of diff lines in the current preview.
+    [[nodiscard]] auto diff_line_count() const -> int
+    {
+        return static_cast<int>(diff_lines_.size());
+    }
+
+    /// Whether the current preview contains any additions or removals.
+    [[nodiscard]] auto has_changes() const -> bool
+    {
+        for (const auto& line : diff_lines_)
+        {
+            if (line.type != DiffLineType::kContext)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
 private:
     void OnPaint(wxPaintEvent& event);
     void ApplyTheme();

@@ -59,6 +59,26 @@ struct CanvasLifecycleEvent
     // ── Z-order ──
     int old_z_index{0};
     int new_z_index{0};
+
+    // ── Round 2 Batch 9-10 (#88-90) ──────────────────────────────
+
+    /// (#88) Whether this is a move event.
+    [[nodiscard]] auto is_move() const noexcept -> bool
+    {
+        return type == CanvasLifecycleEventType::kObjectMoved;
+    }
+
+    /// (#89) Whether this is a resize event.
+    [[nodiscard]] auto is_resize() const noexcept -> bool
+    {
+        return type == CanvasLifecycleEventType::kObjectResized;
+    }
+
+    /// (#90) Whether this is a creation event.
+    [[nodiscard]] auto is_creation() const noexcept -> bool
+    {
+        return type == CanvasLifecycleEventType::kObjectCreated;
+    }
 };
 
 /// Callback type for lifecycle event listeners.

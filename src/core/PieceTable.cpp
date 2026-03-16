@@ -193,6 +193,37 @@ auto PieceTable::piece_count() const noexcept -> std::size_t
     return pieces_.size();
 }
 
+auto PieceTable::line_count() const -> std::size_t
+{
+    if (total_size_ == 0)
+    {
+        return 0;
+    }
+    std::size_t newlines = 0;
+    for (const auto& piece : pieces_)
+    {
+        const auto& buf = buffer_for(piece.source);
+        for (std::size_t i = 0; i < piece.length; ++i)
+        {
+            if (buf[piece.offset + i] == '\n')
+            {
+                ++newlines;
+            }
+        }
+    }
+    return newlines + 1;
+}
+
+auto PieceTable::append_buffer_size() const noexcept -> std::size_t
+{
+    return append_buffer_.size();
+}
+
+auto PieceTable::original_size() const noexcept -> std::size_t
+{
+    return original_buffer_.size();
+}
+
 auto PieceTable::find_piece(std::size_t offset) const -> std::pair<std::size_t, std::size_t>
 {
     std::size_t pos = 0;

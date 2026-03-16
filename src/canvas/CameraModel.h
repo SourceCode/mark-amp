@@ -72,6 +72,38 @@ private:
     double bound_min_y_{-10000.0};
     double bound_max_x_{10000.0};
     double bound_max_y_{10000.0};
+
+    // ── Round 4 Batch 9-10 (#88-92) ──────────────────────────────
+
+    /// (#88) Whether zoomed in (> 1.0).
+    [[nodiscard]] auto is_zoomed_in() const noexcept -> bool
+    {
+        return zoom_ > 1.0;
+    }
+
+    /// (#89) Whether zoomed out (< 1.0).
+    [[nodiscard]] auto is_zoomed_out() const noexcept -> bool
+    {
+        return zoom_ < 1.0;
+    }
+
+    /// (#90) Whether at default zoom (1.0).
+    [[nodiscard]] auto is_default_zoom() const noexcept -> bool
+    {
+        return zoom_ == 1.0;
+    }
+
+    /// (#91) Whether the camera is panned from origin.
+    [[nodiscard]] auto is_panned() const noexcept -> bool
+    {
+        return pan_x_ != 0.0 || pan_y_ != 0.0;
+    }
+
+    /// (#92) Whether the camera is at the default origin.
+    [[nodiscard]] auto is_at_origin() const noexcept -> bool
+    {
+        return pan_x_ == 0.0 && pan_y_ == 0.0 && zoom_ == 1.0;
+    }
 };
 
 } // namespace markamp::canvas

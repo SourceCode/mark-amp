@@ -32,6 +32,20 @@ struct ClusterSuggestion
     std::string cluster_id;
     std::vector<std::string> object_ids;
     std::string reason; ///< e.g., "proximity", "same-tag"
+
+    // ── Round 5 Batch 9 (#85-86) ────────────────────────────────
+
+    /// (#85) Whether a reason is set.
+    [[nodiscard]] auto has_reason() const noexcept -> bool
+    {
+        return !reason.empty();
+    }
+
+    /// (#86) Number of objects in this cluster.
+    [[nodiscard]] auto object_count() const noexcept -> size_t
+    {
+        return object_ids.size();
+    }
 };
 
 /// Testable model for Sticky Notes & Quick Capture (Phase 52).
@@ -79,6 +93,32 @@ private:
     StickySizePreset size_preset_{StickySizePreset::kMedium};
     int max_chars_{200};
     std::vector<ClusterSuggestion> suggestions_;
+
+    // ── Round 5 Batch 9 (#87-90) ────────────────────────────────
+
+    /// (#87) Whether note has text content.
+    [[nodiscard]] auto has_text() const noexcept -> bool
+    {
+        return !text_.empty();
+    }
+
+    /// (#88) Whether preset is yellow.
+    [[nodiscard]] auto is_yellow() const noexcept -> bool
+    {
+        return color_preset_ == StickyColorPreset::kYellow;
+    }
+
+    /// (#89) Whether size is small.
+    [[nodiscard]] auto is_small() const noexcept -> bool
+    {
+        return size_preset_ == StickySizePreset::kSmall;
+    }
+
+    /// (#90) Whether cluster suggestions exist.
+    [[nodiscard]] auto has_suggestions() const noexcept -> bool
+    {
+        return !suggestions_.empty();
+    }
 };
 
 } // namespace markamp::canvas

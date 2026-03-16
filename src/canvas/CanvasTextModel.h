@@ -40,6 +40,38 @@ struct Typography
     std::string color{"#000000"};
     TextAlign align{TextAlign::kLeft};
     double line_spacing{1.4};
+
+    // ── Round 4 Batch 3-4 (#29-33) ──────────────────────────────
+
+    /// (#29) Whether the weight qualifies as bold (>= 700).
+    [[nodiscard]] auto is_bold() const noexcept -> bool
+    {
+        return font_weight >= 700.0;
+    }
+
+    /// (#30) Whether text is center-aligned.
+    [[nodiscard]] auto is_centered() const noexcept -> bool
+    {
+        return align == TextAlign::kCenter;
+    }
+
+    /// (#31) Whether text is left-aligned.
+    [[nodiscard]] auto is_left_aligned() const noexcept -> bool
+    {
+        return align == TextAlign::kLeft;
+    }
+
+    /// (#32) Whether text is right-aligned.
+    [[nodiscard]] auto is_right_aligned() const noexcept -> bool
+    {
+        return align == TextAlign::kRight;
+    }
+
+    /// (#33) Whether a font family is set.
+    [[nodiscard]] auto has_font() const noexcept -> bool
+    {
+        return !font_family.empty();
+    }
 };
 
 /// Testable model for Canvas Text Editing & Typography (Phase 45).
@@ -94,6 +126,32 @@ private:
     double fixed_width_{200.0};
     double fixed_height_{100.0};
     TextPreset active_preset_{TextPreset::kBody};
+
+    // ── Round 4 Batch 4 (#34-37) ────────────────────────────────
+
+    /// (#34) Whether auto-size mode is active.
+    [[nodiscard]] auto is_auto_size() const noexcept -> bool
+    {
+        return size_mode_ == TextSizeMode::kAutoSize;
+    }
+
+    /// (#35) Whether fixed-box mode is active.
+    [[nodiscard]] auto is_fixed_box() const noexcept -> bool
+    {
+        return size_mode_ == TextSizeMode::kFixedBox;
+    }
+
+    /// (#36) Whether text content is present.
+    [[nodiscard]] auto has_text() const noexcept -> bool
+    {
+        return !text_.empty();
+    }
+
+    /// (#37) Whether the active preset is heading.
+    [[nodiscard]] auto is_heading() const noexcept -> bool
+    {
+        return active_preset_ == TextPreset::kHeading;
+    }
 };
 
 } // namespace markamp::canvas

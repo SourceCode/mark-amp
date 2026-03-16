@@ -38,4 +38,16 @@ void ThemePerformanceMonitor::reset()
     metrics_ = ThemePerformanceMetrics{};
 }
 
+// ── Batch 23-25 (#145-146) ──
+
+auto ThemePerformanceMonitor::total_operations() const -> std::size_t
+{
+    return metrics_.total_cache_rebuilds + metrics_.total_window_applies;
+}
+
+auto ThemePerformanceMonitor::avg_cache_rebuild_us() const -> double
+{
+    return metrics_.avg_rebuild_cache_us;
+}
+
 } // namespace markamp::core

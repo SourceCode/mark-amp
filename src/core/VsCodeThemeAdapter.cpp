@@ -334,4 +334,16 @@ auto VsCodeThemeAdapter::map_vscode_scope(const std::string& scope) -> std::stri
     return "";
 }
 
+// ── Batch 23-25 (#149-150) ──
+
+auto VsCodeThemeAdapter::mapped_color_count() -> std::size_t
+{
+    return vscode_color_map().size();
+}
+
+auto VsCodeThemeAdapter::mapped_scope_count() -> std::size_t
+{
+    return vscode_scope_map().size();
+}
+
 } // namespace markamp::core

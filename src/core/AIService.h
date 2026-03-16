@@ -6,6 +6,7 @@
 
 #include "AITypes.h"
 
+#include <atomic>
 #include <expected>
 #include <memory>
 #include <mutex>
@@ -52,11 +53,24 @@ public:
     [[nodiscard]] auto test_connection(const AIModelConfig& model)
         -> std::expected<void, std::string>;
 
+    // Cancel any in-flight request (#7).
+    auto abort_generation() -> void;
+
+    /// (#196) Return the number of active chat sessions.
+    [[nodiscard]] auto session_count() const -> std::size_t;
+
+    /// (#197) Check if an abort/cancel has been requested.
+    [[nodiscard]] auto is_cancel_requested() const -> bool;
+
+    /// (#198) Return the number of predefined AI actions (excluding Chat/Custom).
+    [[nodiscard]] static auto action_count() -> std::size_t;
+
 private:
     [[maybe_unused]] EventBus& event_bus_;
     [[maybe_unused]] Config& config_;
     mutable std::mutex mutex_;
     std::unordered_map<std::string, AISession> sessions_;
+    std::atomic<bool> cancel_requested_{false}; // (#7) cancellation flag
 
     // Build the system prompt for an action.
     [[nodiscard]] static auto build_system_prompt(AIAction action) -> std::string;
@@ -76,6 +90,17 @@ private:
 
     // Generate a session ID.
     [[nodiscard]] static auto generate_session_id() -> std::string;
+
+    // Get human-readable provider name.
+    [[nodiscard]] static auto provider_name(AIProvider provider) -> std::string;
+
+    // Build JSON request body for the given provider (#3).
+    [[nodiscard]] static auto build_request_json(const AIModelConfig& model,
+                                                  const std::vector<AIMessage>& messages)
+        -> std::string;
+
+    // Emit a NotificationEvent for API errors (#30).
+    auto publish_error_notification(const AIResponse& response) -> void;
 };
 
 } // namespace markamp::core

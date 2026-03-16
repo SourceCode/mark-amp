@@ -106,4 +106,18 @@ auto ThemeExporter::export_to_vscode(const Theme& theme, const std::filesystem::
     return {};
 }
 
+// (#95) Return the number of editor color tokens included in export.
+auto ThemeExporter::color_count() -> std::size_t
+{
+    // 24 color tokens + 8 token colors = 32 total entries
+    return 32;
+}
+
+// (#158) Return the number of syntax token colors included in export.
+auto ThemeExporter::syntax_token_count() -> std::size_t
+{
+    // 8 base syntax + 15 fine-grained = 23 syntax token entries
+    return 23;
+}
+
 } // namespace markamp::core

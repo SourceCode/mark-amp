@@ -153,4 +153,30 @@ auto ThemeScopeMapper::calculate_specificity(const std::string& selector, const 
     return 0;
 }
 
+// ── Batch 23-25 (#147-148) ──
+
+auto ThemeScopeMapper::has_rule(const std::string& selector) const -> bool
+{
+    for (const auto& rule : textmate_rules_)
+    {
+        if (rule.selector == selector)
+        {
+            return true;
+        }
+    }
+    for (const auto& rule : semantic_overrides_)
+    {
+        if (rule.selector == selector)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+auto ThemeScopeMapper::total_rule_count() const -> int
+{
+    return rule_count() + semantic_override_count();
+}
+
 } // namespace markamp::core

@@ -87,4 +87,18 @@ auto LockingService::locked_ids(const Board& board) -> std::vector<ObjectId>
     return result;
 }
 
+// (#84) Return count of locked objects on the board.
+auto LockingService::locked_count(const Board& board) -> std::size_t
+{
+    std::size_t count = 0;
+    for (const auto& obj_ptr : board.objects())
+    {
+        if (obj_ptr && obj_ptr->is_locked())
+        {
+            ++count;
+        }
+    }
+    return count;
+}
+
 } // namespace markamp::canvas

@@ -211,4 +211,61 @@ auto CommentObject::comment_by_id(const std::string& comment_id) const -> const 
     return &(*iter);
 }
 
+auto CommentObject::from_json(const std::string& json) -> void
+{
+    // Simple JSON field extraction for Comment object properties.
+    auto extract_string = [&](const std::string& key) -> std::string
+    {
+        const auto key_pos = json.find("\"" + key + "\"");
+        if (key_pos == std::string::npos) return "";
+        const auto colon_pos = json.find(':', key_pos);
+        if (colon_pos == std::string::npos) return "";
+        const auto quote_start = json.find('"', colon_pos + 1);
+        if (quote_start == std::string::npos) return "";
+        const auto quote_end = json.find('"', quote_start + 1);
+        if (quote_end == std::string::npos) return "";
+        return json.substr(quote_start + 1, quote_end - quote_start - 1);
+    };
+    auto extract_bool = [&](const std::string& key) -> std::pair<bool, bool>
+    {
+        const auto key_pos = json.find("\"" + key + "\"");
+        if (key_pos == std::string::npos) return {false, false};
+        const auto colon_pos = json.find(':', key_pos);
+        if (colon_pos == std::string::npos) return {false, false};
+        auto val_start = colon_pos + 1;
+        while (val_start < json.size() && json[val_start] == ' ')
+        {
+            ++val_start;
+        }
+        if (json.substr(val_start, 4) == "true") return {true, true};
+        if (json.substr(val_start, 5) == "false") return {true, false};
+        return {false, false};
+    };
+
+    auto author_id_val = extract_string("author_id");
+    if (!author_id_val.empty()) author_id_ = author_id_val;
+
+    auto author_name_val = extract_string("author_name");
+    if (!author_name_val.empty()) author_name_ = author_name_val;
+
+    auto body = extract_string("body");
+    if (!body.empty())
+    {
+        Comment root;
+        root.body = body;
+        root.author_id = author_id_;
+        root.author_name = author_name_;
+        root.comment_id = extract_string("thread_id");
+        root.created_at = extract_string("timestamp");
+        if (root.comment_id.empty()) root.comment_id = "root";
+        comments_.push_back(std::move(root));
+    }
+
+    auto [resolved_found, resolved_val] = extract_bool("resolved");
+    if (resolved_found) resolved_ = resolved_val;
+
+    auto [pinned_found, pinned_val] = extract_bool("pinned");
+    if (pinned_found) pinned_ = pinned_val;
+}
+
 } // namespace markamp::canvas

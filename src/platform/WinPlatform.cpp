@@ -13,8 +13,24 @@ auto create_platform() -> std::unique_ptr<PlatformAbstraction>
 
 void WinPlatform::set_frameless_window_style(wxFrame* frame)
 {
-    // Stub: removes default frame style
+    // Apply borderless style with resize border for custom chrome.
     frame->SetWindowStyleFlag(wxBORDER_NONE | wxRESIZE_BORDER | wxCLIP_CHILDREN);
+
+#ifdef _WIN32
+    // Extend the DWM frame into the entire client area to remove
+    // the default Windows title bar while keeping the shadow.
+    auto* hwnd = static_cast<HWND>(frame->GetHandle());
+    if (hwnd != nullptr)
+    {
+        // MARGINS { left, right, top, bottom } = -1 means extend to entire area.
+        MARGINS margins = {-1, -1, -1, -1};
+        DwmExtendFrameIntoClientArea(hwnd, &margins);
+
+        // Trigger a frame update so the DWM change takes effect.
+        SetWindowPos(hwnd, nullptr, 0, 0, 0, 0,
+                     SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER);
+    }
+#endif
 }
 
 auto WinPlatform::begin_native_drag([[maybe_unused]] wxFrame* frame,

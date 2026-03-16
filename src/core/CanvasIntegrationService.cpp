@@ -27,7 +27,17 @@ auto CanvasIntegrationService::register_app(const std::string& extension_id,
 
     events::CanvasAppRegisteredEvent evt;
     evt.app_id = app_id;
-    evt.app_name = app_id; // TODO: use display name from manifest
+    // Derive a display name from the manifest's contribution labels.
+    std::string resolved_name = app_id;
+    if (!manifest.widgets.empty() && !manifest.widgets.front().label.empty())
+    {
+        resolved_name = manifest.widgets.front().label;
+    }
+    else if (!manifest.tools.empty() && !manifest.tools.front().label.empty())
+    {
+        resolved_name = manifest.tools.front().label;
+    }
+    evt.app_name = resolved_name;
     evt.extension_id = extension_id;
     event_bus_.publish(evt);
 

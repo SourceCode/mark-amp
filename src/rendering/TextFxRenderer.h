@@ -93,6 +93,26 @@ public:
     /// Convert channel to display string.
     [[nodiscard]] static auto channel_name(TextFxChannel channel) -> std::string_view;
 
+    /// Total number of TextFxChannel categories.
+    [[nodiscard]] static constexpr auto total_channels() noexcept -> int
+    {
+        return 10;
+    }
+
+    /// Number of channels that have enabled profiles.
+    [[nodiscard]] auto active_channel_count() const noexcept -> int
+    {
+        int count = 0;
+        for (const auto& [channel, profile] : profiles_)
+        {
+            if (profile.enabled)
+            {
+                ++count;
+            }
+        }
+        return count;
+    }
+
 private:
     std::unordered_map<TextFxChannel, TextFxProfile> profiles_;
     bool clean_mode_{false};

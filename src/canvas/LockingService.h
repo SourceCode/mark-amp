@@ -29,6 +29,9 @@ public:
 
     /// Return all locked object IDs on the board.
     [[nodiscard]] static auto locked_ids(const Board& board) -> std::vector<ObjectId>;
+
+    /// (#84) Return count of locked objects.
+    [[nodiscard]] static auto locked_count(const Board& board) -> std::size_t;
 };
 
 } // namespace markamp::canvas

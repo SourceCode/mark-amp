@@ -6,6 +6,7 @@
 
 #include "canvas/Board.h"
 #include "canvas/CanvasObject.h"
+#include "canvas/CanvasObjectFactory.h"
 #include "canvas/CanvasTypes.h"
 #include "canvas/SelectionManager.h"
 #include "canvas/UndoRedoStack.h"
@@ -25,6 +26,26 @@ struct ClipboardData
     size_t object_count{0};              ///< Number of objects
     Point2D original_center{0.0, 0.0};   ///< Center of the copied bounding box
     bool has_connectors{false};          ///< Whether clipboard contains connectors
+
+    /// Whether the clipboard is empty.
+    [[nodiscard]] auto is_empty() const noexcept -> bool
+    {
+        return object_count == 0;
+    }
+
+    /// Whether the clipboard has connector objects.
+    [[nodiscard]] auto has_connector_data() const noexcept -> bool
+    {
+        return has_connectors;
+    }
+
+    // ── Batch 10 (#96) ───────────────────────────────────────────
+
+    /// (#96) Number of unique object types in the clipboard.
+    [[nodiscard]] auto type_count() const noexcept -> size_t
+    {
+        return types.size();
+    }
 };
 
 /// Result of a paste operation.
@@ -33,6 +54,18 @@ struct PasteResult
     bool success{false};
     std::vector<ObjectId> pasted_ids; ///< IDs of newly created objects
     std::string error_message;
+
+    /// Whether the paste operation failed.
+    [[nodiscard]] auto failed() const noexcept -> bool
+    {
+        return !success;
+    }
+
+    /// Number of objects pasted.
+    [[nodiscard]] auto pasted_count() const noexcept -> std::size_t
+    {
+        return pasted_ids.size();
+    }
 };
 
 /// Canvas clipboard service for cut/copy/paste/duplicate operations.
@@ -79,6 +112,9 @@ public:
     /// Get clipboard metadata (types, count, etc.) without deserializing.
     [[nodiscard]] auto clipboard_info() const -> const ClipboardData&;
 
+    /// (#71) Get the types of objects currently in the clipboard.
+    [[nodiscard]] auto clipboard_types() const -> const std::vector<CanvasObjectType>&;
+
     // ── Configuration ─────────────────────────────────────────────
 
     /// Set the offset applied to pasted objects (default: 20, 20).
@@ -86,6 +122,14 @@ public:
 
     /// Get the current paste offset.
     [[nodiscard]] auto paste_offset() const -> const Point2D&;
+
+    // ── Batch 10 (#95) ───────────────────────────────────────────
+
+    /// (#95) Whether the clipboard is empty.
+    [[nodiscard]] auto is_empty() const -> bool
+    {
+        return !has_data();
+    }
 
     /// Default offset for paste operations.
     static constexpr double kDefaultPasteOffset = 20.0;
@@ -97,6 +141,7 @@ private:
     ClipboardData clipboard_;
     Point2D paste_offset_{kDefaultPasteOffset, kDefaultPasteOffset};
     int paste_count_{0}; ///< Tracks consecutive pastes for cascading offset
+    CanvasObjectFactory factory_;
 
     /// Serialize a set of objects to JSON for clipboard storage.
     [[nodiscard]] auto serialize_objects(const std::vector<ObjectId>& ids) -> std::string;

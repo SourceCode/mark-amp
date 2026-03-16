@@ -95,6 +95,13 @@ public:
     /// Scope enum to string.
     [[nodiscard]] static auto scope_name(OverrideScope scope) -> std::string;
 
+    /// (#105) Check if an override exists for a token name and scope.
+    [[nodiscard]] auto has_override(const std::string& token_name, OverrideScope scope) const
+        -> bool;
+
+    /// (#144) Return the number of vault-scoped overrides.
+    [[nodiscard]] auto vault_override_count() const -> std::size_t;
+
 private:
     std::vector<ThemeOverride> overrides_;
 };

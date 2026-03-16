@@ -290,9 +290,153 @@ auto TableObject::to_json() const -> std::string
     return oss.str();
 }
 
-auto TableObject::from_json(const std::string& /*json*/) -> void
+auto TableObject::from_json(const std::string& json) -> void
 {
-    // Deserialization stub.
+    // Helper to extract a string value for a given key.
+    auto get_str = [&](const std::string& key) -> std::string
+    {
+        const std::string needle = "\"" + key + "\":\"";
+        auto pos = json.find(needle);
+        if (pos == std::string::npos)
+        {
+            return "";
+        }
+        pos += needle.size();
+        const auto end_pos = json.find('"', pos);
+        if (end_pos == std::string::npos)
+        {
+            return "";
+        }
+        return json.substr(pos, end_pos - pos);
+    };
+
+    // Helper to extract a numeric value for a given key.
+    auto get_num = [&](const std::string& key) -> double
+    {
+        const std::string needle = "\"" + key + "\":";
+        auto pos = json.find(needle);
+        if (pos == std::string::npos)
+        {
+            return 0.0;
+        }
+        pos += needle.size();
+        return std::stod(json.substr(pos));
+    };
+
+    // Helper to extract a bool value.
+    auto get_bool = [&](const std::string& key, const std::string& context) -> bool
+    {
+        const std::string needle = "\"" + key + "\":";
+        auto pos = context.find(needle);
+        if (pos == std::string::npos)
+        {
+            return false;
+        }
+        pos += needle.size();
+        return context.substr(pos, 4) == "true";
+    };
+
+    row_height_ = get_num("row_height");
+    header_height_ = get_num("header_height");
+
+    // Parse columns array.
+    columns_.clear();
+    auto cols_pos = json.find("\"columns\":[");
+    if (cols_pos != std::string::npos)
+    {
+        cols_pos += 11; // Skip past "columns":[ 
+        const auto cols_end = json.find(']', cols_pos);
+        if (cols_end != std::string::npos)
+        {
+            const std::string cols_str = json.substr(cols_pos, cols_end - cols_pos);
+            // Parse each column object { "header":"...", "width":..., "sortable":... }
+            size_t col_pos = 0;
+            while ((col_pos = cols_str.find('{', col_pos)) != std::string::npos)
+            {
+                const auto col_end = cols_str.find('}', col_pos);
+                if (col_end == std::string::npos)
+                {
+                    break;
+                }
+                const std::string col_json = cols_str.substr(col_pos, col_end - col_pos + 1);
+
+                TableColumn col;
+                col.header = get_str("header");
+                // Parse width from this column's JSON.
+                {
+                    const std::string w_needle = "\"width\":";
+                    auto w_pos = col_json.find(w_needle);
+                    if (w_pos != std::string::npos)
+                    {
+                        w_pos += w_needle.size();
+                        col.width = std::stod(col_json.substr(w_pos));
+                    }
+                }
+                col.sortable = get_bool("sortable", col_json);
+                columns_.push_back(col);
+                col_pos = col_end + 1;
+            }
+        }
+    }
+
+    // Parse rows array.
+    rows_.clear();
+    auto rows_pos = json.find("\"rows\":[");
+    if (rows_pos != std::string::npos)
+    {
+        rows_pos += 8; // Skip past "rows":[
+        // Each row is an array of cell objects: [{"text":"...", "bold":...}, ...]
+        size_t row_start = rows_pos;
+        while ((row_start = json.find('[', row_start)) != std::string::npos)
+        {
+            // Skip past the outer rows array bracket.
+            if (row_start == rows_pos - 1)
+            {
+                ++row_start;
+                continue;
+            }
+            const auto row_end = json.find(']', row_start);
+            if (row_end == std::string::npos)
+            {
+                break;
+            }
+            const std::string row_json = json.substr(row_start, row_end - row_start + 1);
+
+            std::vector<TableCell> row;
+            size_t cell_pos = 0;
+            while ((cell_pos = row_json.find('{', cell_pos)) != std::string::npos)
+            {
+                const auto cell_end = row_json.find('}', cell_pos);
+                if (cell_end == std::string::npos)
+                {
+                    break;
+                }
+                const std::string cell_json =
+                    row_json.substr(cell_pos, cell_end - cell_pos + 1);
+
+                TableCell cell;
+                // Extract cell text.
+                {
+                    const std::string t_needle = "\"text\":\"";
+                    auto t_pos = cell_json.find(t_needle);
+                    if (t_pos != std::string::npos)
+                    {
+                        t_pos += t_needle.size();
+                        const auto t_end = cell_json.find('"', t_pos);
+                        if (t_end != std::string::npos)
+                        {
+                            cell.text = cell_json.substr(t_pos, t_end - t_pos);
+                        }
+                    }
+                }
+                cell.bold = get_bool("bold", cell_json);
+                row.push_back(cell);
+                cell_pos = cell_end + 1;
+            }
+            rows_.push_back(std::move(row));
+            row_start = row_end + 1;
+        }
+    }
 }
 
 // ── Private ───────────────────────────────────────────────────

@@ -188,11 +188,132 @@ auto PdfTextExtractor::supported_mime_types() const -> std::vector<std::string>
     return {"application/pdf"};
 }
 
-auto PdfTextExtractor::extract_text(const std::filesystem::path& /*file_path*/) const
+auto PdfTextExtractor::extract_text(const std::filesystem::path& file_path) const
     -> std::expected<std::string, std::string>
 {
-    // Stub: requires a PDF parsing library (poppler, pdfium, MuPDF).
-    return std::unexpected("PDF text extraction requires an external library (not yet integrated)");
+    // Basic PDF text extraction via stream parsing.
+    // Scans for text operators (Tj/TJ) within stream sections.
+    std::ifstream file(file_path, std::ios::binary);
+    if (!file)
+    {
+        return std::unexpected("Cannot open PDF file: " + file_path.string());
+    }
+
+    std::string content((std::istreambuf_iterator<char>(file)),
+                        std::istreambuf_iterator<char>());
+
+    // Verify PDF magic number.
+    if (content.size() < 5 || content.substr(0, 5) != "%PDF-")
+    {
+        return std::unexpected("Not a valid PDF file");
+    }
+
+    std::string extracted_text;
+
+    // Find text between stream/endstream markers and look for text operators.
+    size_t pos = 0;
+    while (pos < content.size())
+    {
+        auto stream_start = content.find("stream", pos);
+        if (stream_start == std::string::npos)
+        {
+            break;
+        }
+        stream_start += 6; // skip "stream"
+        if (stream_start < content.size() && content[stream_start] == '\r')
+        {
+            ++stream_start;
+        }
+        if (stream_start < content.size() && content[stream_start] == '\n')
+        {
+            ++stream_start;
+        }
+
+        auto stream_end = content.find("endstream", stream_start);
+        if (stream_end == std::string::npos)
+        {
+            break;
+        }
+
+        std::string stream_data = content.substr(stream_start, stream_end - stream_start);
+
+        // Extract text from parenthesized strings (used by Tj/TJ operators).
+        size_t text_pos = 0;
+        while (text_pos < stream_data.size())
+        {
+            auto paren_start = stream_data.find('(', text_pos);
+            if (paren_start == std::string::npos)
+            {
+                break;
+            }
+
+            int depth = 1;
+            size_t paren_end = paren_start + 1;
+            while (paren_end < stream_data.size() && depth > 0)
+            {
+                if (stream_data[paren_end] == '\\')
+                {
+                    ++paren_end; // skip escaped char
+                }
+                else if (stream_data[paren_end] == '(')
+                {
+                    ++depth;
+                }
+                else if (stream_data[paren_end] == ')')
+                {
+                    --depth;
+                }
+                ++paren_end;
+            }
+
+            if (depth == 0)
+            {
+                std::string text_chunk =
+                    stream_data.substr(paren_start + 1, paren_end - paren_start - 2);
+                for (char text_char : text_chunk)
+                {
+                    if (text_char >= 32 && text_char < 127)
+                    {
+                        extracted_text += text_char;
+                    }
+                }
+            }
+            text_pos = paren_end;
+        }
+
+        pos = stream_end + 9; // skip "endstream"
+    }
+
+    if (extracted_text.empty())
+    {
+        return std::unexpected("No extractable text found in PDF (may use compressed streams)");
+    }
+
+    return extracted_text;
+}
+
+// (#180) Return the number of registered content extractors.
+auto ContentIndexer::extractor_count() const -> std::size_t
+{
+    return extractors_.size();
+}
+
+// (#181) Return a list of all MIME types with registered extractors.
+auto ContentIndexer::supported_mime_types() const -> std::vector<std::string>
+{
+    std::vector<std::string> all_types;
+    for (const auto& ext : extractors_)
+    {
+        auto types = ext->supported_mime_types();
+        all_types.insert(all_types.end(), types.begin(), types.end());
+    }
+    return all_types;
+}
+
+// (#182) Check if the content index is empty.
+auto ContentIndexer::is_empty() const -> bool
+{
+    return index_.empty();
 }
 
 } // namespace markamp::core

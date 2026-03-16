@@ -119,6 +119,17 @@ public:
     /// Merge another catalog's entries into this one (for extension contributions).
     void merge_catalog(const SettingsCatalog& other);
 
+    // ── Batch 19-22 (#116-118) ──
+
+    /// (#116) Return the total number of distinct groups.
+    [[nodiscard]] auto group_count() const -> std::size_t;
+
+    /// (#117) Return the number of settings in a given ConfigScope.
+    [[nodiscard]] auto scope_count(ConfigScope scope) const -> std::size_t;
+
+    /// (#118) Return the count of results matching a keyword search query.
+    [[nodiscard]] auto keyword_search_count(std::string_view query) const -> std::size_t;
+
 private:
     std::vector<CatalogEntry> entries_;
     std::unordered_map<std::string, std::size_t> id_index_; ///< setting_id → index in entries_

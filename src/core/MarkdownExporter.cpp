@@ -59,6 +59,45 @@ auto MarkdownExporter::export_content(const std::string& markdown_source,
         output = adjusted;
     }
 
+    // (#46) Inject YAML frontmatter if metadata requested.
+    if (options.include_metadata)
+    {
+        std::string frontmatter = "---\n";
+        if (!options.template_name.empty())
+        {
+            frontmatter += "template: " + options.template_name + "\n";
+        }
+        frontmatter += "format: markdown\n";
+        frontmatter += "---\n\n";
+        output.insert(0, frontmatter);
+    }
+
+    // (#45) Generate table of contents if requested.
+    if (options.include_toc)
+    {
+        std::string toc = "## Table of Contents\n\n";
+        std::istringstream toc_scan(output);
+        std::string toc_line;
+        while (std::getline(toc_scan, toc_line))
+        {
+            if (toc_line.starts_with("# ") || toc_line.starts_with("## ")
+                || toc_line.starts_with("### "))
+            {
+                int heading_level = 0;
+                while (heading_level < static_cast<int>(toc_line.size())
+                       && toc_line[static_cast<size_t>(heading_level)] == '#')
+                {
+                    ++heading_level;
+                }
+                auto heading_text = toc_line.substr(static_cast<size_t>(heading_level) + 1);
+                auto indent = std::string(static_cast<size_t>((heading_level - 1) * 2), ' ');
+                toc += indent + "- " + heading_text + "\n";
+            }
+        }
+        toc += "\n";
+        output.insert(0, toc);
+    }
+
     return output;
 }
 

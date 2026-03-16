@@ -495,6 +495,200 @@ public:
     [[nodiscard]] auto diagnostic_indicators() const -> const std::vector<DiagnosticIndicator>&;
     void set_diagnostic_indicators(std::vector<DiagnosticIndicator> indicators);
 
+    // ── 100 Editor UX/UI Improvements: Batch 1 — Core State Accessors (#1–#10) ──
+
+    /// #1 True when the editor contains non-empty text.
+    [[nodiscard]] inline auto has_content() const noexcept -> bool
+    {
+        return editor_ != nullptr && editor_->GetTextLength() > 0;
+    }
+
+    /// #2 True when the editor text is empty.
+    [[nodiscard]] inline auto is_empty() const noexcept -> bool
+    {
+        return editor_ == nullptr || editor_->GetTextLength() == 0;
+    }
+
+    /// #3 Current total line count.
+    [[nodiscard]] inline auto line_count() const noexcept -> int
+    {
+        return editor_ != nullptr ? editor_->GetLineCount() : 0;
+    }
+
+    /// #4 Current font size.
+    [[nodiscard]] inline auto current_font_size() const noexcept -> int
+    {
+        return font_size_;
+    }
+
+    /// #5 Current tab size.
+    [[nodiscard]] inline auto current_tab_size() const noexcept -> int
+    {
+        return tab_size_;
+    }
+
+    /// #6 True when word wrap is enabled (mode != None).
+    [[nodiscard]] inline auto is_word_wrapped() const noexcept -> bool
+    {
+        return wrap_mode_ != core::events::WrapMode::None;
+    }
+
+    /// #7 True when a file path is set.
+    [[nodiscard]] inline auto has_file() const noexcept -> bool
+    {
+        return !current_file_path_.empty();
+    }
+
+    /// #8 True when line count exceeds the large-file threshold.
+    [[nodiscard]] inline auto is_large_file() const noexcept -> bool
+    {
+        return line_count() >= large_file_threshold_;
+    }
+
+    /// #9 True when there is a text selection.
+    [[nodiscard]] inline auto has_selection() const noexcept -> bool
+    {
+        if (editor_ == nullptr)
+        {
+            return false;
+        }
+        return editor_->GetSelectionStart() != editor_->GetSelectionEnd();
+    }
+
+    /// #10 Selection length in characters.
+    [[nodiscard]] inline auto selection_length() const noexcept -> int
+    {
+        if (editor_ == nullptr)
+        {
+            return 0;
+        }
+        return std::abs(editor_->GetSelectionEnd() - editor_->GetSelectionStart());
+    }
+
+    // ── 100 Editor UX/UI Improvements: Batch 2 — VS Code Features Accessors (#11–#20) ──
+
+    /// #11 True when auto-save is active.
+    [[nodiscard]] inline auto is_auto_save_active() const noexcept -> bool
+    {
+        return auto_save_;
+    }
+
+    /// #12 True when drag-and-drop is enabled.
+    [[nodiscard]] inline auto is_drag_drop_active() const noexcept -> bool
+    {
+        return drag_drop_enabled_;
+    }
+
+    /// #13 True when smooth caret animation is active.
+    [[nodiscard]] inline auto is_smooth_caret_active() const noexcept -> bool
+    {
+        return smooth_caret_;
+    }
+
+    /// #14 True when font ligatures are enabled.
+    [[nodiscard]] inline auto is_ligatures_active() const noexcept -> bool
+    {
+        return font_ligatures_;
+    }
+
+    /// #15 True when inline color preview decorations are enabled.
+    [[nodiscard]] inline auto is_inline_color_active() const noexcept -> bool
+    {
+        return inline_color_preview_;
+    }
+
+    /// #16 True when sticky scroll heading is enabled.
+    [[nodiscard]] inline auto is_sticky_scroll_active() const noexcept -> bool
+    {
+        return sticky_scroll_enabled_;
+    }
+
+    /// #17 Current font family name.
+    [[nodiscard]] inline auto current_font_family() const noexcept -> const std::string&
+    {
+        return font_family_;
+    }
+
+    /// #18 True when auto-closing brackets is enabled.
+    [[nodiscard]] inline auto is_auto_closing_brackets_active() const noexcept -> bool
+    {
+        return auto_closing_brackets_;
+    }
+
+    /// #19 True when auto-closing quotes is enabled.
+    [[nodiscard]] inline auto is_auto_closing_quotes_active() const noexcept -> bool
+    {
+        return auto_closing_quotes_;
+    }
+
+    /// #20 True when whitespace boundary rendering is enabled.
+    [[nodiscard]] inline auto is_whitespace_boundary_active() const noexcept -> bool
+    {
+        return whitespace_boundary_;
+    }
+
+    // ── 100 Editor UX/UI Improvements: Batch 3 — QoL & Syntax State Accessors (#21–#30) ──
+
+    /// #21 True when the minimap is visible.
+    [[nodiscard]] inline auto is_minimap_visible() const noexcept -> bool
+    {
+        return minimap_visible_;
+    }
+
+    /// #22 Number of entries in the cursor position history.
+    [[nodiscard]] inline auto cursor_history_size() const noexcept -> std::size_t
+    {
+        return cursor_position_history_.size();
+    }
+
+    /// #23 True when there is cursor position history.
+    [[nodiscard]] inline auto has_cursor_history() const noexcept -> bool
+    {
+        return !cursor_position_history_.empty();
+    }
+
+    /// #24 True when syntax overlay painting is active.
+    [[nodiscard]] inline auto is_syntax_overlays_active() const noexcept -> bool
+    {
+        return syntax_overlays_enabled_;
+    }
+
+    /// #25 True when trailing whitespace indicators are visible.
+    [[nodiscard]] inline auto is_trailing_ws_visible() const noexcept -> bool
+    {
+        return trailing_ws_visible_;
+    }
+
+    /// #26 True when auto-trim trailing whitespace on save is enabled.
+    [[nodiscard]] inline auto is_auto_trim_trailing_ws_active() const noexcept -> bool
+    {
+        return auto_trim_trailing_ws_;
+    }
+
+    /// #27 Current edge column value.
+    [[nodiscard]] inline auto current_edge_column() const noexcept -> int
+    {
+        return edge_column_;
+    }
+
+    /// #28 True when the edge column ruler is visible.
+    [[nodiscard]] inline auto is_edge_ruler_visible() const noexcept -> bool
+    {
+        return show_edge_ruler_;
+    }
+
+    /// #29 Number of registered default snippets.
+    [[nodiscard]] inline auto default_snippet_count() const noexcept -> std::size_t
+    {
+        return default_snippets_.size();
+    }
+
+    /// #30 True when the floating format bar has been created.
+    [[nodiscard]] inline auto has_format_bar() const noexcept -> bool
+    {
+        return format_bar_ != nullptr;
+    }
+
     // ── Phase 7: Editor Core Improvements ──
 
     // Task 1: Relative line numbers

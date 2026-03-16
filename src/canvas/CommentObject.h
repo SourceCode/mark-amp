@@ -21,6 +21,32 @@ struct Comment
     std::string created_at; ///< ISO-8601 timestamp
     bool is_resolved{false};
     std::vector<std::string> mentions; ///< @mentioned participant IDs
+
+    // ── Round 2 Batch 3 (#26-29) ──────────────────────────────────
+
+    /// (#26) Whether the comment body is empty.
+    [[nodiscard]] auto is_empty() const noexcept -> bool
+    {
+        return body.empty();
+    }
+
+    /// (#27) Whether the comment body has content.
+    [[nodiscard]] auto has_body() const noexcept -> bool
+    {
+        return !body.empty();
+    }
+
+    /// (#28) Whether this comment has @mentions.
+    [[nodiscard]] auto has_mention_list() const noexcept -> bool
+    {
+        return !mentions.empty();
+    }
+
+    /// (#29) Number of @mentions in this comment.
+    [[nodiscard]] auto mention_count() const noexcept -> size_t
+    {
+        return mentions.size();
+    }
 };
 
 /// Priority level for comment threads.
@@ -104,6 +130,49 @@ public:
 
     /// Lookup a specific comment in the thread by its ID.
     [[nodiscard]] auto comment_by_id(const std::string& comment_id) const -> const Comment*;
+
+    // ── Round 2 Batch 3 (#21-25, #30) ─────────────────────────────
+
+    /// (#21) Whether the thread has more than one comment.
+    [[nodiscard]] auto is_thread() const noexcept -> bool
+    {
+        return comments_.size() > 1;
+    }
+
+    /// (#22) Whether the thread has replies.
+    [[nodiscard]] auto has_replies() const noexcept -> bool
+    {
+        return comments_.size() > 1;
+    }
+
+    /// (#23) Whether this is a high or critical priority thread.
+    [[nodiscard]] auto is_high_priority() const noexcept -> bool
+    {
+        return priority_ == CommentPriority::kHigh || priority_ == CommentPriority::kCritical;
+    }
+
+    /// (#24) Whether this is a critical priority thread.
+    [[nodiscard]] auto is_critical_priority() const noexcept -> bool
+    {
+        return priority_ == CommentPriority::kCritical;
+    }
+
+    /// (#25) Whether the thread is open (not resolved).
+    [[nodiscard]] auto is_open() const noexcept -> bool
+    {
+        return !resolved_;
+    }
+
+    /// (#30) Pointer to the last comment, or nullptr if empty.
+    [[nodiscard]] auto last_comment() const noexcept -> const Comment*
+    {
+        return comments_.empty() ? nullptr : &comments_.back();
+    }
+
+    // ── Serialization ─────────────────────────────────────────────
+
+    /// Populate fields from a JSON string.
+    auto from_json(const std::string& json) -> void override;
 
 private:
     std::vector<Comment> comments_;

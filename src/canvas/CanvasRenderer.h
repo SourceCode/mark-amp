@@ -70,6 +70,14 @@ struct RenderStats
     size_t objects_rendered{0};
     size_t objects_culled{0};
     double frame_time_ms{0.0};
+
+    // ── Batch 10 (#94) ───────────────────────────────────────────
+
+    /// (#94) Total objects processed (rendered + culled).
+    [[nodiscard]] auto total_objects() const noexcept -> size_t
+    {
+        return objects_rendered + objects_culled;
+    }
 };
 
 /// Coordinates rendering of canvas objects using registered IObjectRenderers.
@@ -123,6 +131,26 @@ public:
     [[nodiscard]] auto debug_wireframes() const -> bool;
     auto set_debug_wireframes(bool enabled) -> void;
 
+    // ── Batch 10 (#91-94) ─────────────────────────────────────────
+
+    /// (#91) Whether grid snapping is enabled.
+    [[nodiscard]] auto is_grid_snap_enabled() const noexcept -> bool
+    {
+        return grid_settings_.snap_to_grid;
+    }
+
+    /// (#92) Whether rulers are visible.
+    [[nodiscard]] auto has_rulers() const noexcept -> bool
+    {
+        return grid_settings_.show_rulers;
+    }
+
+    /// (#93) Number of registered object renderers.
+    [[nodiscard]] auto renderer_count() const noexcept -> size_t
+    {
+        return renderers_.size();
+    }
+
 private:
     std::unordered_map<uint8_t, std::unique_ptr<IObjectRenderer>> renderers_;
     GridSettings grid_settings_;
@@ -134,6 +162,11 @@ private:
     auto render_wireframe(wxGraphicsContext& gc,
                           const CanvasObject& obj,
                           const ViewportTransform& viewport) -> void;
+
+    /// Render a type-label badge below the object for debug/UX clarity.
+    auto render_object_label(wxGraphicsContext& gc,
+                             const CanvasObject& obj,
+                             const ViewportTransform& viewport) -> void;
 };
 
 } // namespace markamp::canvas

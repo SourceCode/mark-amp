@@ -98,6 +98,15 @@ public:
     /// Remove a theme ID from the installed list.
     auto mark_uninstalled(const std::string& theme_id) -> void;
 
+    /// (#155) Return the number of installed marketplace themes.
+    [[nodiscard]] auto installed_count() const -> std::size_t;
+
+    /// (#156) Check if any installed theme has an available update.
+    [[nodiscard]] auto has_updates() const -> bool;
+
+    /// (#157) Check if a specific theme ID is installed.
+    [[nodiscard]] auto is_installed(const std::string& theme_id) const -> bool;
+
 private:
     EventBus& event_bus_;
     Config& config_;

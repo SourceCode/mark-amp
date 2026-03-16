@@ -160,6 +160,24 @@ public:
                static_cast<uint8_t>(current_tier) <= static_cast<uint8_t>(config_.min_tier);
     }
 
+    /// Number of named parameters on this pass.
+    [[nodiscard]] auto param_count() const noexcept -> int
+    {
+        return static_cast<int>(config_.params.size());
+    }
+
+    /// Check if a named parameter exists.
+    [[nodiscard]] auto has_param(const std::string& key) const -> bool
+    {
+        return config_.params.contains(key);
+    }
+
+    /// Whether this pass targets all surfaces.
+    [[nodiscard]] auto targets_all() const noexcept -> bool
+    {
+        return config_.target == FxSurfaceTarget::kAll;
+    }
+
     /// Convert pass type to display string.
     [[nodiscard]] static auto type_name(FxPassType pass_type) -> std::string_view
     {

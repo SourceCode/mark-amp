@@ -60,6 +60,12 @@ public:
     // Register all built-in format exporters.
     auto register_builtins() -> void;
 
+    /// (#191) Return the number of registered export formats.
+    [[nodiscard]] auto format_count() const -> std::size_t;
+
+    /// (#192) Check if an exporter is registered and its dependencies are met.
+    [[nodiscard]] auto has_exporter(ExportFormat format) const -> bool;
+
 private:
     [[maybe_unused]] EventBus& event_bus_;
     [[maybe_unused]] Config& config_;

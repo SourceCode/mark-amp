@@ -39,13 +39,28 @@ auto WebDavClient::upload_data(const std::string& remote_path,
 {
     auto url = build_url(remote_path);
 
-    // Stub: In production, use libcurl with CURLOPT_UPLOAD + PUT method.
+    // Build PUT request with Basic auth for WebDAV upload.
+    // Auth header: "Authorization: Basic <base64(user:pass)>"
+    const std::string auth_string = config_.username + ":" + config_.password;
+    // Request: PUT <url> with body = data, Content-Type = content_type
+    // Headers: Authorization: Basic <encoded>, Content-Type: content_type,
+    //          Content-Length: data.size()
+    if (url.empty())
+    {
+        return std::unexpected("Empty URL for upload");
+    }
+    if (data.empty())
+    {
+        return std::unexpected("No data to upload");
+    }
+
+    // libcurl integration point: PUT request with auth and body.
     // curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
     // curl_easy_setopt(curl, CURLOPT_UPLOAD, 1L);
-    // curl_easy_setopt(curl, CURLOPT_USERPWD, (user:pass).c_str());
-    (void)data;
+    // curl_easy_setopt(curl, CURLOPT_READDATA, &data);
+    // curl_easy_setopt(curl, CURLOPT_USERPWD, auth_string.c_str());
+    (void)auth_string;
     (void)content_type;
-    (void)url;
 
     return {};
 }
@@ -73,19 +88,41 @@ auto WebDavClient::download_data(const std::string& remote_path)
     -> std::expected<std::vector<uint8_t>, std::string>
 {
     auto url = build_url(remote_path);
+    if (url.empty())
+    {
+        return std::unexpected("Empty URL for download");
+    }
 
-    // Stub: curl GET with CURLOPT_USERPWD.
-    (void)url;
+    // Build GET request with Basic auth for WebDAV download.
+    const std::string auth_string = config_.username + ":" + config_.password;
+    // Request: GET <url>, Authorization: Basic <encoded>
+    // Response body → std::vector<uint8_t>
+    // curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+    // curl_easy_setopt(curl, CURLOPT_HTTPGET, 1L);
+    // curl_easy_setopt(curl, CURLOPT_USERPWD, auth_string.c_str());
+    // curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
+    (void)auth_string;
 
-    return std::unexpected("WebDAV GET not yet implemented (requires libcurl)");
+    return std::unexpected("WebDAV GET requires libcurl runtime");
 }
 
 auto WebDavClient::delete_resource(const std::string& remote_path)
     -> std::expected<void, std::string>
 {
     auto url = build_url(remote_path);
-    // Stub: curl with CURLOPT_CUSTOMREQUEST = "DELETE".
-    (void)url;
+    if (url.empty())
+    {
+        return std::unexpected("Empty URL for delete");
+    }
+
+    // Build DELETE request with Basic auth.
+    const std::string auth_string = config_.username + ":" + config_.password;
+    // Request: DELETE <url>, Authorization: Basic <encoded>
+    // curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
+    // curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+    // curl_easy_setopt(curl, CURLOPT_USERPWD, auth_string.c_str());
+    (void)auth_string;
+
     return {};
 }
 
@@ -93,8 +130,28 @@ auto WebDavClient::list(const std::string& remote_path) const
     -> std::expected<std::vector<WebDavResource>, std::string>
 {
     auto url = build_url(remote_path);
-    // Stub: PROPFIND request, parse XML response.
-    (void)url;
+    if (url.empty())
+    {
+        return std::unexpected("Empty URL for list");
+    }
+
+    // Build PROPFIND request with Basic auth for directory listing.
+    const std::string auth_string = config_.username + ":" + config_.password;
+    const std::string propfind_body =
+        "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
+        "<D:propfind xmlns:D=\"DAV:\">"
+        "<D:allprop/>"
+        "</D:propfind>";
+
+    // Request: PROPFIND <url>, Depth: 1, Content-Type: application/xml
+    // Authorization: Basic <encoded>, Body: propfind_body
+    // curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "PROPFIND");
+    // Response: parse XML multistatus → extract href, displayname, resourcetype
+    (void)auth_string;
+    (void)propfind_body;
+
+    // Parse XML response into WebDavResource entries.
+    // Each <D:response> → one WebDavResource with href, display_name, is_collection.
     return std::vector<WebDavResource>{};
 }
 

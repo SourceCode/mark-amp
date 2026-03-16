@@ -183,4 +183,22 @@ auto UndoRedoStack::trim_to(size_t max_entries) -> void
     }
 }
 
+// (#106) Return total entries across both stacks.
+auto UndoRedoStack::total_count() const -> size_t
+{
+    return undo_stack_.size() + redo_stack_.size();
+}
+
+// (#107) Check if both stacks are empty.
+auto UndoRedoStack::is_empty() const -> bool
+{
+    return undo_stack_.empty() && redo_stack_.empty();
+}
+
+// (#108) Return the configured maximum history limit.
+auto UndoRedoStack::max_history() const -> size_t
+{
+    return max_history_;
+}
+
 } // namespace markamp::canvas

@@ -768,4 +768,34 @@ void ThemeEngine::propagate_theme(wxWindow* window)
     }
 }
 
+// (#159) Return the number of cached color entries in the theme engine.
+auto ThemeEngine::cached_color_count() const -> std::size_t
+{
+    return cache_.colours.size();
+}
+
+// (#160) Return the current undo stack depth.
+auto ThemeEngine::undo_depth() const -> std::size_t
+{
+    return undo_stack_.size();
+}
+
+// (#161) Return the current redo stack depth.
+auto ThemeEngine::redo_depth() const -> std::size_t
+{
+    return redo_stack_.size();
+}
+
+// (#162) Check if the engine is currently in preview mode.
+auto ThemeEngine::is_previewing() const -> bool
+{
+    return previewing_;
+}
+
+// (#163) Return the number of registered scoped tokens.
+auto ThemeEngine::scoped_token_count() const -> std::size_t
+{
+    return token_map_.get_explicit_tokens().size();
+}
+
 } // namespace markamp::core

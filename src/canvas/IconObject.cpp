@@ -72,9 +72,61 @@ auto IconObject::to_json() const -> std::string
     return oss.str();
 }
 
-auto IconObject::from_json(const std::string& /*json*/) -> void
+auto IconObject::from_json(const std::string& json) -> void
 {
-    // Stub — real implementation with nlohmann::json or similar.
+    auto extract_string = [&](const std::string& key) -> std::string
+    {
+        const std::string needle = "\"" + key + "\":\"";
+        const auto pos = json.find(needle);
+        if (pos == std::string::npos)
+        {
+            return {};
+        }
+        const auto val_start = pos + needle.size();
+        const auto val_end = json.find('"', val_start);
+        if (val_end == std::string::npos)
+        {
+            return {};
+        }
+        return json.substr(val_start, val_end - val_start);
+    };
+
+    auto extract_number = [&](const std::string& key) -> double
+    {
+        const std::string needle = "\"" + key + "\":";
+        const auto pos = json.find(needle);
+        if (pos == std::string::npos)
+        {
+            return 0.0;
+        }
+        const auto val_start = pos + needle.size();
+        return std::stod(json.substr(val_start));
+    };
+
+    set_icon_id(extract_string("icon_id"));
+    set_icon_size(extract_number("size"));
+
+    // Parse color array: "color":[r,g,b,a]
+    const auto color_pos = json.find("\"color\":[");
+    if (color_pos != std::string::npos)
+    {
+        auto cursor = color_pos + 9; // length of "color":[
+        int components[4] = {0, 0, 0, 255};
+        for (int idx = 0; idx < 4 && cursor < json.size(); ++idx)
+        {
+            components[idx] = std::stoi(json.substr(cursor));
+            const auto next = json.find_first_of(",]", cursor);
+            if (next == std::string::npos)
+            {
+                break;
+            }
+            cursor = next + 1;
+        }
+        set_icon_color({static_cast<uint8_t>(components[0]),
+                        static_cast<uint8_t>(components[1]),
+                        static_cast<uint8_t>(components[2]),
+                        static_cast<uint8_t>(components[3])});
+    }
 }
 
 auto IconObject::clone() const -> std::unique_ptr<CanvasObject>

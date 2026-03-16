@@ -86,6 +86,74 @@ private:
     bool aspect_locked_{true};
     MediaLoadState load_state_{MediaLoadState::kPlaceholder};
     std::string error_message_;
+
+    // ── Round 6 Batch 5-6 (#43-53) ──────────────────────────────
+
+    /// (#43) Whether a source URL is set.
+    [[nodiscard]] auto has_source() const noexcept -> bool
+    {
+        return !source_.empty();
+    }
+
+    /// (#44) Whether a poster URL is set.
+    [[nodiscard]] auto has_poster() const noexcept -> bool
+    {
+        return !poster_.empty();
+    }
+
+    /// (#45) Whether media is video.
+    [[nodiscard]] auto is_video() const noexcept -> bool
+    {
+        return media_type_ == MediaType::kVideo;
+    }
+
+    /// (#46) Whether media is audio.
+    [[nodiscard]] auto is_audio() const noexcept -> bool
+    {
+        return media_type_ == MediaType::kAudio;
+    }
+
+    /// (#47) Whether playback is active.
+    [[nodiscard]] auto is_playing() const noexcept -> bool
+    {
+        return playback_state_ == PlaybackState::kPlaying;
+    }
+
+    /// (#48) Whether playback is paused.
+    [[nodiscard]] auto is_paused() const noexcept -> bool
+    {
+        return playback_state_ == PlaybackState::kPaused;
+    }
+
+    /// (#49) Whether playback is stopped.
+    [[nodiscard]] auto is_stopped() const noexcept -> bool
+    {
+        return playback_state_ == PlaybackState::kStopped;
+    }
+
+    /// (#50) Whether media is loaded and ready.
+    [[nodiscard]] auto is_ready() const noexcept -> bool
+    {
+        return load_state_ == MediaLoadState::kReady;
+    }
+
+    /// (#51) Whether load state is error.
+    [[nodiscard]] auto is_error() const noexcept -> bool
+    {
+        return load_state_ == MediaLoadState::kError;
+    }
+
+    /// (#52) Whether an error message is set.
+    [[nodiscard]] auto has_error() const noexcept -> bool
+    {
+        return !error_message_.empty();
+    }
+
+    /// (#53) Whether duration is known.
+    [[nodiscard]] auto has_duration() const noexcept -> bool
+    {
+        return duration_seconds_ > 0.0;
+    }
 };
 
 } // namespace markamp::canvas

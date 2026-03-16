@@ -36,6 +36,12 @@ public:
     /// Serialize the grid back to markdown pipe-table format.
     [[nodiscard]] auto SerializeToMarkdown() const -> std::string;
 
+    /// Number of rows in the table grid.
+    [[nodiscard]] auto row_count() const -> int { return num_rows_; }
+
+    /// Number of columns in the table grid.
+    [[nodiscard]] auto col_count() const -> int { return num_cols_; }
+
 private:
     core::ThemeEngine& theme_engine_;
     core::EventBus& event_bus_;

@@ -192,9 +192,67 @@ auto TextBox::to_json() const -> std::string
     return oss.str();
 }
 
-auto TextBox::from_json(const std::string& /*json*/) -> void
+auto TextBox::from_json(const std::string& json) -> void
 {
-    // Stub.
+    auto extract_string = [&](const std::string& key) -> std::string
+    {
+        const std::string needle = "\"" + key + "\":\"";
+        const auto pos = json.find(needle);
+        if (pos == std::string::npos)
+        {
+            return {};
+        }
+        const auto val_start = pos + needle.size();
+        const auto val_end = json.find('"', val_start);
+        if (val_end == std::string::npos)
+        {
+            return {};
+        }
+        return json.substr(val_start, val_end - val_start);
+    };
+
+    auto extract_number = [&](const std::string& key) -> double
+    {
+        const std::string needle = "\"" + key + "\":";
+        const auto pos = json.find(needle);
+        if (pos == std::string::npos)
+        {
+            return 0.0;
+        }
+        const auto val_start = pos + needle.size();
+        return std::stod(json.substr(val_start));
+    };
+
+    auto extract_bool = [&](const std::string& key) -> bool
+    {
+        const std::string needle = "\"" + key + "\":";
+        const auto pos = json.find(needle);
+        if (pos == std::string::npos)
+        {
+            return false;
+        }
+        const auto val_start = pos + needle.size();
+        return json.substr(val_start, 4) == "true";
+    };
+
+    set_text(extract_string("text"));
+
+    TextStyle parsed_style;
+    parsed_style.font_size = extract_number("font_size");
+    if (parsed_style.font_size < 1.0)
+    {
+        parsed_style.font_size = 14.0; // default
+    }
+    parsed_style.bold = extract_bool("bold");
+    parsed_style.italic = extract_bool("italic");
+    set_style(parsed_style);
+
+    const double w = extract_number("width");
+    const double h = extract_number("height");
+    if (w > 0.0 && h > 0.0)
+    {
+        resize(w, h);
+    }
 }
 
 } // namespace markamp::canvas

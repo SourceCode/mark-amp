@@ -8,6 +8,7 @@
 #include "Result.h"
 
 #include <chrono>
+#include <condition_variable>
 #include <deque>
 #include <mutex>
 #include <optional>
@@ -43,9 +44,10 @@ public:
     }
 
     /// Push an item. Returns error if policy is Reject and queue is full.
+    /// Blocks if policy is Block until space is available.
     [[nodiscard]] auto push(T item) -> Result<void>
     {
-        std::lock_guard lock(mutex_);
+        std::unique_lock lock(mutex_);
         if (queue_.size() >= max_size_)
         {
             switch (policy_)
@@ -61,10 +63,10 @@ public:
                                    SubsystemId::Core,
                                    "Queue full (max " + std::to_string(max_size_) + ")"));
                 case OverflowPolicy::Block:
-                    // Future: condition variable wait
-                    return std::unexpected(make_error(ErrorCode::NotSupported,
-                                                      SubsystemId::Core,
-                                                      "Block policy not yet implemented"));
+                    // Block until space is available.
+                    space_available_.wait(lock,
+                                         [this]() { return queue_.size() < max_size_; });
+                    break;
             }
         }
         queue_.push_back(std::move(item));
@@ -74,13 +76,16 @@ public:
     /// Try to pop an item. Returns std::nullopt if empty.
     [[nodiscard]] auto try_pop() -> std::optional<T>
     {
-        std::lock_guard lock(mutex_);
+        std::unique_lock lock(mutex_);
         if (queue_.empty())
         {
             return std::nullopt;
         }
         T item = std::move(queue_.front());
         queue_.pop_front();
+        // Notify any blocked pushers that space is now available.
+        lock.unlock();
+        space_available_.notify_one();
         return item;
     }
 
@@ -127,6 +132,7 @@ private:
     size_t max_size_;
     OverflowPolicy policy_;
     mutable std::mutex mutex_;
+    std::condition_variable space_available_;
     std::deque<T> queue_;
     size_t dropped_count_{0};
     size_t rejected_count_{0};

@@ -256,6 +256,19 @@ void CssSnippetLibrary::load_builtins()
         snip.is_builtin = true;
         snippets_.push_back(std::move(snip));
     }
+    // (#57) Add Layout builtin snippet covering the kLayout category.
+    {
+        CssSnippet snip;
+        snip.name = "Flex Center Layout";
+        snip.description = "Flexbox center utility for content alignment";
+        snip.category = "layout";
+        snip.css_content = ".flex-center { display: flex; align-items: center; "
+                           "justify-content: center; } "
+                           ".flex-col { display: flex; flex-direction: column; gap: 1rem; }";
+        snip.variables = {};
+        snip.is_builtin = true;
+        snippets_.push_back(std::move(snip));
+    }
 }
 
 auto CssSnippetLibrary::categories() const -> std::vector<std::string>

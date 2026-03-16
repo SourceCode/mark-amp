@@ -27,6 +27,18 @@ struct TextStyle
     bool underline{false};
     CanvasColor text_color{51, 51, 51, 255};
     TextAlignment alignment{TextAlignment::kLeft};
+
+    /// Whether the text style uses bold.
+    [[nodiscard]] auto is_bold() const noexcept -> bool
+    {
+        return bold;
+    }
+
+    /// Whether any formatting (bold/italic/underline) is applied.
+    [[nodiscard]] auto is_styled() const noexcept -> bool
+    {
+        return bold || italic || underline;
+    }
 };
 
 /// A free-floating text box with configurable font, size, weight, alignment, border, and fill.
@@ -85,6 +97,50 @@ public:
     [[nodiscard]] auto clone() const -> std::unique_ptr<CanvasObject> override;
     [[nodiscard]] auto to_json() const -> std::string override;
     auto from_json(const std::string& json) -> void override;
+
+    /// Whether the text box is empty.
+    [[nodiscard]] auto is_empty() const noexcept -> bool
+    {
+        return text_.empty();
+    }
+
+    /// Whether the text box has content.
+    [[nodiscard]] auto has_text() const noexcept -> bool
+    {
+        return !text_.empty();
+    }
+
+    // ── Batch 7 (#65-68) ──────────────────────────────────────────
+
+    /// (#65) Number of characters in the text.
+    [[nodiscard]] auto character_count() const noexcept -> size_t
+    {
+        return text_.size();
+    }
+
+    /// (#66) Number of text lines (newlines + 1).
+    [[nodiscard]] auto text_line_count() const noexcept -> size_t
+    {
+        if (text_.empty()) { return 0; }
+        size_t count = 1;
+        for (const char chr : text_)
+        {
+            if (chr == '\n') { ++count; }
+        }
+        return count;
+    }
+
+    /// (#67) Area of the text box (width × height).
+    [[nodiscard]] auto area() const noexcept -> double
+    {
+        return width_ * height_;
+    }
+
+    /// (#68) Whether the text box has a fill.
+    [[nodiscard]] auto is_filled() const noexcept -> bool
+    {
+        return has_fill_;
+    }
 
 private:
     std::string text_;

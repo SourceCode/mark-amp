@@ -33,8 +33,8 @@ auto BookmarkService::get_bookmarks() -> std::vector<BookmarkGroup>
             BookmarkEntry entry;
             entry.block_id = block_id;
             entry.label = label;
-            // In a full implementation, doc_title, content_snippet, block_type
-            // would be populated from BlockDatabase lookup.
+            // (#58) Populate doc_title from block_id for display.
+            entry.doc_title = block_id.value;
             group.entries.push_back(std::move(entry));
         }
 
@@ -57,6 +57,8 @@ auto BookmarkService::get_bookmark_blocks(const std::string& label) -> std::vect
         BookmarkEntry entry;
         entry.block_id = block_id;
         entry.label = label;
+        // (#58) Populate doc_title from block_id for display.
+        entry.doc_title = block_id.value;
         entries.push_back(std::move(entry));
     }
 
@@ -201,6 +203,26 @@ void BookmarkService::rebuild_index()
     index_.clear();
     // In a full implementation, this would scan all blocks from BlockDatabase
     // and extract bookmark IAL attributes. For now, starts empty.
+}
+
+// (#111) Return the total number of bookmarks across all labels.
+auto BookmarkService::bookmark_count() -> std::size_t
+{
+    std::lock_guard<std::mutex> lock(index_mutex_);
+    auto labels = index_.get_all_labels();
+    std::size_t total = 0;
+    for (const auto& label : labels)
+    {
+        total += index_.get_blocks_with_label(label).size();
+    }
+    return total;
+}
+
+// (#112) Return the number of unique bookmark labels.
+auto BookmarkService::label_count() -> std::size_t
+{
+    std::lock_guard<std::mutex> lock(index_mutex_);
+    return index_.get_all_labels().size();
 }
 
 } // namespace markamp::core

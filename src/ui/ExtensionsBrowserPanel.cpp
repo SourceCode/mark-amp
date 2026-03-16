@@ -393,7 +393,62 @@ void ExtensionsBrowserPanel::PopulateInstalledSection()
 
 void ExtensionsBrowserPanel::PopulateRecommendedSection()
 {
-    // Currently unimplemented, placeholder space
+    ClearRecommendedCards();
+
+    // Fetch popular extensions as recommendations (sort by install count).
+    core::GalleryQueryOptions rec_options;
+    rec_options.sort_by = core::GallerySortBy::kInstallCount;
+    rec_options.sort_order = core::GallerySortOrder::kDescending;
+    rec_options.page_size = 10;
+    auto recommendations = gallery_service_.query(rec_options);
+    if (recommendations.has_value() && !recommendations.value().extensions.empty())
+    {
+        for (const auto& rec : recommendations.value().extensions)
+        {
+            const bool installed = IsExtensionInstalled(rec.identifier);
+            auto state =
+                installed ? ExtensionCard::State::Installed : ExtensionCard::State::NotInstalled;
+            auto display_name =
+                rec.display_name.empty() ? rec.identifier : rec.display_name;
+
+            auto* card = new ExtensionCard(recommended_section_->get_content(),
+                                           theme_engine_,
+                                           icon_manager_,
+                                           rec.identifier,
+                                           display_name,
+                                           rec.publisher_display,
+                                           rec.version,
+                                           rec.description,
+                                           state);
+
+            card->SetOnClick(
+                [this](const std::string& card_ext_id) { OnCardClicked(card_ext_id); });
+            card->SetOnAction(
+                [this, installed](const std::string& card_ext_id,
+                                  [[maybe_unused]] ExtensionCard::State card_state)
+                { OnCardAction(card_ext_id, installed); });
+
+            recommended_card_sizer_->Add(card, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 2);
+            recommended_cards_.push_back(card);
+        }
+    }
+    else
+    {
+        // Empty state: show a helpful message when no recommendations are available.
+        auto* empty_label = new wxStaticText(
+            recommended_section_->get_content(),
+            wxID_ANY,
+            "No recommended extensions.\nSearch the marketplace or install from a VSIX file.");
+        empty_label->SetForegroundColour(theme_engine_.color(core::ThemeColorToken::TextMuted));
+        auto font = empty_label->GetFont();
+        font.SetPointSize(font.GetPointSize() - 1);
+        empty_label->SetFont(font);
+        recommended_card_sizer_->AddSpacer(8);
+        recommended_card_sizer_->Add(empty_label, 0, wxALIGN_CENTER | wxALL, 16);
+        recommended_card_sizer_->AddSpacer(8);
+    }
+
+    recommended_section_->get_content()->Layout();
 }
 
 void ExtensionsBrowserPanel::PopulateSearchSection(

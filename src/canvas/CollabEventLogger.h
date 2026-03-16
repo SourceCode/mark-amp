@@ -38,6 +38,38 @@ struct CollabLogEntry
     std::string participant_id;
     std::string details; ///< JSON-formatted detail string
     std::string session_id;
+
+    /// Whether this is a session event.
+    [[nodiscard]] auto is_session() const noexcept -> bool
+    {
+        return category == CollabEventCategory::kSession;
+    }
+
+    /// Whether this is an edit event.
+    [[nodiscard]] auto is_edit() const noexcept -> bool
+    {
+        return category == CollabEventCategory::kEdit;
+    }
+
+    /// Whether this is a system event.
+    [[nodiscard]] auto is_system() const noexcept -> bool
+    {
+        return category == CollabEventCategory::kSystem;
+    }
+
+    // ── Round 2 Batch 10 (#99) ──────────────────────────────────
+
+    /// (#99) Whether this is a presence event.
+    [[nodiscard]] auto is_presence() const noexcept -> bool
+    {
+        return category == CollabEventCategory::kPresence;
+    }
+
+    /// Whether this is a lock event.
+    [[nodiscard]] auto is_lock() const noexcept -> bool
+    {
+        return category == CollabEventCategory::kLock;
+    }
 };
 
 /// Configuration for the event logger.
@@ -46,6 +78,12 @@ struct CollabLoggerConfig
     size_t max_entries{10000};       ///< Maximum log size (ring buffer)
     bool log_presence_events{false}; ///< Presence can be very noisy
     bool include_timestamps{true};
+
+    /// Whether presence events will be logged.
+    [[nodiscard]] auto is_presence_enabled() const noexcept -> bool
+    {
+        return log_presence_events;
+    }
 };
 
 /// Structured logger for all collaboration events.
@@ -119,6 +157,34 @@ public:
 
     /// Human-readable category name.
     [[nodiscard]] static auto category_name(CollabEventCategory category) -> std::string;
+
+    /// Whether the log is empty.
+    [[nodiscard]] auto is_empty() const noexcept -> bool
+    {
+        return entries_.empty();
+    }
+
+    /// Whether the log is at capacity.
+    [[nodiscard]] auto is_at_capacity() const noexcept -> bool
+    {
+        return entries_.size() >= config_.max_entries;
+    }
+
+    // ── Round 2 Batch 10 (#100) ─────────────────────────────────
+
+    /// (#100) Whether a session ID has been set.
+    [[nodiscard]] auto has_session() const noexcept -> bool
+    {
+        return !session_id_.empty();
+    }
+
+    /// Remaining capacity before the log wraps.
+    [[nodiscard]] auto remaining_capacity() const noexcept -> size_t
+    {
+        return entries_.size() < config_.max_entries
+                   ? config_.max_entries - entries_.size()
+                   : 0;
+    }
 
 private:
     CollabLoggerConfig config_;

@@ -33,6 +33,20 @@ struct SnapResult
     bool did_snap_y{false};
     SnapTarget target_x{SnapTarget::kGrid};
     SnapTarget target_y{SnapTarget::kGrid};
+
+    // ── Round 5 Batch 5 (#47-48) ────────────────────────────────
+
+    /// (#47) Whether any axis snapped.
+    [[nodiscard]] auto did_snap() const noexcept -> bool
+    {
+        return did_snap_x || did_snap_y;
+    }
+
+    /// (#48) Whether both axes snapped.
+    [[nodiscard]] auto snapped_both() const noexcept -> bool
+    {
+        return did_snap_x && did_snap_y;
+    }
 };
 
 /// Testable model for Snapping, Grid & Guide Precision (Phase 49).
@@ -84,6 +98,20 @@ private:
     bool snap_enabled_{true};
     double snap_tolerance_{8.0};
     std::vector<SnapTarget> enabled_targets_{SnapTarget::kGrid, SnapTarget::kObjectEdge};
+
+    // ── Round 5 Batch 5 (#49-50) ────────────────────────────────
+
+    /// (#49) Whether grid style is dot.
+    [[nodiscard]] auto is_dot_grid() const noexcept -> bool
+    {
+        return grid_style_ == GridStyle::kDot;
+    }
+
+    /// (#50) Whether grid style is line.
+    [[nodiscard]] auto is_line_grid() const noexcept -> bool
+    {
+        return grid_style_ == GridStyle::kLine;
+    }
 };
 
 } // namespace markamp::canvas

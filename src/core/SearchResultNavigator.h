@@ -212,6 +212,35 @@ public:
         return results_;
     }
 
+    // ── Batch 31 (#183-185) ─────────────────────────────────
+
+    /// (#183) Return the number of unvisited results.
+    [[nodiscard]] auto unvisited_count() const noexcept -> std::size_t
+    {
+        if (results_.hits.empty())
+        {
+            return 0;
+        }
+        return results_.hits.size() - visited_.size();
+    }
+
+    /// (#184) Return the percentage of results visited (0-100).
+    [[nodiscard]] auto progress_percentage() const noexcept -> double
+    {
+        if (results_.hits.empty())
+        {
+            return 0.0;
+        }
+        return (static_cast<double>(visited_.size()) / static_cast<double>(results_.hits.size())) *
+               100.0;
+    }
+
+    /// (#185) Check if the navigator is at the first result.
+    [[nodiscard]] auto is_at_start() const noexcept -> bool
+    {
+        return current_index_ == 0;
+    }
+
 private:
     SearchResult results_;
     int current_index_{-1};

@@ -112,9 +112,60 @@ auto CrossBoardLinkObject::to_json() const -> std::string
     return oss.str();
 }
 
-auto CrossBoardLinkObject::from_json(const std::string& /*json*/) -> void
+auto CrossBoardLinkObject::from_json(const std::string& json) -> void
 {
-    // Stub — real implementation with nlohmann::json or similar.
+    auto extract_string = [&](const std::string& key) -> std::string
+    {
+        const std::string needle = "\"" + key + "\":\"";
+        const auto pos = json.find(needle);
+        if (pos == std::string::npos)
+        {
+            return {};
+        }
+        const auto val_start = pos + needle.size();
+        const auto val_end = json.find('"', val_start);
+        if (val_end == std::string::npos)
+        {
+            return {};
+        }
+        return json.substr(val_start, val_end - val_start);
+    };
+
+    auto extract_bool = [&](const std::string& key) -> bool
+    {
+        const std::string needle = "\"" + key + "\":";
+        const auto pos = json.find(needle);
+        if (pos == std::string::npos)
+        {
+            return false;
+        }
+        const auto val_start = pos + needle.size();
+        return json.substr(val_start, 4) == "true";
+    };
+
+    auto extract_opt_int = [&](const std::string& key) -> std::optional<ObjectId>
+    {
+        const std::string needle = "\"" + key + "\":";
+        const auto pos = json.find(needle);
+        if (pos == std::string::npos)
+        {
+            return std::nullopt;
+        }
+        const auto val_start = pos + needle.size();
+        return static_cast<ObjectId>(std::stoull(json.substr(val_start)));
+    };
+
+    BoardLinkTarget link_target;
+    link_target.board_id = extract_string("board_id");
+    link_target.board_name = extract_string("board_name");
+    link_target.frame_id = extract_opt_int("frame_id");
+    link_target.object_id = extract_opt_int("object_id");
+    set_target(link_target);
+
+    set_display_text(extract_string("display_text"));
+    set_tooltip(extract_string("tooltip"));
+    set_bidirectional(extract_bool("bidirectional"));
+    set_last_verified_at(extract_string("last_verified_at"));
 }
 
 auto CrossBoardLinkObject::clone() const -> std::unique_ptr<CanvasObject>

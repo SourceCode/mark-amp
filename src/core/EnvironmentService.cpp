@@ -173,4 +173,16 @@ void EnvironmentService::set_machine_id(const std::string& machine_id)
     machine_id_ = machine_id;
 }
 
+// (#87) Check if the OS is using dark mode.
+auto EnvironmentService::is_dark_mode() const -> bool
+{
+#ifdef __APPLE__
+    // On macOS, check the AppleInterfaceStyle default.
+    const char* style = std::getenv("AppleInterfaceStyle"); // NOLINT(concurrency-mt-unsafe)
+    return (style != nullptr && std::string(style) == "Dark");
+#else
+    return false;
+#endif
+}
+
 } // namespace markamp::core

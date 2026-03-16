@@ -82,6 +82,9 @@ public:
     /// Remove all registered snippets.
     void clear();
 
+    /// (#69) Remove a specific snippet by name.
+    auto remove_snippet(const std::string& name) -> bool;
+
     /// Expand a raw snippet body string, resolving tab stops to their placeholder values.
     /// This is a static utility for expanding body text without needing a registered snippet.
     [[nodiscard]] static auto expand_body(const std::string& body) -> std::string;
