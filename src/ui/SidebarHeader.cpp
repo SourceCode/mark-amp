@@ -1,6 +1,7 @@
 #include "ui/SidebarHeader.h"
 
 #include "core/EventBus.h"
+#include "core/Events.h"
 #include "ui/BreadcrumbBar.h"
 #include "ui/ComponentSizeResolver.h"
 #include "ui/DesignSystemContext.h"
@@ -202,7 +203,11 @@ void SidebarHeader::OnMouseLeftUp(wxMouseEvent& event)
         is_pressed_collapse_all_ = false;
         if (collapse_all_rect_.Contains(event.GetPosition()))
         {
-            // TODO: Dispatch CollapseAllEvent to EventBus
+            // Improvement 94: Dispatch collapse-all command via EventBus
+            core::events::CommandExecutedEvent collapse_evt;
+            collapse_evt.command_id = "sidebar.collapseAll";
+            collapse_evt.source = "sidebar_header";
+            event_bus_.publish(collapse_evt);
         }
         RefreshRect(collapse_all_rect_.Inflate(4));
     }

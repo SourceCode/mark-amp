@@ -831,6 +831,7 @@ private:
     int padding_top_{0};
     int padding_bottom_{0};
     int minimap_max_column_{120};
+    int footnote_counter_{0}; ///< Improvement 93: auto-incrementing footnote number
     int minimap_scale_{1};
     std::string minimap_side_{"right"};
     bool bracket_pair_guides_{false};

@@ -65,6 +65,9 @@ private:
 
     auto create_layout() -> void;
     auto refresh_list() -> void;
+
+    std::string focused_thread_id_;
+    size_t visible_thread_count_{0};
 };
 
 } // namespace markamp::ui

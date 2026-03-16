@@ -52,6 +52,9 @@ public:
     // Phase 12 Task 24: Status Bar Group Indicator
     void set_active_group(const std::string& group_id);
 
+    // Improvement 27-28: AI status indicator
+    void set_ai_status(const std::string& provider, bool connected);
+
     // Accessors for testing
     [[nodiscard]] auto ready_state() const -> const std::string&
     {
@@ -193,6 +196,11 @@ private:
     // Phase 12 Task 24: Active group indicator
     std::string active_group_;
     core::Subscription group_focus_sub_;
+
+    // Improvement 27-28: AI status
+    std::string ai_provider_;
+    bool ai_connected_{false};
+    core::Subscription ai_status_sub_;
 
     // Phase 04 motion framework
     animation::TransitionManager transition_manager_{this};

@@ -22,7 +22,52 @@ void FlashcardBrowserPanel::layout(float x, float y, float width, float height)
 
 void FlashcardBrowserPanel::render()
 {
-    // Stub: actual UI rendering deferred to UI integration phase
+    // Improvement 31-33: Prepare render data for the host wxPanel.
+    // The host panel reads deck_render_items_ and card_render_items_ to populate UI.
+
+    deck_render_items_.clear();
+    for (const auto& deck : decks_)
+    {
+        DeckRenderItem item;
+        item.deck_id = deck.id;
+        item.name = deck.name;
+        item.card_count = static_cast<int>(deck.cards.size());
+        item.is_selected = (deck.id == selected_deck_id_);
+        deck_render_items_.push_back(std::move(item));
+    }
+
+    // Build card grid entries — apply filter and sort
+    card_render_items_.clear();
+    for (const auto& card : cards_)
+    {
+        // Improvement 33: Apply filter
+        if (!filter_.search_query.empty() &&
+            card.block_id.find(filter_.search_query) == std::string::npos)
+        {
+            continue;
+        }
+
+        CardRenderItem entry;
+        entry.card_id = card.id;
+        entry.front_preview = card.block_id.substr(0, 80);
+        entry.is_selected =
+            std::find(selected_card_ids_.begin(), selected_card_ids_.end(), card.id) !=
+            selected_card_ids_.end();
+        card_render_items_.push_back(std::move(entry));
+    }
+
+    // Improvement 33: Apply sort
+    if (sort_ == CardBrowserSort::CreatedDate)
+    {
+        // Already in creation order from the data layer
+    }
+    else if (sort_ == CardBrowserSort::Difficulty)
+    {
+        std::sort(card_render_items_.begin(),
+                  card_render_items_.end(),
+                  [](const CardRenderItem& lhs, const CardRenderItem& rhs)
+                  { return lhs.front_preview < rhs.front_preview; });
+    }
 }
 
 void FlashcardBrowserPanel::set_decks(const std::vector<core::FlashcardDeck>& decks)

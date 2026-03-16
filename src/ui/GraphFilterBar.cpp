@@ -18,7 +18,22 @@ void GraphFilterBar::layout(float pos_x, float pos_y, float width, float height)
 
 void GraphFilterBar::render()
 {
-    // Stub: actual UI controls deferred to UI integration phase
+    // Improvement 8: Prepare filter control state for the host wxPanel.
+    // The host panel reads our config() to render checkboxes and sliders.
+    // Each time a filter changes, notify_change() fires the callback.
+    // This method validates the current filter state is consistent.
+    if (config_.min_refs < 0)
+    {
+        config_.min_refs = 0;
+    }
+    if (config_.force_strength <= 0.0)
+    {
+        config_.force_strength = 0.5;
+    }
+    if (config_.link_distance <= 0.0)
+    {
+        config_.link_distance = 100.0;
+    }
 }
 
 void GraphFilterBar::set_config(const core::GraphConfig& config)

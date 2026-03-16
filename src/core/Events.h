@@ -2473,6 +2473,11 @@ std::string topic;
 int word_count{0};
 MARKAMP_DECLARE_EVENT_END;
 
+// Improvement 22: AI chat request from sidebar
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AIChatRequestEvent)
+std::string message;
+MARKAMP_DECLARE_EVENT_END;
+
 // ============================================================================
 // Phase 27: Cloud Sync & Collaboration events
 // ============================================================================

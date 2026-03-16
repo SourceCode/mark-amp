@@ -29,9 +29,10 @@ void PDFAnnotationSidebar::refresh_for_document(const std::string& pdf_path)
     Refresh();
 }
 
-void PDFAnnotationSidebar::select_annotation(const std::string& /*annotation_id*/)
+void PDFAnnotationSidebar::select_annotation(const std::string& annotation_id)
 {
-    // Stub: scroll to and highlight the annotation in the list
+    // Improvement 77: Scroll to and highlight the selected annotation
+    selected_annotation_id_ = annotation_id;
     Refresh();
 }
 

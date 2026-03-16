@@ -53,6 +53,8 @@ private:
     int current_page_{0};
     int page_count_{0};
     double zoom_level_{1.0};
+    double last_click_x_{0.0};
+    double last_click_y_{0.0};
 
     void on_paint(wxPaintEvent& evt);
     void on_mouse_left_up(wxMouseEvent& evt);

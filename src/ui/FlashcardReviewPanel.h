@@ -71,6 +71,23 @@ private:
     std::string good_label_{"10m"};
     std::string easy_label_{"4d"};
 
+    // Improvement 34-36: Render data for the host panel
+    struct ReviewRenderData
+    {
+        std::string content;
+        bool is_answer_side{false};
+        bool rating_enabled{false};
+        std::string again_label;
+        std::string hard_label;
+        std::string good_label;
+        std::string easy_label;
+        int progress_current{0};
+        int progress_total{0};
+        float progress_fraction{0.0F};
+        bool undo_enabled{false};
+    };
+    ReviewRenderData render_data_;
+
     // Callbacks
     OnRatingCallback on_rating_;
     OnActionCallback on_reveal_;

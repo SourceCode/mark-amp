@@ -149,6 +149,7 @@ private:
         -> std::vector<BacklinkSourceGroup>;
 
     Subscription doc_switched_sub_;
+    Subscription content_changed_sub_;
 };
 
 } // namespace markamp::core

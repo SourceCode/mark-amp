@@ -4,9 +4,12 @@
 // ============================================================================
 #pragma once
 
+#include "core/HistoryService.h"
+
 #include <wx/panel.h>
 
 #include <string>
+#include <vector>
 
 namespace markamp::core
 {
@@ -39,6 +42,12 @@ private:
     core::EventBus& event_bus_;
     core::HistoryService& history_service_;
     std::string current_root_id_;
+
+    // Improvement 41-42: Timeline and diff state
+    std::vector<core::HistoryEntry> timeline_entries_;
+    std::string diff_old_id_;
+    std::string diff_new_id_;
+    core::DiffResult current_diff_;
 
     void on_paint(wxPaintEvent& evt);
 

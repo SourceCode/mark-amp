@@ -4365,10 +4365,37 @@ void EditorPanel::HandleFormatBarAction(int action)
             InsertTable();
             break;
         case FloatingFormatBar::Action::Strikethrough:
-        case FloatingFormatBar::Action::Highlight:
-        case FloatingFormatBar::Action::Footnote:
-            // TODO: implement strikethrough, highlight, footnote actions
+            // Improvement 91: Wrap selection with ~~ for strikethrough
+            WrapSelectionWith("~~", "~~");
             break;
+        case FloatingFormatBar::Action::Highlight:
+            // Improvement 92: Wrap selection with == for highlight
+            WrapSelectionWith("==", "==");
+            break;
+        case FloatingFormatBar::Action::Footnote:
+        {
+            // Improvement 93: Insert footnote reference at cursor, definition at end
+            if (editor_ != nullptr)
+            {
+                editor_->BeginUndoAction();
+                const int footnote_num = ++footnote_counter_;
+                const std::string ref = "[^" + std::to_string(footnote_num) + "]";
+                const std::string def = "\n[^" + std::to_string(footnote_num) + "]: ";
+
+                // Insert reference at cursor
+                const int cur_pos = editor_->GetCurrentPos();
+                editor_->InsertText(cur_pos, ref);
+
+                // Append definition at end of document
+                const int doc_end = editor_->GetLength();
+                editor_->InsertText(doc_end, def);
+
+                // Position cursor at the definition text
+                editor_->GotoPos(doc_end + static_cast<int>(def.length()));
+                editor_->EndUndoAction();
+            }
+            break;
+        }
     }
 }
 

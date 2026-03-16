@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../core/BlockRef.h"
+#include "../core/EventBus.h"
 #include "../core/Search.h"
 
 #include <chrono>
@@ -94,7 +95,48 @@ struct SearchHistoryEntry
 
 } // namespace markamp::core
 
-// ════════════════════════════════════════════════════════════
-// SearchPanel wxWidgets class is intentionally deferred.
-// The full UI implementation will be in a future UI-focused batch.
-// ════════════════════════════════════════════════════════════
+// ============================================================================
+// SearchPanelController — coordinates search UI with backend
+// ============================================================================
+
+namespace markamp::core
+{
+
+/// Controller that bridges search UI panels to the WorkspaceSearchEngine.
+/// Manages search state, publishes events, and maintains search history.
+class SearchPanelController
+{
+public:
+    explicit SearchPanelController(EventBus& event_bus);
+
+    /// Execute a search with the given query and filter state.
+    auto execute_search(const std::string& query, const SearchFilterState& filter) -> void;
+
+    /// Get the current query and filter state.
+    [[nodiscard]] auto current_query() const -> const std::string&;
+    [[nodiscard]] auto current_filter() const -> const SearchFilterState&;
+
+    /// Get the search history.
+    [[nodiscard]] auto search_history() const -> const std::vector<SearchHistoryEntry>&;
+
+    /// Clear search history.
+    auto clear_history() -> void;
+
+    /// Get the last search result count.
+    [[nodiscard]] auto last_result_count() const -> int;
+
+    /// Get the last search elapsed time in ms.
+    [[nodiscard]] auto last_elapsed_ms() const -> double;
+
+private:
+    EventBus& event_bus_;
+    Subscription search_completed_sub_;
+
+    std::string current_query_;
+    SearchFilterState current_filter_;
+    std::vector<SearchHistoryEntry> search_history_;
+    int last_result_count_{0};
+    double last_elapsed_ms_{0.0};
+};
+
+} // namespace markamp::core

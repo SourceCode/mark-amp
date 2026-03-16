@@ -4,6 +4,7 @@
 #include "core/EventBus.h"
 
 #include <wx/panel.h>
+#include <wx/stattext.h>
 
 #include <functional>
 #include <string>
@@ -78,6 +79,9 @@ private:
 
     auto create_layout() -> void;
     auto subscribe_to_events() -> void;
+
+    wxStaticText* timer_label_{nullptr};
+    wxStaticText* vote_label_{nullptr};
 };
 
 } // namespace markamp::ui

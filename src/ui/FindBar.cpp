@@ -1,5 +1,7 @@
 #include "FindBar.h"
 
+#include "../core/Events.h"
+
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 
@@ -113,7 +115,22 @@ void FindBar::SetMatchCount(int total, int current)
 void FindBar::OnSearchTextChanged(wxCommandEvent& /*event*/)
 {
     state_.search_query = search_input_->GetValue().ToStdString();
-    // Real search would be triggered here via EventBus
+
+    // Improvement 18-19: Trigger real search via EventBus when text changes
+    if (!state_.search_query.empty())
+    {
+        // FindRequestEvent is fieldless — the editor reads the query from FindBarState.
+        // Publishing this event tells the editor to execute the find.
+        event_bus_.publish(core::events::FindRequestEvent{});
+    }
+    else
+    {
+        state_.clear_matches();
+        if (match_counter_ != nullptr)
+        {
+            match_counter_->SetLabel("");
+        }
+    }
 }
 
 void FindBar::OnReplaceTextChanged(wxCommandEvent& /*event*/)

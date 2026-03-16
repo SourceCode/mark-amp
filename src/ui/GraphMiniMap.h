@@ -66,6 +66,14 @@ private:
     double viewport_height_{0.0};
 
     core::GraphData graph_data_;
+
+    // Computed render state (set by render())
+    double minimap_scale_x_{0.0};
+    double minimap_scale_y_{0.0};
+    double viewport_rect_x_{0.0};
+    double viewport_rect_y_{0.0};
+    double viewport_rect_w_{0.0};
+    double viewport_rect_h_{0.0};
 };
 
 } // namespace markamp::ui

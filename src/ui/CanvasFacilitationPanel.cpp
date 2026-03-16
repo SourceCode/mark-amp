@@ -46,7 +46,26 @@ auto CanvasFacilitationPanel::update_timer_display(int remaining_seconds,
                       remaining_seconds,
                       is_running ? "true" : "false",
                       is_expired ? "true" : "false");
-    // TODO: update wxStaticText labels with remaining time
+    // Improvement 73: Update timer display labels
+    if (timer_label_ != nullptr)
+    {
+        int minutes = remaining_seconds / 60;
+        int seconds = remaining_seconds % 60;
+        wxString time_text = wxString::Format("%02d:%02d", minutes, seconds);
+
+        if (is_expired)
+        {
+            timer_label_->SetLabel("⏰ Time's up!");
+        }
+        else if (is_running)
+        {
+            timer_label_->SetLabel("⏱ " + time_text);
+        }
+        else
+        {
+            timer_label_->SetLabel("Timer: " + time_text + " (paused)");
+        }
+    }
 }
 
 // ── Voting controls ────────────────────────────────────────────────
@@ -88,7 +107,20 @@ auto CanvasFacilitationPanel::refresh_vote_display() -> void
                       vote->topic,
                       vote->votes.size(),
                       vote->is_closed ? "true" : "false");
-    // TODO: rebuild vote option buttons/results
+    // Improvement 74: Rebuild vote option buttons with tally display
+    if (vote_label_ != nullptr)
+    {
+        wxString vote_text = "Vote: " + wxString(vote->topic) + "\n";
+        for (const auto& [option, count] : vote->votes)
+        {
+            vote_text += "  " + wxString(option) + ": " + wxString::Format("%zu", count) + "\n";
+        }
+        if (vote->is_closed)
+        {
+            vote_text += "(Voting closed)";
+        }
+        vote_label_->SetLabel(vote_text);
+    }
 }
 
 // ── Mode controls ──────────────────────────────────────────────────
@@ -127,8 +159,101 @@ auto CanvasFacilitationPanel::create_layout() -> void
 {
     auto* sizer = new wxBoxSizer(wxVERTICAL);
 
-    auto* header = new wxStaticText(this, wxID_ANY, "Facilitation");
+    // Improvement 71: Header with icon
+    auto* header = new wxStaticText(this, wxID_ANY, "\xF0\x9F\x8E\xAF Facilitation");
+    header->SetFont(header->GetFont().Bold().Scaled(1.1f));
     sizer->Add(header, 0, wxEXPAND | wxALL, 8);
+
+    // ── Timer section ──
+
+    auto* timer_section = new wxStaticText(this, wxID_ANY, "Timer");
+    timer_section->SetFont(timer_section->GetFont().Bold());
+    sizer->Add(timer_section, 0, wxLEFT | wxTOP, 8);
+
+    // Improvement 73: Timer display label
+    timer_label_ = new wxStaticText(this, wxID_ANY, "Timer: 00:00");
+    timer_label_->SetFont(timer_label_->GetFont().Scaled(1.5f));
+    sizer->Add(timer_label_, 0, wxALIGN_CENTER | wxALL, 4);
+
+    auto* timer_btns = new wxBoxSizer(wxHORIZONTAL);
+
+    auto* start_timer_btn = new wxButton(this, wxID_ANY, "\xE2\x8F\xB1 Start 5min",
+        wxDefaultPosition, wxDefaultSize, wxBORDER_NONE | wxBU_EXACTFIT);
+    start_timer_btn->Bind(wxEVT_BUTTON,
+        [this](wxCommandEvent& /*evt*/) { start_timer(300); });
+    timer_btns->Add(start_timer_btn, 1, wxEXPAND | wxRIGHT, 2);
+
+    auto* stop_timer_btn = new wxButton(this, wxID_ANY, "\xE2\x8F\xB9 Stop",
+        wxDefaultPosition, wxDefaultSize, wxBORDER_NONE | wxBU_EXACTFIT);
+    stop_timer_btn->Bind(wxEVT_BUTTON,
+        [this](wxCommandEvent& /*evt*/) { stop_timer(); });
+    timer_btns->Add(stop_timer_btn, 1, wxEXPAND);
+
+    sizer->Add(timer_btns, 0, wxEXPAND | wxLEFT | wxRIGHT, 8);
+
+    // ── Vote section ──
+
+    sizer->AddSpacer(12);
+    auto* vote_section = new wxStaticText(this, wxID_ANY, "Voting");
+    vote_section->SetFont(vote_section->GetFont().Bold());
+    sizer->Add(vote_section, 0, wxLEFT, 8);
+
+    // Improvement 74: Vote display label
+    vote_label_ = new wxStaticText(this, wxID_ANY, "No active vote");
+    sizer->Add(vote_label_, 0, wxLEFT | wxRIGHT | wxTOP, 8);
+
+    auto* vote_btns = new wxBoxSizer(wxHORIZONTAL);
+
+    auto* start_vote_btn = new wxButton(this, wxID_ANY, "\xF0\x9F\x97\xB3 New Vote",
+        wxDefaultPosition, wxDefaultSize, wxBORDER_NONE | wxBU_EXACTFIT);
+    start_vote_btn->Bind(wxEVT_BUTTON,
+        [this](wxCommandEvent& /*evt*/)
+        {
+            start_vote("Quick poll", {"Yes", "No", "Abstain"});
+        });
+    vote_btns->Add(start_vote_btn, 1, wxEXPAND | wxRIGHT, 2);
+
+    auto* close_vote_btn = new wxButton(this, wxID_ANY, "\xE2\x9C\x96 Close",
+        wxDefaultPosition, wxDefaultSize, wxBORDER_NONE | wxBU_EXACTFIT);
+    close_vote_btn->Bind(wxEVT_BUTTON,
+        [this](wxCommandEvent& /*evt*/) { close_vote(); });
+    vote_btns->Add(close_vote_btn, 1, wxEXPAND);
+
+    sizer->Add(vote_btns, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 8);
+
+    // ── Mode section ──
+
+    sizer->AddSpacer(12);
+    auto* mode_section = new wxStaticText(this, wxID_ANY, "Board Controls");
+    mode_section->SetFont(mode_section->GetFont().Bold());
+    sizer->Add(mode_section, 0, wxLEFT, 8);
+
+    // Improvement 75: Private mode toggle
+    auto* private_btn = new wxButton(this, wxID_ANY, "\xF0\x9F\x94\x92 Toggle Private Mode",
+        wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
+    private_btn->Bind(wxEVT_BUTTON,
+        [this](wxCommandEvent& /*evt*/)
+        {
+            set_private_mode(!is_private_mode());
+        });
+    sizer->Add(private_btn, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 8);
+
+    // Improvement 75: Reveal all button
+    auto* reveal_btn = new wxButton(this, wxID_ANY, "\xF0\x9F\x91\x81 Reveal All",
+        wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
+    reveal_btn->Bind(wxEVT_BUTTON,
+        [this](wxCommandEvent& /*evt*/) { reveal_all(); });
+    sizer->Add(reveal_btn, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 4);
+
+    // Improvement 76: Board lock toggle
+    auto* lock_btn = new wxButton(this, wxID_ANY, "\xF0\x9F\x94\x93 Toggle Board Lock",
+        wxDefaultPosition, wxDefaultSize, wxBORDER_NONE);
+    lock_btn->Bind(wxEVT_BUTTON,
+        [this](wxCommandEvent& /*evt*/)
+        {
+            set_board_locked(!is_board_locked());
+        });
+    sizer->Add(lock_btn, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 4);
 
     sizer->AddStretchSpacer(1);
 

@@ -1,5 +1,7 @@
 #include "SearchResultsPanel.h"
 
+#include "../core/Events.h"
+
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 
@@ -98,6 +100,47 @@ SearchResultsPanel::SearchResultsPanel(wxWindow* parent,
 
     SetSizer(main_sizer);
     ApplyTheme();
+
+    // Improvement 13: Wire double-click on search result to navigate to file+line
+    results_list_->Bind(wxEVT_DATAVIEW_ITEM_ACTIVATED,
+                        [this](wxDataViewEvent& evt)
+                        {
+                            const int row = results_list_->ItemToRow(evt.GetItem());
+                            if (row < 0)
+                            {
+                                return;
+                            }
+
+                            // Find the corresponding match in the model
+                            int current_row = 0;
+                            for (const auto& group : model_.groups())
+                            {
+                                if (group.collapsed)
+                                {
+                                    if (current_row == row)
+                                    {
+                                        // Clicked on a collapsed group header — expand it
+                                        return;
+                                    }
+                                    ++current_row;
+                                    continue;
+                                }
+
+                                for (const auto& match : group.matches)
+                                {
+                                    if (current_row == row)
+                                    {
+                                        // Navigate to this match
+                                        core::events::FileOpenRequestEvent open_evt;
+                                        open_evt.file_path = match.file_path;
+                                        open_evt.line_number = match.line_number;
+                                        event_bus_.publish(open_evt);
+                                        return;
+                                    }
+                                    ++current_row;
+                                }
+                            }
+                        });
 }
 
 void SearchResultsPanel::ApplyTheme()

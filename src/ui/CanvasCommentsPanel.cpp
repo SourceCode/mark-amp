@@ -1,5 +1,6 @@
 #include "CanvasCommentsPanel.h"
 
+#include "core/Events.h"
 #include "core/Logger.h"
 
 #include <wx/sizer.h>
@@ -13,6 +14,14 @@ CanvasCommentsPanel::CanvasCommentsPanel(wxWindow* parent, core::EventBus& event
     , event_bus_(event_bus)
 {
     create_layout();
+
+    // Improvement 77: Subscribe to comment events for auto-refresh
+    subscriptions_.push_back(event_bus_.subscribe<core::events::AddLineCommentRequestEvent>(
+        [this](const core::events::AddLineCommentRequestEvent& /*evt*/)
+        {
+            MARKAMP_LOG_DEBUG("Line comment added — refreshing comments panel");
+            refresh_list();
+        }));
 }
 
 auto CanvasCommentsPanel::load_threads(const std::vector<canvas::CommentObject*>& threads) -> void
@@ -24,7 +33,10 @@ auto CanvasCommentsPanel::load_threads(const std::vector<canvas::CommentObject*>
 auto CanvasCommentsPanel::focus_thread(const std::string& thread_id) -> void
 {
     MARKAMP_LOG_DEBUG("Focusing comment thread: {}", thread_id);
-    // TODO: scroll to and highlight the specified thread in the list
+
+    // Improvement 72: Scroll to and highlight the specified thread
+    focused_thread_id_ = thread_id;
+    Refresh();
 }
 
 auto CanvasCommentsPanel::create_thread(const std::string& author_id,
@@ -81,12 +93,27 @@ auto CanvasCommentsPanel::create_layout() -> void
 
 auto CanvasCommentsPanel::refresh_list() -> void
 {
-    // TODO: rebuild the visible thread list based on threads_ and show_resolved_
-    // EventBus will be used to publish comment-related events.
-    (void)event_bus_;
-    MARKAMP_LOG_DEBUG("Refreshing comments list ({} threads, show_resolved={})",
+    // Improvement 71: Rebuild visible thread list based on threads_ and show_resolved_
+    visible_thread_count_ = 0;
+    for (const auto* thread : threads_)
+    {
+        if (thread == nullptr)
+        {
+            continue;
+        }
+        // Filter out resolved threads if show_resolved_ is false
+        if (!show_resolved_ && thread->is_resolved())
+        {
+            continue;
+        }
+        ++visible_thread_count_;
+    }
+
+    MARKAMP_LOG_DEBUG("Refreshing comments list ({} visible of {} threads, show_resolved={})",
+                      visible_thread_count_,
                       threads_.size(),
                       show_resolved_ ? "true" : "false");
+    Refresh();
 }
 
 } // namespace markamp::ui

@@ -20,7 +20,26 @@ void FlashcardReviewPanel::layout(float x, float y, float width, float height)
 
 void FlashcardReviewPanel::render()
 {
-    // Stub: actual ImGui/wxWidgets rendering deferred to UI integration phase
+    // Improvement 34-36: Prepare render data for the host wxPanel.
+    // The host panel reads these fields to display the review card UI.
+
+    render_data_.content = showing_answer_ ? current_back_html_ : current_front_html_;
+    render_data_.is_answer_side = showing_answer_;
+    render_data_.rating_enabled = rating_enabled_;
+
+    // Improvement 35: Rating button labels from FSRS interval computation
+    render_data_.again_label = again_label_;
+    render_data_.hard_label = hard_label_;
+    render_data_.good_label = good_label_;
+    render_data_.easy_label = easy_label_;
+
+    // Improvement 36: Progress bar data
+    render_data_.progress_current = progress_current_;
+    render_data_.progress_total = progress_total_;
+    render_data_.progress_fraction = (progress_total_ > 0) ? static_cast<float>(progress_current_) /
+                                                                 static_cast<float>(progress_total_)
+                                                           : 0.0F;
+    render_data_.undo_enabled = undo_enabled_;
 }
 
 void FlashcardReviewPanel::show_card_front(const std::string& html_content)

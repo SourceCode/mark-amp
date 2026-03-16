@@ -183,6 +183,11 @@ StatusBarPanel::StatusBarPanel(wxWindow* parent,
     git_status_sub_ = event_bus_.subscribe<core::events::GitStatusChangedEvent>(
         [this](const core::events::GitStatusChangedEvent& evt)
         { set_git_branch(evt.branch_name, evt.ahead, evt.behind); });
+
+    // Improvement 27-28: AI status — subscribe to provider configured events
+    ai_status_sub_ = event_bus_.subscribe<core::events::AIProviderConfiguredEvent>(
+        [this](const core::events::AIProviderConfiguredEvent& evt)
+        { set_ai_status(evt.model, true); });
 }
 
 // --- State setters ---
@@ -382,6 +387,15 @@ void StatusBarPanel::set_panel_notifications(int error_count, int warning_count,
 void StatusBarPanel::set_active_group(const std::string& group_id)
 {
     active_group_ = group_id;
+    RebuildItems();
+    Refresh();
+}
+
+// Improvement 27-28: AI status indicator
+void StatusBarPanel::set_ai_status(const std::string& provider, bool connected)
+{
+    ai_provider_ = provider;
+    ai_connected_ = connected;
     RebuildItems();
     Refresh();
 }
@@ -632,6 +646,34 @@ void StatusBarPanel::RebuildItems()
         auto group_text = fmt::format("Group {}", active_group_);
         left_items_.push_back(
             {group_text, {}, false, false, nullptr, "Active editor group", false, false, ""});
+    }
+
+    // Improvement 27-28: AI status indicator
+    if (!ai_provider_.empty())
+    {
+        std::string ai_text;
+        if (ai_connected_)
+        {
+            ai_text = "\xF0\x9F\xA4\x96 " + ai_provider_; // 🤖 + provider name
+        }
+        else
+        {
+            ai_text = "\xF0\x9F\xA4\x96 Offline"; // 🤖 Offline
+        }
+        left_items_.push_back({ai_text,
+                               {},
+                               ai_connected_,
+                               true,
+                               [this]()
+                               {
+                                   core::events::SidebarModeChangedEvent mode_evt;
+                                   mode_evt.new_mode = "ai";
+                                   event_bus_.publish(mode_evt);
+                               },
+                               "AI status — click to open AI panel",
+                               false,
+                               false,
+                               ""});
     }
 
     // Right zone: {N} WORDS • {M} CHARS • SEL: {LEN} • MERMAID: {STATUS} • Theme Name

@@ -51,6 +51,23 @@ BacklinksPanelController::BacklinksPanelController(EventBus& event_bus,
 {
     doc_switched_sub_ = event_bus_.subscribe<events::FileOpenRequestEvent>(
         [this](const events::FileOpenRequestEvent& evt) { set_active_document(evt.file_path); });
+
+    // Improvement 10: Auto-refresh backlinks when document content changes.
+    // This catches edits that add/remove [[wikilinks]] or other references.
+    content_changed_sub_ = event_bus_.subscribe<events::EditorContentChangedEvent>(
+        [this](const events::EditorContentChangedEvent& /*evt*/)
+        {
+            if (!active_document_id_.empty())
+            {
+                // Re-publish the refresh event so any listening UI panels update
+                auto data = compute_backlinks(active_document_id_);
+                auto event = events::BacklinksPanelRefreshedEvent{};
+                event.document_id = active_document_id_;
+                event.linked_count = data.total_linked;
+                event.unlinked_count = data.total_unlinked;
+                event_bus_.publish(event);
+            }
+        });
 }
 
 auto BacklinksPanelController::compute_backlinks(const std::string& document_id) const

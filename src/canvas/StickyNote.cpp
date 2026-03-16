@@ -220,9 +220,62 @@ auto StickyNote::to_json() const -> std::string
     return oss.str();
 }
 
-auto StickyNote::from_json(const std::string& /*json*/) -> void
+auto StickyNote::from_json(const std::string& json) -> void
 {
-    // Stub: real JSON parsing would populate fields.
+    // Improvement 41: Parse JSON fields for StickyNote properties.
+    // Simple field extraction without full JSON library dependency.
+    auto extract_string = [&](const std::string& key) -> std::string
+    {
+        const auto key_pos = json.find("\"" + key + "\"");
+        if (key_pos == std::string::npos) return "";
+        const auto colon_pos = json.find(':', key_pos);
+        if (colon_pos == std::string::npos) return "";
+        const auto quote_start = json.find('"', colon_pos + 1);
+        if (quote_start == std::string::npos) return "";
+        const auto quote_end = json.find('"', quote_start + 1);
+        if (quote_end == std::string::npos) return "";
+        return json.substr(quote_start + 1, quote_end - quote_start - 1);
+    };
+    auto extract_number = [&](const std::string& key) -> double
+    {
+        const auto key_pos = json.find("\"" + key + "\"");
+        if (key_pos == std::string::npos) return 0.0;
+        const auto colon_pos = json.find(':', key_pos);
+        if (colon_pos == std::string::npos) return 0.0;
+        // Find the start of the number
+        auto num_start = colon_pos + 1;
+        while (num_start < json.size() && (json[num_start] == ' ' || json[num_start] == '\t'))
+        {
+            ++num_start;
+        }
+        std::string num_str;
+        while (num_start < json.size() &&
+               (std::isdigit(static_cast<unsigned char>(json[num_start])) ||
+                json[num_start] == '.' || json[num_start] == '-'))
+        {
+            num_str += json[num_start++];
+        }
+        if (num_str.empty()) return 0.0;
+        return std::stod(num_str);
+    };
+
+    auto text_val = extract_string("text");
+    if (!text_val.empty()) text_ = text_val;
+
+    auto color_val = extract_number("color");
+    if (color_val >= 0.0 && color_val < 8.0)
+    {
+        note_color_ = static_cast<StickyNoteColor>(static_cast<int>(color_val));
+    }
+
+    auto font_val = extract_number("font_size");
+    if (font_val > 0.0) font_size_ = font_val;
+
+    auto width_val = extract_number("width");
+    if (width_val > 0.0) width_ = std::max(kMinWidth, width_val);
+
+    auto height_val = extract_number("height");
+    if (height_val > 0.0) height_ = std::max(kMinHeight, height_val);
 }
 
 } // namespace markamp::canvas

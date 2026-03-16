@@ -18,6 +18,28 @@ class Config;
 namespace markamp::ui
 {
 
+/// Render-ready node data for the host wxPanel's paint handler.
+struct RenderNode
+{
+    std::string id;
+    std::string label;
+    double screen_x{0.0};
+    double screen_y{0.0};
+    double radius{6.0};
+    bool is_selected{false};
+    bool is_hovered{false};
+    bool is_search_highlighted{false};
+};
+
+/// Render-ready edge data for the host wxPanel's paint handler.
+struct RenderEdge
+{
+    double source_x{0.0};
+    double source_y{0.0};
+    double target_x{0.0};
+    double target_y{0.0};
+};
+
 /// Interactive knowledge graph visualization panel.
 /// Renders nodes and links with force-directed layout.
 class GraphPanel
@@ -42,6 +64,22 @@ public:
     void update_graph(const core::GraphData& data);
     void toggle_fullscreen();
     void search_nodes(const std::string& query);
+
+    // ── Render data extraction (Improvement 4) ──
+
+    [[nodiscard]] auto get_render_nodes() const -> std::vector<RenderNode>;
+    [[nodiscard]] auto get_render_edges() const -> std::vector<RenderEdge>;
+    [[nodiscard]] auto is_render_data_ready() const -> bool
+    {
+        return render_data_ready_;
+    }
+
+    // ── Mouse interaction (Improvement 5) ──
+
+    void handle_mouse_click(double screen_x, double screen_y);
+    void handle_mouse_move(double screen_x, double screen_y);
+    void handle_scroll(double delta, double screen_x, double screen_y);
+    void handle_pan(double delta_x, double delta_y);
 
     // ── Selection ──
 
@@ -76,6 +114,7 @@ private:
     std::optional<std::string> hovered_node_id_;
     std::set<std::string> search_highlighted_;
     bool fullscreen_{false};
+    bool render_data_ready_{false};
 
     OnNodeClickedCallback on_node_clicked_;
     OnNodeHoveredCallback on_node_hovered_;

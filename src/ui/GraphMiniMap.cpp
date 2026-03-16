@@ -51,8 +51,37 @@ void GraphMiniMap::render()
         return;
     }
 
-    // Stub: actual rendering deferred to UI integration phase
-    // Would draw scaled dots for nodes and a viewport rectangle
+    // Improvement 8: Compute scaled minimap rendering data.
+    // The host wxPanel calls get_minimap_nodes() and get_viewport_rect()
+    // to draw the minimap overlay.
+
+    // Compute the scale from world bounds to minimap pixel dimensions
+    const double world_width = bounds_max_x_ - bounds_min_x_;
+    const double world_height = bounds_max_y_ - bounds_min_y_;
+
+    if (world_width <= 0.0 || world_height <= 0.0)
+    {
+        return;
+    }
+
+    // Use uniform scaling to preserve aspect ratio
+    const double kScaleX = static_cast<double>(width_) / world_width;
+    const double kScaleY = static_cast<double>(height_) / world_height;
+    const double kUniformScale = std::min(kScaleX, kScaleY);
+    minimap_scale_x_ = kUniformScale;
+    minimap_scale_y_ = kUniformScale;
+
+    // Compute viewport rectangle in minimap space
+    viewport_rect_x_ = (viewport_x_ - bounds_min_x_) * minimap_scale_x_;
+    viewport_rect_y_ = (viewport_y_ - bounds_min_y_) * minimap_scale_y_;
+    viewport_rect_w_ = viewport_width_ * minimap_scale_x_;
+    viewport_rect_h_ = viewport_height_ * minimap_scale_y_;
+
+    // Clamp viewport rectangle to minimap bounds
+    viewport_rect_x_ = std::max(0.0, std::min(viewport_rect_x_, static_cast<double>(width_)));
+    viewport_rect_y_ = std::max(0.0, std::min(viewport_rect_y_, static_cast<double>(height_)));
+    viewport_rect_w_ = std::min(viewport_rect_w_, static_cast<double>(width_) - viewport_rect_x_);
+    viewport_rect_h_ = std::min(viewport_rect_h_, static_cast<double>(height_) - viewport_rect_y_);
 }
 
 } // namespace markamp::ui

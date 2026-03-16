@@ -37,6 +37,7 @@ private:
     core::EventBus& event_bus_;
     core::PDFAnnotationStore& annotation_store_;
     std::string current_pdf_;
+    std::string selected_annotation_id_;
 
     void on_paint(wxPaintEvent& evt);
 

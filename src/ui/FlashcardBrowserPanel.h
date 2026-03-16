@@ -30,6 +30,23 @@ struct CardBrowserFilter
     bool show_due_only{false};
 };
 
+/// Improvement 31: Render data for a single deck entry.
+struct DeckRenderItem
+{
+    std::string deck_id;
+    std::string name;
+    int card_count{0};
+    bool is_selected{false};
+};
+
+/// Improvement 32: Render data for a single card entry.
+struct CardRenderItem
+{
+    std::string card_id;
+    std::string front_preview;
+    bool is_selected{false};
+};
+
 /// UI panel for browsing and managing all flashcards across decks.
 /// Shows card list, deck selector, bulk operations, and statistics.
 class FlashcardBrowserPanel
@@ -86,6 +103,10 @@ private:
     CardBrowserSort sort_{CardBrowserSort::DueDate};
     CardBrowserFilter filter_;
     std::vector<std::string> selected_card_ids_;
+
+    // Improvement 31-32: Render data
+    std::vector<DeckRenderItem> deck_render_items_;
+    std::vector<CardRenderItem> card_render_items_;
 
     OnCardSelectedCallback on_card_selected_;
     OnDeckSelectedCallback on_deck_selected_;

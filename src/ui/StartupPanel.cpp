@@ -515,12 +515,21 @@ void StartupPanel::show_release_notes(const std::string& version)
 {
     displayed_version_ = version;
     MARKAMP_LOG_INFO("StartupPanel: showing release notes for {}", version);
-    // Future: scroll to or open a release-notes section in the welcome UI
+
+    // Improvement 54: Display release notes in a dialog when version changes
+    wxMessageBox("Welcome to MarkAmp " + version +
+                     "!\n\n"
+                     "Check the changelog for what's new in this release.",
+                 "Release Notes — " + version,
+                 wxOK | wxICON_INFORMATION,
+                 this);
 }
 
 void StartupPanel::set_show_getting_started(bool show)
 {
     show_getting_started_ = show;
+    // Improvement 52: Refresh to show/hide getting started section
+    Refresh();
 }
 
 auto StartupPanel::is_getting_started_visible() const -> bool
@@ -531,6 +540,15 @@ auto StartupPanel::is_getting_started_visible() const -> bool
 void StartupPanel::set_dont_show_again(bool value)
 {
     dont_show_again_ = value;
+
+    // Improvement 53: Publish a config change event so Config can persist this
+    if (event_bus_ != nullptr)
+    {
+        core::events::ConfigChangedEvent evt;
+        evt.key = "startup.showWelcome";
+        evt.new_value = value ? "false" : "true";
+        event_bus_->publish(evt);
+    }
 }
 
 auto StartupPanel::dont_show_again() const -> bool

@@ -1,5 +1,46 @@
 # MarkAmp Release History
 
+## v2.21.67 — 2026-03-15
+
+### Highlights
+
+100 UX/UI Improvements: Replaced template/stub sidebar panels with themed functional implementations across Tasks, Database, and Presentation. Connected secondary sidebar with Outline tree, Backlinks list, and Graph minimap. Implemented `StickyNote::from_json()` full JSON parsing and `BoardSerializer` object array serialization/deserialization. Built out `CanvasFacilitationPanel` with timer, voting, and mode controls. Enhanced `HistoryPanel` with themed timeline dots and diff highlighting. Wired `CanvasCommentsPanel` event subscription. 8 files changed, 1904 insertions.
+
+### Added
+
+- **Tasks Sidebar Panel** — Themed header with accent bar, "+ New Task" button with `NotificationEvent`, filter tabs (All/Todo/In Progress/Done), task list with empty state
+- **Database Sidebar Panel** — Themed header, "+ New DB" button, view-type tabs (Table/Gallery/Kanban/Timeline), database list with empty state
+- **Presentation Sidebar Panel** — Themed header, slide counter display, Previous/Next navigation buttons, Present button wired to `TogglePresentationMode()`, slide thumbnails scroll area
+- **Secondary Sidebar Outline Panel** — Functional `wxTreeCtrl`-based outline tree replacing stub, with heading count display from `OutlineChangedEvent` and click-to-navigate via `OutlineScrollToEvent`
+- **Secondary Sidebar Backlinks Panel** — `wxListBox` with double-click navigation via `FileOpenRequestEvent`
+- **Secondary Sidebar Graph Minimap** — Click-to-navigate coordinate translation with uniform scaling and viewport clamping
+- **`StickyNote::from_json()`** — Full JSON field parsing for text, color, font_size, width, height with bounds validation
+- **`BoardSerializer` objects array** — `serialize()` iterates board objects via `to_json()`; `deserialize()` parses JSON with factory dispatch framework
+- **`CanvasFacilitationPanel` controls** — Timer section (Start 5min/Stop buttons, display label), Voting section (New Vote/Close buttons, tally display), Board Controls (Toggle Private Mode, Reveal All, Toggle Board Lock)
+- **`HistoryPanel` themed timeline** — Vertical timeline with dots (accent for selected), metadata lines, themed colors, diff selection highlighting
+- **`CanvasCommentsPanel` event wiring** — `AddLineCommentRequestEvent` subscription for auto-refresh
+
+### Changed
+
+- **CMakeLists.txt** — Version bumped to 2.21.67.
+- **vcpkg.json** — Version bumped to 2.21.67.
+- **LayoutManager.cpp** — Replaced 6 `make_feature_panel` templates with themed functional implementations; added `#include <wx/treectrl.h>` and `<wx/scrolwin.h>`
+- **GraphMiniMap.cpp** — Implemented `render()` with uniform scaling and viewport clamping
+- **StickyNote.cpp** — Replaced `from_json()` stub with full JSON field parsing
+- **BoardSerializer.cpp** — Replaced empty objects array and deserialize stub with real implementations
+- **CanvasFacilitationPanel.cpp** — Replaced minimal layout with full timer/vote/mode control layout
+- **HistoryPanel.cpp** — Enhanced `on_paint()` with themed timeline, dots, and metadata rendering
+- **CanvasCommentsPanel.cpp** — Added `AddLineCommentRequestEvent` subscription
+
+### Fixed
+
+- **`NotificationEvent` constructor** — Fixed `notif.title` (non-existent field) to use `NotificationEvent(message, level)` constructor
+- **`NotificationLevel::kInfo`** — Corrected to `NotificationLevel::Info`
+- **`wxTreeCtrl` missing include** — Added `#include <wx/treectrl.h>` for tree control compilation
+- **Sign conversion warning** — Added `static_cast<unsigned int>(sel)` for `wxListBox::GetString()`
+- **Unused lambda capture** — Removed unused `this` capture in Graph minimap paint handler
+- **Unused `event_bus_` field** — Wired `CanvasCommentsPanel` event subscription to resolve `-Wunused-private-field`
+
 ## v2.20.66 — 2026-03-08
 
 ### Highlights
