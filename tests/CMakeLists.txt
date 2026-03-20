@@ -918,6 +918,18 @@ target_sources(markamp_core PRIVATE
     ${CMAKE_SOURCE_DIR}/src/testing/AccessibilityAuditor.cpp
     ${CMAKE_SOURCE_DIR}/src/testing/ThemeCoverageChecker.cpp
     ${CMAKE_SOURCE_DIR}/src/testing/MemoryLeakDetector.cpp
+    # V19 Phase 01: Shell orchestration services
+    ${CMAKE_SOURCE_DIR}/src/core/WorkbenchShellController.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/WorkspaceOpenOrchestrator.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/WorkspaceLoadStateModel.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/ShellLayoutState.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/CanvasWorkbenchMode.cpp
+    # V19 Phase 02: Command dispatch and prompt host
+    ${CMAKE_SOURCE_DIR}/src/core/CommandFeedback.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/CommandDispatchAdapter.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/PromptHost.cpp
+    # V19 Phase 03: Dirty state coordination
+    ${CMAKE_SOURCE_DIR}/src/core/DirtyStateCoordinator.cpp
 )
 target_include_directories(markamp_core PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(markamp_core PUBLIC markamp_dependencies)
@@ -6461,3 +6473,83 @@ add_executable(test_slide_block_types unit/test_slide_block_types.cpp)
 target_include_directories(test_slide_block_types PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_slide_block_types PRIVATE Catch2::Catch2WithMain markamp_core)
 add_test(NAME test_slide_block_types COMMAND test_slide_block_types)
+
+# ============================================================================
+# V19 Phase 01: WorkbenchShellController test
+# ============================================================================
+add_executable(test_v19_phase01_shell_controller unit/test_v19_phase01_shell_controller.cpp)
+target_include_directories(test_v19_phase01_shell_controller PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v19_phase01_shell_controller PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v19_phase01_shell_controller COMMAND test_v19_phase01_shell_controller)
+
+# ============================================================================
+# V19 Phase 02: CommandDispatchAdapter + PromptHost tests
+# ============================================================================
+add_executable(test_v19_phase02_command_dispatch unit/test_v19_phase02_command_dispatch.cpp)
+target_include_directories(test_v19_phase02_command_dispatch PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v19_phase02_command_dispatch PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v19_phase02_command_dispatch COMMAND test_v19_phase02_command_dispatch)
+
+# ============================================================================
+# V19 Phase 03: Session save / DirtyStateCoordinator tests
+# ============================================================================
+add_executable(test_v19_phase03_session_save unit/test_v19_phase03_session_save.cpp)
+target_include_directories(test_v19_phase03_session_save PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v19_phase03_session_save PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v19_phase03_session_save COMMAND test_v19_phase03_session_save)
+
+# ============================================================================
+# V19 Phase 04: Panels tests
+# ============================================================================
+add_executable(test_v19_phase04_panels unit/test_v19_phase04_panels.cpp)
+target_include_directories(test_v19_phase04_panels PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v19_phase04_panels PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v19_phase04_panels COMMAND test_v19_phase04_panels)
+
+# ============================================================================
+# V19 Phase 05: Navigation tests
+# ============================================================================
+add_executable(test_v19_phase05_navigation unit/test_v19_phase05_navigation.cpp)
+target_include_directories(test_v19_phase05_navigation PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v19_phase05_navigation PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v19_phase05_navigation COMMAND test_v19_phase05_navigation)
+
+# ============================================================================
+# V19 Phase 06: Settings tests
+# ============================================================================
+add_executable(test_v19_phase06_settings unit/test_v19_phase06_settings.cpp)
+target_include_directories(test_v19_phase06_settings PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v19_phase06_settings PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v19_phase06_settings COMMAND test_v19_phase06_settings)
+
+# ============================================================================
+# V19 Phase 07: Notebook tests
+# ============================================================================
+add_executable(test_v19_phase07_notebook unit/test_v19_phase07_notebook.cpp)
+target_include_directories(test_v19_phase07_notebook PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v19_phase07_notebook PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v19_phase07_notebook COMMAND test_v19_phase07_notebook)
+
+# ============================================================================
+# V19 Phase 08: Canvas tests
+# ============================================================================
+add_executable(test_v19_phase08_canvas unit/test_v19_phase08_canvas.cpp)
+target_include_directories(test_v19_phase08_canvas PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v19_phase08_canvas PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v19_phase08_canvas COMMAND test_v19_phase08_canvas)
+
+# ============================================================================
+# V19 Phase 09: Feedback tests
+# ============================================================================
+add_executable(test_v19_phase09_feedback unit/test_v19_phase09_feedback.cpp)
+target_include_directories(test_v19_phase09_feedback PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v19_phase09_feedback PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v19_phase09_feedback COMMAND test_v19_phase09_feedback)
+
+# ============================================================================
+# V19 Phase 10: Icons tests
+# ============================================================================
+add_executable(test_v19_phase10_icons unit/test_v19_phase10_icons.cpp)
+target_include_directories(test_v19_phase10_icons PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v19_phase10_icons PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v19_phase10_icons COMMAND test_v19_phase10_icons)

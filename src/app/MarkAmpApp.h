@@ -2,6 +2,7 @@
 #include "core/CommandFeedback.h"
 #include "core/CommandRegistry.h"
 #include "core/ShellLayoutState.h"
+#include "core/WorkbenchShellController.h"
 #include "core/WorkspaceOpenOrchestrator.h"
 #include "core/FileNode.h"
 #include "core/MemoryBudget.h"
@@ -129,6 +130,11 @@ public:
         return workspace_orchestrator_.get();
     }
 
+    [[nodiscard]] auto shell_controller() -> core::WorkbenchShellController*
+    {
+        return shell_controller_.get();
+    }
+
 private:
     // Core services (owned by the app, lifetime-managed)
     std::unique_ptr<core::EventBus> event_bus_;
@@ -180,6 +186,7 @@ private:
     // P03-T04/T05: Shell layout state and workspace orchestrator
     std::unique_ptr<core::ShellLayoutState> shell_layout_state_;
     std::unique_ptr<core::WorkspaceOpenOrchestrator> workspace_orchestrator_;
+    std::unique_ptr<core::WorkbenchShellController> shell_controller_;
 
     // Phase 14: E2E testability — set true when MARKAMP_E2E=1 env var detected
     bool e2e_mode_ = false;

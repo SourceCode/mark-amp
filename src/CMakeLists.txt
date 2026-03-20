@@ -373,6 +373,9 @@ add_executable(markamp
     core/CommandFeedback.cpp
     core/ShellLayoutState.cpp
     core/WorkspaceOpenOrchestrator.cpp
+    core/WorkbenchShellController.cpp
+    core/CommandDispatchAdapter.cpp
+    core/DirtyStateCoordinator.cpp
     core/WorkspaceSessionRestore.cpp
     core/DocumentPersistenceOrchestrator.cpp
     core/EditorViewModeManager.cpp
@@ -999,6 +1002,7 @@ add_executable(markamp
     ui/ChangelogPanel.cpp
     ui/TipOfTheDay.cpp
     ui/SpotlightOverlay.cpp
+    ui/PromptHost.cpp
     # V13 Phase 49: Performance Dashboard
     core/PerformanceCounters.cpp
     # V13 Phase 50: UI Integration Testing Harness

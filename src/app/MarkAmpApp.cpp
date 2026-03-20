@@ -334,6 +334,16 @@ bool MarkAmpApp::OnInit()
     // it will be wired when full session restore lifecycle is connected.
     // For now the orchestrator is ready to receive references.
 
+    // V19 P01-T01: Central shell orchestration controller
+    shell_controller_ = std::make_unique<core::WorkbenchShellController>(*event_bus_, *config_);
+    shell_controller_->set_shell_layout_state(shell_layout_state_.get());
+    if (workspace_orchestrator_)
+    {
+        shell_controller_->set_workspace_orchestrator(workspace_orchestrator_.get());
+    }
+    MARKAMP_LOG_INFO("WorkbenchShellController initialized");
+    startup_timer.checkpoint("shell_controller_initialized");
+
     frame->Show(true);
     SetTopWindow(frame);
 

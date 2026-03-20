@@ -1,5 +1,34 @@
 # MarkAmp Release History
 
+## v2.24.71 — 2026-03-20
+
+### Highlights
+
+V19 Workbench Shell Integration: Completed all 10 phases (30 tasks) establishing the unified workbench execution spine. Introduced `WorkbenchShellController` as the central shell controller for surface transitions. Added `CommandDispatchAdapter` for unified command dispatch with source tagging, timing, and execution history. Created `PromptHost` as a workbench-native, themeable, testable prompt system replacing native dialogs. Implemented `DirtyStateCoordinator` for cross-surface dirty-state aggregation with contributor management, save-all, and close-check semantics. 10 new test files with 30+ Catch2 test cases covering all 10 phases. 665/665 tests pass.
+
+### Added
+
+- **WorkbenchShellController** (P01) — Central shell controller for workspace open, surface mode switching (Editor/Canvas/Notebook/Graph), structured logging, and startup sequencing
+- **CommandDispatchAdapter** (P02) — Unified command dispatch with invocation source tracking (palette/shortcut/menu), execution logging with timing, when-clause filtering, and dispatch history
+- **PromptHost** (P02) — Workbench-native prompt system with structured API (show_prompt, confirm, input, info, warning, error), custom button labels, and MockResponder for test automation
+- **DirtyStateCoordinator** (P03) — Surface-agnostic dirty-state aggregation with contributor registration, save-all orchestration, and configurable close-check policy
+- **10 V19 test files** — Phase 01 (15 tests: shell transitions, surface switching, startup), Phase 02 (11 tests: dispatch adapter, prompt host), Phase 03 (8 tests: dirty state, workspace state model, session restore), Phases 04-10 (3-4 tests each: panels, navigation, settings, notebook, canvas, feedback, icons)
+
+### Changed
+
+- **CMakeLists.txt** — Version bumped to 2.24.71
+- **vcpkg.json** — Version bumped to 2.24.71
+- **AGENTS.md** — Version updated to 2.24.71
+- **src/CMakeLists.txt** — Added `WorkbenchShellController.cpp`, `CommandDispatchAdapter.cpp`, `DirtyStateCoordinator.cpp`, `PromptHost.cpp` to main application sources
+- **tests/CMakeLists.txt** — Added `CommandFeedback.cpp`, `CommandDispatchAdapter.cpp`, `DirtyStateCoordinator.cpp`, `PromptHost.cpp` to `markamp_core` test library; added 10 new test targets for all V19 phases
+
+### Fixed
+
+- **EventBus subscription RAII** — Captured `subscribe()` return values in test code to prevent immediate unsubscription from RAII `Subscription` destructor
+- **WorkspaceSessionRestore constructor** — Corrected test usage to default constructor (no args)
+- **WorkspaceLoadStateModel API** — Fixed test to use `state() == WorkspaceLoadState::kIdle` instead of non-existent `is_idle()`
+- **Unused private field warnings** — Added `[[maybe_unused]]` to `event_bus_` references in `PromptHost.h`, `DirtyStateCoordinator.h`, `CommandDispatchAdapter.h` reserved for future event publishing
+
 ## v2.23.70 — 2026-03-20
 
 ### Highlights
