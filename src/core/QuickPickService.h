@@ -66,6 +66,12 @@ public:
         return visible_;
     }
 
+    /// Access the current pick items (for UI consumers building the list).
+    [[nodiscard]] auto current_items() const -> const std::vector<QuickPickItem>&
+    {
+        return current_items_;
+    }
+
     /// For testing: simulate selecting an item by index.
     void test_select(std::size_t index);
 

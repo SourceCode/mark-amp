@@ -1023,6 +1023,22 @@ MARKAMP_DECLARE_EVENT(ToggleWhitespaceBoundaryRequestEvent);
 MARKAMP_DECLARE_EVENT(ToggleLinkAutoCompleteRequestEvent);
 MARKAMP_DECLARE_EVENT(ToggleDragDropRequestEvent);
 MARKAMP_DECLARE_EVENT(ToggleAutoSaveRequestEvent);
+
+// P04-T01: Unified save lifecycle events
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DocumentDirtyStateChangedEvent)
+    std::string file_id;
+    bool is_dirty{false};
+MARKAMP_DECLARE_EVENT_END;
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DocumentRevertedEvent)
+    std::string file_id;
+MARKAMP_DECLARE_EVENT_END;
+MARKAMP_DECLARE_EVENT(SaveAllRequestEvent);
+
+// P05-T05: Workspace load state change
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(WorkspaceLoadStateChangedEvent)
+    int state{0};
+    std::string message;
+MARKAMP_DECLARE_EVENT_END;
 MARKAMP_DECLARE_EVENT(ToggleEmptySelClipboardRequestEvent);
 MARKAMP_DECLARE_EVENT(CycleRenderWhitespaceRequestEvent);
 // NOTE: DeleteCurrentLineRequestEvent removed — use DeleteLineRequestEvent (R6)

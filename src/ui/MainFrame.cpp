@@ -11,6 +11,7 @@
 #include "core/Config.h"
 #include "core/EventBus.h"
 #include "core/Events.h"
+#include "core/InputBoxService.h"
 #include "core/Logger.h"
 #include "core/QuickPickService.h"
 #include "core/ShortcutManager.h"
@@ -239,6 +240,90 @@ MainFrame::MainFrame(const wxString& title,
 
         // Phase 05 Task 21: Initialize the Live Announcer background service
         live_announcer_ = std::make_unique<accessibility::LiveAnnouncer>(*event_bus_);
+
+        // P02-T01: Subscribe to prompt service request events
+        subscriptions_.push_back(event_bus_->subscribe<core::events::ShowQuickPickRequestEvent>(
+            [this](const core::events::ShowQuickPickRequestEvent& evt)
+            {
+                // Retrieve the service from the app to access items and callbacks
+                auto* app = dynamic_cast<app::MarkAmpApp*>(wxTheApp);
+                if (app == nullptr || app->quick_pick_service() == nullptr)
+                {
+                    return;
+                }
+                auto* qps = app->quick_pick_service();
+                if (!qps->is_visible())
+                {
+                    return;
+                }
+
+                // Build choice list from current items
+                wxArrayString choices;
+                const auto& items = qps->current_items();
+                for (const auto& item : items)
+                {
+                    wxString label = wxString::FromUTF8(item.label);
+                    if (!item.description.empty())
+                    {
+                        label += " — " + wxString::FromUTF8(item.description);
+                    }
+                    choices.Add(label);
+                }
+
+                if (choices.empty())
+                {
+                    qps->test_cancel();
+                    return;
+                }
+
+                wxString title =
+                    evt.title.empty() ? "Select" : wxString::FromUTF8(evt.title);
+
+                int selection = wxGetSingleChoiceIndex(
+                    wxString::FromUTF8(evt.placeholder), title, choices, this);
+                if (selection >= 0)
+                {
+                    qps->test_select(static_cast<std::size_t>(selection));
+                }
+                else
+                {
+                    qps->test_cancel();
+                }
+            }));
+
+        subscriptions_.push_back(event_bus_->subscribe<core::events::ShowInputBoxRequestEvent>(
+            [this](const core::events::ShowInputBoxRequestEvent& evt)
+            {
+                auto* app = dynamic_cast<app::MarkAmpApp*>(wxTheApp);
+                if (app == nullptr || app->input_box_service() == nullptr)
+                {
+                    return;
+                }
+                auto* ibs = app->input_box_service();
+                if (!ibs->is_visible())
+                {
+                    return;
+                }
+
+                wxString title =
+                    evt.title.empty() ? "Input" : wxString::FromUTF8(evt.title);
+                wxString prompt_text =
+                    evt.prompt.empty() ? "" : wxString::FromUTF8(evt.prompt);
+                wxString default_value = wxString::FromUTF8(evt.value);
+
+                wxTextEntryDialog dlg(
+                    this, prompt_text, title, default_value,
+                    wxOK | wxCANCEL | (evt.password ? wxTE_PASSWORD : 0));
+
+                if (dlg.ShowModal() == wxID_OK)
+                {
+                    ibs->test_accept(dlg.GetValue().ToStdString());
+                }
+                else
+                {
+                    ibs->test_cancel();
+                }
+            }));
     }
 
     // Edge-resize mouse events on the frame itself
@@ -274,7 +359,7 @@ MainFrame::MainFrame(const wxString& title,
     SetDropTarget(new FileDropTarget(this));
 
     // Restore saved window state, then center if no saved state
-    // restoreWindowState();
+    restoreWindowState();
 
     // Log DPI info
     logDpiInfo();
@@ -635,14 +720,8 @@ void MainFrame::restoreWindowState()
         platform_->toggle_maximize(this);
     }
 
-    // Restore last open file (Session Restore)
-    std::string last_file = config_->get_string("last_open_file", "");
-    if (!last_file.empty() && event_bus_ != nullptr)
-    {
-        core::events::ActiveFileChangedEvent evt;
-        evt.file_id = last_file;
-        event_bus_->publish(evt);
-    }
+    // NOTE: Session/file restore is handled by WorkspaceSessionRestore (P03-T02),
+    // not here. This method only restores window geometry.
 }
 
 void MainFrame::logDpiInfo()

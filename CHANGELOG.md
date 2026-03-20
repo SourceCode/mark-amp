@@ -1,5 +1,46 @@
 # MarkAmp Release History
 
+## v2.23.70 — 2026-03-20
+
+### Highlights
+
+V18 Phases 06-10 workbench integration: 25 tasks, 50 new source files, all building cleanly. Phase 06 (Settings UX): deep-link router, catalog bootstrap, live reactor, state owner, scope resolver. Phase 07 (Canvas Workbench): first-class canvas mode, shell state model, session context, navigation integration, cross-surface navigator. Phase 08 (Notebook UX): shell host, document lifecycle, cell controller, output integration, command provider with 12 built-in commands. Phase 09 (Feedback/Observability): feedback taxonomy with throttling, extension status bar adapter, panel state model with retry, integration tracer, shell accessibility policy. Phase 10 (MUI Icons): icon inventory with 13 mappings, unified MUI pipeline with 6 aliases, migration tracking, icon metrics for 8 component families, validation gate with 5 banned IDs. 655/655 tests pass.
+
+### Added
+
+- **SettingsDeepLinkRouter** — routes `SettingsOpenRequestEvent` to appropriate settings UI with activity bar fallback
+- **SettingsCatalogBootstrap** — creates and registers built-in settings catalog with schema validation and deduplication
+- **LiveSettingsReactor** — subscribes to `SettingChangedEvent` for subsystem-specific routing, tracks restart-required settings
+- **SettingsStateOwner** — staged changes, apply/cancel semantics, undo/redo for settings editing
+- **SettingsScopeResolver** — resolves application/workspace/project scope, reset/remove override actions
+- **CanvasWorkbenchMode** — promotes canvas to first-class workbench mode with lifecycle management and session persistence
+- **CanvasShellStateModel** — shared state for tool, zoom, inspector, minimap, and board dirty state
+- **CanvasSessionContext** — manages collaboration sessions, participants, and board switching
+- **CanvasNavigationIntegration** — board open/new/export with MRU tracking
+- **CrossSurfaceNavigator** — orchestrates editor/canvas/graph navigation with history and fallbacks
+- **NotebookShellHost** — typed host with entry management and Empty/Loading/Ready/Error state machine
+- **NotebookDocumentLifecycle** — open/close/rename/save with dirty state tracking
+- **NotebookCellController** — cell CRUD, run cell/all, cancel, `CellExecutionState` tracking
+- **NotebookOutputIntegration** — output trust levels, search, export, session restore, clear
+- **NotebookCommandProvider** — 12 built-in commands with context-aware enable/disable
+- **FeedbackTaxonomy** — severity/channel/duration taxonomy, 5 default task-channel mappings, 500ms throttling
+- **StatusBarAdapter** — extension items → visible status bar, priority sort, 20-item cap, plugin lifecycle cleanup
+- **PanelStateModel** — shared panel Empty/Loading/Ready/Error states with retry action support
+- **IntegrationTracer** — scoped begin/end with timing, structured `TraceRecord`
+- **ShellAccessibilityPolicy** — mode/panel/prompt announcements with 300ms throttle
+- **IconInventory** — 13 built-in legacy→MUI mappings, semantic role grouping, mapped/pending query
+- **MuiIconPipeline** — single render path, 6 legacy aliases, size/color/state handling
+- **MuiIconMigration** — per-surface progress tracking across 7 surface categories
+- **IconMetricsPolicy** — size tokens for 8 component families with high-DPI scaling
+- **IconValidationGate** — 5 banned legacy IDs, validation API, violation tracking
+
+### Changed
+
+- **CMakeLists.txt** — Version bumped to 2.23.70
+- **src/CMakeLists.txt** — Added 25 new `.cpp` files for Phases 06-10
+- **vcpkg.json** — Version bumped to 2.23.70
+- **AGENTS.md** — Version updated to 2.23.70
+
 ## v2.22.69 — 2026-03-19
 
 ### Highlights

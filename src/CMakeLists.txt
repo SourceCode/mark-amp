@@ -369,6 +369,46 @@ add_executable(markamp
     core/SemanticTokenEngine.cpp
     core/ShortcutManager.cpp
     core/CommandRegistry.cpp
+    core/WorkbenchCommands.cpp
+    core/CommandFeedback.cpp
+    core/ShellLayoutState.cpp
+    core/WorkspaceOpenOrchestrator.cpp
+    core/WorkspaceSessionRestore.cpp
+    core/DocumentPersistenceOrchestrator.cpp
+    core/EditorViewModeManager.cpp
+    core/EditorCommandAdapter.cpp
+    core/ActiveDocumentTracker.cpp
+    core/EditorMetadataPublisher.cpp
+    core/FileOperationService.cpp
+    core/SearchNavigationContract.cpp
+    core/QuickOpenIntegration.cpp
+    core/SidebarStateSynchronizer.cpp
+    core/WorkspaceLoadStateModel.cpp
+    core/SettingsDeepLinkRouter.cpp
+    core/SettingsCatalogBootstrap.cpp
+    core/LiveSettingsReactor.cpp
+    core/SettingsStateOwner.cpp
+    core/SettingsScopeResolver.cpp
+    core/CanvasWorkbenchMode.cpp
+    core/CanvasShellStateModel.cpp
+    core/CanvasSessionContext.cpp
+    core/CanvasNavigationIntegration.cpp
+    core/CrossSurfaceNavigator.cpp
+    core/NotebookShellHost.cpp
+    core/NotebookDocumentLifecycle.cpp
+    core/NotebookCellController.cpp
+    core/NotebookOutputIntegration.cpp
+    core/NotebookCommandProvider.cpp
+    core/FeedbackTaxonomy.cpp
+    core/StatusBarAdapter.cpp
+    core/PanelStateModel.cpp
+    core/IntegrationTracer.cpp
+    core/ShellAccessibilityPolicy.cpp
+    core/IconInventory.cpp
+    core/MuiIconPipeline.cpp
+    core/MuiIconMigration.cpp
+    core/IconMetricsPolicy.cpp
+    core/IconValidationGate.cpp
     core/ChordShortcutManager.cpp
     core/CommandExecutionLog.cpp
     core/KeybindingEditor.cpp
@@ -1383,6 +1423,10 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "Src" FILES
     core/ShortcutManager.cpp
     core/CommandRegistry.h
     core/CommandRegistry.cpp
+    core/WorkbenchCommands.h
+    core/WorkbenchCommands.cpp
+    core/CommandFeedback.h
+    core/CommandFeedback.cpp
     core/ChordShortcutManager.h
     core/ChordShortcutManager.cpp
     core/QuickOpenProvider.h

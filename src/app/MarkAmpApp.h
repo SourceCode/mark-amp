@@ -1,5 +1,8 @@
 #pragma once
-
+#include "core/CommandFeedback.h"
+#include "core/CommandRegistry.h"
+#include "core/ShellLayoutState.h"
+#include "core/WorkspaceOpenOrchestrator.h"
 #include "core/FileNode.h"
 #include "core/MemoryBudget.h"
 #include "core/PanelService.h"
@@ -46,6 +49,8 @@ class NotificationService;
 class StatusBarItemService;
 class InputBoxService;
 class QuickPickService;
+class CommandRegistry;
+class CommandFeedbackHelper;
 class GrammarEngine;
 class TaskRunnerService;
 class Watchdog;
@@ -99,6 +104,31 @@ public:
         return quick_pick_service_.get();
     }
 
+    [[nodiscard]] auto input_box_service() const -> core::InputBoxService*
+    {
+        return input_box_service_.get();
+    }
+
+    [[nodiscard]] auto command_registry() const -> core::CommandRegistry*
+    {
+        return command_registry_.get();
+    }
+
+    [[nodiscard]] auto command_feedback() const -> core::CommandFeedbackHelper*
+    {
+        return command_feedback_.get();
+    }
+
+    [[nodiscard]] auto shell_layout_state() -> core::ShellLayoutState*
+    {
+        return shell_layout_state_.get();
+    }
+
+    [[nodiscard]] auto workspace_orchestrator() -> core::WorkspaceOpenOrchestrator*
+    {
+        return workspace_orchestrator_.get();
+    }
+
 private:
     // Core services (owned by the app, lifetime-managed)
     std::unique_ptr<core::EventBus> event_bus_;
@@ -142,6 +172,14 @@ private:
     // Phase 01: Infrastructure
     std::unique_ptr<core::Watchdog> watchdog_;
     std::unique_ptr<core::MemoryBudget> memory_budget_;
+
+    // P02-T02: Centralized command registry and feedback
+    std::unique_ptr<core::CommandRegistry> command_registry_;
+    std::unique_ptr<core::CommandFeedbackHelper> command_feedback_;
+
+    // P03-T04/T05: Shell layout state and workspace orchestrator
+    std::unique_ptr<core::ShellLayoutState> shell_layout_state_;
+    std::unique_ptr<core::WorkspaceOpenOrchestrator> workspace_orchestrator_;
 
     // Phase 14: E2E testability — set true when MARKAMP_E2E=1 env var detected
     bool e2e_mode_ = false;

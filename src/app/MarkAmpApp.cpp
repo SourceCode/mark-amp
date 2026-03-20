@@ -3,6 +3,8 @@
 #include "core/AppState.h"
 #include "core/BuiltInPlugins.h"
 #include "core/Command.h"
+#include "core/CommandFeedback.h"
+#include "core/CommandRegistry.h"
 #include "core/Config.h"
 #include "core/ContextKeyService.h"
 #include "core/DecorationService.h"
@@ -37,6 +39,7 @@
 #include "core/TreeDataProviderRegistry.h"
 #include "core/Watchdog.h"
 #include "core/WebviewService.h"
+#include "core/WorkbenchCommands.h"
 #include "core/WorkspaceService.h"
 #include "platform/PlatformAbstraction.h"
 #include "ui/FocusManager.h"
@@ -204,7 +207,9 @@ bool MarkAmpApp::OnInit()
     notification_service_ = std::make_unique<core::NotificationService>(*event_bus_);
     status_bar_item_service_ = std::make_unique<core::StatusBarItemService>();
     input_box_service_ = std::make_unique<core::InputBoxService>();
+    input_box_service_->set_event_bus(event_bus_.get());
     quick_pick_service_ = std::make_unique<core::QuickPickService>();
+    quick_pick_service_->set_event_bus(event_bus_.get());
     grammar_engine_ = std::make_unique<core::GrammarEngine>();
     terminal_service_ = std::make_unique<core::TerminalService>(*event_bus_);
     task_runner_service_ = std::make_unique<core::TaskRunnerService>();
@@ -301,6 +306,34 @@ bool MarkAmpApp::OnInit()
     // Phase 05 Task 2: Initialize global focus ring tracking
     ui::FocusRingRenderer::get().initialize();
 
+    // P02-T02: Initialize centralized command registry and register workbench commands
+    command_registry_ = std::make_unique<core::CommandRegistry>();
+    command_feedback_ = std::make_unique<core::CommandFeedbackHelper>(*event_bus_);
+    core::register_workbench_commands(*command_registry_, *event_bus_);
+    MARKAMP_LOG_INFO("Command registry initialized: {} commands registered",
+                     command_registry_->command_count());
+
+    // P02-T03: Set FocusManager traversal order for shell zones
+    auto& focus_mgr = ui::FocusManager::get();
+    focus_mgr.set_traversal_order(
+        {ui::FocusZoneId::kActivityBar,
+         ui::FocusZoneId::kSidebar,
+         ui::FocusZoneId::kEditorArea,
+         ui::FocusZoneId::kBottomPanel,
+         ui::FocusZoneId::kStatusBar});
+    MARKAMP_LOG_INFO("FocusManager zone traversal order set");
+
+    // P03-T04: Initialize ShellLayoutState and load from config
+    shell_layout_state_ =
+        std::make_unique<core::ShellLayoutState>(*event_bus_, *config_);
+    shell_layout_state_->load_from_config();
+    MARKAMP_LOG_INFO("ShellLayoutState loaded from config");
+
+    // P03-T05: Initialize WorkspaceOpenOrchestrator
+    // NOTE: WorkspaceSessionRestore is not yet a member of MarkAmpApp;
+    // it will be wired when full session restore lifecycle is connected.
+    // For now the orchestrator is ready to receive references.
+
     frame->Show(true);
     SetTopWindow(frame);
 
@@ -377,6 +410,13 @@ int MarkAmpApp::OnExit()
     {
         const core::events::AppShutdownEvent shutdownEvent;
         event_bus_->publish(shutdownEvent);
+    }
+
+    // P03-T04: Save shell layout state before exit
+    if (shell_layout_state_)
+    {
+        shell_layout_state_->save_to_config();
+        MARKAMP_LOG_INFO("ShellLayoutState saved to config");
     }
 
     // Save configuration

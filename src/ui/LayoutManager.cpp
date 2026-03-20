@@ -2661,7 +2661,7 @@ void LayoutManager::RegisterSidebarPanels()
             return search_panel;
         });
 
-    // ── Settings panel ──
+    // ── Settings panel (P03-T03: honest empty state) ──
     panel_registry_.Register(kSidebarModeSettings,
                              "SETTINGS",
                              "\xE2\x9A\x99", // ⚙
@@ -2671,23 +2671,9 @@ void LayoutManager::RegisterSidebarPanels()
                                      parent,
                                      "SETTINGS",
                                      "\xE2\x9A\x99",
-                                     {"General", "Editor", "Theme", "Keys", "Extensions"},
-                                     {"General",
-                                      "Editor",
-                                      "Appearance",
-                                      "Keyboard Shortcuts",
-                                      "Extensions",
-                                      "Files",
-                                      "Markdown",
-                                      "Preview",
-                                      "Canvas",
-                                      "Notebooks",
-                                      "AI Assistant",
-                                      "Git",
-                                      "Cloud Sync",
-                                      "Privacy & Security",
-                                      "Advanced"},
-                                     "");
+                                     {"Open Settings"},
+                                     {},
+                                     "Use the command palette (Cmd+,) to open full settings.");
                              });
 
     // ── Themes panel ──
@@ -2700,15 +2686,8 @@ void LayoutManager::RegisterSidebarPanels()
                                                            "THEMES",
                                                            "\xF0\x9F\x8E\xA8",
                                                            {"Import", "Export", "Create"},
-                                                           {"Midnight Neon",
-                                                            "Cyber Night",
-                                                            "Solarized Dark",
-                                                            "Classic Mono",
-                                                            "High Contrast Blue",
-                                                            "Matrix Core",
-                                                            "Classic Amp",
-                                                            "Vapor Wave"},
-                                                           "");
+                                                           {},
+                                                           "Open the Theme Gallery (Ctrl+T) to browse and apply themes.");
                              });
 
     // ── Notebooks panel ──

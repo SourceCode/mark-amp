@@ -10,7 +10,6 @@
 namespace markamp::core
 {
 
-/// A snapshot of a workspace session.
 struct SessionSnapshot
 {
     std::string snapshot_id;
@@ -22,6 +21,11 @@ struct SessionSnapshot
     int window_y{0};
     int window_width{1280};
     int window_height{720};
+    // P03-T02: Shell layout state
+    int sidebar_mode{0};            ///< SidebarMode enum value
+    bool sidebar_visible{true};
+    bool bottom_panel_visible{false};
+    int bottom_panel_height{200};
     std::chrono::system_clock::time_point created_at;
 };
 
@@ -58,6 +62,12 @@ public:
     // ── Statistics ────────────────────────────────────────────────────
     [[nodiscard]] auto snapshot_count() const -> int;
     void clear_snapshots();
+
+    // ── Serialization ─────────────────────────────────────────────────
+    /// Serialize the latest snapshot to a JSON string for config persistence.
+    [[nodiscard]] auto serialize_json(const SessionSnapshot& snap) const -> std::string;
+    /// Deserialize a JSON string into a SessionSnapshot.
+    [[nodiscard]] static auto deserialize_json(const std::string& json) -> SessionSnapshot;
 
     // ── Batch 19-22 (#127-129) ──
 

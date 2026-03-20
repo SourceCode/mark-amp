@@ -4,6 +4,7 @@
 #include "WorkspaceSessionRestore.h"
 
 #include <algorithm>
+#include <nlohmann/json.hpp>
 
 namespace markamp::core
 {
@@ -160,6 +161,93 @@ auto WorkspaceSessionRestore::has_snapshot(const std::string& snapshot_id) const
         }
     }
     return false;
+}
+
+// ── P03-T02: JSON serialization for config persistence ──
+
+auto WorkspaceSessionRestore::serialize_json(const SessionSnapshot& snap) const -> std::string
+{
+    nlohmann::json j;
+    j["snapshot_id"] = snap.snapshot_id;
+    j["workspace_name"] = snap.workspace_name;
+    j["open_files"] = snap.open_files;
+    j["active_file"] = snap.active_file;
+    j["editor_group_count"] = snap.editor_group_count;
+    j["window_x"] = snap.window_x;
+    j["window_y"] = snap.window_y;
+    j["window_width"] = snap.window_width;
+    j["window_height"] = snap.window_height;
+    j["sidebar_mode"] = snap.sidebar_mode;
+    j["sidebar_visible"] = snap.sidebar_visible;
+    j["bottom_panel_visible"] = snap.bottom_panel_visible;
+    j["bottom_panel_height"] = snap.bottom_panel_height;
+    return j.dump();
+}
+
+auto WorkspaceSessionRestore::deserialize_json(const std::string& json) -> SessionSnapshot
+{
+    SessionSnapshot snap;
+    try
+    {
+        auto j = nlohmann::json::parse(json);
+        if (j.contains("snapshot_id"))
+        {
+            snap.snapshot_id = j["snapshot_id"].get<std::string>();
+        }
+        if (j.contains("workspace_name"))
+        {
+            snap.workspace_name = j["workspace_name"].get<std::string>();
+        }
+        if (j.contains("open_files"))
+        {
+            snap.open_files = j["open_files"].get<std::vector<std::string>>();
+        }
+        if (j.contains("active_file"))
+        {
+            snap.active_file = j["active_file"].get<std::string>();
+        }
+        if (j.contains("editor_group_count"))
+        {
+            snap.editor_group_count = j["editor_group_count"].get<int>();
+        }
+        if (j.contains("window_x"))
+        {
+            snap.window_x = j["window_x"].get<int>();
+        }
+        if (j.contains("window_y"))
+        {
+            snap.window_y = j["window_y"].get<int>();
+        }
+        if (j.contains("window_width"))
+        {
+            snap.window_width = j["window_width"].get<int>();
+        }
+        if (j.contains("window_height"))
+        {
+            snap.window_height = j["window_height"].get<int>();
+        }
+        if (j.contains("sidebar_mode"))
+        {
+            snap.sidebar_mode = j["sidebar_mode"].get<int>();
+        }
+        if (j.contains("sidebar_visible"))
+        {
+            snap.sidebar_visible = j["sidebar_visible"].get<bool>();
+        }
+        if (j.contains("bottom_panel_visible"))
+        {
+            snap.bottom_panel_visible = j["bottom_panel_visible"].get<bool>();
+        }
+        if (j.contains("bottom_panel_height"))
+        {
+            snap.bottom_panel_height = j["bottom_panel_height"].get<int>();
+        }
+    }
+    catch (const nlohmann::json::exception& /*ex*/)
+    {
+        // Return default snapshot on parse failure
+    }
+    return snap;
 }
 
 } // namespace markamp::core
