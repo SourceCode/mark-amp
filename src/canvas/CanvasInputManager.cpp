@@ -181,4 +181,45 @@ auto CanvasInputManager::is_space_held() const -> bool
     return space_held_;
 }
 
+// ── W05: Pointer Device & Capture ──────────────────────────────────
+
+auto CanvasInputManager::set_device_type(PointerDeviceType device) -> void
+{
+    if (device_type_ == device)
+    {
+        return;
+    }
+    device_type_ = device;
+
+    if (event_bus_)
+    {
+        core::events::PointerDeviceChangedEvent evt;
+        switch (device)
+        {
+        case PointerDeviceType::kMouse: evt.device_type = "mouse"; break;
+        case PointerDeviceType::kTrackpad: evt.device_type = "trackpad"; break;
+        case PointerDeviceType::kStylus: evt.device_type = "stylus"; break;
+        case PointerDeviceType::kTouch: evt.device_type = "touch"; break;
+        }
+        event_bus_->publish(evt);
+    }
+}
+
+auto CanvasInputManager::set_captured(bool captured) -> void
+{
+    if (captured_ == captured)
+    {
+        return;
+    }
+    captured_ = captured;
+
+    if (event_bus_)
+    {
+        core::events::PointerCaptureChangedEvent evt;
+        evt.captured = captured;
+        evt.tool_mode = static_cast<uint8_t>(active_tool_mode_);
+        event_bus_->publish(evt);
+    }
+}
+
 } // namespace markamp::canvas

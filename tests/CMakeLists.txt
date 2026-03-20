@@ -355,6 +355,11 @@ target_sources(markamp_core PRIVATE
     # V5 Phase 04: Object Selection & Transform
     ${CMAKE_SOURCE_DIR}/src/canvas/SelectionManager.cpp
     ${CMAKE_SOURCE_DIR}/src/canvas/SelectionRenderer.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/SmartSpacingModel.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/PrecisionNudgeModel.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/DragAutoscrollModel.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/PenEngineModel.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/PenPresetModel.cpp
     # V5 Phase 05: Canvas Serialization & Board Model
     ${CMAKE_SOURCE_DIR}/src/canvas/Board.cpp
     ${CMAKE_SOURCE_DIR}/src/canvas/BoardSerializer.cpp
@@ -678,9 +683,11 @@ target_sources(markamp_core PRIVATE
     ${CMAKE_SOURCE_DIR}/src/canvas/BenchmarkModel.cpp
     ${CMAKE_SOURCE_DIR}/src/canvas/BoardLockController.cpp
     ${CMAKE_SOURCE_DIR}/src/canvas/BoardSerializerModel.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/BoardSettingsModel.cpp
     ${CMAKE_SOURCE_DIR}/src/canvas/CameraModel.cpp
     ${CMAKE_SOURCE_DIR}/src/canvas/CanvasClipboardService.cpp
     ${CMAKE_SOURCE_DIR}/src/canvas/CanvasColorModel.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/CanvasAnalyticsModel.cpp
     ${CMAKE_SOURCE_DIR}/src/canvas/CanvasExportService.cpp
     ${CMAKE_SOURCE_DIR}/src/canvas/CanvasInputModel.cpp
     ${CMAKE_SOURCE_DIR}/src/canvas/CanvasInspector.cpp
@@ -698,6 +705,7 @@ target_sources(markamp_core PRIVATE
     ${CMAKE_SOURCE_DIR}/src/canvas/ConnectorRoutingService.cpp
     ${CMAKE_SOURCE_DIR}/src/canvas/ContextMenuModel.cpp
     ${CMAKE_SOURCE_DIR}/src/canvas/CustomObjectTypeRegistry.cpp
+    ${CMAKE_SOURCE_DIR}/src/canvas/CanvasToolStateMachine.cpp
     ${CMAKE_SOURCE_DIR}/src/canvas/DiagramCoordinator.cpp
     ${CMAKE_SOURCE_DIR}/src/canvas/ExportModel.cpp
     ${CMAKE_SOURCE_DIR}/src/canvas/FollowModeController.cpp
@@ -863,6 +871,7 @@ target_sources(markamp_core PRIVATE
     # Phase 36: Settings UI Overhaul
     ${CMAKE_SOURCE_DIR}/src/ui/RichDescriptionRenderer.cpp
     ${CMAKE_SOURCE_DIR}/src/ui/SettingsCompareView.cpp
+    ${CMAKE_SOURCE_DIR}/src/ui/CommandPaletteModel.cpp
     ${CMAKE_SOURCE_DIR}/src/core/WorkspaceSymbolIndex.cpp
     # Phase 37: Compiler Configuration Panel
     ${CMAKE_SOURCE_DIR}/src/core/CompilerConfig.cpp

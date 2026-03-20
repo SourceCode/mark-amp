@@ -32,7 +32,7 @@ TEST_CASE("CanvasWorkbench — create and open board", "[canvas][workbench]")
     CanvasWorkbench wb(bus);
 
     auto board_id = wb.create_board("My Board");
-    REQUIRE(board_id.empty());
+    REQUIRE_FALSE(board_id.empty());
     REQUIRE(wb.active_board() != nullptr);
     REQUIRE(wb.board_exists(board_id));
     REQUIRE(wb.open_boards().size() == 1);

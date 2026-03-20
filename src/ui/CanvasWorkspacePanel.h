@@ -73,6 +73,13 @@ public:
 
     void ApplyTheme();
 
+    // ── Status Display ────────────────────────────────────────────
+
+    void SetBoardTitle(const std::string& title);
+    void SetZoomLevel(double zoom);
+    void SetObjectCount(size_t count);
+    void SetDirtyIndicator(bool dirty);
+
     // ── Constants ─────────────────────────────────────────────────
 
     static constexpr int kToolRailWidth = 40;
@@ -113,6 +120,12 @@ private:
     std::string current_board_id_;
     bool inspector_visible_{true};
     bool minimap_visible_{true};
+    bool dirty_{false};
+    size_t object_count_{0};
+
+    // Event subscriptions
+    std::vector<core::Subscription> subscriptions_;
+    void SubscribeEvents();
 };
 
 } // namespace markamp::ui

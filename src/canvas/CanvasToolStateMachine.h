@@ -108,10 +108,26 @@ public:
     /// Force-cancel active gesture for tool switch. Returns true if cancelled.
     auto force_cancel_for_switch() -> bool;
 
+    // ── V17 Phase 01 W06: Input State Machine ──────────────────────
+
+    /// Escape-cancel: force-cancel active gesture from Escape key.
+    auto escape_cancel() -> bool;
+
+    /// Resume the state that was active before the most recent transition.
+    auto resume_previous_state() -> bool;
+
+    /// Whether the state machine is mid-gesture (not Idle or Hover).
+    [[nodiscard]] auto is_mid_gesture() const -> bool;
+
+    /// Get the recent transition history (from → to pairs as strings).
+    [[nodiscard]] auto state_history() const -> const std::vector<std::string>&;
+
 private:
     ToolState state_{ToolState::kIdle};
+    ToolState previous_state_{ToolState::kIdle};
     uint8_t modifiers_{0};
     int transition_count_{0};
+    std::vector<std::string> state_history_;
 };
 
 } // namespace markamp::canvas

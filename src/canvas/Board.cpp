@@ -1,14 +1,42 @@
 #include "Board.h"
 
 #include <algorithm>
+#include <chrono>
 #include <cstdint>
+#include <iomanip>
+#include <random>
 #include <set>
+#include <sstream>
 
 namespace markamp::canvas
 {
 
+namespace
+{
+
+/// Generate a board-unique ID: "b-<hex_timestamp>-<hex_random>"
+auto generate_board_id() -> std::string
+{
+    const auto now = std::chrono::system_clock::now();
+    const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                        now.time_since_epoch())
+                        .count();
+
+    static thread_local std::mt19937 rng(std::random_device{}());
+    std::uniform_int_distribution<uint32_t> dist;
+    const auto rand_val = dist(rng);
+
+    std::ostringstream oss;
+    oss << "b-" << std::hex << std::setfill('0') << std::setw(12)
+        << static_cast<uint64_t>(ms) << "-" << std::setw(8) << rand_val;
+    return oss.str();
+}
+
+} // namespace
+
 Board::Board()
 {
+    metadata_.id = generate_board_id();
     metadata_.created_at = std::chrono::system_clock::now();
     metadata_.modified_at = metadata_.created_at;
 }

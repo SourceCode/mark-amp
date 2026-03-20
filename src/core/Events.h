@@ -2712,6 +2712,2794 @@ MARKAMP_DECLARE_EVENT(CanvasModeActivatedEvent);
 /// Fired when the layout leaves canvas mode and returns to editor.
 MARKAMP_DECLARE_EVENT(CanvasModeDeactivatedEvent);
 
+/// V17 Phase 01 W01: Board opened and ready for interaction.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BoardOpenedEvent)
+std::string board_id;
+std::string board_name;
+size_t object_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// V17 Phase 01 W01: Board closed and removed from workspace.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BoardClosedEvent)
+std::string board_id;
+MARKAMP_DECLARE_EVENT_END;
+
+/// V17 Phase 01 W01: Workspace shell initialized and ready.
+MARKAMP_DECLARE_EVENT(WorkspaceShellReadyEvent);
+
+/// V17 Phase 01 W01: Inspector panel toggled.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasInspectorToggledEvent)
+bool visible{false};
+MARKAMP_DECLARE_EVENT_END;
+
+/// V17 Phase 01 W01: Minimap panel toggled.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasMinimapToggledEvent)
+bool visible{false};
+MARKAMP_DECLARE_EVENT_END;
+
+/// V17 Phase 01 W02: A new board was created.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BoardCreatedEvent)
+std::string board_id;
+std::string board_name;
+MARKAMP_DECLARE_EVENT_END;
+
+/// V17 Phase 01 W02: Board was renamed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BoardRenamedEvent)
+std::string board_id;
+std::string old_name;
+std::string new_name;
+MARKAMP_DECLARE_EVENT_END;
+
+/// V17 Phase 01 W02: Board was duplicated.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BoardDuplicatedEvent)
+std::string source_board_id;
+std::string new_board_id;
+std::string new_board_name;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 01 W03: Viewport Camera events ─────────────────────
+
+/// W03: Request to fit viewport to board/selection/object.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ViewportFitRequestEvent)
+std::string fit_mode; ///< "board", "selection", "object"
+MARKAMP_DECLARE_EVENT_END;
+
+/// W03: Viewport zoom level changed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ViewportZoomChangedEvent)
+double old_zoom{1.0};
+double new_zoom{1.0};
+double anchor_x{0.0};
+double anchor_y{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// W03: Request to reset viewport to default (zoom 100%, pan origin).
+MARKAMP_DECLARE_EVENT(ViewportResetRequestEvent);
+
+// ── V17 Phase 01 W04: Tool Rail events ────────────────────────────
+
+/// W04: Tool rail selection changed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ToolRailSelectionChangedEvent)
+std::string tool_id;
+std::string tool_name;
+std::string group;
+MARKAMP_DECLARE_EVENT_END;
+
+/// W04: Tool group expanded/collapsed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ToolGroupExpandedEvent)
+std::string group_name;
+bool expanded{false};
+MARKAMP_DECLARE_EVENT_END;
+
+/// W04: Quick-switch between previous and current tool.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ToolQuickSwitchEvent)
+std::string from_tool_id;
+std::string to_tool_id;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 01 W05: Pointer Routing events ─────────────────────
+
+/// W05: Pointer capture state changed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PointerCaptureChangedEvent)
+bool captured{false};
+uint8_t tool_mode{0}; ///< ToolMode as uint8_t
+MARKAMP_DECLARE_EVENT_END;
+
+/// W05: Input device type changed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PointerDeviceChangedEvent)
+std::string device_type; ///< "mouse", "trackpad", "stylus", "touch"
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 01 W06: Input State Machine events ────────────────
+
+/// W06: Tool state machine transitioned.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ToolStateTransitionEvent)
+std::string from_state;
+std::string to_state;
+uint8_t tool_mode{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// W06: Active gesture was force-cancelled.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ToolGestureCancelledEvent)
+uint8_t tool_mode{0};
+std::string reason;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 01 W07: Keyboard Commanding events ────────────────
+
+/// W07: A keyboard command was executed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(KeyCommandExecutedEvent)
+std::string command_id;
+std::string shortcut;
+std::string category;
+MARKAMP_DECLARE_EVENT_END;
+
+/// W07: Keyboard shortcut conflict detected.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(KeyConflictDetectedEvent)
+std::string shortcut;
+std::string conflicting_commands;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 01 W08: Cursor & Mode Feedback events ─────────────
+
+/// W08: Canvas cursor style changed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CursorStyleChangedEvent)
+std::string cursor_style;
+uint8_t tool_mode{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// W08: Mode feedback label/icon changed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ModeFeedbackChangedEvent)
+std::string label;
+std::string icon_hint;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 01 W09: Grid & Rulers events ──────────────────────
+
+/// W09: Grid visibility toggled.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(GridVisibilityChangedEvent)
+bool visible{false};
+double spacing{20.0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// W09: Ruler visibility toggled.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(RulerVisibilityChangedEvent)
+bool visible{false};
+std::string units;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 01 W10: Snap Preferences events ───────────────────
+
+/// W10: Snap mode configuration changed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SnapModeChangedEvent)
+bool grid_snap{false};
+bool object_snap{false};
+bool angle_snap{false};
+MARKAMP_DECLARE_EVENT_END;
+
+/// W10: Snap threshold changed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SnapThresholdChangedEvent)
+double old_threshold{8.0};
+double new_threshold{8.0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 01 W11: Context Menus events ──────────────────────
+
+/// W11: Context menu opened for a given scope.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ContextMenuOpenedEvent)
+std::string scope;       ///< "empty_space", "single_object", "multi_select"
+std::string object_type; ///< Object type if single-object scope
+int action_count{0};     ///< Number of available actions
+MARKAMP_DECLARE_EVENT_END;
+
+/// W11: A context menu action was executed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ContextMenuActionExecutedEvent)
+std::string action_id; ///< e.g. "canvas.cut", "canvas.paste"
+std::string scope;     ///< Scope in which the action was invoked
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 01 W12: Undo & Redo Plumbing events ──────────────
+
+/// W12: An undo operation was executed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(UndoExecutedEvent)
+std::string description;  ///< Human-readable description of undone action
+int remaining_count{0};   ///< Remaining undo entries
+MARKAMP_DECLARE_EVENT_END;
+
+/// W12: A redo operation was executed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(RedoExecutedEvent)
+std::string description;  ///< Human-readable description of redone action
+int remaining_count{0};   ///< Remaining redo entries
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 01 W13: Autosave & Recovery events ────────────────
+
+/// W13: Autosave was triggered for a board.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AutosaveTriggeredEvent)
+std::string board_id;   ///< Board being saved
+std::string save_path;  ///< File path for the save
+MARKAMP_DECLARE_EVENT_END;
+
+/// W13: Recovery data detected for a board on startup.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AutosaveRecoveryDetectedEvent)
+std::string board_id;       ///< Board with recovery data
+std::string recovery_path;  ///< Path to the recovery file
+std::string timestamp;      ///< When the recovery data was written
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 01 W14: Inspector Shell events ────────────────────
+
+/// W14: Inspector panel opened/refreshed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(InspectorOpenedEvent)
+int section_count{0};    ///< Number of visible sections
+int selected_count{0};   ///< Number of selected objects
+bool is_multi_select{false};
+MARKAMP_DECLARE_EVENT_END;
+
+/// W14: A property was changed via the inspector.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(InspectorPropertyChangedEvent)
+std::string property_key; ///< Property that changed
+std::string old_value;    ///< Previous value
+std::string new_value;    ///< New value
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 01 W15: Minimap Shell events ──────────────────────
+
+/// W15: Minimap visibility toggled.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(MinimapVisibilityChangedEvent)
+bool visible{false};
+std::string mode; ///< "simplified" or "detailed"
+MARKAMP_DECLARE_EVENT_END;
+
+/// W15: Navigation triggered from minimap click/drag.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(MinimapNavigationEvent)
+double target_x{0.0};
+double target_y{0.0};
+bool from_minimap{true}; ///< true if triggered via minimap click
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 01 W16: Onboarding & Empty States events ─────────
+
+/// W16: An onboarding walkthrough step was completed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(OnboardingStepCompletedEvent)
+std::string step_id;
+int progress_percent{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// W16: An onboarding hint was dismissed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(OnboardingDismissedEvent)
+std::string hint_id;
+bool dismissed_by_user{true};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 01 W17: Board Settings events ─────────────────────
+
+/// W17: Board setting changed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BoardSettingsChangedEvent)
+std::string board_id;
+std::string setting_key;
+std::string new_value;
+MARKAMP_DECLARE_EVENT_END;
+
+/// W17: Board background preset changed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BoardBackgroundChangedEvent)
+std::string board_id;
+std::string background_preset;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 01 W18: Theme Tokens events ───────────────────────
+
+/// W18: Canvas theme token resolved.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasThemeTokenResolvedEvent)
+std::string token_name;
+std::string resolved_value;
+MARKAMP_DECLARE_EVENT_END;
+
+/// W18: Canvas theme contrast guardrail warning.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasThemeContrastWarningEvent)
+std::string token_name;
+double contrast_ratio{0.0};
+double min_required{3.0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 01 W19: Command Palette Integration events ────────
+
+/// W19: Command palette opened.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CommandPaletteOpenedEvent)
+int command_count{0};
+std::string context; ///< "canvas", "editor", "global"
+MARKAMP_DECLARE_EVENT_END;
+
+/// W19: Command executed from palette.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CommandPaletteExecutedEvent)
+std::string command_id;
+std::string source; ///< "palette", "shortcut", "menu"
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 01 W20: Event & Analytics Contracts events ────────
+
+/// W20: Analytics event recorded.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AnalyticsEventRecordedEvent)
+std::string event_name;
+std::string category;
+MARKAMP_DECLARE_EVENT_END;
+
+/// W20: Analytics flush requested.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AnalyticsFlushRequestedEvent)
+int pending_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 02 W01: Single Selection events ──────────────────
+
+/// P02-W01: Single object selected.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SingleSelectionEvent)
+std::string object_id;
+std::string object_type;
+std::string hit_target; ///< "handle", "object", "container"
+MARKAMP_DECLARE_EVENT_END;
+
+/// P02-W01: Selection cleared.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SelectionClearedEvent)
+int previous_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 02 W02: Multi Selection events ───────────────────
+
+/// P02-W02: Multi-selection performed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(MultiSelectionEvent)
+int selected_count{0};
+std::string method; ///< "box", "additive", "subtractive"
+MARKAMP_DECLARE_EVENT_END;
+
+/// P02-W02: Select all objects.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SelectAllEvent)
+int total_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 02 W03: Move Operations events ───────────────────
+
+/// P02-W03: Move operation started.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(MoveStartedEvent)
+int object_count{0};
+double start_x{0.0};
+double start_y{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P02-W03: Move operation completed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(MoveCompletedEvent)
+int object_count{0};
+double delta_x{0.0};
+double delta_y{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 02 W04: Resize Operations events ─────────────────
+
+/// P02-W04: Resize operation started.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ResizeStartedEvent)
+int object_count{0};
+std::string handle; ///< e.g. "TopLeft", "BottomRight"
+MARKAMP_DECLARE_EVENT_END;
+
+/// P02-W04: Resize operation completed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ResizeCompletedEvent)
+int object_count{0};
+double scale_x{1.0};
+double scale_y{1.0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 02 W05: Rotation Operations events ───────────────
+
+/// P02-W05: Rotate operation started.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(RotateStartedEvent)
+int object_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P02-W05: Rotate operation completed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(RotateCompletedEvent)
+int object_count{0};
+double angle_degrees{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 02 W06: Alignment Guides events ──────────────────
+
+/// P02-W06: Alignment guides shown.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AlignmentGuideShownEvent)
+int guide_count{0};
+std::string axis; ///< "horizontal", "vertical", "both"
+MARKAMP_DECLARE_EVENT_END;
+
+/// P02-W06: Alignment guides hidden.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AlignmentGuideHiddenEvent)
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 02 W07: Object Snapping events ───────────────────
+
+/// P02-W07: Snap engaged.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SnapEngagedEvent)
+std::string snap_type; ///< "edge", "center", "grid"
+std::string target_id;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P02-W07: Snap disengaged.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SnapDisengagedEvent)
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 02 W08: Distribute & Align events ────────────────
+
+/// P02-W08: Alignment action performed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AlignActionEvent)
+std::string action; ///< "left", "center_h", "right", "top", "center_v", "bottom"
+int object_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P02-W08: Distribution action performed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DistributeActionEvent)
+std::string axis; ///< "horizontal", "vertical"
+int object_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 02 W09: Smart Spacing events ──────────────────────
+
+/// P02-W09: Smart spacing activated.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SmartSpacingActivatedEvent)
+double spacing_px{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P02-W09: Smart spacing deactivated.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SmartSpacingDeactivatedEvent)
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 02 W10: Grouping events ───────────────────────────
+
+/// P02-W10: Objects grouped.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ObjectsGroupedEvent)
+std::string group_id;
+int member_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P02-W10: Objects ungrouped.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ObjectsUngroupedEvent)
+std::string group_id;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 02 W11: Frame Membership events ──────────────────
+
+/// P02-W11: Object added to frame.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FrameMemberAddedEvent)
+std::string frame_id;
+std::string object_id;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P02-W11: Object removed from frame.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FrameMemberRemovedEvent)
+std::string frame_id;
+std::string object_id;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 02 W12: Layers & Z Order events ──────────────────
+
+/// P02-W12: Layer order changed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(LayerOrderChangedEvent)
+std::string object_id;
+std::string action; ///< "bring_to_front", "send_to_back"
+MARKAMP_DECLARE_EVENT_END;
+
+/// P02-W12: Layer order reset.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(LayerOrderResetEvent)
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 02 W13: Locking & Pinning events ─────────────────
+
+/// P02-W13: Object locked.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ObjectLockedEvent)
+std::string object_id;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P02-W13: Object unlocked.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ObjectUnlockedEvent)
+std::string object_id;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 02 W14: Precision Nudge events ───────────────────
+
+/// P02-W14: Precision nudge performed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PrecisionNudgeEvent)
+std::string direction; ///< "up", "down", "left", "right"
+double step_px{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P02-W14: Nudge step size changed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NudgeStepChangedEvent)
+double step_px{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 02 W15: Duplicate & Paste In Place events ────────
+
+/// P02-W15: Duplicate in place.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DuplicateInPlaceEvent)
+int object_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P02-W15: Paste in place.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PasteInPlaceEvent)
+int object_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 02 W16: Drag Autoscroll events ───────────────────
+
+/// P02-W16: Autoscroll started.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AutoscrollStartedEvent)
+std::string direction; ///< "up", "down", "left", "right", etc.
+MARKAMP_DECLARE_EVENT_END;
+
+/// P02-W16: Autoscroll stopped.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AutoscrollStoppedEvent)
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 02 W17: Viewport-Aware Transforms events ─────────
+
+/// P02-W17: Viewport transform synced.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ViewportTransformSyncEvent)
+double zoom{1.0};
+double pan_x{0.0};
+double pan_y{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P02-W17: Viewport clamped.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ViewportClampedEvent)
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 02 W18: Multi User Selection events ──────────────
+
+/// P02-W18: Remote selection received.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(RemoteSelectionReceivedEvent)
+std::string user_id;
+int object_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P02-W18: Remote lock conflict.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(RemoteLockConflictEvent)
+std::string user_id;
+std::string object_id;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 02 W19: Transform History Quality events ─────────
+
+/// P02-W19: Transform undo.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TransformUndoEvent)
+std::string action;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P02-W19: Transform redo.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TransformRedoEvent)
+std::string action;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 02 W20: Selection Action Surfaces events ─────────
+
+/// P02-W20: Action surface shown.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ActionSurfaceShownEvent)
+std::string surface_type; ///< "toolbar", "contextmenu", "quickaction"
+MARKAMP_DECLARE_EVENT_END;
+
+/// P02-W20: Action surface hidden.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ActionSurfaceHiddenEvent)
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 03 W01: Freehand Pen Engine events ───────────────
+
+/// P03-W01: Stroke captured.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(StrokeCapturedEvent)
+std::string stroke_id;
+int point_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P03-W01: Stroke smoothed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(StrokeSmoothedEvent)
+std::string stroke_id;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 03 W02: Pen Presets events ────────────────────────
+
+/// P03-W02: Pen preset applied.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PenPresetAppliedEvent)
+std::string preset_name;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P03-W02: Pen preset saved.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PenPresetSavedEvent)
+std::string preset_name;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 03 W03: Eraser & Lasso events ────────────────────
+
+/// P03-W03: Eraser stroke performed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(EraserStrokeEvent)
+int erased_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P03-W03: Lasso selection performed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(LassoSelectionEvent)
+int object_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 03 W04: Shape Tool events ─────────────────────────
+
+/// P03-W04: Shape created.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ShapeCreatedEvent)
+std::string shape_type;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P03-W04: Shape resized.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ShapeResizedEvent)
+std::string shape_id;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 03 W05: Text Box Authoring events ────────────────
+
+/// P03-W05: Text box created.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TextBoxCreatedEvent)
+std::string text_box_id;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P03-W05: Text box edited.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TextBoxEditedEvent)
+std::string text_box_id;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 03 W06: Sticky Notes events ──────────────────────
+
+/// P03-W06: Sticky note created.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(StickyNoteCreatedEvent)
+std::string note_id;
+std::string color;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P03-W06: Sticky note color changed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(StickyNoteColorChangedEvent)
+std::string note_id;
+std::string color;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 03 W07: Color Authoring events ───────────────────
+
+/// P03-W07: Palette color selected.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PaletteColorSelectedEvent)
+std::string color;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P03-W07: Palette color saved.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PaletteColorSavedEvent)
+std::string color;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 03 W08: Typography Controls events ───────────────
+
+/// P03-W08: Typography changed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TypographyChangedEvent)
+std::string property; ///< "font_size", "line_height", etc.
+std::string value;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P03-W08: Font applied.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FontAppliedEvent)
+std::string font_name;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 03 W09: Fill, Stroke & Effects events ────────────
+
+/// P03-W09: Fill style changed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FillStyleChangedEvent)
+std::string object_id;
+std::string fill;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P03-W09: Stroke style changed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(StrokeStyleChangedEvent)
+std::string object_id;
+std::string stroke;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 03 W10: Style Presets events ──────────────────────
+
+/// P03-W10: Style preset applied.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(StylePresetAppliedEvent)
+std::string preset_name;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P03-W10: Style preset saved.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(StylePresetSavedEvent)
+std::string preset_name;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 03 W11: Inline Rich Text events ──────────────────
+
+/// P03-W11: Inline rich text enabled.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(InlineRichTextEnabledEvent)
+std::string object_id;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P03-W11: Inline rich text formatted.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(InlineRichTextFormattedEvent)
+std::string object_id;
+std::string format; ///< "bold", "italic", "link", etc.
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 03 W12: Shape Library Quick Insert events ─────────
+
+/// P03-W12: Shape inserted from library.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ShapeLibraryInsertEvent)
+std::string shape_name;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P03-W12: Shape library opened.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ShapeLibraryOpenedEvent)
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 03 W13: Shape Recognition events ─────────────────
+
+/// P03-W13: Shape recognized from freehand.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ShapeRecognizedEvent)
+std::string recognized_type;
+double confidence{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P03-W13: Shape recognition rejected.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ShapeRecognitionRejectedEvent)
+std::string stroke_id;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 03 W14: Image Annotation events ──────────────────
+
+/// P03-W14: Image annotation added.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ImageAnnotationAddedEvent)
+std::string image_id;
+std::string annotation_type; ///< "arrow", "highlight", "text"
+MARKAMP_DECLARE_EVENT_END;
+
+/// P03-W14: Image annotation removed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ImageAnnotationRemovedEvent)
+std::string image_id;
+std::string annotation_id;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 03 W15: Comments & Callouts events ───────────────
+
+/// P03-W15: Comment added.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CommentAddedEvent)
+std::string object_id;
+std::string comment_text;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P03-W15: Callout created.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CalloutCreatedEvent)
+std::string callout_type; ///< "info", "warning", "critical"
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 03 W16: Tables For Authoring events ──────────────
+
+/// P03-W16: Table created on canvas.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasTableCreatedEvent)
+int rows{0};
+int columns{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P03-W16: Table cell edited.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasTableCellEditedEvent)
+std::string table_id;
+int row{0};
+int column{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 03 W17: Icons, Stickers & Emoji events ───────────
+
+/// P03-W17: Icon inserted.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(IconInsertedEvent)
+std::string icon_name;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P03-W17: Sticker inserted.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(StickerInsertedEvent)
+std::string sticker_id;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 03 W18: Creator Shortcuts events ─────────────────
+
+/// P03-W18: Creator shortcut invoked.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CreatorShortcutInvokedEvent)
+std::string shortcut_id;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P03-W18: Creator shortcut registered.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CreatorShortcutRegisteredEvent)
+std::string shortcut_id;
+std::string action;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 03 W19: Bulk Style Editing events ────────────────
+
+/// P03-W19: Bulk style applied.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BulkStyleAppliedEvent)
+int object_count{0};
+std::string style_property;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P03-W19: Bulk style reset.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BulkStyleResetEvent)
+int object_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 03 W20: Authoring Motion Feedback events ─────────
+
+/// P03-W20: Motion preview started.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(MotionPreviewStartedEvent)
+std::string object_id;
+std::string motion_type;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P03-W20: Motion preview ended.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(MotionPreviewEndedEvent)
+std::string object_id;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 04 W01: Connector Creation events ────────────────
+
+/// P04-W01: Connector created between objects.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ConnectorCreatedEvent)
+std::string from_id;
+std::string to_id;
+std::string connector_type; ///< "straight", "curved", "orthogonal"
+MARKAMP_DECLARE_EVENT_END;
+
+/// P04-W01: Connector deleted.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ConnectorDeletedEvent)
+std::string connector_id;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 04 W02: Connector Routing events ─────────────────
+
+/// P04-W02: Connector route changed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ConnectorRouteChangedEvent)
+std::string connector_id;
+std::string route_type; ///< "straight", "bezier", "orthogonal"
+MARKAMP_DECLARE_EVENT_END;
+
+/// P04-W02: Connector waypoint added.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ConnectorWaypointAddedEvent)
+std::string connector_id;
+double waypoint_x{0.0};
+double waypoint_y{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 04 W03: Connector Labels & Ports events ──────────
+
+/// P04-W03: Connector label set.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ConnectorLabelSetEvent)
+std::string connector_id;
+std::string label;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P04-W03: Port assigned on object.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PortAssignedEvent)
+std::string object_id;
+std::string port_id;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 04 W04: Diagram Library events ───────────────────
+
+/// P04-W04: Diagram shape inserted from library.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DiagramShapeInsertedEvent)
+std::string shape_type;
+std::string category;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P04-W04: Diagram library browsed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DiagramLibraryBrowsedEvent)
+std::string category;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 04 W05: Flowchart Grammar events ─────────────────
+
+/// P04-W05: Flowchart defaults applied.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FlowchartDefaultsAppliedEvent)
+std::string grammar_name;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P04-W05: Flowchart validated.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FlowchartValidatedEvent)
+int node_count{0};
+int connector_count{0};
+bool is_valid{false};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 04 W06: Mind Maps events ─────────────────────────
+
+/// P04-W06: Mind map node added.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(MindMapNodeAddedEvent)
+std::string parent_id;
+std::string node_label;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P04-W06: Mind map branch collapsed/expanded.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(MindMapBranchToggledEvent)
+std::string node_id;
+bool collapsed{false};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 04 W07: Kanban Boards events ─────────────────────
+
+/// P04-W07: Kanban card moved.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasKanbanCardMovedEvent)
+std::string card_id;
+std::string from_lane;
+std::string to_lane;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P04-W07: Kanban lane added.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(KanbanLaneAddedEvent)
+std::string lane_name;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 04 W08: Frames & Sections events ─────────────────
+
+/// P04-W08: Frame created.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FrameCreatedEvent)
+std::string frame_name;
+double width{0.0};
+double height{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P04-W08: Section added to frame.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SectionAddedEvent)
+std::string frame_id;
+std::string section_name;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 04 W09: Swimlanes & Grids events ────────────────
+
+/// P04-W09: Swimlane created.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SwimlaneCreatedEvent)
+std::string orientation; ///< "horizontal", "vertical"
+int lane_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P04-W09: Grid layout applied.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(GridLayoutAppliedEvent)
+int grid_rows{0};
+int grid_columns{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 04 W10: Container Auto Layout events ─────────────
+
+/// P04-W10: Auto layout triggered.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AutoLayoutTriggeredEvent)
+std::string container_id;
+std::string layout_type; ///< "horizontal", "vertical", "grid", "wrap"
+MARKAMP_DECLARE_EVENT_END;
+
+/// P04-W10: Auto layout spacing changed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AutoLayoutSpacingChangedEvent)
+std::string container_id;
+double spacing{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 04 W11: Advanced Tables events ───────────────────
+
+/// P04-W11: Table column added.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AdvancedTableColumnAddedEvent)
+std::string table_id;
+std::string column_name;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P04-W11: Table row sorted.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AdvancedTableSortedEvent)
+std::string table_id;
+std::string sort_column;
+bool ascending{true};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 04 W12: Cross Board Links events ─────────────────
+
+/// P04-W12: Cross board link created.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CrossBoardLinkCreatedEvent)
+std::string source_board_id;
+std::string target_board_id;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P04-W12: Cross board link navigated.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CrossBoardLinkNavigatedEvent)
+std::string link_id;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 04 W13: Diagram From Selection events ────────────
+
+/// P04-W13: Diagram generated from selection.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DiagramFromSelectionEvent)
+int selected_count{0};
+std::string diagram_type;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P04-W13: Selection structured into diagram.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SelectionStructuredEvent)
+std::string structure_type; ///< "flowchart", "hierarchy", "sequence"
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 04 W14: Connected Layout Cleanup events ──────────
+
+/// P04-W14: Layout cleanup triggered.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(LayoutCleanupTriggeredEvent)
+int affected_connectors{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P04-W14: Connector reflow after move.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ConnectorReflowEvent)
+std::string connector_id;
+std::string trigger_action; ///< "align", "distribute", "move"
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 04 W15: Relationship Metadata events ─────────────
+
+/// P04-W15: Relationship metadata set.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(RelationshipMetadataSetEvent)
+std::string connector_id;
+std::string metadata_key;
+std::string metadata_value;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P04-W15: Relationship type assigned.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(RelationshipTypeAssignedEvent)
+std::string connector_id;
+std::string relationship_type; ///< "dependency", "association", "aggregation"
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 04 W16: Diagram Templates events ────────────────
+
+/// P04-W16: Diagram template applied.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DiagramTemplateAppliedEvent)
+std::string template_name;
+std::string template_category;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P04-W16: Diagram template saved.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DiagramTemplateSavedEvent)
+std::string template_name;
+int node_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 04 W17: Dependency Validation events ─────────────
+
+/// P04-W17: Dependency check run.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DependencyCheckRunEvent)
+int total_links{0};
+int broken_links{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P04-W17: Broken dependency fixed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BrokenDependencyFixedEvent)
+std::string connector_id;
+std::string fix_action; ///< "reconnect", "remove", "reroute"
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 04 W18: Diagram Export Readiness events ──────────
+
+/// P04-W18: Diagram export preview generated.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DiagramExportPreviewEvent)
+std::string export_format; ///< "svg", "png", "pdf"
+MARKAMP_DECLARE_EVENT_END;
+
+/// P04-W18: Diagram export completed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DiagramExportCompletedEvent)
+std::string export_format;
+std::string output_path;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 04 W19: Collaborative Diagram Editing events ─────
+
+/// P04-W19: Collaborative diagram lock acquired.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DiagramLockAcquiredEvent)
+std::string diagram_id;
+std::string user_id;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P04-W19: Collaborative diagram lock released.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DiagramLockReleasedEvent)
+std::string diagram_id;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 04 W20: Diagram Test Matrix events ──────────────
+
+/// P04-W20: Diagram test suite run.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DiagramTestSuiteRunEvent)
+int tests_passed{0};
+int tests_failed{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P04-W20: Diagram regression detected.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DiagramRegressionDetectedEvent)
+std::string test_name;
+std::string description;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 05 W01: Image Placement events ──────────────────
+
+/// P05-W01: Image placed on canvas.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ImagePlacedEvent)
+std::string image_path;
+double scale{1.0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P05-W01: Image replaced on canvas.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ImageReplacedEvent)
+std::string object_id;
+std::string new_image_path;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 05 W02: Video & Web Embeds events ───────────────
+
+/// P05-W02: Video embed added.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(VideoEmbedAddedEvent)
+std::string embed_url;
+std::string embed_type; ///< "youtube", "vimeo", "iframe"
+MARKAMP_DECLARE_EVENT_END;
+
+/// P05-W02: Web embed resized.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(WebEmbedResizedEvent)
+std::string object_id;
+double width{0.0};
+double height{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 05 W03: PDF Pages events ────────────────────────
+
+/// P05-W03: PDF page added to canvas.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PdfPageAddedEvent)
+std::string pdf_path;
+int page_number{1};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P05-W03: PDF page navigated.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasPdfPageNavigatedEvent)
+std::string object_id;
+int target_page{1};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 05 W04: Bookmark Cards events ──────────────────
+
+/// P05-W04: Bookmark card created.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BookmarkCardCreatedEvent)
+std::string url;
+std::string title;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P05-W04: Bookmark card refreshed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BookmarkCardRefreshedEvent)
+std::string object_id;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 05 W05: App Widgets events ──────────────────────
+
+/// P05-W05: App widget added.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AppWidgetAddedEvent)
+std::string widget_type;
+std::string widget_config;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P05-W05: App widget configured.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AppWidgetConfiguredEvent)
+std::string object_id;
+std::string config_key;
+std::string config_value;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 05 W06: Icon Insertion events ───────────────────
+
+/// P05-W06: Icon inserted on canvas.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasIconInsertedEvent)
+std::string icon_name;
+std::string icon_set; ///< "lucide", "material", "custom"
+MARKAMP_DECLARE_EVENT_END;
+
+/// P05-W06: Icon color changed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(IconColorChangedEvent)
+std::string object_id;
+std::string new_color;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 05 W07: Drag & Drop Intake events ──────────────
+
+/// P05-W07: External content dropped on canvas.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ContentDroppedEvent)
+std::string content_type; ///< "image", "file", "text", "url"
+std::string source_path;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P05-W07: Drop intake completed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DropIntakeCompletedEvent)
+int items_ingested{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 05 W08: Clipboard Ingest events ────────────────
+
+/// P05-W08: Clipboard content pasted.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ClipboardPastedEvent)
+std::string paste_format; ///< "html", "image", "text", "rtf"
+MARKAMP_DECLARE_EVENT_END;
+
+/// P05-W08: Rich paste converted.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(RichPasteConvertedEvent)
+std::string source_format;
+std::string target_format;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 05 W09: Media Optimization events ──────────────
+
+/// P05-W09: Media optimization run.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(MediaOptimizationRunEvent)
+int assets_optimized{0};
+double size_reduction_pct{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P05-W09: Media quality level set.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(MediaQualitySetEvent)
+std::string quality_level; ///< "low", "medium", "high", "original"
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 05 W10: Cropping & Masking events ──────────────
+
+/// P05-W10: Image cropped.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ImageCroppedEvent)
+std::string object_id;
+double crop_x{0.0};
+double crop_y{0.0};
+double crop_width{0.0};
+double crop_height{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P05-W10: Image mask applied.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ImageMaskAppliedEvent)
+std::string object_id;
+std::string mask_type; ///< "circle", "rounded_rect", "custom"
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 05 W11: Captions & Metadata events ─────────────
+
+/// P05-W11: Caption set on asset.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AssetCaptionSetEvent)
+std::string object_id;
+std::string caption_text;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P05-W11: Alt text set on asset.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AssetAltTextSetEvent)
+std::string object_id;
+std::string alt_text;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 05 W12: Asset Library Panel events ─────────────
+
+/// P05-W12: Asset added to library.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AssetLibraryAddedEvent)
+std::string asset_name;
+std::string asset_category;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P05-W12: Asset removed from library.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AssetLibraryRemovedEvent)
+std::string asset_id;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 05 W13: Asset Styling events ───────────────────
+
+/// P05-W13: Asset frame applied.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AssetFrameAppliedEvent)
+std::string object_id;
+std::string frame_style; ///< "shadow", "border", "rounded", "none"
+MARKAMP_DECLARE_EVENT_END;
+
+/// P05-W13: Asset shadow changed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AssetShadowChangedEvent)
+std::string object_id;
+double shadow_offset{0.0};
+double shadow_blur{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 05 W14: Mixed Media Boards events ─────────────
+
+/// P05-W14: Media composition created.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(MediaCompositionCreatedEvent)
+int object_count{0};
+std::string layout_mode; ///< "freeform", "grid", "stack"
+MARKAMP_DECLARE_EVENT_END;
+
+/// P05-W14: Media layer reordered.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(MediaLayerReorderedEvent)
+std::string object_id;
+int new_z_index{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 05 W15: Import & Convert events ────────────────
+
+/// P05-W15: External file imported to canvas.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ExternalFileImportedEvent)
+std::string source_path;
+std::string converted_format;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P05-W15: Import conversion completed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ImportConversionCompletedEvent)
+int files_converted{0};
+bool all_succeeded{true};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 05 W16: Media Review Flows events ──────────────
+
+/// P05-W16: Media review started.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(MediaReviewStartedEvent)
+std::string object_id;
+std::string reviewer;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P05-W16: Media review completed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(MediaReviewCompletedEvent)
+std::string object_id;
+bool approved{false};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 05 W17: Licensing & Security events ────────────
+
+/// P05-W17: Content license set.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ContentLicenseSetEvent)
+std::string object_id;
+std::string license_type; ///< "cc-by", "cc-by-sa", "proprietary", "public-domain"
+MARKAMP_DECLARE_EVENT_END;
+
+/// P05-W17: Security scan completed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SecurityScanCompletedEvent)
+int assets_scanned{0};
+int threats_found{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 05 W18: Asset Serialization & Sync events ──────
+
+/// P05-W18: Asset metadata serialized.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AssetMetadataSerializedEvent)
+int assets_serialized{0};
+std::string format; ///< "json", "yaml", "binary"
+MARKAMP_DECLARE_EVENT_END;
+
+/// P05-W18: Asset sync completed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AssetSyncCompletedEvent)
+int assets_synced{0};
+int conflicts_detected{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 05 W19: Rich Content Export events ─────────────
+
+/// P05-W19: Rich content export started.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(RichContentExportStartedEvent)
+std::string export_format; ///< "png", "pdf", "html", "svg"
+int objects_to_export{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P05-W19: Rich content export completed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(RichContentExportCompletedEvent)
+std::string output_path;
+bool success{true};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 05 W20: Asset Test Coverage events ─────────────
+
+/// P05-W20: Asset test suite run.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AssetTestSuiteRunEvent)
+int tests_run{0};
+int tests_passed{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P05-W20: Asset regression detected.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AssetRegressionDetectedEvent)
+std::string test_name;
+std::string description;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 06 W01: Live Presence events ───────────────────
+
+/// P06-W01: Collaborator joined board.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CollaboratorJoinedEvent)
+std::string user_id;
+std::string display_name;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P06-W01: Collaborator left board.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CollaboratorLeftEvent)
+std::string user_id;
+std::string reason; ///< "disconnect", "navigated_away", "timeout"
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 06 W02: Remote Selections & Follow events ─────
+
+/// P06-W02: Remote selection changed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(RemoteSelectionChangedEvent)
+std::string user_id;
+int selected_object_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P06-W02: Follow mode toggled.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FollowModeToggledEvent)
+std::string target_user_id;
+bool following{false};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 06 W03: Conflict Handling events ──────────────
+
+/// P06-W03: Edit conflict detected.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(EditConflictDetectedEvent)
+std::string object_id;
+std::string conflicting_user;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P06-W03: Conflict resolved.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ConflictResolvedEvent)
+std::string object_id;
+std::string resolution_strategy; ///< "last_write_wins", "merge", "manual"
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 06 W04: Comment Threads events ────────────────
+
+/// P06-W04: Comment thread created.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CommentThreadCreatedEvent)
+std::string thread_id;
+std::string anchor_object_id;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P06-W04: Comment reply added.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CommentReplyAddedEvent)
+std::string thread_id;
+std::string author;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 06 W05: Voting & Reactions events ─────────────
+
+/// P06-W05: Vote cast on object.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(VoteCastEvent)
+std::string object_id;
+std::string voter;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P06-W05: Reaction added to object.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ReactionAddedEvent)
+std::string object_id;
+std::string reaction_type; ///< "thumbs_up", "heart", "star", "fire"
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 06 W06: Timer & Facilitation events ───────────
+
+/// P06-W06: Facilitation timer started.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FacilitationTimerStartedEvent)
+int duration_seconds{0};
+std::string facilitator;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P06-W06: Facilitation timer expired.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FacilitationTimerExpiredEvent)
+std::string session_id;
+bool auto_extended{false};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 06 W07: Private Reveal & Presentation events ──
+
+/// P06-W07: Private reveal initiated.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PrivateRevealInitiatedEvent)
+std::string presenter;
+int hidden_object_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P06-W07: Content revealed to audience.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ContentRevealedEvent)
+int revealed_count{0};
+std::string reveal_mode; ///< "all_at_once", "sequential", "by_group"
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 06 W08: Permissions & Shared Locks events ─────
+
+/// P06-W08: Object permission changed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ObjectPermissionChangedEvent)
+std::string object_id;
+std::string permission_level; ///< "edit", "view", "locked"
+MARKAMP_DECLARE_EVENT_END;
+
+/// P06-W08: Shared lock acquired.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SharedLockAcquiredEvent)
+std::string object_id;
+std::string locked_by;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 06 W09: Offline Queue events ──────────────────
+
+/// P06-W09: Offline operation queued.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(OfflineOperationQueuedEvent)
+int queue_depth{0};
+std::string operation_type; ///< "create", "update", "delete"
+MARKAMP_DECLARE_EVENT_END;
+
+/// P06-W09: Offline queue flushed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(OfflineQueueFlushedEvent)
+int operations_applied{0};
+int operations_conflicted{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 06 W10: Activity Feed events ──────────────────
+
+/// P06-W10: Activity feed entry added.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ActivityFeedEntryAddedEvent)
+std::string actor;
+std::string action_description;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P06-W10: Activity feed cleared.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ActivityFeedClearedEvent)
+int entries_cleared{0};
+std::string cleared_by;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 06 W11: Change Highlights events ─────────────
+
+/// P06-W11: Change highlight detected.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ChangeHighlightDetectedEvent)
+int changes_since_last_visit{0};
+std::string last_visitor;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P06-W11: Change highlight dismissed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ChangeHighlightDismissedEvent)
+std::string user_id;
+int dismissed_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 06 W12: Invites & Session Entry events ────────
+
+/// P06-W12: Session invite sent.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SessionInviteSentEvent)
+std::string invitee_email;
+std::string session_id;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P06-W12: Session joined via invite.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SessionJoinedViaInviteEvent)
+std::string user_id;
+std::string invite_code;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 06 W13: Collaborator Panels events ───────────
+
+/// P06-W13: Collaborator panel opened.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CollaboratorPanelOpenedEvent)
+std::string panel_type; ///< "awareness", "moderation", "facilitation"
+int active_users{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P06-W13: Collaborator panel action taken.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CollaboratorPanelActionEvent)
+std::string action_type; ///< "mute", "kick", "promote"
+std::string target_user;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 06 W14: Co-Editing Text events ───────────────
+
+/// P06-W14: Co-editing session started.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CoEditingStartedEvent)
+std::string object_id;
+int editors_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P06-W14: Co-editing cursor moved.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CoEditingCursorMovedEvent)
+std::string user_id;
+int cursor_position{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 06 W15: Workshop Templates events ────────────
+
+/// P06-W15: Workshop template applied.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(WorkshopTemplateAppliedEvent)
+std::string template_name;
+int objects_created{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P06-W15: Workshop template saved.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(WorkshopTemplateSavedEvent)
+std::string template_name;
+std::string author;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 06 W16: Async Review events ──────────────────
+
+/// P06-W16: Async review requested.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AsyncReviewRequestedEvent)
+std::string reviewer_id;
+std::string board_id;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P06-W16: Async review completed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AsyncReviewCompletedEvent)
+std::string reviewer_id;
+bool approved{false};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 06 W17: Moderation & Recovery events ─────────
+
+/// P06-W17: User moderated.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(UserModeratedEvent)
+std::string target_user;
+std::string moderation_action; ///< "mute", "remove", "restrict"
+MARKAMP_DECLARE_EVENT_END;
+
+/// P06-W17: Board state recovered.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BoardStateRecoveredEvent)
+std::string recovery_point;
+int objects_restored{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 06 W18: Multiplayer Performance events ───────
+
+/// P06-W18: Presence throttled.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PresenceThrottledEvent)
+int active_connections{0};
+int throttle_interval_ms{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P06-W18: Batch update sent.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BatchUpdateSentEvent)
+int operations_batched{0};
+int batch_size_bytes{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 06 W19: Collaboration Analytics events ───────
+
+/// P06-W19: Collaboration metrics snapshot.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CollabMetricsSnapshotEvent)
+int total_edits{0};
+int unique_contributors{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P06-W19: Engagement score calculated.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(EngagementScoreCalculatedEvent)
+double engagement_score{0.0};
+std::string session_id;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 06 W20: Collaboration Coverage events ────────
+
+/// P06-W20: Collab test suite run.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CollabTestSuiteRunEvent)
+int tests_run{0};
+int tests_passed{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P06-W20: Collab regression detected.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CollabRegressionDetectedEvent)
+std::string test_name;
+std::string failure_detail;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 07 W01: Minimap Navigation events ────────────
+
+/// P07-W01: Minimap viewport changed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(MinimapViewportChangedEvent)
+double viewport_x{0.0};
+double viewport_y{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P07-W01: Minimap visibility toggled.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(MinimapVisibilityToggledEvent)
+bool visible{false};
+std::string toggle_source; ///< "menu", "shortcut", "auto"
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 07 W02: Outline Navigation events ────────────
+
+/// P07-W02: Outline node selected.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(OutlineNodeSelectedEvent)
+std::string node_id;
+std::string node_type; ///< "section", "frame", "group"
+MARKAMP_DECLARE_EVENT_END;
+
+/// P07-W02: Outline tree refreshed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(OutlineTreeRefreshedEvent)
+int total_nodes{0};
+int depth_levels{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 07 W03: Search & Find events ─────────────────
+
+/// P07-W03: Board search executed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BoardSearchExecutedEvent)
+std::string query;
+int results_found{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P07-W03: Board search result navigated.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BoardSearchResultNavigatedEvent)
+std::string object_id;
+int result_index{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 07 W04: Tagging & Filters events ─────────────
+
+/// P07-W04: Tag filter applied.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TagFilterAppliedEvent)
+std::string tag_name;
+int matching_objects{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P07-W04: Tag filter cleared.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TagFilterClearedEvent)
+int filters_removed{0};
+int total_objects_visible{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 07 W05: Sections & Landmarks events ──────────
+
+/// P07-W05: Section landmark created.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SectionLandmarkCreatedEvent)
+std::string section_name;
+std::string section_id;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P07-W05: Navigate to landmark.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(LandmarkNavigatedEvent)
+std::string landmark_id;
+double target_zoom{1.0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 07 W06: Large Board Streaming events ─────────
+
+/// P07-W06: Tile loaded for streaming.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TileLoadedEvent)
+int tile_x{0};
+int tile_y{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P07-W06: Streaming LOD changed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(StreamingLodChangedEvent)
+int lod_level{0};
+int visible_objects{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 07 W07: Breadcrumbs & History events ─────────
+
+/// P07-W07: Breadcrumb pushed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BreadcrumbPushedEvent)
+std::string location_label;
+int stack_depth{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P07-W07: Breadcrumb navigated back.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BreadcrumbNavigatedBackEvent)
+int steps_back{0};
+std::string destination_label;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 07 W08: Zoom Presets events ───────────────────
+
+/// P07-W08: Zoom preset applied.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ZoomPresetAppliedEvent)
+std::string preset_name; ///< "fit_all", "fit_selection", "100%", "50%"
+double zoom_level{1.0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P07-W08: Zoom preset saved.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ZoomPresetSavedEvent)
+std::string preset_name;
+double zoom_level{1.0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 07 W09: Board Bookmarks events ───────────────
+
+/// P07-W09: Board bookmark created.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BoardBookmarkCreatedEvent)
+std::string bookmark_name;
+std::string bookmark_id;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P07-W09: Board bookmark navigated.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BoardBookmarkNavigatedEvent)
+std::string bookmark_id;
+double viewport_zoom{1.0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 07 W10: Metadata Driven Navigation events ────
+
+/// P07-W10: Metadata filter applied.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(MetadataFilterAppliedEvent)
+std::string filter_key; ///< "owner", "status", "type"
+std::string filter_value;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P07-W10: Metadata navigation jump.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(MetadataNavJumpEvent)
+std::string target_object_id;
+std::string metadata_key;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 07 W11: Cross Board Traversal events ─────────
+
+/// P07-W11: Cross board link followed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CrossBoardLinkFollowedEvent)
+std::string source_board_id;
+std::string target_board_id;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P07-W11: Cross board back navigation.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CrossBoardBackNavigatedEvent)
+std::string returning_to_board_id;
+int boards_traversed{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 07 W12: Selection Sync events ────────────────
+
+/// P07-W12: Selection synced to panel.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SelectionSyncedToPanelEvent)
+std::string panel_id;
+int synced_objects{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P07-W12: Selection sync toggled.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SelectionSyncToggledEvent)
+bool sync_enabled{false};
+std::string panel_id;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 07 W13: Saved Views events ───────────────────
+
+/// P07-W13: Named view saved.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NamedViewSavedEvent)
+std::string view_name;
+std::string view_id;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P07-W13: Named view restored.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NamedViewRestoredEvent)
+std::string view_id;
+double restored_zoom{1.0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 07 W14: Presentation Navigation events ───────
+
+/// P07-W14: Presentation slide advanced.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PresentationSlideAdvancedEvent)
+int slide_index{0};
+int total_slides{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P07-W14: Presentation mode toggled.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PresentationModeToggledEvent)
+bool presentation_active{false};
+std::string presenter_id;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 07 W15: Semantic Navigation events ───────────
+
+/// P07-W15: Semantic cluster navigated.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SemanticClusterNavigatedEvent)
+std::string cluster_label;
+int objects_in_cluster{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P07-W15: Semantic grouping recalculated.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SemanticGroupingRecalculatedEvent)
+int clusters_found{0};
+int ungrouped_objects{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 07 W16: Quick Action Navigation events ───────
+
+/// P07-W16: Quick action invoked.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(QuickActionInvokedEvent)
+std::string action_name;
+std::string action_source; ///< "palette", "shortcut", "contextmenu"
+MARKAMP_DECLARE_EVENT_END;
+
+/// P07-W16: Quick action result selected.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(QuickActionResultSelectedEvent)
+std::string result_id;
+int result_rank{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 07 W17: Discoverability events ───────────────
+
+/// P07-W17: Feature hint shown.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FeatureHintShownEvent)
+std::string hint_id;
+std::string feature_area; ///< "navigation", "editing", "collaboration"
+MARKAMP_DECLARE_EVENT_END;
+
+/// P07-W17: Feature hint dismissed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FeatureHintDismissedEvent)
+std::string hint_id;
+bool dont_show_again{false};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 07 W18: Responsive Layouts events ────────────
+
+/// P07-W18: Layout breakpoint changed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(LayoutBreakpointChangedEvent)
+std::string breakpoint_name; ///< "compact", "medium", "wide"
+int window_width{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P07-W18: Navigation panel repositioned.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NavPanelRepositionedEvent)
+std::string panel_position; ///< "left", "bottom", "floating"
+std::string trigger; ///< "auto", "manual"
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 07 W19: Wayfinding Telemetry events ──────────
+
+/// P07-W19: Navigation confusion detected.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NavConfusionDetectedEvent)
+int rapid_pans{0};
+int zoom_reversals{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P07-W19: Wayfinding metric recorded.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(WayfindingMetricRecordedEvent)
+std::string metric_name;
+double metric_value{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V17 Phase 07 W20: Navigation Coverage events ───────────
+
+/// P07-W20: Navigation test suite run.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NavTestSuiteRunEvent)
+int tests_run{0};
+int tests_passed{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P07-W20: Navigation regression detected.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NavRegressionDetectedEvent)
+std::string test_name;
+std::string failure_detail;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V18 Phase 08 W01: Board Templates events ───────────────
+
+/// P08-W01: Board template applied.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BoardTemplateAppliedEvent)
+std::string template_name;
+std::string template_category; ///< "sprint", "retro", "brainstorm"
+MARKAMP_DECLARE_EVENT_END;
+
+/// P08-W01: Board template saved.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BoardTemplateSavedEvent)
+std::string template_name;
+int objects_in_template{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V18 Phase 08 W02: Object Templates events ──────────────
+
+/// P08-W02: Object template inserted.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ObjectTemplateInsertedEvent)
+std::string template_id;
+int objects_inserted{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P08-W02: Object template registered.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ObjectTemplateRegisteredEvent)
+std::string template_name;
+std::string template_type; ///< "cluster", "module", "pattern"
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V18 Phase 08 W03: Advanced Style Presets events ─────────
+
+/// P08-W03: Board style preset applied to selection.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BoardStylePresetAppliedEvent)
+std::string preset_name;
+int objects_affected{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P08-W03: Style preset created.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(StylePresetCreatedEvent)
+std::string preset_name;
+std::string preset_scope; ///< "board", "team", "global"
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V18 Phase 08 W04: Automation Rules events ──────────────
+
+/// P08-W04: Automation rule triggered.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AutomationRuleTriggeredEvent)
+std::string rule_name;
+int actions_executed{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P08-W04: Automation rule created.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AutomationRuleCreatedEvent)
+std::string rule_name;
+std::string trigger_type; ///< "on_create", "on_move", "on_tag"
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V18 Phase 08 W05: AI Board Generation events ───────────
+
+/// P08-W05: AI board generation requested.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AIBoardGenerationRequestedEvent)
+std::string prompt_text;
+std::string board_type; ///< "flowchart", "mind_map", "kanban"
+MARKAMP_DECLARE_EVENT_END;
+
+/// P08-W05: AI board generation completed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AIBoardGenerationCompletedEvent)
+int objects_generated{0};
+double generation_time_ms{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V18 Phase 08 W06: AI Cleanup & Refinement events ───────
+
+/// P08-W06: AI cleanup requested.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AICleanupRequestedEvent)
+std::string cleanup_type; ///< "normalize", "restructure", "align"
+int objects_in_scope{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P08-W06: AI cleanup completed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AICleanupCompletedEvent)
+int objects_modified{0};
+int objects_removed{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V18 Phase 08 W07: AI Summaries & Explanations events ────
+
+/// P08-W07: AI summary requested.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AISummaryRequestedEvent)
+std::string scope; ///< "board", "selection", "section"
+int objects_summarized{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P08-W07: AI summary generated.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AISummaryGeneratedEvent)
+int word_count{0};
+std::string output_format; ///< "text", "bullets", "outline"
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V18 Phase 08 W08: AI Tags & Links events ───────────────
+
+/// P08-W08: AI tag suggestions generated.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AITagSuggestionsGeneratedEvent)
+int tags_suggested{0};
+int objects_analyzed{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P08-W08: AI link suggestions generated.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AILinkSuggestionsGeneratedEvent)
+int links_suggested{0};
+int cross_board_links{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V18 Phase 08 W09: Batch Operations events ──────────────
+
+/// P08-W09: Batch operation executed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BatchOperationExecutedEvent)
+std::string operation_type; ///< "move", "style", "tag", "delete"
+int objects_affected{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P08-W09: Batch operation undone.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BatchOperationUndoneEvent)
+std::string operation_type;
+int objects_restored{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V18 Phase 08 W10: Markdown To Canvas events ────────────
+
+/// P08-W10: Markdown import to canvas started.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(MarkdownToCanvasStartedEvent)
+std::string source_file;
+int lines_to_parse{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P08-W10: Markdown import to canvas completed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(MarkdownToCanvasCompletedEvent)
+int objects_created{0};
+int connectors_created{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V18 Phase 08 W11: CSV & Database Imports events ────────
+
+/// P08-W11: CSV import to canvas started.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CsvImportStartedEvent)
+std::string source_file;
+int rows_to_import{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P08-W11: CSV import to canvas completed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CsvImportCompletedEvent)
+int objects_created{0};
+int columns_mapped{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V18 Phase 08 W12: Export Workflows events ──────────────
+
+/// P08-W12: Board export started.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BoardExportStartedEvent)
+std::string export_format; ///< "png", "pdf", "svg", "json"
+std::string export_scope; ///< "full", "selection", "viewport"
+MARKAMP_DECLARE_EVENT_END;
+
+/// P08-W12: Board export completed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BoardExportCompletedEvent)
+std::string output_path;
+int objects_exported{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V18 Phase 08 W13: Reusable Components events ───────────
+
+/// P08-W13: Reusable component saved.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ReusableComponentSavedEvent)
+std::string component_name;
+int child_objects{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P08-W13: Reusable component instantiated.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ReusableComponentInstantiatedEvent)
+std::string component_id;
+std::string instance_id;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V18 Phase 08 W14: Plugin Hooks events ──────────────────
+
+/// P08-W14: Plugin hook registered.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PluginHookRegisteredEvent)
+std::string hook_name;
+std::string plugin_id;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P08-W14: Plugin hook invoked.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PluginHookInvokedEvent)
+std::string hook_name;
+int listeners_notified{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V18 Phase 08 W15: Command Macros events ────────────────
+
+/// P08-W15: Command macro recorded.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CommandMacroRecordedEvent)
+std::string macro_name;
+int steps_recorded{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P08-W15: Command macro replayed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CommandMacroReplayedEvent)
+std::string macro_name;
+int objects_affected{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V18 Phase 08 W16: Quick Insert events ──────────────────
+
+/// P08-W16: Quick insert menu opened.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(QuickInsertMenuOpenedEvent)
+std::string trigger_source; ///< "slash", "toolbar", "shortcut"
+int items_available{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P08-W16: Quick insert item selected.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(QuickInsertItemSelectedEvent)
+std::string item_type;
+int search_rank{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V18 Phase 08 W17: Smart Defaults events ────────────────
+
+/// P08-W17: Smart default applied.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SmartDefaultAppliedEvent)
+std::string default_type; ///< "color", "size", "font", "layout"
+std::string context;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P08-W17: Smart default suggestion shown.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SmartDefaultSuggestionShownEvent)
+int suggestions_count{0};
+bool suggestion_accepted{false};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V18 Phase 08 W18: Profile & Preference Sync events ─────
+
+/// P08-W18: Profile synced.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ProfileSyncedEvent)
+std::string profile_id;
+int preferences_synced{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P08-W18: Preference conflict resolved.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PreferenceConflictResolvedEvent)
+std::string preference_key;
+std::string resolution; ///< "local", "remote", "merged"
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V18 Phase 08 W19: Onboarding Programs events ───────────
+
+/// P08-W19: Canvas onboarding step completed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasOnboardingStepCompletedEvent)
+std::string step_id;
+int steps_remaining{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P08-W19: Onboarding program finished.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(OnboardingProgramFinishedEvent)
+std::string program_id;
+int total_steps_completed{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V18 Phase 08 W20: Agent Ready Scaffolds events ─────────
+
+/// P08-W20: Creation test suite run.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CreationTestSuiteRunEvent)
+int tests_run{0};
+int tests_passed{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P08-W20: Creation regression detected.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CreationRegressionDetectedEvent)
+std::string test_name;
+std::string failure_detail;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V19 Phase 09 W01: Keyboard Only Canvas events ──────────
+
+/// P09-W01: Keyboard navigation action performed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(KeyboardNavActionEvent)
+std::string action; ///< "move_focus", "select", "pan"
+std::string direction; ///< "up", "down", "left", "right"
+MARKAMP_DECLARE_EVENT_END;
+
+/// P09-W01: Keyboard shortcut conflict detected.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(KeyboardShortcutConflictEvent)
+std::string shortcut_key;
+std::string conflicting_action;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V19 Phase 09 W02: Screen Reader Semantics events ───────
+
+/// P09-W02: Screen reader announcement queued.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ScreenReaderAnnouncementEvent)
+std::string announcement_text;
+std::string priority; ///< "polite", "assertive"
+MARKAMP_DECLARE_EVENT_END;
+
+/// P09-W02: Accessible label updated.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AccessibleLabelUpdatedEvent)
+std::string object_id;
+std::string new_label;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V19 Phase 09 W03: Contrast & Color Blindness events ────
+
+/// P09-W03: High contrast mode toggled.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(HighContrastModeToggledEvent)
+bool high_contrast_enabled{false};
+std::string contrast_profile; ///< "standard", "deuteranopia", "protanopia"
+MARKAMP_DECLARE_EVENT_END;
+
+/// P09-W03: Color accessibility check run.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ColorAccessibilityCheckEvent)
+int elements_checked{0};
+int issues_found{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V19 Phase 09 W04: Focus & Announcements events ─────────
+
+/// P09-W04: Focus transferred between objects.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FocusTransferredEvent)
+std::string from_object_id;
+std::string to_object_id;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P09-W04: Live region update announced.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(LiveRegionUpdateEvent)
+std::string region_id;
+std::string update_text;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V19 Phase 09 W05: Touch & Pen Parity events ────────────
+
+/// P09-W05: Touch gesture recognized.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TouchGestureRecognizedEvent)
+std::string gesture_type; ///< "pinch", "rotate", "two_finger_pan"
+int touch_points{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P09-W05: Pen pressure sensitivity applied.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PenPressureAppliedEvent)
+double pressure_level{0.0};
+std::string pen_tool; ///< "draw", "erase", "highlight"
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V19 Phase 09 W06: Performance Budgets events ───────────
+
+/// P09-W06: Performance budget exceeded.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PerfBudgetExceededEvent)
+std::string operation;
+double elapsed_ms{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P09-W06: Frame rate metric recorded.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FrameRateMetricEvent)
+double fps{0.0};
+int objects_rendered{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V19 Phase 09 W07: Virtualization events ────────────────
+
+/// P09-W07: Viewport culling updated.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ViewportCullingUpdatedEvent)
+int visible_objects{0};
+int total_objects{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P09-W07: Tile cache hit/miss recorded.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TileCacheMetricEvent)
+int cache_hits{0};
+int cache_misses{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V19 Phase 09 W08: Crash Recovery events ────────────────
+
+/// P09-W08: Crash recovery checkpoint saved.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CrashRecoveryCheckpointEvent)
+std::string checkpoint_id;
+int objects_saved{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P09-W08: Crash board state recovered.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CrashBoardStateRecoveredEvent)
+std::string recovery_source; ///< "autosave", "checkpoint", "journal"
+int objects_recovered{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V19 Phase 09 W09: Data Integrity events ────────────────
+
+/// P09-W09: Board integrity check run.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BoardIntegrityCheckEvent)
+int objects_validated{0};
+int corruption_found{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P09-W09: Data repair applied.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DataRepairAppliedEvent)
+std::string repair_type; ///< "orphan_cleanup", "ref_fix", "schema_migrate"
+int items_repaired{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V19 Phase 09 W10: Accessibility Tooling events ─────────
+
+/// P09-W10: Accessibility audit run.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AccessibilityAuditRunEvent)
+int elements_audited{0};
+int violations_found{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P09-W10: Accessibility regression detected.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AccessibilityRegressionEvent)
+std::string test_name;
+std::string violation_type;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V19 Phase 09 W11: Safe Degradation events ──────────────
+
+/// P09-W11: Safe degradation fallback activated.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SafeDegradationActivatedEvent)
+std::string feature_name;
+std::string fallback_reason; ///< "slow_gpu", "failed_embed", "plugin_crash"
+MARKAMP_DECLARE_EVENT_END;
+
+/// P09-W11: Degraded mode exited.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DegradedModeExitedEvent)
+std::string feature_name;
+double degraded_duration_ms{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V19 Phase 09 W12: Observability events ─────────────────
+
+/// P09-W12: Telemetry span recorded.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TelemetrySpanRecordedEvent)
+std::string span_name;
+double duration_ms{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P09-W12: Error telemetry emitted.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ErrorTelemetryEmittedEvent)
+std::string error_category;
+std::string error_message;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V19 Phase 09 W13: Feature Flags events ─────────────────
+
+/// P09-W13: Feature flag evaluated.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FeatureFlagEvaluatedEvent)
+std::string flag_name;
+bool flag_value{false};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P09-W13: Feature flag override applied.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FeatureFlagOverrideEvent)
+std::string flag_name;
+std::string override_source; ///< "user", "admin", "experiment"
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V19 Phase 09 W14: Snapshot & Harnesses events ──────────
+
+/// P09-W14: Visual snapshot captured.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(VisualSnapshotCapturedEvent)
+std::string snapshot_id;
+int pixels_diffed{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P09-W14: Snapshot comparison result.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SnapshotComparisonResultEvent)
+std::string baseline_id;
+double diff_percentage{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V19 Phase 09 W15: Unit & Integration Gaps events ───────
+
+/// P09-W15: Test coverage gap identified.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TestCoverageGapEvent)
+std::string module_name;
+int uncovered_lines{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P09-W15: Integration test added.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(IntegrationTestAddedEvent)
+std::string test_name;
+std::string covered_module;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V19 Phase 09 W16: End To End Determinism events ────────
+
+/// P09-W16: E2E test flakiness detected.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(E2EFlakinessDetectedEvent)
+std::string test_name;
+int flaky_runs{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P09-W16: E2E timing stabilized.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(E2ETimingStabilizedEvent)
+std::string test_name;
+double variance_ms{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V19 Phase 09 W17: Security & Privacy events ────────────
+
+/// P09-W17: Security audit finding.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SecurityAuditFindingEvent)
+std::string finding_type; ///< "xss", "injection", "leak"
+std::string severity; ///< "low", "medium", "high", "critical"
+MARKAMP_DECLARE_EVENT_END;
+
+/// P09-W17: Privacy data scrubbed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PrivacyDataScrubbedEvent)
+int fields_scrubbed{0};
+std::string scrub_scope; ///< "export", "telemetry", "collab"
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V19 Phase 09 W18: Localization & IME events ────────────
+
+/// P09-W18: Locale switched.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(LocaleSwitchedEvent)
+std::string from_locale;
+std::string to_locale;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P09-W18: IME composition event.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(IMECompositionEvent)
+std::string ime_state; ///< "start", "update", "end"
+int composition_length{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V19 Phase 09 W19: Compliance Checklists events ─────────
+
+/// P09-W19: Compliance check run.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ComplianceCheckRunEvent)
+int checks_passed{0};
+int checks_failed{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P09-W19: Compliance violation flagged.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ComplianceViolationFlaggedEvent)
+std::string rule_id;
+std::string violation_detail;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V19 Phase 09 W20: Operational Dashboards events ────────
+
+/// P09-W20: Dashboard metric published.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DashboardMetricPublishedEvent)
+std::string metric_name;
+double metric_value{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P09-W20: Canvas health check completed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasHealthCheckCompletedEvent)
+int healthy_systems{0};
+int degraded_systems{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V20 Phase 10 W01: Parity Audit events ──────────────────
+
+/// P10-W01: Parity audit item checked.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ParityAuditItemCheckedEvent)
+std::string competitor_feature;
+std::string parity_status; ///< "matched", "partial", "missing"
+MARKAMP_DECLARE_EVENT_END;
+
+/// P10-W01: Parity gap identified.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ParityGapIdentifiedEvent)
+std::string feature_name;
+std::string gap_severity; ///< "blocker", "important", "nice_to_have"
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V20 Phase 10 W02: Control Polish events ────────────────
+
+/// P10-W02: Control density adjusted.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ControlDensityAdjustedEvent)
+std::string control_group;
+std::string density_level; ///< "compact", "default", "spacious"
+MARKAMP_DECLARE_EVENT_END;
+
+/// P10-W02: Affordance refinement applied.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AffordanceRefinementAppliedEvent)
+std::string element_id;
+std::string refinement_type; ///< "label", "tooltip", "icon"
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V20 Phase 10 W03: Motion & Microinteraction events ─────
+
+/// P10-W03: Microinteraction triggered.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(MicrointeractionTriggeredEvent)
+std::string interaction_name;
+double duration_ms{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P10-W03: Motion preference applied.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(MotionPreferenceAppliedEvent)
+std::string preference; ///< "full", "reduced", "none"
+bool system_prefers_reduced{false};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V20 Phase 10 W04: Platform Conventions events ──────────
+
+/// P10-W04: Platform convention applied.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PlatformConventionAppliedEvent)
+std::string platform; ///< "macos", "windows", "linux"
+std::string convention_type; ///< "shortcut", "menu", "scroll"
+MARKAMP_DECLARE_EVENT_END;
+
+/// P10-W04: Platform parity check run.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PlatformParityCheckEvent)
+std::string platform;
+int conventions_matched{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V20 Phase 10 W05: Settings Migration events ────────────
+
+/// P10-W05: Settings migration started.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SettingsMigrationStartedEvent)
+std::string from_version;
+std::string to_version;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P10-W05: Settings migration completed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SettingsMigrationCompletedEvent)
+int settings_migrated{0};
+int settings_defaulted{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V20 Phase 10 W06: Documentation events ─────────────────
+
+/// P10-W06: Documentation page generated.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DocPageGeneratedEvent)
+std::string page_id;
+int sections_written{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P10-W06: Documentation coverage checked.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DocCoverageCheckedEvent)
+int features_documented{0};
+int features_undocumented{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V20 Phase 10 W07: Benchmarks & Baselines events ────────
+
+/// P10-W07: Benchmark run completed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BenchmarkRunCompletedEvent)
+std::string benchmark_name;
+double result_ms{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P10-W07: Benchmark regression detected.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BenchmarkRegressionDetectedEvent)
+std::string benchmark_name;
+double regression_pct{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V20 Phase 10 W08: Release Gates events ─────────────────
+
+/// P10-W08: Release gate evaluated.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ReleaseGateEvaluatedEvent)
+std::string gate_name;
+bool gate_passed{false};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P10-W08: Release readiness summary.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ReleaseReadinessSummaryEvent)
+int gates_passed{0};
+int gates_failed{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V20 Phase 10 W09: Beta Feedback Loops events ───────────
+
+/// P10-W09: Beta feedback submitted.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BetaFeedbackSubmittedEvent)
+std::string feedback_category;
+std::string board_state_id;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P10-W09: Beta feedback triaged.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BetaFeedbackTriagedEvent)
+std::string feedback_id;
+std::string triage_priority; ///< "p0", "p1", "p2", "p3"
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V20 Phase 10 W10: Extension Ecosystem events ───────────
+
+/// P10-W10: Extension compatibility checked.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ExtensionCompatibilityCheckedEvent)
+std::string extension_id;
+bool is_compatible{false};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P10-W10: Extension ecosystem report generated.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ExtensionEcosystemReportEvent)
+int total_extensions{0};
+int compatible_extensions{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V20 Phase 10 W11: Advanced Drawing Polish events ───────
+
+/// P10-W11: Drawing stroke refined.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DrawingStrokeRefinedEvent)
+std::string tool_name; ///< "pen", "shape", "text"
+double pressure_sensitivity{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P10-W11: Drawing tool calibrated.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DrawingToolCalibratedEvent)
+std::string tool_name;
+int calibration_points{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V20 Phase 10 W12: Advanced Layout Polish events ────────
+
+/// P10-W12: Layout transform refined.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(LayoutTransformRefinedEvent)
+std::string transform_type; ///< "rotate", "scale", "skew"
+double precision_delta{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P10-W12: Alignment edge case resolved.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AlignmentEdgeCaseResolvedEvent)
+std::string alignment_type;
+int objects_affected{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V20 Phase 10 W13: Advanced Collaboration Polish events ─
+
+/// P10-W13: Collaboration friction resolved.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CollabFrictionResolvedEvent)
+std::string friction_type; ///< "cursor_jitter", "selection_conflict", "sync_delay"
+double latency_improvement_ms{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P10-W13: Multi-user session stabilized.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(MultiUserSessionStabilizedEvent)
+int concurrent_users{0};
+double session_uptime_hours{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V20 Phase 10 W14: Advanced Navigation Polish events ────
+
+/// P10-W14: Board travel optimized.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(BoardTravelOptimizedEvent)
+std::string navigation_mode; ///< "minimap", "keyboard", "search"
+double travel_time_ms{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P10-W14: Navigation waypoint set.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NavigationWaypointSetEvent)
+std::string waypoint_id;
+double x{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V20 Phase 10 W15: Advanced Export Polish events ────────
+
+/// P10-W15: Export artifact finalized.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ExportArtifactFinalizedEvent)
+std::string format; ///< "pdf", "png", "svg"
+int pages_exported{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P10-W15: Export fidelity validated.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ExportFidelityValidatedEvent)
+std::string format;
+double fidelity_score{0.0}; ///< 0.0–1.0
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V20 Phase 10 W16: Enterprise & Admin events ────────────
+
+/// P10-W16: Admin policy applied.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AdminPolicyAppliedEvent)
+std::string policy_name;
+int users_affected{0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P10-W16: Governance audit logged.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(GovernanceAuditLoggedEvent)
+std::string action_type;
+std::string actor_id;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V20 Phase 10 W17: Quality Backlog Triage events ────────
+
+/// P10-W17: Defect triaged.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(DefectTriagedEvent)
+std::string defect_id;
+std::string severity; ///< "p0", "p1", "p2", "p3"
+MARKAMP_DECLARE_EVENT_END;
+
+/// P10-W17: Quality backlog reduced.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(QualityBacklogReducedEvent)
+int defects_resolved{0};
+int defects_remaining{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V20 Phase 10 W18: Adoption Metrics events ──────────────
+
+/// P10-W18: Adoption metric tracked.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AdoptionMetricTrackedEvent)
+std::string metric_name;
+double metric_value{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+/// P10-W18: Usage trend analyzed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(UsageTrendAnalyzedEvent)
+std::string feature_name;
+double trend_direction{0.0}; ///< positive = growth
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V20 Phase 10 W19: Support Playbooks events ─────────────
+
+/// P10-W19: Support playbook activated.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SupportPlaybookActivatedEvent)
+std::string playbook_id;
+std::string issue_category;
+MARKAMP_DECLARE_EVENT_END;
+
+/// P10-W19: Support resolution logged.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SupportResolutionLoggedEvent)
+std::string ticket_id;
+double resolution_time_hours{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V20 Phase 10 W20: Architecture Follow Ups events ───────
+
+/// P10-W20: Tech debt item addressed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TechDebtAddressedEvent)
+std::string debt_item;
+std::string resolution_type; ///< "refactor", "remove", "document"
+MARKAMP_DECLARE_EVENT_END;
+
+/// P10-W20: Platform investment completed.
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PlatformInvestmentCompletedEvent)
+std::string investment_area;
+int files_affected{0};
+MARKAMP_DECLARE_EVENT_END;
+
 // ============================================================================
 // V8 Phase 7: Realtime Collaboration events
 // ============================================================================

@@ -47,9 +47,19 @@ CanvasWorkspacePanel::CanvasWorkspacePanel(wxWindow* parent,
     , theme_engine_(theme_engine)
     , config_(config)
 {
+    // Restore persisted state from config
+    if (config_ != nullptr)
+    {
+        inspector_visible_ = config_->get_bool("canvas.inspector_visible", true);
+        minimap_visible_ = config_->get_bool("canvas.minimap_visible", true);
+    }
+
     CreateLayout();
+    SubscribeEvents();
     ApplyTheme();
-    MARKAMP_LOG_DEBUG("CanvasWorkspacePanel created");
+    MARKAMP_LOG_INFO("CanvasWorkspacePanel created — inspector:{} minimap:{}",
+                     inspector_visible_,
+                     minimap_visible_);
 }
 
 // ── Layout Construction ───────────────────────────────────────────
@@ -241,6 +251,19 @@ void CanvasWorkspacePanel::ToggleInspector()
         inspector_->Show(inspector_visible_);
         middle_sizer_->Layout();
     }
+
+    // Persist to config
+    if (config_ != nullptr)
+    {
+        config_->set("canvas.inspector_visible", inspector_visible_);
+    }
+
+    // Publish toggle event
+    core::events::CanvasInspectorToggledEvent evt;
+    evt.visible = inspector_visible_;
+    event_bus_.publish(evt);
+
+    MARKAMP_LOG_INFO("Canvas inspector toggled: {}", inspector_visible_);
 }
 
 void CanvasWorkspacePanel::ToggleMinimap()
@@ -251,6 +274,19 @@ void CanvasWorkspacePanel::ToggleMinimap()
         minimap_strip_->Show(minimap_visible_);
         root_sizer_->Layout();
     }
+
+    // Persist to config
+    if (config_ != nullptr)
+    {
+        config_->set("canvas.minimap_visible", minimap_visible_);
+    }
+
+    // Publish toggle event
+    core::events::CanvasMinimapToggledEvent evt;
+    evt.visible = minimap_visible_;
+    event_bus_.publish(evt);
+
+    MARKAMP_LOG_INFO("Canvas minimap toggled: {}", minimap_visible_);
 }
 
 bool CanvasWorkspacePanel::is_inspector_visible() const
@@ -261,6 +297,108 @@ bool CanvasWorkspacePanel::is_inspector_visible() const
 bool CanvasWorkspacePanel::is_minimap_visible() const
 {
     return minimap_visible_;
+}
+
+// ── Status Display ───────────────────────────────────────────────────────────
+
+void CanvasWorkspacePanel::SetBoardTitle(const std::string& title)
+{
+    if (board_title_label_ != nullptr)
+    {
+        std::string display = dirty_ ? "● " + title : title;
+        board_title_label_->SetLabel(display);
+    }
+}
+
+void CanvasWorkspacePanel::SetZoomLevel(double zoom)
+{
+    if (zoom_label_ != nullptr)
+    {
+        int zoom_pct = static_cast<int>(zoom * 100.0);
+        zoom_label_->SetLabel(std::to_string(zoom_pct) + "%");
+    }
+}
+
+void CanvasWorkspacePanel::SetObjectCount(size_t count)
+{
+    object_count_ = count;
+}
+
+void CanvasWorkspacePanel::SetDirtyIndicator(bool dirty)
+{
+    if (dirty_ == dirty)
+    {
+        return;
+    }
+    dirty_ = dirty;
+    // Re-render the title with or without the dirty dot
+    if (board_title_label_ != nullptr)
+    {
+        std::string current_title = board_title_label_->GetLabel().ToStdString();
+        // Strip existing dirty prefix if present
+        if (current_title.substr(0, 4) == "● ")
+        {
+            current_title = current_title.substr(4);
+        }
+        SetBoardTitle(current_title);
+    }
+}
+
+// ── Event Subscriptions ───────────────────────────────────────────────────
+
+void CanvasWorkspacePanel::SubscribeEvents()
+{
+    // Tool changes: update context bar mode label
+    subscriptions_.emplace_back(
+        event_bus_.subscribe<core::events::CanvasToolChangedEvent>(
+            [](const core::events::CanvasToolChangedEvent& evt)
+            {
+                MARKAMP_LOG_DEBUG("Workspace shell tool changed: {}", evt.tool_name);
+            }));
+
+    // Viewport changes: update zoom label
+    subscriptions_.emplace_back(
+        event_bus_.subscribe<core::events::CanvasViewportChangedEvent>(
+            [this](const core::events::CanvasViewportChangedEvent& evt)
+            {
+                SetZoomLevel(evt.zoom);
+            }));
+
+    // Object added: increment count
+    subscriptions_.emplace_back(
+        event_bus_.subscribe<core::events::CanvasObjectAddedEvent>(
+            [this](const core::events::CanvasObjectAddedEvent& /*evt*/)
+            {
+                ++object_count_;
+            }));
+
+    // Object removed: decrement count
+    subscriptions_.emplace_back(
+        event_bus_.subscribe<core::events::CanvasObjectRemovedEvent>(
+            [this](const core::events::CanvasObjectRemovedEvent& /*evt*/)
+            {
+                if (object_count_ > 0)
+                {
+                    --object_count_;
+                }
+            }));
+
+    // Board renamed: update title
+    subscriptions_.emplace_back(
+        event_bus_.subscribe<core::events::BoardRenamedEvent>(
+            [this](const core::events::BoardRenamedEvent& evt)
+            {
+                SetBoardTitle(evt.new_name);
+                MARKAMP_LOG_DEBUG("Board renamed in workspace panel: {}", evt.new_name);
+            }));
+
+    // Board saved: clear dirty indicator
+    subscriptions_.emplace_back(
+        event_bus_.subscribe<core::events::BoardSavedEvent>(
+            [this](const core::events::BoardSavedEvent& /*evt*/)
+            {
+                SetDirtyIndicator(false);
+            }));
 }
 
 // ── Theme ─────────────────────────────────────────────────────────

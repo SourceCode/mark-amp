@@ -27,7 +27,7 @@ enum class ValidationResult : uint8_t
 };
 
 /// Property value for multi-select (may be mixed).
-struct PropertyValue
+struct InspectorPropertyValue
 {
     std::string value;
     bool is_mixed{false};
@@ -65,8 +65,8 @@ public:
 
     // ── Properties ──────────────────────────────────────────────────
 
-    void set_property(const std::string& key, PropertyValue value);
-    [[nodiscard]] auto property(const std::string& key) const -> PropertyValue;
+    void set_property(const std::string& key, InspectorPropertyValue value);
+    [[nodiscard]] auto property(const std::string& key) const -> InspectorPropertyValue;
     void reset_property(const std::string& key);
 
     // ── Validation ──────────────────────────────────────────────────
@@ -85,7 +85,7 @@ private:
 
     struct PropertyEntry
     {
-        PropertyValue value;
+        InspectorPropertyValue value;
         std::string default_value;
     };
 

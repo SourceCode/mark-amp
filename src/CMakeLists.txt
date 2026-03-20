@@ -806,6 +806,14 @@ add_executable(markamp
     canvas/OnboardingModel.cpp
     canvas/PolishModel.cpp
     canvas/AuditModel.cpp
+    # Phase 01 W11-W20: Canvas Workbench Models
+    canvas/BoardSettingsModel.cpp
+    canvas/CanvasAnalyticsModel.cpp
+    canvas/DragAutoscrollModel.cpp
+    canvas/PenEngineModel.cpp
+    canvas/PenPresetModel.cpp
+    canvas/PrecisionNudgeModel.cpp
+    canvas/SmartSpacingModel.cpp
     # V5 Phase 12: Smart Drawing Recognition
     canvas/ShapeRecognizer.cpp
     # V5 Phase 13: Image & File Objects
@@ -974,7 +982,7 @@ elseif(UNIX)
     target_sources(markamp PRIVATE platform/LinuxPlatform.cpp platform/LinuxScreenReaderBridge.cpp platform/StubAccessibilityIdentifier.cpp)
 endif()
 
-project(MarkAmp VERSION 2.16.60 LANGUAGES CXX)
+project(MarkAmp VERSION 2.22.69 LANGUAGES CXX)
 
 # Include paths -- src/ is the root for includes like "app/MarkAmpApp.h"
 target_include_directories(markamp PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

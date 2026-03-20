@@ -34,7 +34,7 @@ auto InspectorModel::is_multi_select() const -> bool
     return selected_count_ > 1;
 }
 
-void InspectorModel::set_property(const std::string& key, PropertyValue value)
+void InspectorModel::set_property(const std::string& key, InspectorPropertyValue value)
 {
     for (auto& [prop_key, entry] : properties_)
     {
@@ -47,7 +47,7 @@ void InspectorModel::set_property(const std::string& key, PropertyValue value)
     properties_.push_back({key, {std::move(value), ""}});
 }
 
-auto InspectorModel::property(const std::string& key) const -> PropertyValue
+auto InspectorModel::property(const std::string& key) const -> InspectorPropertyValue
 {
     for (const auto& [prop_key, entry] : properties_)
     {

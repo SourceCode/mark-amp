@@ -13,6 +13,15 @@ namespace markamp::canvas
 
 class CanvasPanel;
 
+/// W05: Pointer device type.
+enum class PointerDeviceType : uint8_t
+{
+    kMouse,
+    kTrackpad,
+    kStylus,
+    kTouch,
+};
+
 /// Routes wxWidgets events to the active ICanvasTool, manages tool switching,
 /// coordinate conversion, and hit-testing.
 class CanvasInputManager
@@ -80,6 +89,39 @@ public:
         return active_tool_mode_ == ToolMode::Draw;
     }
 
+    // ── W05: Pointer Device & Capture ──────────────────────────────
+
+    /// Set the current pointer device type.
+    auto set_device_type(PointerDeviceType device) -> void;
+
+    /// Get the current pointer device type.
+    [[nodiscard]] auto device_type() const noexcept -> PointerDeviceType
+    {
+        return device_type_;
+    }
+
+    /// Set whether the pointer is captured (during drag).
+    auto set_captured(bool captured) -> void;
+
+    /// Whether the pointer is currently captured.
+    [[nodiscard]] auto is_captured() const noexcept -> bool
+    {
+        return captured_;
+    }
+
+    /// Device type as a human-readable string.
+    [[nodiscard]] auto device_type_string() const -> std::string
+    {
+        switch (device_type_)
+        {
+        case PointerDeviceType::kMouse: return "mouse";
+        case PointerDeviceType::kTrackpad: return "trackpad";
+        case PointerDeviceType::kStylus: return "stylus";
+        case PointerDeviceType::kTouch: return "touch";
+        }
+        return "unknown";
+    }
+
 private:
     CanvasPanel& panel_;
     std::shared_ptr<core::EventBus> event_bus_;
@@ -88,6 +130,8 @@ private:
     ToolMode active_tool_mode_{ToolMode::Select};
     ToolMode previous_tool_mode_{ToolMode::Select}; // For space-pan restore.
     bool space_held_{false};
+    PointerDeviceType device_type_{PointerDeviceType::kMouse};
+    bool captured_{false};
 };
 
 } // namespace markamp::canvas

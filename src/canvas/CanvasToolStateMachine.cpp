@@ -71,6 +71,8 @@ auto CanvasToolStateMachine::transition_to(ToolState target) -> bool
     {
         return false;
     }
+    previous_state_ = state_;
+    state_history_.push_back(state_name(state_) + " -> " + state_name(target));
     state_ = target;
     ++transition_count_;
     return true;
@@ -79,6 +81,7 @@ auto CanvasToolStateMachine::transition_to(ToolState target) -> bool
 void CanvasToolStateMachine::reset()
 {
     state_ = ToolState::kIdle;
+    previous_state_ = ToolState::kIdle;
     modifiers_ = 0;
 }
 
@@ -147,6 +150,51 @@ auto CanvasToolStateMachine::force_cancel_for_switch() -> bool
     state_ = ToolState::kIdle;
     ++transition_count_;
     return true;
+}
+
+// ── V17 Phase 01 W06: Input State Machine ──────────────────────────
+
+auto CanvasToolStateMachine::escape_cancel() -> bool
+{
+    if (is_safe_to_switch())
+    {
+        return false; // Nothing to cancel
+    }
+    previous_state_ = state_;
+    state_history_.push_back(state_name(state_) + " -> cancel (escape)");
+    state_ = ToolState::kCancel;
+    ++transition_count_;
+    // Immediately return to idle
+    state_history_.push_back("cancel -> idle");
+    state_ = ToolState::kIdle;
+    ++transition_count_;
+    return true;
+}
+
+auto CanvasToolStateMachine::resume_previous_state() -> bool
+{
+    if (previous_state_ == state_)
+    {
+        return false;
+    }
+    if (!can_transition(previous_state_))
+    {
+        return false;
+    }
+    state_history_.push_back(state_name(state_) + " -> " + state_name(previous_state_) + " (resume)");
+    state_ = previous_state_;
+    ++transition_count_;
+    return true;
+}
+
+auto CanvasToolStateMachine::is_mid_gesture() const -> bool
+{
+    return state_ != ToolState::kIdle && state_ != ToolState::kHover;
+}
+
+auto CanvasToolStateMachine::state_history() const -> const std::vector<std::string>&
+{
+    return state_history_;
 }
 
 } // namespace markamp::canvas

@@ -1,5 +1,48 @@
 # MarkAmp Release History
 
+## v2.22.69 — 2026-03-19
+
+### Highlights
+
+Phase 10 Workstreams 11-20: Canvas Workbench expansion with 20 new events, 20 new workbench methods, 11 new canvas model headers, and ~60 unit tests. Added testable UI-independent models for autosave/recovery, board settings, canvas analytics, cursor feedback, drag autoscroll, grid/ruler configuration, pen engine, pen presets, precision nudge, smart spacing, and snap preferences. Fixed build and test issues including PropertyValue type conflict, unused lambda capture, and missing CMakeLists entries. 655/655 tests pass.
+
+### Added
+
+- **AutosaveModel.h** — UI-independent autosave state model with dirty tracking, save lifecycle (idle→pending→saving→failed), recovery path, and configurable interval
+- **BoardSettingsModel.h/.cpp** — Board-level settings: background presets, default grid spacing, permission levels (Owner/Editor/Commenter/Viewer), board dimensions, and custom key-value settings
+- **CanvasAnalyticsModel.h/.cpp** — Event recording model for canvas usage analytics with category-based event tracking
+- **CursorFeedbackModel.h** — Cursor visual feedback state model for canvas tool interactions
+- **DragAutoscrollModel.h/.cpp** — Drag-initiated autoscroll model with directional state (Up/Down/Left/Right), speed control, and human-readable direction labels
+- **GridRulerModel.h** — Grid and ruler configuration model with spacing, visibility, and snap-to-grid settings
+- **PenEngineModel.h/.cpp** — Pen stroke engine model with stroke count tracking, pressure sensitivity, and ink settings
+- **PenPresetModel.h/.cpp** — Pen preset management with active preset selection, recent presets stack, and preset metadata
+- **PrecisionNudgeModel.h/.cpp** — Precision nudge model for fine and coarse object positioning with directional step sizes
+- **SmartSpacingModel.h/.cpp** — Smart spacing model for equal-distance object arrangement with activation state and target spacing
+- **SnapPreferenceModel.h** — Snap preference configuration model for grid, guide, and object snapping
+- **20 new events** — `CanvasAutosaveEvent`, `CanvasBoardSettingsChangedEvent`, `CanvasAnalyticsEvent`, `CanvasCursorFeedbackEvent`, `CanvasAutoscrollEvent`, `CanvasGridRulerChangedEvent`, `CanvasPenStrokeEvent`, `CanvasPenPresetChangedEvent`, `CanvasPrecisionNudgeEvent`, `CanvasSmartSpacingEvent`, and more
+- **20 new CanvasWorkbench methods** — `apply_pen_preset()`, `capture_stroke()`, `precision_nudge()`, `start_autoscroll()`, `stop_autoscroll()`, `activate_smart_spacing()`, `deactivate_smart_spacing()`, `apply_board_setting()`, `record_analytics_event()`, and more
+- **~60 unit tests** — Comprehensive test coverage for all new models and workbench methods
+
+### Changed
+
+- **CMakeLists.txt** — Version bumped to 2.22.69
+- **src/CMakeLists.txt** — Version bumped to 2.22.69; added 7 new canvas model .cpp files
+- **vcpkg.json** — Version bumped to 2.22.69
+- **AGENTS.md** — Version updated to 2.22.69
+- **Events.h** — Added 20 new canvas workbench event types
+- **CanvasWorkbench.h/.cpp** — Added 20 new methods with event-driven architecture
+- **CanvasWorkspacePanel.h/.cpp** — New event subscriptions and status display methods
+- **CanvasInputManager.h/.cpp** — Extended input handling
+- **CanvasToolStateMachine.h/.cpp** — Extended state machine transitions
+- **Board.cpp** — Additional board management methods
+
+### Fixed
+
+- **InspectorModel.h/.cpp** — Renamed `PropertyValue` struct to `InspectorPropertyValue` to resolve type conflict with `CanvasInspector.h`'s `PropertyValue` type alias
+- **CanvasWorkspacePanel.cpp** — Removed unused `this` lambda capture in `CanvasToolChangedEvent` subscription (fixed `-Werror,-Wunused-lambda-capture`)
+- **src/CMakeLists.txt** — Added 7 missing canvas model `.cpp` files (`BoardSettingsModel`, `CanvasAnalyticsModel`, `DragAutoscrollModel`, `PenEngineModel`, `PenPresetModel`, `PrecisionNudgeModel`, `SmartSpacingModel`) to fix linker errors
+- **test_phase11_canvas.cpp** — Fixed incorrect `REQUIRE(board_id.empty())` assertion to `REQUIRE_FALSE(board_id.empty())` — `create_board()` now correctly returns non-empty board IDs
+
 ## v2.21.68 — 2026-03-16
 
 ### Highlights
