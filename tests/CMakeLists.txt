@@ -924,6 +924,48 @@ target_sources(markamp_core PRIVATE
     ${CMAKE_SOURCE_DIR}/src/core/WorkspaceLoadStateModel.cpp
     ${CMAKE_SOURCE_DIR}/src/core/ShellLayoutState.cpp
     ${CMAKE_SOURCE_DIR}/src/core/CanvasWorkbenchMode.cpp
+    # V20 Phase 01: Artifact Creation Spine
+    ${CMAKE_SOURCE_DIR}/src/core/ArtifactRegistry.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/ArtifactCreationService.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/ArtifactMountAdapter.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/ArtifactNamingPolicy.cpp
+    # V20 Phase 02: File Creation & Text Artifact Lifecycle
+    ${CMAKE_SOURCE_DIR}/src/core/UnsavedDocumentBuffer.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/TextArtifactLifecycle.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/EditorMountContext.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/FileEntryPointResolver.cpp
+    # V20 Phase 03: Notebook Creation & Computational Document Flows
+    ${CMAKE_SOURCE_DIR}/src/core/NotebookArtifactLifecycle.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/NotebookStorageResolver.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/NotebookCommandRouter.cpp
+    # V20 Phase 04: Canvas Creation & Board Workbench Integration
+    ${CMAKE_SOURCE_DIR}/src/core/CanvasArtifactLifecycle.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/CanvasEventBridge.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/CanvasShellIntegration.cpp
+    # V20 Phase 05: Persistence, Autosave, Restore & Recovery
+    ${CMAKE_SOURCE_DIR}/src/core/PersistenceOutcome.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/AtomicWriteService.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/SessionRestoreService.cpp
+    # V20 Phase 06: Commands, Context, Focus & Surface Entry Points
+    ${CMAKE_SOURCE_DIR}/src/core/CommandModel.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/ActiveContextService.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/EntryPointNormalizer.cpp
+    # V20 Phase 07: Syntax Highlighting & Language Presentation
+    ${CMAKE_SOURCE_DIR}/src/core/LanguageService.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/TokenThemeMapper.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/HighlightDegradation.cpp
+    # V20 Phase 08: Editor, Notebook, Canvas Rendering & Content Styling
+    ${CMAKE_SOURCE_DIR}/src/core/ContentStyleSystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/NotebookCellChrome.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/CanvasContentPresenter.cpp
+    # V20 Phase 09: Premium Visual System Polish & MUI Icon Completion
+    ${CMAKE_SOURCE_DIR}/src/core/ShellVisualSystem.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/IconSemanticMapper.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/AccessibilityAuditGate.cpp
+    # V20 Phase 10: Diagnostics, Validation Harnesses & Consolidation
+    ${CMAKE_SOURCE_DIR}/src/core/LifecycleTracer.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/WorkflowSmokeRunner.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/ExecutionScoreboard.cpp
     # V19 Phase 02: Command dispatch and prompt host
     ${CMAKE_SOURCE_DIR}/src/core/CommandFeedback.cpp
     ${CMAKE_SOURCE_DIR}/src/core/CommandDispatchAdapter.cpp
@@ -6553,3 +6595,287 @@ add_executable(test_v19_phase10_icons unit/test_v19_phase10_icons.cpp)
 target_include_directories(test_v19_phase10_icons PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_v19_phase10_icons PRIVATE Catch2::Catch2WithMain markamp_core)
 add_test(NAME test_v19_phase10_icons COMMAND test_v19_phase10_icons)
+
+# ============================================================================
+# V20 Phase 01: Artifact Registry
+# ============================================================================
+add_executable(test_v20_artifact_registry unit/test_v20_artifact_registry.cpp)
+target_include_directories(test_v20_artifact_registry PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v20_artifact_registry PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v20_artifact_registry COMMAND test_v20_artifact_registry)
+
+# ============================================================================
+# V20 Phase 01: Artifact Creation Service
+# ============================================================================
+add_executable(test_v20_artifact_creation_service unit/test_v20_artifact_creation_service.cpp)
+target_include_directories(test_v20_artifact_creation_service PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v20_artifact_creation_service PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v20_artifact_creation_service COMMAND test_v20_artifact_creation_service)
+
+# ============================================================================
+# V20 Phase 01: Artifact Mount
+# ============================================================================
+add_executable(test_v20_artifact_mount unit/test_v20_artifact_mount.cpp)
+target_include_directories(test_v20_artifact_mount PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v20_artifact_mount PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v20_artifact_mount COMMAND test_v20_artifact_mount)
+
+# ============================================================================
+# V20 Phase 01: Artifact Naming
+# ============================================================================
+add_executable(test_v20_artifact_naming unit/test_v20_artifact_naming.cpp)
+target_include_directories(test_v20_artifact_naming PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v20_artifact_naming PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v20_artifact_naming COMMAND test_v20_artifact_naming)
+
+# ============================================================================
+# V20 Phase 01: Artifact Events
+# ============================================================================
+add_executable(test_v20_artifact_events unit/test_v20_artifact_events.cpp)
+target_include_directories(test_v20_artifact_events PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v20_artifact_events PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v20_artifact_events COMMAND test_v20_artifact_events)
+
+# ============================================================================
+# V20 Phase 01: Shell Artifact Integration
+# ============================================================================
+add_executable(test_v20_shell_artifact_integration unit/test_v20_shell_artifact_integration.cpp)
+target_include_directories(test_v20_shell_artifact_integration PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v20_shell_artifact_integration PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v20_shell_artifact_integration COMMAND test_v20_shell_artifact_integration)
+
+# ============================================================================
+# V20 Phase 02: Unsaved Document Buffer
+# ============================================================================
+add_executable(test_v20_unsaved_buffer unit/test_v20_unsaved_buffer.cpp)
+target_include_directories(test_v20_unsaved_buffer PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v20_unsaved_buffer PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v20_unsaved_buffer COMMAND test_v20_unsaved_buffer)
+
+# ============================================================================
+# V20 Phase 02: Text Artifact Lifecycle
+# ============================================================================
+add_executable(test_v20_text_artifact_lifecycle unit/test_v20_text_artifact_lifecycle.cpp)
+target_include_directories(test_v20_text_artifact_lifecycle PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v20_text_artifact_lifecycle PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v20_text_artifact_lifecycle COMMAND test_v20_text_artifact_lifecycle)
+
+# ============================================================================
+# V20 Phase 02: Editor Mount Context
+# ============================================================================
+add_executable(test_v20_editor_mount_context unit/test_v20_editor_mount_context.cpp)
+target_include_directories(test_v20_editor_mount_context PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v20_editor_mount_context PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v20_editor_mount_context COMMAND test_v20_editor_mount_context)
+
+# ============================================================================
+# V20 Phase 02: File Entry Point Resolver
+# ============================================================================
+add_executable(test_v20_file_entry_point unit/test_v20_file_entry_point.cpp)
+target_include_directories(test_v20_file_entry_point PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v20_file_entry_point PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v20_file_entry_point COMMAND test_v20_file_entry_point)
+
+# ============================================================================
+# V20 Phase 02: File Lifecycle Integration
+# ============================================================================
+add_executable(test_v20_file_lifecycle_integration unit/test_v20_file_lifecycle_integration.cpp)
+target_include_directories(test_v20_file_lifecycle_integration PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v20_file_lifecycle_integration PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v20_file_lifecycle_integration COMMAND test_v20_file_lifecycle_integration)
+
+# ============================================================================
+# V20 Phase 03: Notebook Artifact Lifecycle
+# ============================================================================
+add_executable(test_v20_notebook_lifecycle unit/test_v20_notebook_lifecycle.cpp)
+target_include_directories(test_v20_notebook_lifecycle PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v20_notebook_lifecycle PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v20_notebook_lifecycle COMMAND test_v20_notebook_lifecycle)
+
+# ============================================================================
+# V20 Phase 03: Notebook Storage Resolver
+# ============================================================================
+add_executable(test_v20_notebook_storage unit/test_v20_notebook_storage.cpp)
+target_include_directories(test_v20_notebook_storage PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v20_notebook_storage PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v20_notebook_storage COMMAND test_v20_notebook_storage)
+
+# ============================================================================
+# V20 Phase 03: Notebook Command Router
+# ============================================================================
+add_executable(test_v20_notebook_command_router unit/test_v20_notebook_command_router.cpp)
+target_include_directories(test_v20_notebook_command_router PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v20_notebook_command_router PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v20_notebook_command_router COMMAND test_v20_notebook_command_router)
+
+# ============================================================================
+# V20 Phase 03: Notebook Integration
+# ============================================================================
+add_executable(test_v20_notebook_integration unit/test_v20_notebook_integration.cpp)
+target_include_directories(test_v20_notebook_integration PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v20_notebook_integration PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v20_notebook_integration COMMAND test_v20_notebook_integration)
+
+# ============================================================================
+# V20 Phase 04: Canvas Artifact Lifecycle
+# ============================================================================
+add_executable(test_v20_canvas_lifecycle unit/test_v20_canvas_lifecycle.cpp)
+target_include_directories(test_v20_canvas_lifecycle PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v20_canvas_lifecycle PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v20_canvas_lifecycle COMMAND test_v20_canvas_lifecycle)
+
+# ============================================================================
+# V20 Phase 04: Canvas Event Bridge
+# ============================================================================
+add_executable(test_v20_canvas_event_bridge unit/test_v20_canvas_event_bridge.cpp)
+target_include_directories(test_v20_canvas_event_bridge PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v20_canvas_event_bridge PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v20_canvas_event_bridge COMMAND test_v20_canvas_event_bridge)
+
+# ============================================================================
+# V20 Phase 04: Canvas Shell Integration
+# ============================================================================
+add_executable(test_v20_canvas_shell unit/test_v20_canvas_shell.cpp)
+target_include_directories(test_v20_canvas_shell PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v20_canvas_shell PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v20_canvas_shell COMMAND test_v20_canvas_shell)
+
+# ============================================================================
+# V20 Phase 04: Canvas Integration
+# ============================================================================
+add_executable(test_v20_canvas_integration unit/test_v20_canvas_integration.cpp)
+target_include_directories(test_v20_canvas_integration PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v20_canvas_integration PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v20_canvas_integration COMMAND test_v20_canvas_integration)
+
+# ============================================================================
+# V20 Phase 05: Persistence, Autosave, Restore & Recovery
+# ============================================================================
+add_executable(test_v20_persistence_outcome unit/test_v20_persistence_outcome.cpp)
+target_include_directories(test_v20_persistence_outcome PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v20_persistence_outcome PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v20_persistence_outcome COMMAND test_v20_persistence_outcome)
+
+add_executable(test_v20_atomic_write unit/test_v20_atomic_write.cpp)
+target_include_directories(test_v20_atomic_write PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v20_atomic_write PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v20_atomic_write COMMAND test_v20_atomic_write)
+
+add_executable(test_v20_session_restore unit/test_v20_session_restore.cpp)
+target_include_directories(test_v20_session_restore PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v20_session_restore PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v20_session_restore COMMAND test_v20_session_restore)
+
+add_executable(test_v20_persistence_integration unit/test_v20_persistence_integration.cpp)
+target_include_directories(test_v20_persistence_integration PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v20_persistence_integration PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v20_persistence_integration COMMAND test_v20_persistence_integration)
+
+# ============================================================================
+# V20 Phase 06: Commands, Context, Focus & Surface Entry Points
+# ============================================================================
+add_executable(test_v20_command_model unit/test_v20_command_model.cpp)
+target_include_directories(test_v20_command_model PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v20_command_model PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v20_command_model COMMAND test_v20_command_model)
+
+add_executable(test_v20_active_context unit/test_v20_active_context.cpp)
+target_include_directories(test_v20_active_context PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v20_active_context PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v20_active_context COMMAND test_v20_active_context)
+
+add_executable(test_v20_entry_point unit/test_v20_entry_point.cpp)
+target_include_directories(test_v20_entry_point PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v20_entry_point PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v20_entry_point COMMAND test_v20_entry_point)
+
+add_executable(test_v20_command_integration unit/test_v20_command_integration.cpp)
+target_include_directories(test_v20_command_integration PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v20_command_integration PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v20_command_integration COMMAND test_v20_command_integration)
+
+# ============================================================================
+# V20 Phase 07: Syntax Highlighting & Language Presentation
+# ============================================================================
+add_executable(test_v20_language_service unit/test_v20_language_service.cpp)
+target_include_directories(test_v20_language_service PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v20_language_service PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v20_language_service COMMAND test_v20_language_service)
+
+add_executable(test_v20_token_theme unit/test_v20_token_theme.cpp)
+target_include_directories(test_v20_token_theme PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v20_token_theme PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v20_token_theme COMMAND test_v20_token_theme)
+
+add_executable(test_v20_highlight_degradation unit/test_v20_highlight_degradation.cpp)
+target_include_directories(test_v20_highlight_degradation PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v20_highlight_degradation PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v20_highlight_degradation COMMAND test_v20_highlight_degradation)
+
+add_executable(test_v20_syntax_integration unit/test_v20_syntax_integration.cpp)
+target_include_directories(test_v20_syntax_integration PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v20_syntax_integration PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v20_syntax_integration COMMAND test_v20_syntax_integration)
+
+# V20 Phase 08: Editor, Notebook, Canvas Rendering & Content Styling
+add_executable(test_v20_content_style unit/test_v20_content_style.cpp)
+target_include_directories(test_v20_content_style PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v20_content_style PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v20_content_style COMMAND test_v20_content_style)
+
+add_executable(test_v20_notebook_cell_chrome unit/test_v20_notebook_cell_chrome.cpp)
+target_include_directories(test_v20_notebook_cell_chrome PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v20_notebook_cell_chrome PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v20_notebook_cell_chrome COMMAND test_v20_notebook_cell_chrome)
+
+add_executable(test_v20_canvas_content_presenter unit/test_v20_canvas_content_presenter.cpp)
+target_include_directories(test_v20_canvas_content_presenter PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v20_canvas_content_presenter PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v20_canvas_content_presenter COMMAND test_v20_canvas_content_presenter)
+
+add_executable(test_v20_rendering_integration unit/test_v20_rendering_integration.cpp)
+target_include_directories(test_v20_rendering_integration PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v20_rendering_integration PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v20_rendering_integration COMMAND test_v20_rendering_integration)
+
+# V20 Phase 09: Premium Visual System Polish & MUI Icon Completion
+add_executable(test_v20_shell_visual unit/test_v20_shell_visual.cpp)
+target_include_directories(test_v20_shell_visual PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v20_shell_visual PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v20_shell_visual COMMAND test_v20_shell_visual)
+
+add_executable(test_v20_icon_semantic unit/test_v20_icon_semantic.cpp)
+target_include_directories(test_v20_icon_semantic PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v20_icon_semantic PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v20_icon_semantic COMMAND test_v20_icon_semantic)
+
+add_executable(test_v20_accessibility_audit unit/test_v20_accessibility_audit.cpp)
+target_include_directories(test_v20_accessibility_audit PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v20_accessibility_audit PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v20_accessibility_audit COMMAND test_v20_accessibility_audit)
+
+add_executable(test_v20_visual_integration unit/test_v20_visual_integration.cpp)
+target_include_directories(test_v20_visual_integration PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v20_visual_integration PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v20_visual_integration COMMAND test_v20_visual_integration)
+
+# V20 Phase 10: Diagnostics, Validation Harnesses & Consolidation
+add_executable(test_v20_lifecycle_tracer unit/test_v20_lifecycle_tracer.cpp)
+target_include_directories(test_v20_lifecycle_tracer PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v20_lifecycle_tracer PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v20_lifecycle_tracer COMMAND test_v20_lifecycle_tracer)
+
+add_executable(test_v20_smoke_runner unit/test_v20_smoke_runner.cpp)
+target_include_directories(test_v20_smoke_runner PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v20_smoke_runner PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v20_smoke_runner COMMAND test_v20_smoke_runner)
+
+add_executable(test_v20_execution_scoreboard unit/test_v20_execution_scoreboard.cpp)
+target_include_directories(test_v20_execution_scoreboard PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v20_execution_scoreboard PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v20_execution_scoreboard COMMAND test_v20_execution_scoreboard)
+
+add_executable(test_v20_diagnostics_integration unit/test_v20_diagnostics_integration.cpp)
+target_include_directories(test_v20_diagnostics_integration PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v20_diagnostics_integration PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v20_diagnostics_integration COMMAND test_v20_diagnostics_integration)

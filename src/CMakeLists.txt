@@ -374,6 +374,48 @@ add_executable(markamp
     core/ShellLayoutState.cpp
     core/WorkspaceOpenOrchestrator.cpp
     core/WorkbenchShellController.cpp
+    # V20 Phase 01: Artifact Creation Spine
+    core/ArtifactRegistry.cpp
+    core/ArtifactCreationService.cpp
+    core/ArtifactMountAdapter.cpp
+    core/ArtifactNamingPolicy.cpp
+    # V20 Phase 02: File Creation & Text Artifact Lifecycle
+    core/UnsavedDocumentBuffer.cpp
+    core/TextArtifactLifecycle.cpp
+    core/EditorMountContext.cpp
+    core/FileEntryPointResolver.cpp
+    # V20 Phase 03: Notebook Creation & Computational Document Flows
+    core/NotebookArtifactLifecycle.cpp
+    core/NotebookStorageResolver.cpp
+    core/NotebookCommandRouter.cpp
+    # V20 Phase 04: Canvas Creation & Board Workbench Integration
+    core/CanvasArtifactLifecycle.cpp
+    core/CanvasEventBridge.cpp
+    core/CanvasShellIntegration.cpp
+    # V20 Phase 05: Persistence, Autosave, Restore & Recovery
+    core/PersistenceOutcome.cpp
+    core/AtomicWriteService.cpp
+    core/SessionRestoreService.cpp
+    # V20 Phase 06: Commands, Context, Focus & Surface Entry Points
+    core/CommandModel.cpp
+    core/ActiveContextService.cpp
+    core/EntryPointNormalizer.cpp
+    # V20 Phase 07: Syntax Highlighting & Language Presentation
+    core/LanguageService.cpp
+    core/TokenThemeMapper.cpp
+    core/HighlightDegradation.cpp
+    # V20 Phase 08: Editor, Notebook, Canvas Rendering & Content Styling
+    core/ContentStyleSystem.cpp
+    core/NotebookCellChrome.cpp
+    core/CanvasContentPresenter.cpp
+    # V20 Phase 09: Premium Visual System Polish & MUI Icon Completion
+    core/ShellVisualSystem.cpp
+    core/IconSemanticMapper.cpp
+    core/AccessibilityAuditGate.cpp
+    # V20 Phase 10: Diagnostics, Validation Harnesses & Consolidation
+    core/LifecycleTracer.cpp
+    core/WorkflowSmokeRunner.cpp
+    core/ExecutionScoreboard.cpp
     core/CommandDispatchAdapter.cpp
     core/DirtyStateCoordinator.cpp
     core/WorkspaceSessionRestore.cpp

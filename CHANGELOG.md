@@ -1,6 +1,35 @@
 # MarkAmp Release History
 
-## v2.24.71 — 2026-03-20
+## v2.25.72 — 2026-03-21
+
+### Highlights
+
+V20 Phases 08-10: Editor/Notebook/Canvas Rendering, Premium Visual Polish, and Diagnostics/Consolidation. Implemented 9 new core services, 14 new events, and 12 new test files. Phase 08 delivers shared typography, spacing, and feedback tokens across editor/notebook/canvas surfaces. Phase 09 standardizes shell chrome, completes semantic icon mapping, and adds accessibility audit gates with visual debt tracking. Phase 10 instruments artifact lifecycle traces, builds workflow smoke testing, and publishes an execution scoreboard with performance budgets and V20 exit criteria. 708/708 tests pass.
+
+### Added
+
+- **ContentStyleSystem** (P08) — Shared typography tokens (body, heading, code, mono), spacing tokens (xs through xxl), and feedback styles (error, warning, info, success, search hit, bracket match) across all rendering surfaces
+- **NotebookCellChrome** (P08) — Cell execution state tracking (Idle, Running, Success, Error), active cell management, collapse state, and cell type classification (Code, Markdown, Raw, Output)
+- **CanvasContentPresenter** (P08) — Canvas object styles (sticky-note, text-box, code-block, image-frame, shape, connector), visual state machine (Normal, Selected, Hovered, Focused, Dragging, Locked), and embedded content type management
+- **ShellVisualSystem** (P09) — 8-layer shell chrome tokens (activity-bar, sidebar, editor, tab-bar, status-bar, panel, title-bar, secondary-sidebar) with state tokens for hover, active, dirty, and disabled states
+- **IconSemanticMapper** (P09) — 17 default semantic icon mappings (file, folder, search, settings, etc.), accessibility label enforcement, and residue tracking for unmapped legacy icons
+- **AccessibilityAuditGate** (P09) — A11y findings by severity (Critical, Serious, Moderate, Minor), visual debt inventory with resolution tracking, and release-gating logic that blocks on unresolved critical/serious findings
+- **LifecycleTracer** (P10) — Structured artifact lifecycle traces (Create, Open, Save, Close, Delete, Rename, Duplicate, Export) with error recording and configurable trace cap (1000 default)
+- **WorkflowSmokeRunner** (P10) — Smoke test registration, execution with pass/fail/skip tracking, legacy pathway retirement with successor mapping, and pass-rate reporting
+- **ExecutionScoreboard** (P10) — Phase progress tracking (10 V20 phases), performance budget enforcement (startup <2s, save <500ms, switch <200ms, render <16ms), and configurable exit criteria with pass/fail evaluation
+- **12 test files** — 3 unit test files per phase + 1 integration test per phase covering event flows and cross-system interactions
+
+### Changed
+
+- **CMakeLists.txt** — Version bumped to 2.25.72
+- **vcpkg.json** — Version bumped to 2.25.72
+- **Events.h** — Added 14 new event types: `FeedbackStyleRegisteredEvent`, `CellChromeChangedEvent`, `CellExecutionStateChangedEvent`, `CanvasObjectVisualStateChangedEvent`, `ShellChromeRegisteredEvent`, `IconMappingRegisteredEvent`, `IconResidueReportedEvent`, `A11yFindingRecordedEvent`, `VisualDebtRecordedEvent`, `LifecycleTraceEmittedEvent`, `SmokeRunCompletedEvent`, `LegacyPathwayRetiredEvent`, `PhaseProgressUpdatedEvent`, `PerformanceMeasuredEvent`
+- **src/CMakeLists.txt** — Added 9 new Phase 08-10 source files
+- **tests/CMakeLists.txt** — Added 9 source files to `markamp_core` library and 12 new test targets
+
+### Fixed
+
+- **EventBus subscription RAII** — Fixed 4 integration test files where `subscribe()` return values were discarded, causing immediate unsubscription via RAII `Subscription` destructor; stored handles in named variables
 
 ### Highlights
 

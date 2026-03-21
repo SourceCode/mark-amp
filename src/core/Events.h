@@ -7710,4 +7710,396 @@ MARKAMP_DECLARE_EVENT_WITH_FIELDS(FileSplitOpenRequestEvent)
 std::string file_path;
 MARKAMP_DECLARE_EVENT_END;
 
+// ============================================================================
+// V20 Phase 01: Artifact lifecycle events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ArtifactCreatedEvent)
+std::string artifact_id;
+int artifact_kind{0}; // ArtifactKind as int
+std::string display_name;
+std::string source; // Entry point that triggered creation
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ArtifactRegisteredEvent)
+std::string artifact_id;
+int artifact_kind{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ArtifactUnregisteredEvent)
+std::string artifact_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ArtifactStateChangedEvent)
+std::string artifact_id;
+int old_state{0};
+int new_state{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ArtifactActivatedEvent)
+std::string artifact_id;
+std::string previous_artifact_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ArtifactMountedEvent)
+std::string artifact_id;
+int surface_kind{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ArtifactUnmountedEvent)
+std::string artifact_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ArtifactRenamedEvent)
+std::string artifact_id;
+std::string old_name;
+std::string new_name;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ArtifactPromotedEvent)
+std::string artifact_id;
+std::string file_path;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ArtifactSaveRequestEvent)
+std::string artifact_id;
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V20 Phase 02: Text artifact lifecycle events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ArtifactFileOpenedEvent)
+std::string artifact_id;
+std::string file_path;
+std::string language_id;
+std::string source; // open-file, reopen, drag-drop
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ArtifactFileClosedEvent)
+std::string artifact_id;
+bool had_unsaved_changes{false};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ArtifactFileSavedEvent)
+std::string artifact_id;
+std::string file_path;
+bool was_first_save{false};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ArtifactFileDuplicatedEvent)
+std::string source_artifact_id;
+std::string new_artifact_id;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ArtifactFileRenamedEvent)
+std::string artifact_id;
+std::string old_path;
+std::string new_path;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ArtifactFileMovedEvent)
+std::string artifact_id;
+std::string old_path;
+std::string new_path;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ArtifactFileDeletedEvent)
+std::string artifact_id;
+std::string file_path;
+bool deleted_from_disk{false};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(EditorSessionRestoredEvent)
+std::string artifact_id;
+int cursor_line{0};
+int cursor_column{0};
+int scroll_top_line{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V20 Phase 03: Notebook artifact lifecycle events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NotebookArtifactCreatedEvent)
+std::string artifact_id;
+std::string title;
+std::string kernel_language;
+int initial_cell_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NotebookArtifactOpenedEvent)
+std::string artifact_id;
+std::string file_path;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NotebookArtifactSavedEvent)
+std::string artifact_id;
+std::string file_path;
+bool was_first_save{false};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NotebookCellAddedEvent)
+std::string artifact_id;
+std::string cell_id;
+std::string cell_kind;  // code, markdown, raw
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NotebookContextChangedEvent)
+std::string artifact_id;
+std::string active_cell_id;
+bool is_focused{false};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(NotebookKernelStateChangedEvent)
+std::string artifact_id;
+std::string kernel_state;  // idle, busy, starting, stopped, error
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V20 Phase 04: Canvas artifact lifecycle events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasArtifactCreatedEvent)
+std::string artifact_id;
+std::string board_id;
+std::string board_name;
+std::string creation_source;  // palette, menu, toolbar, template
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasArtifactOpenedEvent)
+std::string artifact_id;
+std::string board_id;
+std::string file_path;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasArtifactSavedEvent)
+std::string artifact_id;
+std::string board_id;
+std::string file_path;
+bool was_first_save{false};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasContextChangedEvent)
+std::string artifact_id;
+std::string active_tool;
+int selected_object_count{0};
+bool is_focused{false};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasEventBusUnifiedEvent)
+std::string artifact_id;
+bool using_shared_bus{true};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasShellTabChangedEvent)
+std::string artifact_id;
+std::string board_name;
+bool is_dirty{false};
+bool is_active{false};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V20 Phase 05: Persistence, autosave, restore events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SaveOutcomeEvent)
+std::string artifact_id;
+std::string file_path;
+bool success{false};
+std::string error_message;
+size_t bytes_written{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(AtomicWriteCompletedEvent)
+std::string artifact_id;
+std::string file_path;
+bool used_temp_file{true};
+size_t bytes_written{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(RecoveryJournalCreatedEvent)
+std::string artifact_id;
+std::string journal_path;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SessionCapturedEvent)
+int artifact_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ArtifactSessionRestoredEvent)
+int restored_count{0};
+int failed_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ArtifactAutosaveTriggeredEvent)
+int saved_count{0};
+int skipped_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V20 Phase 06: Commands, context, focus events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanonicalCommandExecutedEvent)
+std::string command_id;
+std::string source;        // menu, palette, shortcut, context_menu
+std::string target_artifact_id;
+bool success{false};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ActiveContextChangedEvent)
+std::string artifact_id;
+std::string surface;       // editor, canvas, notebook, none
+std::string focus_target;
+int selection_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ContextKeyChangedEvent)
+std::string key;
+std::string value;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(EntryPointResolvedEvent)
+std::string surface;
+std::string command_id;
+std::string label;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PanelActivationEvent)
+std::string panel_id;
+std::string trigger;
+bool activated{false};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FocusReturnEvent)
+std::string from_panel;
+std::string return_target;
+MARKAMP_DECLARE_EVENT_END;
+
+// ============================================================================
+// V20 Phase 07: Syntax highlighting and language events
+// ============================================================================
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(LanguageResolvedEvent)
+std::string artifact_id;
+std::string language_id;
+std::string display_name;
+std::string resolution_source;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(TokenScopeRegisteredEvent)
+std::string scope;
+std::string foreground_color;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(HighlightDegradationChangedEvent)
+std::string document_id;
+int mode{0};       // 0=full, 1=viewport, 2=budgeted, 3=minimal, 4=none
+int total_lines{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(HighlightPassCompletedEvent)
+std::string document_id;
+int lines_highlighted{0};
+double time_ms{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CrossSurfaceHighlightEvent)
+std::string language_id;
+std::string surface;      // editor, notebook, fence, diff, canvas
+bool shared_tokens{true};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ThemeTokenMappingChangedEvent)
+int total_mappings{0};
+int unmapped_count{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V20 Phase 08: Editor, Notebook, Canvas Rendering & Content Styling ──
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(FeedbackStyleRegisteredEvent)
+std::string scope;
+std::string foreground;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CellChromeChangedEvent)
+std::string cell_id;
+bool is_active{false};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CellExecutionStateChangedEvent)
+std::string cell_id;
+int state{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(CanvasObjectVisualStateChangedEvent)
+std::string object_id;
+int state{0};
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V20 Phase 09: Premium Visual System Polish & MUI Icon Completion ──
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(ShellChromeRegisteredEvent)
+std::string token_name;
+int layer{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(IconMappingRegisteredEvent)
+std::string action_id;
+std::string icon_name;
+bool has_label{false};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(IconResidueReportedEvent)
+std::string surface;
+std::string old_icon;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(A11yFindingRecordedEvent)
+std::string finding_id;
+std::string surface;
+int severity{0};
+int category{0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(VisualDebtRecordedEvent)
+std::string surface;
+std::string category;
+MARKAMP_DECLARE_EVENT_END;
+
+// ── V20 Phase 10: Diagnostics, Validation Harnesses & Consolidation ──
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(LifecycleTraceEmittedEvent)
+std::string artifact_id;
+std::string event_name;
+std::string source;
+bool success{true};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(SmokeRunCompletedEvent)
+int total_tests{0};
+int passed{0};
+int failed{0};
+double pass_rate{0.0};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(LegacyPathwayRetiredEvent)
+std::string pathway_id;
+std::string replacement;
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PhaseProgressUpdatedEvent)
+std::string phase_id;
+double completion_pct{0.0};
+bool is_complete{false};
+MARKAMP_DECLARE_EVENT_END;
+
+MARKAMP_DECLARE_EVENT_WITH_FIELDS(PerformanceMeasuredEvent)
+std::string workflow;
+double measured_ms{0.0};
+double budget_ms{0.0};
+bool within_budget{true};
+MARKAMP_DECLARE_EVENT_END;
+
 } // namespace markamp::core::events
