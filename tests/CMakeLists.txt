@@ -972,6 +972,32 @@ target_sources(markamp_core PRIVATE
     ${CMAKE_SOURCE_DIR}/src/ui/PromptHost.cpp
     # V19 Phase 03: Dirty state coordination
     ${CMAKE_SOURCE_DIR}/src/core/DirtyStateCoordinator.cpp
+    # V21 Phase 01: Control Audit Spine & Canonical Action Model
+    ${CMAKE_SOURCE_DIR}/src/core/ControlActionManifest.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/ControlExecutionTracer.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/ControlAuditReport.cpp
+    # V21 Phase 02: Menu / Palette / Shortcut Parity
+    ${CMAKE_SOURCE_DIR}/src/core/MenuCommandBinder.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/PaletteManifestSync.cpp
+    # V21 Phase 03: Toolbar, Status Bar & Global Button Wiring
+    ${CMAKE_SOURCE_DIR}/src/core/ToolbarCommandBinder.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/StatusBarActionRouter.cpp
+    # V21 Phase 04: Context Menus, Inline Actions & Target-Aware Enablement
+    ${CMAKE_SOURCE_DIR}/src/core/ContextMenuActionBinder.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/InlineActionRouter.cpp
+    # V21 Phase 05: Panel Registry, Primary Sidebar & Controlled Surface Replacement
+    ${CMAKE_SOURCE_DIR}/src/core/PanelLifecycleAuditor.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/SidebarStateContract.cpp
+    # V21 Phase 06: Secondary, Bottom & Specialized Panel Lifecycle
+    ${CMAKE_SOURCE_DIR}/src/core/PanelCapabilityModel.cpp
+    # V21 Phase 07: Workbench Surface Completion
+    ${CMAKE_SOURCE_DIR}/src/core/SurfaceActionAuditor.cpp
+    # V21 Phase 08: Settings Architecture & Schema Consolidation
+    ${CMAKE_SOURCE_DIR}/src/core/SettingsArchitectureAuditor.cpp
+    # V21 Phase 09: Settings UI & JSON Editor
+    ${CMAKE_SOURCE_DIR}/src/core/SettingsStagedContract.cpp
+    # V21 Phase 10: Validation Harnesses & Dead UI Removal
+    ${CMAKE_SOURCE_DIR}/src/core/ControlCompletenessMatrix.cpp
 )
 target_include_directories(markamp_core PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(markamp_core PUBLIC markamp_dependencies)
@@ -6879,3 +6905,63 @@ add_executable(test_v20_diagnostics_integration unit/test_v20_diagnostics_integr
 target_include_directories(test_v20_diagnostics_integration PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_v20_diagnostics_integration PRIVATE Catch2::Catch2WithMain markamp_core)
 add_test(NAME test_v20_diagnostics_integration COMMAND test_v20_diagnostics_integration)
+
+# V21 Phase 01: Control Audit Spine & Canonical Action Model
+add_executable(test_v21_control_audit unit/test_v21_control_audit.cpp)
+target_include_directories(test_v21_control_audit PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v21_control_audit PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v21_control_audit COMMAND test_v21_control_audit)
+
+# V21 Phase 02: Menu / Palette / Shortcut Parity
+add_executable(test_v21_menu_palette unit/test_v21_menu_palette.cpp)
+target_include_directories(test_v21_menu_palette PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v21_menu_palette PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v21_menu_palette COMMAND test_v21_menu_palette)
+
+# V21 Phase 03: Toolbar, Status Bar & Global Button Wiring
+add_executable(test_v21_toolbar_statusbar unit/test_v21_toolbar_statusbar.cpp)
+target_include_directories(test_v21_toolbar_statusbar PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v21_toolbar_statusbar PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v21_toolbar_statusbar COMMAND test_v21_toolbar_statusbar)
+
+# V21 Phase 04: Context Menus, Inline Actions & Target-Aware Enablement
+add_executable(test_v21_context_menus unit/test_v21_context_menus.cpp)
+target_include_directories(test_v21_context_menus PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v21_context_menus PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v21_context_menus COMMAND test_v21_context_menus)
+
+# V21 Phase 05: Panel Registry, Primary Sidebar & Controlled Surface Replacement
+add_executable(test_v21_primary_sidebar unit/test_v21_primary_sidebar.cpp)
+target_include_directories(test_v21_primary_sidebar PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v21_primary_sidebar PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v21_primary_sidebar COMMAND test_v21_primary_sidebar)
+
+# V21 Phase 06: Secondary, Bottom & Specialized Panel Lifecycle
+add_executable(test_v21_panel_lifecycle unit/test_v21_panel_lifecycle.cpp)
+target_include_directories(test_v21_panel_lifecycle PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v21_panel_lifecycle PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v21_panel_lifecycle COMMAND test_v21_panel_lifecycle)
+
+# V21 Phase 07: Workbench Surface Completion
+add_executable(test_v21_workbench_surfaces unit/test_v21_workbench_surfaces.cpp)
+target_include_directories(test_v21_workbench_surfaces PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v21_workbench_surfaces PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v21_workbench_surfaces COMMAND test_v21_workbench_surfaces)
+
+# V21 Phase 08: Settings Architecture & Schema Consolidation
+add_executable(test_v21_settings_architecture unit/test_v21_settings_architecture.cpp)
+target_include_directories(test_v21_settings_architecture PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v21_settings_architecture PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v21_settings_architecture COMMAND test_v21_settings_architecture)
+
+# V21 Phase 09: Settings UI & JSON Editor
+add_executable(test_v21_settings_ui unit/test_v21_settings_ui.cpp)
+target_include_directories(test_v21_settings_ui PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v21_settings_ui PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v21_settings_ui COMMAND test_v21_settings_ui)
+
+# V21 Phase 10: Validation Harnesses & Dead UI Removal
+add_executable(test_v21_validation_harness unit/test_v21_validation_harness.cpp)
+target_include_directories(test_v21_validation_harness PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v21_validation_harness PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v21_validation_harness COMMAND test_v21_validation_harness)

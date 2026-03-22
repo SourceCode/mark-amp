@@ -1,5 +1,40 @@
 # MarkAmp Release History
 
+## v2.26.73 — 2026-03-22
+
+### Highlights
+
+V21 Panel Lifecycle: Completed all 10 phases (60 tasks) establishing the control audit spine, panel lifecycle management, settings architecture, and validation harness system. Introduced `ControlActionManifest` as the canonical action model. Added `MenuCommandBinder`/`PaletteManifestSync` for menu-palette parity. Built `ToolbarCommandBinder`/`StatusBarActionRouter` for toolbar and status bar wiring. Created `ContextMenuActionBinder`/`InlineActionRouter` for context menus and inline actions. Implemented `PanelLifecycleAuditor`/`SidebarStateContract` for panel lifecycle and sidebar state. Built `PanelCapabilityModel` for secondary/bottom panel capabilities. Added `SurfaceActionAuditor` for workbench surface control auditing. Created `SettingsArchitectureAuditor` for settings catalog, scope precedence, and ownership. Built `SettingsStagedContract` for staged settings UI with JSON validation. Implemented `ControlCompletenessMatrix`/`PanelReadinessGate` as release-gating validation harnesses. 10/10 V21 test suites pass (100%).
+
+### Added
+
+- **ControlActionManifest** (P01) — Canonical action model: `ActionEntry`, `ControlSurface`, `ActionValidationStatus`, enablement/visibility predicates, manifest registry with execution dispatch
+- **ControlExecutionTracer** (P01) — Activation recording, dead-affordance detection, per-action stats, JSON export
+- **ControlAuditReport** (P01) — Report generator: `ControlAuditEntry`, `ControlAuditSummary` with V21 exit criteria, JSON/Markdown export
+- **MenuCommandBinder** (P02) — Menu→manifest binding with accelerator generation, deep-link targets, dispatch, enablement sync, diagnostics
+- **PaletteManifestSync** (P02) — Palette-manifest sync: context-aware filtering, shortcut consistency checks, menu-palette parity reporting
+- **ToolbarCommandBinder** (P03) — Toolbar→manifest binding with mode-based filtering, toggle state sync, CTA dispatch
+- **StatusBarActionRouter** (P03) — Status bar routing with Actionable/Informational/Toggle classification, dead-action detection
+- **ContextMenuActionBinder** (P04) — Target-aware context menu resolution with `TargetContext`/`TargetType`, no-op blocking, keyboard accessibility tracking
+- **InlineActionRouter** (P04) — Inline action binding for panel headers, explorer toolbars, extension cards with surface/host filtering
+- **PanelLifecycleAuditor** (P05) — Panel lifecycle state tracking (Registered→Created→Active→Hidden→Stale→Destroyed), readiness gating (Ready/Placeholder/Experimental/Deprecated)
+- **SidebarStateContract** (P05) — Sidebar state persistence with snapshot take/restore, named snapshots for zen mode and workspace switching
+- **PanelCapabilityModel** (P06) — Panel capability flags, host area classification, toggle command routing, layout snapshots, stub panel gating
+- **SurfaceActionAuditor** (P07) — Surface control classification (8 kinds), per-surface filtering, control gating, manifest refresh, dead/placeholder detection
+- **SettingsArchitectureAuditor** (P08) — Settings catalog with `CatalogSettingEntry`, scope precedence (Project > Workspace > User > Default), ownership tracking, deep-link routing, application mode classification (Live/OnReopen/OnRestart)
+- **SettingsStagedContract** (P09) — Staged settings with dirty detection, apply/cancel/revert, JSON brace/bracket validation, import/export, settings search
+- **ControlCompletenessMatrix** (P10) — Release-gating control matrix with `MatrixRow`, `MatrixSummary`, manifest population, markdown output, pass-rate thresholds
+- **PanelReadinessGate** (P10) — Panel readiness gate with `PanelReadinessReport` and `passes_gate()` check
+- **v21_quality_report.sh** (P10) — CI quality report script aggregating all 10 V21 test suite results
+- **10 test files** — `test_v21_control_audit`, `test_v21_menu_palette`, `test_v21_toolbar_statusbar`, `test_v21_context_menus`, `test_v21_primary_sidebar`, `test_v21_panel_lifecycle`, `test_v21_workbench_surfaces`, `test_v21_settings_architecture`, `test_v21_settings_ui`, `test_v21_validation_harness`
+
+### Changed
+
+- **CMakeLists.txt** — Version bumped to 2.26.73
+- **vcpkg.json** — Version bumped to 2.26.73
+- **src/CMakeLists.txt** — Added 10 new Phase 01-10 source files with phase comments
+- **tests/CMakeLists.txt** — Added 10 source files to `markamp_core` library and 10 new test targets
+
 ## v2.25.72 — 2026-03-21
 
 ### Highlights

@@ -434,6 +434,32 @@ add_executable(markamp
     core/LiveSettingsReactor.cpp
     core/SettingsStateOwner.cpp
     core/SettingsScopeResolver.cpp
+    # V21 Phase 01: Control Audit Spine & Canonical Action Model
+    core/ControlActionManifest.cpp
+    core/ControlExecutionTracer.cpp
+    core/ControlAuditReport.cpp
+    # V21 Phase 02: Menu / Palette / Shortcut Parity
+    core/MenuCommandBinder.cpp
+    core/PaletteManifestSync.cpp
+    # V21 Phase 03: Toolbar, Status Bar & Global Button Wiring
+    core/ToolbarCommandBinder.cpp
+    core/StatusBarActionRouter.cpp
+    # V21 Phase 04: Context Menus, Inline Actions & Target-Aware Enablement
+    core/ContextMenuActionBinder.cpp
+    core/InlineActionRouter.cpp
+    # V21 Phase 05: Panel Registry, Primary Sidebar & Controlled Surface Replacement
+    core/PanelLifecycleAuditor.cpp
+    core/SidebarStateContract.cpp
+    # V21 Phase 06: Secondary, Bottom & Specialized Panel Lifecycle
+    core/PanelCapabilityModel.cpp
+    # V21 Phase 07: Workbench Surface Completion
+    core/SurfaceActionAuditor.cpp
+    # V21 Phase 08: Settings Architecture & Schema Consolidation
+    core/SettingsArchitectureAuditor.cpp
+    # V21 Phase 09: Settings UI & JSON Editor
+    core/SettingsStagedContract.cpp
+    # V21 Phase 10: Validation Harnesses & Dead UI Removal
+    core/ControlCompletenessMatrix.cpp
     core/CanvasWorkbenchMode.cpp
     core/CanvasShellStateModel.cpp
     core/CanvasSessionContext.cpp
@@ -1473,6 +1499,48 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "Src" FILES
     core/WorkbenchCommands.cpp
     core/CommandFeedback.h
     core/CommandFeedback.cpp
+    # V21 Phase 01: Control Audit Spine & Canonical Action Model
+    core/ControlActionManifest.h
+    core/ControlActionManifest.cpp
+    core/ControlExecutionTracer.h
+    core/ControlExecutionTracer.cpp
+    core/ControlAuditReport.h
+    core/ControlAuditReport.cpp
+    # V21 Phase 02: Menu / Palette / Shortcut Parity
+    core/MenuCommandBinder.h
+    core/MenuCommandBinder.cpp
+    core/PaletteManifestSync.h
+    core/PaletteManifestSync.cpp
+    # V21 Phase 03: Toolbar, Status Bar & Global Button Wiring
+    core/ToolbarCommandBinder.h
+    core/ToolbarCommandBinder.cpp
+    core/StatusBarActionRouter.h
+    core/StatusBarActionRouter.cpp
+    # V21 Phase 04: Context Menus, Inline Actions & Target-Aware Enablement
+    core/ContextMenuActionBinder.h
+    core/ContextMenuActionBinder.cpp
+    core/InlineActionRouter.h
+    core/InlineActionRouter.cpp
+    # V21 Phase 05: Panel Registry, Primary Sidebar & Controlled Surface Replacement
+    core/PanelLifecycleAuditor.h
+    core/PanelLifecycleAuditor.cpp
+    core/SidebarStateContract.h
+    core/SidebarStateContract.cpp
+    # V21 Phase 06: Secondary, Bottom & Specialized Panel Lifecycle
+    core/PanelCapabilityModel.h
+    core/PanelCapabilityModel.cpp
+    # V21 Phase 07: Workbench Surface Completion
+    core/SurfaceActionAuditor.h
+    core/SurfaceActionAuditor.cpp
+    # V21 Phase 08: Settings Architecture & Schema Consolidation
+    core/SettingsArchitectureAuditor.h
+    core/SettingsArchitectureAuditor.cpp
+    # V21 Phase 09: Settings UI & JSON Editor
+    core/SettingsStagedContract.h
+    core/SettingsStagedContract.cpp
+    # V21 Phase 10: Validation Harnesses & Dead UI Removal
+    core/ControlCompletenessMatrix.h
+    core/ControlCompletenessMatrix.cpp
     core/ChordShortcutManager.h
     core/ChordShortcutManager.cpp
     core/QuickOpenProvider.h
