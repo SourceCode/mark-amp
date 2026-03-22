@@ -97,6 +97,34 @@ public:
     /// Pass rate from last run (0.0-1.0).
     [[nodiscard]] auto pass_rate() const -> double;
 
+    // ── V24 P01-T05: Phase Readiness Checks ──
+
+    /// Phase readiness evaluation result.
+    struct PhaseReadiness
+    {
+        std::string phase_id;
+        bool is_ready{false};
+        int total_tests{0};
+        int passed_tests{0};
+        int failed_tests{0};
+        std::vector<std::string> blocking_test_ids;
+
+        [[nodiscard]] auto pass_ratio() const noexcept -> double
+        {
+            return total_tests > 0
+                ? static_cast<double>(passed_tests) / static_cast<double>(total_tests)
+                : 0.0;
+        }
+
+        [[nodiscard]] auto has_blockers() const noexcept -> bool
+        {
+            return !blocking_test_ids.empty();
+        }
+    };
+
+    /// Check if a phase is ready by running all smoke tests that match the phase prefix.
+    [[nodiscard]] auto check_phase_readiness(const std::string& phase_id) -> PhaseReadiness;
+
 private:
     struct SmokeTest
     {

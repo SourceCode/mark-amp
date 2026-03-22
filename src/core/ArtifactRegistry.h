@@ -151,6 +151,13 @@ public:
     /// Rename an artifact's display name.
     [[nodiscard]] auto rename(const ArtifactId& id, const std::string& new_name) -> bool;
 
+    /// V24 P02-T03: Standardize initial metadata on an artifact.
+    /// Sets language_id, source, and display_name if not already set.
+    [[nodiscard]] auto set_initial_metadata(const ArtifactId& id,
+                                             const std::string& language_id,
+                                             const std::string& source,
+                                             const std::string& display_name = {}) -> bool;
+
     // ── Enumeration ──
 
     /// All registered artifacts.

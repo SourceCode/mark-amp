@@ -125,6 +125,34 @@ public:
     [[nodiscard]] auto dead_count() const -> std::size_t;
     [[nodiscard]] auto gated_count() const -> std::size_t;
 
+    // ── V24 P01-T04: Release Gate Enforcement ──
+
+    /// Result of enforce_release_gate — hard pass/fail instead of advisory.
+    struct ReleaseGateResult
+    {
+        bool passed{false};
+        int total_controls{0};
+        int dead_controls{0};
+        int placeholder_controls{0};
+        int unbound_controls{0};
+        std::vector<std::string> blocking_action_ids;
+
+        [[nodiscard]] auto has_blockers() const noexcept -> bool
+        {
+            return !blocking_action_ids.empty();
+        }
+
+        [[nodiscard]] auto blocker_count() const noexcept -> int
+        {
+            return static_cast<int>(blocking_action_ids.size());
+        }
+    };
+
+    /// Enforce release gate: returns hard pass/fail.
+    /// Unlike audit(), this returns a single pass/fail decision suitable for CI.
+    [[nodiscard]] auto enforce_release_gate(const ControlActionManifest& manifest) const
+        -> ReleaseGateResult;
+
 private:
     std::unordered_map<std::string, SurfaceControlBinding> controls_;
     std::vector<std::string> insertion_order_;

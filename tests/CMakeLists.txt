@@ -1079,6 +1079,22 @@ target_sources(markamp_core PRIVATE
     ${CMAKE_SOURCE_DIR}/src/core/MotionLanguageCoordinator.cpp
     # V22 Phase 20: Visual Cleanup Coordination
     ${CMAKE_SOURCE_DIR}/src/core/VisualCleanupCoordinator.cpp
+    # V24 Phase 01: Program Spine & Backlog
+    ${CMAKE_SOURCE_DIR}/src/core/ExecutionLedger.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/SubsystemDoneCriteria.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/DependencyGraphMapper.cpp
+    # V24 Phase 02: Artifact Lifecycle & Unsaved Document Spine
+    ${CMAKE_SOURCE_DIR}/src/core/ArtifactLifecycleValidator.cpp
+    # V24 Phase 03: Persistence & Recovery
+    ${CMAKE_SOURCE_DIR}/src/core/RecoveryUXService.cpp
+    # V24 Phase 04: Shell Command & Action Authority
+    ${CMAKE_SOURCE_DIR}/src/core/ActionManifest.cpp
+    # V24 Phase 07: Visual Systems
+    ${CMAKE_SOURCE_DIR}/src/core/AccessibilityStateManager.cpp
+    # V24 Phase 08: Notebook Runtime
+    ${CMAKE_SOURCE_DIR}/src/core/NotebookVariableInspector.cpp
+    # V24 Phase 10: Explorer/Navigation
+    ${CMAKE_SOURCE_DIR}/src/core/NavigationHistory.cpp
 )
 target_include_directories(markamp_core PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(markamp_core PUBLIC markamp_dependencies)
@@ -7282,3 +7298,123 @@ add_executable(test_v23_release_gate_completion unit/test_v23_release_gate_compl
 target_include_directories(test_v23_release_gate_completion PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_v23_release_gate_completion PRIVATE Catch2::Catch2WithMain markamp_core)
 add_test(NAME test_v23_release_gate_completion COMMAND test_v23_release_gate_completion)
+
+# V24 Phase 01: Program Spine & Backlog
+add_executable(test_v24_p01_execution_ledger unit/test_v24_p01_execution_ledger.cpp)
+target_include_directories(test_v24_p01_execution_ledger PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v24_p01_execution_ledger PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v24_p01_execution_ledger COMMAND test_v24_p01_execution_ledger)
+
+# V24 Phase 02: Artifact Lifecycle & Unsaved Document Spine
+add_executable(test_v24_p02_artifact_lifecycle unit/test_v24_p02_artifact_lifecycle.cpp)
+target_include_directories(test_v24_p02_artifact_lifecycle PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v24_p02_artifact_lifecycle PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v24_p02_artifact_lifecycle COMMAND test_v24_p02_artifact_lifecycle)
+
+# V24 Phase 03: Persistence & Recovery
+add_executable(test_v24_p03_persistence unit/test_v24_p03_persistence.cpp)
+target_include_directories(test_v24_p03_persistence PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v24_p03_persistence PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v24_p03_persistence COMMAND test_v24_p03_persistence)
+
+# V24 Phase 04: Shell Command & Action Authority
+add_executable(test_v24_p04_action_manifest unit/test_v24_p04_action_manifest.cpp)
+target_include_directories(test_v24_p04_action_manifest PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v24_p04_action_manifest PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v24_p04_action_manifest COMMAND test_v24_p04_action_manifest)
+
+# V24 Phase 05: Panel Authority & Settings Host
+add_executable(test_v24_p05_panel_authority unit/test_v24_p05_panel_authority.cpp)
+target_include_directories(test_v24_p05_panel_authority PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v24_p05_panel_authority PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v24_p05_panel_authority COMMAND test_v24_p05_panel_authority)
+
+# V24 Phase 06: Editor, Search & Diagnostics
+add_executable(test_v24_p06_search_diagnostics unit/test_v24_p06_search_diagnostics.cpp)
+target_include_directories(test_v24_p06_search_diagnostics PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v24_p06_search_diagnostics PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v24_p06_search_diagnostics COMMAND test_v24_p06_search_diagnostics)
+
+# V24 Phase 07: Visual Systems
+add_executable(test_v24_p07_visual_systems unit/test_v24_p07_visual_systems.cpp)
+target_include_directories(test_v24_p07_visual_systems PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v24_p07_visual_systems PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v24_p07_visual_systems COMMAND test_v24_p07_visual_systems)
+
+# V24 Phase 08: Notebook Runtime
+add_executable(test_v24_p08_notebook_runtime unit/test_v24_p08_notebook_runtime.cpp)
+target_include_directories(test_v24_p08_notebook_runtime PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v24_p08_notebook_runtime PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v24_p08_notebook_runtime COMMAND test_v24_p08_notebook_runtime)
+
+# V24 Phase 09: Canvas Workbench
+add_executable(test_v24_p09_canvas_workbench unit/test_v24_p09_canvas_workbench.cpp)
+target_include_directories(test_v24_p09_canvas_workbench PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v24_p09_canvas_workbench PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v24_p09_canvas_workbench COMMAND test_v24_p09_canvas_workbench)
+
+# V24 Phase 10: Workspace & Navigation
+add_executable(test_v24_p10_workspace_navigation unit/test_v24_p10_workspace_navigation.cpp)
+target_include_directories(test_v24_p10_workspace_navigation PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v24_p10_workspace_navigation PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v24_p10_workspace_navigation COMMAND test_v24_p10_workspace_navigation)
+
+# V24 Phase 11: Source Control & Git
+add_executable(test_v24_p11_source_control unit/test_v24_p11_source_control.cpp)
+target_include_directories(test_v24_p11_source_control PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v24_p11_source_control PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v24_p11_source_control COMMAND test_v24_p11_source_control)
+
+# V24 Phase 12: Build/Terminal/Debug
+add_executable(test_v24_p12_execution_surfaces unit/test_v24_p12_execution_surfaces.cpp)
+target_include_directories(test_v24_p12_execution_surfaces PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v24_p12_execution_surfaces PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v24_p12_execution_surfaces COMMAND test_v24_p12_execution_surfaces)
+
+# V24 Phase 13: Settings & Config
+add_executable(test_v24_p13_settings_completion unit/test_v24_p13_settings_completion.cpp)
+target_include_directories(test_v24_p13_settings_completion PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v24_p13_settings_completion PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v24_p13_settings_completion COMMAND test_v24_p13_settings_completion)
+
+# V24 Phase 14: Plugin/Extension
+add_executable(test_v24_p14_extension_contribution unit/test_v24_p14_extension_contribution.cpp)
+target_include_directories(test_v24_p14_extension_contribution PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v24_p14_extension_contribution PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v24_p14_extension_contribution COMMAND test_v24_p14_extension_contribution)
+
+# V24 Phase 15: Cloud/Security
+add_executable(test_v24_p15_cloud_security unit/test_v24_p15_cloud_security.cpp)
+target_include_directories(test_v24_p15_cloud_security PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v24_p15_cloud_security PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v24_p15_cloud_security COMMAND test_v24_p15_cloud_security)
+
+# V24 Phase 16: Rendering/Export
+add_executable(test_v24_p16_rendering_export unit/test_v24_p16_rendering_export.cpp)
+target_include_directories(test_v24_p16_rendering_export PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v24_p16_rendering_export PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v24_p16_rendering_export COMMAND test_v24_p16_rendering_export)
+
+# V24 Phase 17: Advanced Domains
+add_executable(test_v24_p17_advanced_domains unit/test_v24_p17_advanced_domains.cpp)
+target_include_directories(test_v24_p17_advanced_domains PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v24_p17_advanced_domains PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v24_p17_advanced_domains COMMAND test_v24_p17_advanced_domains)
+
+# V24 Phase 18: Cleanup & Audit
+add_executable(test_v24_p18_cleanup_audit unit/test_v24_p18_cleanup_audit.cpp)
+target_include_directories(test_v24_p18_cleanup_audit PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v24_p18_cleanup_audit PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v24_p18_cleanup_audit COMMAND test_v24_p18_cleanup_audit)
+
+# V24 Phase 19: Validation Gates
+add_executable(test_v24_p19_validation_gates unit/test_v24_p19_validation_gates.cpp)
+target_include_directories(test_v24_p19_validation_gates PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v24_p19_validation_gates PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v24_p19_validation_gates COMMAND test_v24_p19_validation_gates)
+
+# V24 Phase 20: Release Signoff
+add_executable(test_v24_p20_release_signoff unit/test_v24_p20_release_signoff.cpp)
+target_include_directories(test_v24_p20_release_signoff PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v24_p20_release_signoff PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v24_p20_release_signoff COMMAND test_v24_p20_release_signoff)

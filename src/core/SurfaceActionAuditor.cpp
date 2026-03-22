@@ -120,4 +120,33 @@ auto SurfaceActionAuditor::gated_count() const -> std::size_t {
     return gated_controls().size();
 }
 
+// V24 P01-T04: Release Gate Enforcement
+auto SurfaceActionAuditor::enforce_release_gate(const ControlActionManifest& manifest) const
+    -> ReleaseGateResult {
+    ReleaseGateResult result;
+    result.total_controls = static_cast<int>(controls_.size());
+
+    auto issues = audit(manifest);
+    for (const auto& issue : issues) {
+        if (issue.is_dead) {
+            ++result.dead_controls;
+            result.blocking_action_ids.push_back(issue.action_id);
+        }
+        if (issue.is_placeholder) {
+            ++result.placeholder_controls;
+            result.blocking_action_ids.push_back(issue.action_id);
+        }
+    }
+
+    // Also count unbound (non-gated) controls
+    for (const auto& [id, binding] : controls_) {
+        if (!binding.is_bound && !binding.is_gated) {
+            ++result.unbound_controls;
+        }
+    }
+
+    result.passed = result.blocking_action_ids.empty();
+    return result;
+}
+
 } // namespace markamp::core

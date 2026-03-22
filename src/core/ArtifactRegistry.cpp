@@ -181,6 +181,27 @@ auto ArtifactRegistry::rename(const ArtifactId& id, const std::string& new_name)
     return true;
 }
 
+// V24 P02-T03: Standardize initial metadata
+auto ArtifactRegistry::set_initial_metadata(const ArtifactId& id,
+                                             const std::string& language_id,
+                                             const std::string& source,
+                                             const std::string& display_name) -> bool
+{
+    auto iter = records_.find(id.value);
+    if (iter == records_.end()) return false;
+
+    if (!language_id.empty() && iter->second.language_id.empty()) {
+        iter->second.language_id = language_id;
+    }
+    if (!source.empty() && iter->second.source.empty()) {
+        iter->second.source = source;
+    }
+    if (!display_name.empty() && iter->second.display_name.empty()) {
+        iter->second.display_name = display_name;
+    }
+    return true;
+}
+
 auto ArtifactRegistry::all_artifacts() const -> std::vector<ArtifactRecord>
 {
     std::vector<ArtifactRecord> result;

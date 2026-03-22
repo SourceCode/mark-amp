@@ -1,5 +1,25 @@
 # MarkAmp Release History
 
+## v2.28.1 — 2026-03-22
+
+### Highlights
+
+V24 Execution-Synthesis: All 20 phases across 4 waves. Wave 1 (Foundation P01–P05): ExecutionLedger, SubsystemDoneCriteria, DependencyGraphMapper, ArtifactLifecycleValidator, RecoveryUXService, ActionManifest. Wave 2 (Core Surfaces P06–P10): SearchService, AccessibilityStateManager, NotebookVariableInspector, Board CRUD, NavigationHistory. Wave 3 (Parallel Subsystems P11–P17): GitService structs, FeatureRegistry, SettingsCatalog, ContributionValidator, CloudSyncTypes, ExportTypes/ImportTypes, TaskService. Wave 4 (Cleanup & Release P18–P20): SurfaceActionAuditor cleanup, SubsystemDoneCriteria validation gates, DependencyGraphMapper signoff, release verdicts. 200 new tests across 20 test files. Build: 780/780 tests pass.
+
+### Added
+
+- **V24 P01–P05 Foundation** — `ExecutionLedger` (task registry, dependency sort, JSON/MD export), `SubsystemDoneCriteria` (per-subsystem done contracts, evaluation, signoff), `DependencyGraphMapper` (topological sort, critical path, Mermaid export), `ArtifactLifecycleValidator`, `RecoveryUXService`, `ActionManifest`
+- **V24 P06–P10 Core Surfaces** — SearchQuery/SearchResult verification, FtsQueryBuilder, highlight ranges, `AccessibilityStateManager` (enabled feature tracking), `NotebookVariableInspector` (variable display, kernel spec, kernel state), Board CRUD/serialization/statistics, `NavigationHistory` (back/forward/can queries), FileOpResult
+- **V24 P11–P17 Parallel Subsystems** — Git struct tests (GitFileEntry, DiffHunk, FileDiff, GitCommit, GitBranch), `FeatureRegistry` tests (register/enable/disable/toggle/query), `SettingsCatalog` tests (registration/search/groups/scope/batch), `ContributionValidator` tests (diagnostics, keybinding validation), `CloudSyncTypes` tests (encryption, S3, WebDAV, sync results), `ExportTypes`/`ImportTypes` tests (format enums, options, scopes), `TaskService` tests (static parsing, priority/status, tag extraction)
+- **V24 P18–P20 Cleanup & Release** — `SurfaceActionAuditor` tests (control registration, gating, release gate results, audit status labels), `SubsystemDoneCriteria` validation gates (criterion management, cross-subsystem evaluation, JSON/MD export), `DependencyGraphMapper` signoff (topological sort, full V24 signoff scenario), `LedgerReport` structure validation
+- **20 test files** — `test_v24_p01` through `test_v24_p20`, 200 total test cases
+
+### Changed
+
+- **CMakeLists.txt** — Version bumped to 2.28.1
+- **vcpkg.json** — Version bumped to 2.28.1
+- **tests/CMakeLists.txt** — Added 20 new V24 test targets (P01–P20)
+
 ## v2.27.4 — 2026-03-22
 
 ### Highlights

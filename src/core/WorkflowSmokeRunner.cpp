@@ -135,4 +135,30 @@ auto WorkflowSmokeRunner::pass_rate() const -> double
     return static_cast<double>(passed) / static_cast<double>(last_results_.size());
 }
 
+// V24 P01-T05: Phase Readiness Check
+auto WorkflowSmokeRunner::check_phase_readiness(const std::string& phase_id) -> PhaseReadiness
+{
+    PhaseReadiness readiness;
+    readiness.phase_id = phase_id;
+
+    for (const auto& test : tests_)
+    {
+        // Match tests prefixed with the phase_id (e.g. "P01." matches "P01.smoke.xxx")
+        if (test.test_id.find(phase_id) == 0)
+        {
+            auto result = run_test(test.test_id);
+            ++readiness.total_tests;
+            if (result.passed()) {
+                ++readiness.passed_tests;
+            } else {
+                ++readiness.failed_tests;
+                readiness.blocking_test_ids.push_back(test.test_id);
+            }
+        }
+    }
+
+    readiness.is_ready = readiness.failed_tests == 0 && readiness.total_tests > 0;
+    return readiness;
+}
+
 } // namespace markamp::core
