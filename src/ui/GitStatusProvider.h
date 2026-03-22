@@ -10,8 +10,10 @@
 #include <wx/timer.h>
 
 #include <atomic>
+#include <condition_variable>
 #include <mutex>
 #include <string>
+#include <thread>
 #include <unordered_map>
 #include <vector>
 
@@ -23,6 +25,12 @@ class GitStatusProvider : public wxEvtHandler, public IFileTreeDecorationProvide
 public:
     GitStatusProvider();
     ~GitStatusProvider() override;
+
+    // Non-copyable, non-movable
+    GitStatusProvider(const GitStatusProvider&) = delete;
+    auto operator=(const GitStatusProvider&) -> GitStatusProvider& = delete;
+    GitStatusProvider(GitStatusProvider&&) = delete;
+    auto operator=(GitStatusProvider&&) -> GitStatusProvider& = delete;
 
     void SetWorkspaceRoot(const std::string& root_path);
 
@@ -53,6 +61,9 @@ public:
 private:
     void OnTimer(wxTimerEvent& event);
 
+    /// Stop the background worker thread and wait for it.
+    void StopWorker();
+
     [[nodiscard]] std::string BuildAbsolutePath(const std::string& relative_path) const;
     static core::GitChangeStatus ParseStatusCode(char code);
 
@@ -68,7 +79,17 @@ private:
     core::EventBus* event_bus_{nullptr};
 
     wxTimer refresh_timer_;
+
+    // Joinable worker thread with proper lifecycle
+    std::thread worker_thread_;
+    std::mutex worker_mutex_;
+    std::condition_variable worker_cv_;
+    std::atomic<bool> refresh_requested_{false};
+    std::atomic<bool> stop_requested_{false};
     std::atomic<bool> is_running_{false};
+
+    /// Background worker loop — waits for refresh requests.
+    void WorkerLoop();
 
     wxDECLARE_EVENT_TABLE();
 };

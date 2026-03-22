@@ -3,8 +3,10 @@
 #include <wx/log.h>
 #include <wx/string.h>
 
+#include <algorithm>
 #include <cstdio>
 #include <memory>
+#include <mutex>
 #include <sstream>
 #include <sys/wait.h>
 
@@ -14,6 +16,24 @@ namespace markamp::core
 GitCommandRunner::GitCommandRunner(std::string workspace_root)
     : workspace_root_{std::move(workspace_root)}
 {
+}
+
+GitCommandRunner::~GitCommandRunner()
+{
+    JoinAsyncThreads();
+}
+
+void GitCommandRunner::JoinAsyncThreads()
+{
+    std::lock_guard<std::mutex> lock(async_threads_mutex_);
+    for (auto& t : async_threads_)
+    {
+        if (t.joinable())
+        {
+            t.join();
+        }
+    }
+    async_threads_.clear();
 }
 
 auto GitCommandRunner::RunSync(const std::string& command) -> CommandResult
@@ -67,20 +87,42 @@ auto GitCommandRunner::RunSync(const std::string& command) -> CommandResult
 void GitCommandRunner::RunAsync(const std::string& command,
                                 std::function<void(CommandResult)> callback)
 {
-    // A detached thread handles the blocking sys call and dispatches the callback
-    // To be fully robust in wxWidgets, the callback must be marshaled back to the main GUI thread.
-    // For now, invoking synchronously to test shell stability before integrating CallAfter hooks.
+    if (!callback)
+    {
+        // No callback — nothing to report to; just run synchronously and discard
+        return;
+    }
 
-    std::thread(
-        [this, command, callback = std::move(callback)]()
+    // First, clean up any completed threads to avoid unbounded growth
+    {
+        std::lock_guard<std::mutex> lock(async_threads_mutex_);
+        async_threads_.erase(
+            std::remove_if(async_threads_.begin(),
+                           async_threads_.end(),
+                           [](std::thread& t) {
+                               // A thread that finished will still be joinable;
+                               // we join it here to reap it.
+                               if (t.joinable())
+                               {
+                                   t.join();
+                               }
+                               return true; // remove after joining
+                           }),
+            async_threads_.end());
+    }
+
+    // Spawn a new joinable thread tracked in our vector
+    auto thread = std::thread(
+        [this, command, cb = std::move(callback)]()
         {
             CommandResult result = this->RunSync(command);
-            if (callback)
-            {
-                callback(result);
-            }
-        })
-        .detach();
+            cb(result);
+        });
+
+    {
+        std::lock_guard<std::mutex> lock(async_threads_mutex_);
+        async_threads_.push_back(std::move(thread));
+    }
 }
 
 auto GitCommandRunner::GetStatus() -> std::vector<GitChangeEntry>

@@ -3,6 +3,7 @@
 #include "EventBus.h"
 
 #include <functional>
+#include <mutex>
 #include <string>
 #include <thread>
 #include <vector>
@@ -71,11 +72,21 @@ struct CommandResult
 class GitCommandRunner
 {
 public:
-    GitCommandRunner(std::string workspace_root);
+    explicit GitCommandRunner(std::string workspace_root);
+    ~GitCommandRunner();
+
+    // Non-copyable, non-movable
+    GitCommandRunner(const GitCommandRunner&) = delete;
+    auto operator=(const GitCommandRunner&) -> GitCommandRunner& = delete;
+    GitCommandRunner(GitCommandRunner&&) = delete;
+    auto operator=(GitCommandRunner&&) -> GitCommandRunner& = delete;
 
     // Baseline execution
     auto RunSync(const std::string& command) -> CommandResult;
     void RunAsync(const std::string& command, std::function<void(CommandResult)> callback);
+
+    /// Join all pending async threads. Called automatically in destructor.
+    void JoinAsyncThreads();
 
     // High-level parsing Operations
     auto GetStatus() -> std::vector<GitChangeEntry>;
@@ -106,6 +117,10 @@ public:
 
 private:
     std::string workspace_root_;
+
+    /// Tracks async threads so they can be joined before destruction.
+    std::mutex async_threads_mutex_;
+    std::vector<std::thread> async_threads_;
 };
 
 } // namespace markamp::core

@@ -3842,21 +3842,41 @@ void LayoutManager::ShowCanvasWorkspace()
         return;
     }
 
-    // Create canvas workspace lazily on first use
+    auto* editor_zone = content_container();
+    if (editor_zone == nullptr)
+    {
+        MARKAMP_LOG_WARN("ShowCanvasWorkspace: no editor zone available");
+        return;
+    }
+
+    // Create canvas workspace lazily on first use — parent to editor zone
     if (canvas_workspace_ == nullptr)
     {
-        canvas_workspace_ = new CanvasWorkspacePanel(this, event_bus_, theme_engine(), config_);
+        canvas_workspace_ =
+            new CanvasWorkspacePanel(editor_zone, event_bus_, theme_engine(), config_);
     }
 
-    // Hide editor content, show canvas workspace
-    if (auto* c = content_container())
+    // Hide all existing children in the editor zone (toolbar, editor group, etc.)
+    auto* sizer = editor_zone->GetSizer();
+    if (sizer != nullptr)
     {
-        c->Hide();
-    }
-    canvas_workspace_->Show();
+        for (auto* child : editor_zone->GetChildren())
+        {
+            if (child != canvas_workspace_)
+            {
+                child->Hide();
+            }
+        }
 
-    // Replace content in body sizer
-    Layout();
+        // Add canvas to sizer if not already present
+        if (sizer->GetItem(canvas_workspace_) == nullptr)
+        {
+            sizer->Add(canvas_workspace_, 1, wxEXPAND);
+        }
+    }
+
+    canvas_workspace_->Show();
+    editor_zone->Layout();
 
     canvas_mode_ = true;
 
@@ -3873,17 +3893,26 @@ void LayoutManager::ShowEditorWorkspace()
         return;
     }
 
-    // Hide canvas workspace, show editor content
+    auto* editor_zone = content_container();
+
+    // Hide canvas workspace
     if (canvas_workspace_ != nullptr)
     {
         canvas_workspace_->Hide();
-        // body_sizer_ removed, rely on main Layout()
     }
-    if (auto* c = content_container())
+
+    // Re-show all editor zone children except canvas
+    if (editor_zone != nullptr)
     {
-        c->Show();
+        for (auto* child : editor_zone->GetChildren())
+        {
+            if (child != canvas_workspace_)
+            {
+                child->Show();
+            }
+        }
+        editor_zone->Layout();
     }
-    Layout();
 
     canvas_mode_ = false;
 

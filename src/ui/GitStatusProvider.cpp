@@ -21,6 +21,9 @@ wxBEGIN_EVENT_TABLE(GitStatusProvider, wxEvtHandler) EVT_TIMER(wxID_ANY, GitStat
         GitStatusProvider::GitStatusProvider()
     : refresh_timer_(this)
 {
+    // Start the background worker thread
+    worker_thread_ = std::thread(&GitStatusProvider::WorkerLoop, this);
+
     // Auto-refresh every 5 seconds for status polling.
     refresh_timer_.Start(5000);
 }
@@ -28,16 +31,66 @@ wxBEGIN_EVENT_TABLE(GitStatusProvider, wxEvtHandler) EVT_TIMER(wxID_ANY, GitStat
 GitStatusProvider::~GitStatusProvider()
 {
     refresh_timer_.Stop();
+    StopWorker();
+}
+
+void GitStatusProvider::StopWorker()
+{
+    stop_requested_.store(true, std::memory_order_release);
+
+    // Wake up the worker so it can see stop_requested_
+    {
+        std::lock_guard<std::mutex> lock(worker_mutex_);
+        refresh_requested_.store(true, std::memory_order_release);
+    }
+    worker_cv_.notify_one();
+
+    if (worker_thread_.joinable())
+    {
+        worker_thread_.join();
+    }
+}
+
+void GitStatusProvider::WorkerLoop()
+{
+    while (!stop_requested_.load(std::memory_order_acquire))
+    {
+        // Wait until a refresh is requested or stop is requested
+        {
+            std::unique_lock<std::mutex> lock(worker_mutex_);
+            worker_cv_.wait(lock,
+                            [this]
+                            {
+                                return refresh_requested_.load(std::memory_order_acquire) ||
+                                       stop_requested_.load(std::memory_order_acquire);
+                            });
+        }
+
+        if (stop_requested_.load(std::memory_order_acquire))
+        {
+            break;
+        }
+
+        // Consume the request
+        refresh_requested_.store(false, std::memory_order_release);
+
+        // Run the actual git status check
+        is_running_.store(true, std::memory_order_release);
+        RunGitStatus();
+        is_running_.store(false, std::memory_order_release);
+    }
 }
 
 void GitStatusProvider::SetWorkspaceRoot(const std::string& root_path)
 {
-    std::lock_guard<std::mutex> lock(status_mutex_);
-    workspace_root_ = root_path;
-    cached_changes_.clear();
-    file_status_map_.clear();
+    {
+        std::lock_guard<std::mutex> lock(status_mutex_);
+        workspace_root_ = root_path;
+        cached_changes_.clear();
+        file_status_map_.clear();
+    }
 
-    if (!workspace_root_.empty())
+    if (!root_path.empty())
     {
         Refresh();
     }
@@ -139,21 +192,22 @@ size_t GitStatusProvider::GetModifiedCountInDirectory(const std::string& absolut
 
 void GitStatusProvider::Refresh()
 {
-    if (workspace_root_.empty())
-        return;
-
-    if (is_running_.exchange(true))
+    std::string root;
+    {
+        std::lock_guard<std::mutex> lock(status_mutex_);
+        root = workspace_root_;
+    }
+    if (root.empty())
     {
         return;
     }
 
-    std::thread(
-        [this]()
-        {
-            RunGitStatus();
-            is_running_ = false;
-        })
-        .detach();
+    // Signal the worker thread to run a refresh
+    {
+        std::lock_guard<std::mutex> lock(worker_mutex_);
+        refresh_requested_.store(true, std::memory_order_release);
+    }
+    worker_cv_.notify_one();
 }
 
 void GitStatusProvider::OnTimer(wxTimerEvent&)
@@ -192,11 +246,29 @@ core::GitChangeStatus GitStatusProvider::ParseStatusCode(char code)
 
 void GitStatusProvider::RunGitStatus()
 {
-    core::GitCommandRunner runner{workspace_root_};
+    // Snapshot the workspace root under lock to avoid races
+    std::string root;
+    {
+        std::lock_guard<std::mutex> lock(status_mutex_);
+        root = workspace_root_;
+    }
+
+    if (root.empty())
+    {
+        return;
+    }
+
+    core::GitCommandRunner runner{root};
 
     // v2 porcelain with -z emits machine readable null-terminated strings
     auto result = runner.RunSync("git status --porcelain=v2 --branch -z");
     if (!result.success() || result.stdout_text.empty())
+    {
+        return;
+    }
+
+    // Check if we should stop before processing
+    if (stop_requested_.load(std::memory_order_acquire))
     {
         return;
     }
@@ -318,6 +390,12 @@ void GitStatusProvider::RunGitStatus()
         pos = next_null + 1;
     }
 
+    // Check if we should stop before processing more
+    if (stop_requested_.load(std::memory_order_acquire))
+    {
+        return;
+    }
+
     // Branch state tracking (for event publishing)
     std::string branch_name;
     int ahead = 0;
@@ -403,49 +481,70 @@ void GitStatusProvider::RunGitStatus()
     parse_numstat("git diff --numstat", false);
     parse_numstat("git diff --cached --numstat", true);
 
+    // Final stop check before publishing results
+    if (stop_requested_.load(std::memory_order_acquire))
+    {
+        return;
+    }
+
     {
         std::lock_guard<std::mutex> lock(status_mutex_);
         cached_changes_ = std::move(new_entries);
         file_status_map_ = std::move(new_map);
     }
 
-    if (on_status_changed_)
+    // Marshal UI callbacks to the main thread safely
+    // Use weak reference pattern: check wxTheApp is alive and stop_requested_ is false
+    if (!stop_requested_.load(std::memory_order_acquire))
     {
-        // Safe UI thread callback
-        if (wxTheApp)
+        if (on_status_changed_)
         {
-            wxTheApp->CallAfter(on_status_changed_);
-        }
-    }
-
-    if (event_bus_ != nullptr)
-    {
-        int modified = 0, staged = 0, untracked = 0;
-        for (const auto& entry : new_entries)
-        {
-            if (entry.working_status == core::GitChangeStatus::Untracked)
-                untracked++;
-            else if (entry.working_status != core::GitChangeStatus::None)
-                modified++;
-            if (entry.index_status != core::GitChangeStatus::None)
-                staged++;
+            auto callback_copy = on_status_changed_;
+            auto* app = wxTheApp;
+            if (app != nullptr)
+            {
+                app->CallAfter(std::move(callback_copy));
+            }
         }
 
-        auto* app = wxTheApp; // capture for thread context safety
-        if (app)
+        if (event_bus_ != nullptr)
         {
-            app->CallAfter(
-                [this, branch_name, ahead, behind, modified, staged, untracked]()
+            int modified = 0, staged = 0, untracked = 0;
+            {
+                std::lock_guard<std::mutex> lock(status_mutex_);
+                for (const auto& entry : cached_changes_)
                 {
-                    core::events::GitStatusChangedEvent evt;
-                    evt.branch_name = branch_name;
-                    evt.ahead = ahead;
-                    evt.behind = behind;
-                    evt.modified = modified;
-                    evt.staged = staged;
-                    evt.untracked = untracked;
-                    event_bus_->publish(evt);
-                });
+                    if (entry.working_status == core::GitChangeStatus::Untracked)
+                        untracked++;
+                    else if (entry.working_status != core::GitChangeStatus::None)
+                        modified++;
+                    if (entry.index_status != core::GitChangeStatus::None)
+                        staged++;
+                }
+            }
+
+            // Capture values (not 'this') for the CallAfter callback
+            auto* bus = event_bus_;
+            auto* app = wxTheApp;
+            if (app != nullptr)
+            {
+                app->CallAfter(
+                    [bus, branch_name, ahead, behind, modified, staged, untracked]()
+                    {
+                        if (bus == nullptr)
+                        {
+                            return;
+                        }
+                        core::events::GitStatusChangedEvent evt;
+                        evt.branch_name = branch_name;
+                        evt.ahead = ahead;
+                        evt.behind = behind;
+                        evt.modified = modified;
+                        evt.staged = staged;
+                        evt.untracked = untracked;
+                        bus->publish(evt);
+                    });
+            }
         }
     }
 }

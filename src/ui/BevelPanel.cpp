@@ -7,7 +7,7 @@ namespace markamp::ui
 
 BevelPanel::BevelPanel(
     wxWindow* parent, wxWindowID id, Style style, const wxPoint& pos, const wxSize& size)
-    : wxPanel(parent, id, pos, size, wxFULL_REPAINT_ON_RESIZE | wxTRANSPARENT_WINDOW)
+    : wxPanel(parent, id, pos, size, wxFULL_REPAINT_ON_RESIZE)
     , style_(style)
 {
     SetBackgroundStyle(wxBG_STYLE_PAINT);

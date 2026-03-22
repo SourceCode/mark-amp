@@ -998,6 +998,87 @@ target_sources(markamp_core PRIVATE
     ${CMAKE_SOURCE_DIR}/src/core/SettingsStagedContract.cpp
     # V21 Phase 10: Validation Harnesses & Dead UI Removal
     ${CMAKE_SOURCE_DIR}/src/core/ControlCompletenessMatrix.cpp
+    # V23 Phase 01: Completion Inventory & Severity Policy
+    ${CMAKE_SOURCE_DIR}/src/core/CompletionInventory.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/CompletionSeverityPolicy.cpp
+    # V23 Phase 02: Action & Panel Readiness Gate
+    ${CMAKE_SOURCE_DIR}/src/core/ActionReadinessGate.cpp
+    # V23 Phase 03: Lifecycle Completion Tracker
+    ${CMAKE_SOURCE_DIR}/src/core/LifecycleCompletionTracker.cpp
+    # V23 Phase 04: Persistence Completion Auditor
+    ${CMAKE_SOURCE_DIR}/src/core/PersistenceCompletionAuditor.cpp
+    # V23 Phase 05: Editor Feature Completion Auditor
+    ${CMAKE_SOURCE_DIR}/src/core/EditorFeatureCompletionAuditor.cpp
+    # V23 Phase 06: Notebook Execution Completion Auditor
+    ${CMAKE_SOURCE_DIR}/src/core/NotebookExecutionCompletionAuditor.cpp
+    # V23 Phase 07: Canvas Completion Auditor
+    ${CMAKE_SOURCE_DIR}/src/core/CanvasCompletionAuditor.cpp
+    # V23 Phase 08: Specialized Surface Completion Auditor
+    ${CMAKE_SOURCE_DIR}/src/core/SpecializedSurfaceCompletionAuditor.cpp
+    # V23 Phase 09: Project Workflow Completion Auditor
+    ${CMAKE_SOURCE_DIR}/src/core/ProjectWorkflowCompletionAuditor.cpp
+    # V23 Phase 10: Settings Completion Auditor
+    ${CMAKE_SOURCE_DIR}/src/core/SettingsCompletionAuditor.cpp
+    # V23 Phase 11: Plugin Marketplace Completion Auditor
+    ${CMAKE_SOURCE_DIR}/src/core/PluginMarketplaceCompletionAuditor.cpp
+    # V23 Phase 12: Cloud Security Completion Auditor
+    ${CMAKE_SOURCE_DIR}/src/core/CloudSecurityCompletionAuditor.cpp
+    # V23 Phase 13: Rendering Output Completion Auditor
+    ${CMAKE_SOURCE_DIR}/src/core/RenderingOutputCompletionAuditor.cpp
+    # V23 Phase 14: Node Editor Completion Auditor
+    ${CMAKE_SOURCE_DIR}/src/core/NodeEditorCompletionAuditor.cpp
+    # V23 Phase 15: Structured Data Completion Auditor
+    ${CMAKE_SOURCE_DIR}/src/core/StructuredDataCompletionAuditor.cpp
+    # V23 Phase 16: Platform Accessibility Completion Auditor
+    ${CMAKE_SOURCE_DIR}/src/core/PlatformAccessibilityCompletionAuditor.cpp
+    # V23 Phase 17: Service Stub Completion Auditor
+    ${CMAKE_SOURCE_DIR}/src/core/ServiceStubCompletionAuditor.cpp
+    # V23 Phase 18: Feature Flag Migration Completion Auditor
+    ${CMAKE_SOURCE_DIR}/src/core/FeatureFlagMigrationCompletionAuditor.cpp
+    # V23 Phase 19: Testing Regression Completion Auditor
+    ${CMAKE_SOURCE_DIR}/src/core/TestingRegressionCompletionAuditor.cpp
+    # V23 Phase 20: Release Gate Completion Auditor
+    ${CMAKE_SOURCE_DIR}/src/core/ReleaseGateCompletionAuditor.cpp
+    # V22 Phase 01: Visual Language & Design System Foundation
+    ${CMAKE_SOURCE_DIR}/src/core/DesignSystemAudit.cpp
+    # V22 Phase 02: Shell Chrome Coordination
+    ${CMAKE_SOURCE_DIR}/src/core/ShellChromeCoordinator.cpp
+    # V22 Phase 03: Panel Chrome Coordination
+    ${CMAKE_SOURCE_DIR}/src/core/PanelChromeCoordinator.cpp
+    # V22 Phase 04: Command Surface Coordination
+    ${CMAKE_SOURCE_DIR}/src/core/CommandSurfaceCoordinator.cpp
+    # V22 Phase 05: Navigation Chrome Coordination
+    ${CMAKE_SOURCE_DIR}/src/core/NavigationChromeCoordinator.cpp
+    # V22 Phase 06: Editor Chrome Coordination
+    ${CMAKE_SOURCE_DIR}/src/core/EditorChromeCoordinator.cpp
+    # V22 Phase 07: Syntax Presentation Coordination
+    ${CMAKE_SOURCE_DIR}/src/core/SyntaxPresentationCoordinator.cpp
+    # V22 Phase 08: Editor Overlay Coordination
+    ${CMAKE_SOURCE_DIR}/src/core/EditorOverlayCoordinator.cpp
+    # V22 Phase 09: Notebook Chrome Coordination
+    ${CMAKE_SOURCE_DIR}/src/core/NotebookChromeCoordinator.cpp
+    # V22 Phase 10: Canvas Chrome Coordination
+    ${CMAKE_SOURCE_DIR}/src/core/CanvasChromeCoordinator.cpp
+    # V22 Phase 11: Sidebar Panel Coordination
+    ${CMAKE_SOURCE_DIR}/src/core/SidebarPanelCoordinator.cpp
+    # V22 Phase 12: Utility Panel Coordination
+    ${CMAKE_SOURCE_DIR}/src/core/UtilityPanelCoordinator.cpp
+    # V22 Phase 13: Settings Surface Coordination
+    ${CMAKE_SOURCE_DIR}/src/core/SettingsSurfaceCoordinator.cpp
+    # V22 Phase 14: Transient Overlay Coordination
+    ${CMAKE_SOURCE_DIR}/src/core/TransientOverlayCoordinator.cpp
+    # V22 Phase 15: Dense Data Coordination
+    ${CMAKE_SOURCE_DIR}/src/core/DenseDataCoordinator.cpp
+    # V22 Phase 16: Onboarding State Coordination
+    ${CMAKE_SOURCE_DIR}/src/core/OnboardingStateCoordinator.cpp
+    # V22 Phase 17: Accessibility Coordination
+    ${CMAKE_SOURCE_DIR}/src/core/AccessibilityCoordinator.cpp
+    # V22 Phase 18: Theme Parity Coordination
+    ${CMAKE_SOURCE_DIR}/src/core/ThemeParityCoordinator.cpp
+    # V22 Phase 19: Motion Language Coordination
+    ${CMAKE_SOURCE_DIR}/src/core/MotionLanguageCoordinator.cpp
+    # V22 Phase 20: Visual Cleanup Coordination
+    ${CMAKE_SOURCE_DIR}/src/core/VisualCleanupCoordinator.cpp
 )
 target_include_directories(markamp_core PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(markamp_core PUBLIC markamp_dependencies)
@@ -6965,3 +7046,239 @@ add_executable(test_v21_validation_harness unit/test_v21_validation_harness.cpp)
 target_include_directories(test_v21_validation_harness PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_v21_validation_harness PRIVATE Catch2::Catch2WithMain markamp_core)
 add_test(NAME test_v21_validation_harness COMMAND test_v21_validation_harness)
+
+# ============================================================================
+# V22 Phase 01: Visual Language & Design System Foundation
+# ============================================================================
+add_executable(test_v22_visual_language unit/test_v22_visual_language.cpp)
+target_include_directories(test_v22_visual_language PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v22_visual_language PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v22_visual_language COMMAND test_v22_visual_language)
+
+# V22 Phase 01: Design System Audit
+add_executable(test_v22_design_audit unit/test_v22_design_audit.cpp)
+target_include_directories(test_v22_design_audit PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v22_design_audit PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v22_design_audit COMMAND test_v22_design_audit)
+
+# V22 Phase 02: Shell Chrome Coordination
+add_executable(test_v22_shell_chrome unit/test_v22_shell_chrome.cpp)
+target_include_directories(test_v22_shell_chrome PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v22_shell_chrome PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v22_shell_chrome COMMAND test_v22_shell_chrome)
+
+# V22 Phase 03: Panel Chrome Coordination
+add_executable(test_v22_panel_chrome unit/test_v22_panel_chrome.cpp)
+target_include_directories(test_v22_panel_chrome PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v22_panel_chrome PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v22_panel_chrome COMMAND test_v22_panel_chrome)
+
+# V22 Phase 04: Command Surface Coordination
+add_executable(test_v22_command_surface unit/test_v22_command_surface.cpp)
+target_include_directories(test_v22_command_surface PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v22_command_surface PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v22_command_surface COMMAND test_v22_command_surface)
+
+# V22 Phase 05: Navigation Chrome Coordination
+add_executable(test_v22_navigation_chrome unit/test_v22_navigation_chrome.cpp)
+target_include_directories(test_v22_navigation_chrome PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v22_navigation_chrome PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v22_navigation_chrome COMMAND test_v22_navigation_chrome)
+
+# V22 Phase 06: Editor Chrome Coordination
+add_executable(test_v22_editor_chrome unit/test_v22_editor_chrome.cpp)
+target_include_directories(test_v22_editor_chrome PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v22_editor_chrome PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v22_editor_chrome COMMAND test_v22_editor_chrome)
+
+# V22 Phase 07: Syntax Presentation Coordination
+add_executable(test_v22_syntax_presentation unit/test_v22_syntax_presentation.cpp)
+target_include_directories(test_v22_syntax_presentation PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v22_syntax_presentation PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v22_syntax_presentation COMMAND test_v22_syntax_presentation)
+
+# V22 Phase 08: Editor Overlay Coordination
+add_executable(test_v22_editor_overlay unit/test_v22_editor_overlay.cpp)
+target_include_directories(test_v22_editor_overlay PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v22_editor_overlay PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v22_editor_overlay COMMAND test_v22_editor_overlay)
+
+# V22 Phase 09: Notebook Chrome Coordination
+add_executable(test_v22_notebook_chrome unit/test_v22_notebook_chrome.cpp)
+target_include_directories(test_v22_notebook_chrome PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v22_notebook_chrome PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v22_notebook_chrome COMMAND test_v22_notebook_chrome)
+
+# V22 Phase 10: Canvas Chrome Coordination
+add_executable(test_v22_canvas_chrome unit/test_v22_canvas_chrome.cpp)
+target_include_directories(test_v22_canvas_chrome PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v22_canvas_chrome PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v22_canvas_chrome COMMAND test_v22_canvas_chrome)
+
+# V22 Phase 11: Sidebar Panel Coordination
+add_executable(test_v22_sidebar_panel unit/test_v22_sidebar_panel.cpp)
+target_include_directories(test_v22_sidebar_panel PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v22_sidebar_panel PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v22_sidebar_panel COMMAND test_v22_sidebar_panel)
+
+# V22 Phase 12: Utility Panel Coordination
+add_executable(test_v22_utility_panel unit/test_v22_utility_panel.cpp)
+target_include_directories(test_v22_utility_panel PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v22_utility_panel PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v22_utility_panel COMMAND test_v22_utility_panel)
+
+# V22 Phase 13: Settings Surface Coordination
+add_executable(test_v22_settings_surface unit/test_v22_settings_surface.cpp)
+target_include_directories(test_v22_settings_surface PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v22_settings_surface PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v22_settings_surface COMMAND test_v22_settings_surface)
+
+# V22 Phase 14: Transient Overlay Coordination
+add_executable(test_v22_transient_overlay unit/test_v22_transient_overlay.cpp)
+target_include_directories(test_v22_transient_overlay PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v22_transient_overlay PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v22_transient_overlay COMMAND test_v22_transient_overlay)
+
+# V22 Phase 15: Dense Data Coordination
+add_executable(test_v22_dense_data unit/test_v22_dense_data.cpp)
+target_include_directories(test_v22_dense_data PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v22_dense_data PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v22_dense_data COMMAND test_v22_dense_data)
+
+# V22 Phase 16: Onboarding State Coordination
+add_executable(test_v22_onboarding_state unit/test_v22_onboarding_state.cpp)
+target_include_directories(test_v22_onboarding_state PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v22_onboarding_state PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v22_onboarding_state COMMAND test_v22_onboarding_state)
+
+# V22 Phase 17: Accessibility Coordination
+add_executable(test_v22_accessibility unit/test_v22_accessibility.cpp)
+target_include_directories(test_v22_accessibility PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v22_accessibility PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v22_accessibility COMMAND test_v22_accessibility)
+
+# V22 Phase 18: Theme Parity Coordination
+add_executable(test_v22_theme_parity unit/test_v22_theme_parity.cpp)
+target_include_directories(test_v22_theme_parity PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v22_theme_parity PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v22_theme_parity COMMAND test_v22_theme_parity)
+
+# V22 Phase 19: Motion Language Coordination
+add_executable(test_v22_motion_language unit/test_v22_motion_language.cpp)
+target_include_directories(test_v22_motion_language PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v22_motion_language PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v22_motion_language COMMAND test_v22_motion_language)
+
+# V22 Phase 20: Visual Cleanup Coordination
+add_executable(test_v22_visual_cleanup unit/test_v22_visual_cleanup.cpp)
+target_include_directories(test_v22_visual_cleanup PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v22_visual_cleanup PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v22_visual_cleanup COMMAND test_v22_visual_cleanup)
+
+# ============================================================================
+# V23 Phase 01: Completion Inventory & Severity Policy
+# ============================================================================
+add_executable(test_v23_completion_inventory unit/test_v23_completion_inventory.cpp)
+target_include_directories(test_v23_completion_inventory PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v23_completion_inventory PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v23_completion_inventory COMMAND test_v23_completion_inventory)
+
+add_executable(test_v23_severity_policy unit/test_v23_severity_policy.cpp)
+target_include_directories(test_v23_severity_policy PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v23_severity_policy PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v23_severity_policy COMMAND test_v23_severity_policy)
+
+add_executable(test_v23_action_readiness unit/test_v23_action_readiness.cpp)
+target_include_directories(test_v23_action_readiness PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v23_action_readiness PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v23_action_readiness COMMAND test_v23_action_readiness)
+
+add_executable(test_v23_lifecycle_completion unit/test_v23_lifecycle_completion.cpp)
+target_include_directories(test_v23_lifecycle_completion PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v23_lifecycle_completion PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v23_lifecycle_completion COMMAND test_v23_lifecycle_completion)
+
+add_executable(test_v23_persistence_completion unit/test_v23_persistence_completion.cpp)
+target_include_directories(test_v23_persistence_completion PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v23_persistence_completion PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v23_persistence_completion COMMAND test_v23_persistence_completion)
+
+add_executable(test_v23_editor_completion unit/test_v23_editor_completion.cpp)
+target_include_directories(test_v23_editor_completion PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v23_editor_completion PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v23_editor_completion COMMAND test_v23_editor_completion)
+
+add_executable(test_v23_notebook_completion unit/test_v23_notebook_completion.cpp)
+target_include_directories(test_v23_notebook_completion PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v23_notebook_completion PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v23_notebook_completion COMMAND test_v23_notebook_completion)
+
+add_executable(test_v23_canvas_completion unit/test_v23_canvas_completion.cpp)
+target_include_directories(test_v23_canvas_completion PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v23_canvas_completion PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v23_canvas_completion COMMAND test_v23_canvas_completion)
+
+add_executable(test_v23_surface_completion unit/test_v23_surface_completion.cpp)
+target_include_directories(test_v23_surface_completion PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v23_surface_completion PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v23_surface_completion COMMAND test_v23_surface_completion)
+
+add_executable(test_v23_project_completion unit/test_v23_project_completion.cpp)
+target_include_directories(test_v23_project_completion PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v23_project_completion PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v23_project_completion COMMAND test_v23_project_completion)
+
+add_executable(test_v23_settings_completion unit/test_v23_settings_completion.cpp)
+target_include_directories(test_v23_settings_completion PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v23_settings_completion PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v23_settings_completion COMMAND test_v23_settings_completion)
+
+add_executable(test_v23_plugin_completion unit/test_v23_plugin_completion.cpp)
+target_include_directories(test_v23_plugin_completion PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v23_plugin_completion PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v23_plugin_completion COMMAND test_v23_plugin_completion)
+
+add_executable(test_v23_cloud_security_completion unit/test_v23_cloud_security_completion.cpp)
+target_include_directories(test_v23_cloud_security_completion PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v23_cloud_security_completion PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v23_cloud_security_completion COMMAND test_v23_cloud_security_completion)
+
+add_executable(test_v23_rendering_completion unit/test_v23_rendering_completion.cpp)
+target_include_directories(test_v23_rendering_completion PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v23_rendering_completion PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v23_rendering_completion COMMAND test_v23_rendering_completion)
+
+add_executable(test_v23_node_editor_completion unit/test_v23_node_editor_completion.cpp)
+target_include_directories(test_v23_node_editor_completion PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v23_node_editor_completion PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v23_node_editor_completion COMMAND test_v23_node_editor_completion)
+
+add_executable(test_v23_structured_data_completion unit/test_v23_structured_data_completion.cpp)
+target_include_directories(test_v23_structured_data_completion PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v23_structured_data_completion PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v23_structured_data_completion COMMAND test_v23_structured_data_completion)
+
+add_executable(test_v23_platform_completion unit/test_v23_platform_completion.cpp)
+target_include_directories(test_v23_platform_completion PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v23_platform_completion PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v23_platform_completion COMMAND test_v23_platform_completion)
+
+add_executable(test_v23_service_stub_completion unit/test_v23_service_stub_completion.cpp)
+target_include_directories(test_v23_service_stub_completion PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v23_service_stub_completion PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v23_service_stub_completion COMMAND test_v23_service_stub_completion)
+
+add_executable(test_v23_feature_flag_completion unit/test_v23_feature_flag_completion.cpp)
+target_include_directories(test_v23_feature_flag_completion PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v23_feature_flag_completion PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v23_feature_flag_completion COMMAND test_v23_feature_flag_completion)
+
+add_executable(test_v23_testing_regression_completion unit/test_v23_testing_regression_completion.cpp)
+target_include_directories(test_v23_testing_regression_completion PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v23_testing_regression_completion PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v23_testing_regression_completion COMMAND test_v23_testing_regression_completion)
+
+add_executable(test_v23_release_gate_completion unit/test_v23_release_gate_completion.cpp)
+target_include_directories(test_v23_release_gate_completion PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v23_release_gate_completion PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v23_release_gate_completion COMMAND test_v23_release_gate_completion)

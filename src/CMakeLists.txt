@@ -460,6 +460,47 @@ add_executable(markamp
     core/SettingsStagedContract.cpp
     # V21 Phase 10: Validation Harnesses & Dead UI Removal
     core/ControlCompletenessMatrix.cpp
+    # V23 Phase 01: Completion Inventory & Severity Policy
+    core/CompletionInventory.cpp
+    core/CompletionSeverityPolicy.cpp
+    # V23 Phase 02: Action & Panel Readiness Gate
+    core/ActionReadinessGate.cpp
+    # V23 Phase 03: Lifecycle Completion Tracker
+    core/LifecycleCompletionTracker.cpp
+    # V23 Phase 04: Persistence Completion Auditor
+    core/PersistenceCompletionAuditor.cpp
+    # V23 Phase 05: Editor Feature Completion Auditor
+    core/EditorFeatureCompletionAuditor.cpp
+    # V23 Phase 06: Notebook Execution Completion Auditor
+    core/NotebookExecutionCompletionAuditor.cpp
+    # V23 Phase 07: Canvas Completion Auditor
+    core/CanvasCompletionAuditor.cpp
+    # V23 Phase 08: Specialized Surface Completion Auditor
+    core/SpecializedSurfaceCompletionAuditor.cpp
+    # V23 Phase 09: Project Workflow Completion Auditor
+    core/ProjectWorkflowCompletionAuditor.cpp
+    # V23 Phase 10: Settings Completion Auditor
+    core/SettingsCompletionAuditor.cpp
+    # V23 Phase 11: Plugin Marketplace Completion Auditor
+    core/PluginMarketplaceCompletionAuditor.cpp
+    # V23 Phase 12: Cloud Security Completion Auditor
+    core/CloudSecurityCompletionAuditor.cpp
+    # V23 Phase 13: Rendering Output Completion Auditor
+    core/RenderingOutputCompletionAuditor.cpp
+    # V23 Phase 14: Node Editor Completion Auditor
+    core/NodeEditorCompletionAuditor.cpp
+    # V23 Phase 15: Structured Data Completion Auditor
+    core/StructuredDataCompletionAuditor.cpp
+    # V23 Phase 16: Platform Accessibility Completion Auditor
+    core/PlatformAccessibilityCompletionAuditor.cpp
+    # V23 Phase 17: Service Stub Completion Auditor
+    core/ServiceStubCompletionAuditor.cpp
+    # V23 Phase 18: Feature Flag Migration Completion Auditor
+    core/FeatureFlagMigrationCompletionAuditor.cpp
+    # V23 Phase 19: Testing Regression Completion Auditor
+    core/TestingRegressionCompletionAuditor.cpp
+    # V23 Phase 20: Release Gate Completion Auditor
+    core/ReleaseGateCompletionAuditor.cpp
     core/CanvasWorkbenchMode.cpp
     core/CanvasShellStateModel.cpp
     core/CanvasSessionContext.cpp
@@ -1541,6 +1582,68 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "Src" FILES
     # V21 Phase 10: Validation Harnesses & Dead UI Removal
     core/ControlCompletenessMatrix.h
     core/ControlCompletenessMatrix.cpp
+    # V23 Phase 01: Completion Inventory & Severity Policy
+    core/CompletionInventory.h
+    core/CompletionInventory.cpp
+    core/CompletionSeverityPolicy.h
+    core/CompletionSeverityPolicy.cpp
+    # V23 Phase 02: Action & Panel Readiness Gate
+    core/ActionReadinessGate.h
+    core/ActionReadinessGate.cpp
+    # V23 Phase 03: Lifecycle Completion Tracker
+    core/LifecycleCompletionTracker.h
+    core/LifecycleCompletionTracker.cpp
+    # V23 Phase 04: Persistence Completion Auditor
+    core/PersistenceCompletionAuditor.h
+    core/PersistenceCompletionAuditor.cpp
+    # V23 Phase 05: Editor Feature Completion Auditor
+    core/EditorFeatureCompletionAuditor.h
+    core/EditorFeatureCompletionAuditor.cpp
+    # V23 Phase 06: Notebook Execution Completion Auditor
+    core/NotebookExecutionCompletionAuditor.h
+    core/NotebookExecutionCompletionAuditor.cpp
+    # V23 Phase 07: Canvas Completion Auditor
+    core/CanvasCompletionAuditor.h
+    core/CanvasCompletionAuditor.cpp
+    # V23 Phase 08: Specialized Surface Completion Auditor
+    core/SpecializedSurfaceCompletionAuditor.h
+    core/SpecializedSurfaceCompletionAuditor.cpp
+    # V23 Phase 09: Project Workflow Completion Auditor
+    core/ProjectWorkflowCompletionAuditor.h
+    core/ProjectWorkflowCompletionAuditor.cpp
+    # V23 Phase 10: Settings Completion Auditor
+    core/SettingsCompletionAuditor.h
+    core/SettingsCompletionAuditor.cpp
+    # V23 Phase 11: Plugin Marketplace Completion Auditor
+    core/PluginMarketplaceCompletionAuditor.h
+    core/PluginMarketplaceCompletionAuditor.cpp
+    # V23 Phase 12: Cloud Security Completion Auditor
+    core/CloudSecurityCompletionAuditor.h
+    core/CloudSecurityCompletionAuditor.cpp
+    # V23 Phase 13: Rendering Output Completion Auditor
+    core/RenderingOutputCompletionAuditor.h
+    core/RenderingOutputCompletionAuditor.cpp
+    # V23 Phase 14: Node Editor Completion Auditor
+    core/NodeEditorCompletionAuditor.h
+    core/NodeEditorCompletionAuditor.cpp
+    # V23 Phase 15: Structured Data Completion Auditor
+    core/StructuredDataCompletionAuditor.h
+    core/StructuredDataCompletionAuditor.cpp
+    # V23 Phase 16: Platform Accessibility Completion Auditor
+    core/PlatformAccessibilityCompletionAuditor.h
+    core/PlatformAccessibilityCompletionAuditor.cpp
+    # V23 Phase 17: Service Stub Completion Auditor
+    core/ServiceStubCompletionAuditor.h
+    core/ServiceStubCompletionAuditor.cpp
+    # V23 Phase 18: Feature Flag Migration Completion Auditor
+    core/FeatureFlagMigrationCompletionAuditor.h
+    core/FeatureFlagMigrationCompletionAuditor.cpp
+    # V23 Phase 19: Testing Regression Completion Auditor
+    core/TestingRegressionCompletionAuditor.h
+    core/TestingRegressionCompletionAuditor.cpp
+    # V23 Phase 20: Release Gate Completion Auditor
+    core/ReleaseGateCompletionAuditor.h
+    core/ReleaseGateCompletionAuditor.cpp
     core/ChordShortcutManager.h
     core/ChordShortcutManager.cpp
     core/QuickOpenProvider.h

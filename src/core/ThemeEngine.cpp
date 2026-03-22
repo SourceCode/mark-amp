@@ -395,6 +395,110 @@ void ThemeEngine::rebuild_cache()
         cache_color(tok, name, Color(clr.Red(), clr.Green(), clr.Blue(), clr.Alpha()));
     }
 
+    // V22 Phase 01: Container surface tokens
+    cache_color(ThemeColorToken::ContainerBgSurface,
+                "container.surface",
+                current_theme_.colors.bg_panel);
+    cache_color(ThemeColorToken::ContainerBgElevated,
+                "container.elevated",
+                current_theme_.colors.bg_panel.lighten(0.05F));
+    cache_color(ThemeColorToken::ContainerBgSunken,
+                "container.sunken",
+                current_theme_.colors.bg_app.blend(Color(0, 0, 0), 0.03F));
+    cache_color(ThemeColorToken::ContainerBorderSubtle,
+                "container.borderSubtle",
+                current_theme_.colors.border_light.with_alpha(0.5F));
+    cache_color(ThemeColorToken::ContainerShadow,
+                "container.shadow",
+                current_theme_.colors.border_dark.with_alpha(0.25F));
+
+    // V22 Phase 01: State feedback tokens
+    cache_color(ThemeColorToken::WarningColor,
+                "warningForeground",
+                Color(0xE0, 0xA5, 0x00));
+    cache_color(ThemeColorToken::InfoColor,
+                "infoForeground",
+                Color(0x3B, 0xAF, 0xDA));
+    cache_color(ThemeColorToken::WarningBg,
+                "warningBackground",
+                Color(0xE0, 0xA5, 0x00, 0x1A));
+    cache_color(ThemeColorToken::ErrorBg,
+                "errorBackground",
+                current_theme_.error_color().with_alpha(0.1F));
+    cache_color(ThemeColorToken::SuccessBg,
+                "successBackground",
+                current_theme_.success_color().with_alpha(0.1F));
+    cache_color(ThemeColorToken::InfoBg,
+                "infoBackground",
+                Color(0x3B, 0xAF, 0xDA, 0x1A));
+
+    // V22 Phase 02–05: Navigation & shell chrome tokens
+    cache_color(ThemeColorToken::BreadcrumbSeparatorFg,
+                "breadcrumb.separatorForeground",
+                current_theme_.colors.text_muted.with_alpha(0.6F));
+    cache_color(ThemeColorToken::TabModifiedDot,
+                "tab.modifiedDot",
+                current_theme_.colors.accent_primary);
+    cache_color(ThemeColorToken::TabPreviewBg,
+                "tab.previewBackground",
+                current_theme_.colors.tab_inactive_bg.lighten(0.03F));
+    cache_color(ThemeColorToken::TabPinnedBg,
+                "tab.pinnedBackground",
+                current_theme_.colors.tab_active_bg);
+    cache_color(ThemeColorToken::SplitterHoverBg,
+                "splitter.hoverBackground",
+                current_theme_.colors.accent_primary.with_alpha(0.3F));
+    cache_color(ThemeColorToken::SplitterDragBg,
+                "splitter.dragBackground",
+                current_theme_.colors.accent_primary.with_alpha(0.6F));
+    cache_color(ThemeColorToken::TitleBarInactiveBg,
+                "titleBar.inactiveBackground",
+                current_theme_.colors.bg_header.blend(Color(0, 0, 0), 0.05F));
+
+    // V22 Phase 03–04: Panel & command surface tokens
+    cache_color(ThemeColorToken::PanelHeaderBg,
+                "panelHeader.background",
+                current_theme_.colors.bg_header);
+    cache_color(ThemeColorToken::PanelHeaderFg,
+                "panelHeader.foreground",
+                current_theme_.colors.text_main);
+    cache_color(ThemeColorToken::PanelHeaderBorder,
+                "panelHeader.border",
+                current_theme_.colors.border_light);
+    cache_color(ThemeColorToken::ToolbarSeparator,
+                "toolbar.separator",
+                current_theme_.colors.border_light.with_alpha(0.4F));
+    cache_color(ThemeColorToken::CommandPaletteBg,
+                "commandPalette.background",
+                current_theme_.colors.bg_panel.lighten(0.05F));
+    cache_color(ThemeColorToken::CommandPaletteInputBg,
+                "commandPalette.inputBackground",
+                current_theme_.colors.bg_input);
+    cache_color(ThemeColorToken::CommandPaletteResultHoverBg,
+                "commandPalette.resultHoverBackground",
+                current_theme_.hover_bg());
+    cache_color(ThemeColorToken::CommandPaletteShortcutFg,
+                "commandPalette.shortcutForeground",
+                current_theme_.colors.text_muted);
+    cache_color(ThemeColorToken::ContextMenuBg,
+                "contextMenu.background",
+                current_theme_.colors.bg_panel.lighten(0.05F));
+    cache_color(ThemeColorToken::ContextMenuBorder,
+                "contextMenu.border",
+                current_theme_.colors.border_light);
+    cache_color(ThemeColorToken::ContextMenuSeparator,
+                "contextMenu.separator",
+                current_theme_.colors.border_light.with_alpha(0.5F));
+    cache_color(ThemeColorToken::TooltipBg,
+                "tooltip.background",
+                current_theme_.colors.bg_panel.lighten(0.1F));
+    cache_color(ThemeColorToken::TooltipFg,
+                "tooltip.foreground",
+                current_theme_.colors.text_main);
+    cache_color(ThemeColorToken::TooltipBorder,
+                "tooltip.border",
+                current_theme_.colors.border_light);
+
     // Rebuild fonts
     build_fonts();
 }
@@ -428,6 +532,12 @@ void ThemeEngine::build_fonts()
     cache_.fonts[ThemeFontToken::UISmall] = wxFont(wxFontInfo(10).FaceName(kSansFace));
     cache_.fonts[ThemeFontToken::UILabel] = wxFont(wxFontInfo(12).FaceName(kSansFace));
     cache_.fonts[ThemeFontToken::UIHeading] = wxFont(wxFontInfo(14).FaceName(kSansFace).Bold());
+
+    // V22 Phase 01: Extended typography scale tokens
+    cache_.fonts[ThemeFontToken::UICaption] = wxFont(wxFontInfo(10).FaceName(kSansFace));
+    cache_.fonts[ThemeFontToken::UIBodyLarge] = wxFont(wxFontInfo(13).FaceName(kSansFace));
+    cache_.fonts[ThemeFontToken::UISubtitle] = wxFont(wxFontInfo(14).FaceName(kSansFace).Bold());
+    cache_.fonts[ThemeFontToken::UIDisplay] = wxFont(wxFontInfo(20).FaceName(kSansFace).Bold());
 }
 
 // --- Phase 4: Layered theme application ---

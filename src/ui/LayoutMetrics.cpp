@@ -139,4 +139,37 @@ auto LayoutMetrics::border_width() const -> int
     return 1; // constant across densities
 }
 
+// ── V22 Phase 01: Extended Geometry ─────────────────────────────────────────
+
+auto LayoutMetrics::row_height_tree() const -> int
+{
+    // Tree rows are slightly tighter than general rows for information density.
+    switch (profile_)
+    {
+        case DensityProfile::kComfortable:
+            return 28;
+        case DensityProfile::kDefault:
+            return 24;
+        case DensityProfile::kCompact:
+            return 20;
+    }
+    return 24;
+}
+
+auto LayoutMetrics::row_height_list() const -> int
+{
+    // List rows match general row_height() for consistency.
+    return row_height();
+}
+
+auto LayoutMetrics::panel_header_height() const -> int
+{
+    return ComponentSizeResolver::get().resolve(ComponentKind::kPanelHeader).height;
+}
+
+auto LayoutMetrics::breadcrumb_height() const -> int
+{
+    return ComponentSizeResolver::get().resolve(ComponentKind::kBreadcrumbSegment).height;
+}
+
 } // namespace markamp::ui

@@ -1,5 +1,32 @@
 # MarkAmp Release History
 
+## v2.27.4 — 2026-03-22
+
+### Highlights
+
+V23 Completion Audit Phases 11-20 (Waves 3-4): Implemented 10 new completion auditor services covering plugin/marketplace, cloud/security, rendering/output, node editor, structured data, platform/accessibility, service stubs, feature flags/migration, testing/regression, and release gates. Each auditor provides typed capability enums, completion item tracking, area-based filtering, report generation, and JSON/Markdown export. 90 new test cases across 10 test files. Also includes improvements to GitCommandRunner, ThemeEngine, GitStatusProvider, LayoutManager, LayoutMetrics, BevelPanel, and NotificationManager. Build: 789/789 targets, 760/760 tests pass.
+
+### Added
+
+- **PluginMarketplaceCompletionAuditor** (P11) — Plugin contribution fulfillment, marketplace listings, theme sharing, activation lifecycle, quarantine recovery, telemetry, and service surface completion tracking with `PluginCapabilityArea` enum (8 areas)
+- **CloudSecurityCompletionAuditor** (P12) — Encryption, sync transport, vault watching, telemetry export, retry recovery, offline queue, credential management, and security harness completion tracking with `CloudSecurityArea` enum (8 areas)
+- **RenderingOutputCompletionAuditor** (P13) — Diagram renderer, PDF extraction, export template, print prep, tokenizer pipeline, media fallback, content fidelity, and regression gate completion tracking with `RenderingArea` enum (8 areas)
+- **NodeEditorCompletionAuditor** (P14) — Domain runtime, interaction fidelity, transform evaluation, persistence/export, hit testing, preview system, graph serialization, and completion gate tracking with `NodeEditorArea` enum (8 areas)
+- **StructuredDataCompletionAuditor** (P15) — AV table editor, knowledge graph, deck/flashcard, search/indexing, backlinks, activity timeline, task/calendar, and data migration completion tracking with `StructuredDataArea` enum (8 areas)
+- **PlatformAccessibilityCompletionAuditor** (P16) — Platform stubs, accessibility bridge, file watch/update, prompt host, capability reporting, screen reader, shell integration, and completion gate tracking with `PlatformAccessibilityArea` enum (8 areas)
+- **ServiceStubCompletionAuditor** (P17) — Default returns, interface adoption, unsupported state, health reporting, capability contracts, migration parity, service readiness, and regression coverage tracking with `ServiceStubArea` enum (8 areas)
+- **FeatureFlagMigrationCompletionAuditor** (P18) — Flag inventory, dual-path migration, gated panels, migration reporting, closure tests, shadow migration, experimental flags, and retirement tracking with `FeatureFlagArea` enum (8 areas)
+- **TestingRegressionCompletionAuditor** (P19) — Placeholder tests, fuzz harness, smoke/E2E, failure-mode tests, scoreboard, corpus coverage, restart tests, and unsupported-state tests tracking with `TestingArea` enum (8 areas)
+- **ReleaseGateCompletionAuditor** (P20) — Placeholder eradication, dead path removal, completion gates, scoreboard, final sweep, legacy deletion, waiver process, and certification tracking with `ReleaseGateArea` enum (8 areas)
+- **10 test files** — `test_v23_plugin_completion`, `test_v23_cloud_security_completion`, `test_v23_rendering_completion`, `test_v23_node_editor_completion`, `test_v23_structured_data_completion`, `test_v23_platform_completion`, `test_v23_service_stub_completion`, `test_v23_feature_flag_completion`, `test_v23_testing_regression_completion`, `test_v23_release_gate_completion`
+
+### Changed
+
+- **CMakeLists.txt** — Version bumped to 2.27.4
+- **vcpkg.json** — Version bumped to 2.27.4
+- **src/CMakeLists.txt** — Added 10 new Phase 11-20 source files to main target and source_group; additional improvements to GitCommandRunner, ThemeEngine, GitStatusProvider, LayoutManager, LayoutMetrics
+- **tests/CMakeLists.txt** — Added 10 source files to `markamp_core` library and 10 new test targets
+
 ## v2.26.73 — 2026-03-22
 
 ### Highlights

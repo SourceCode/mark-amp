@@ -12,7 +12,7 @@ namespace markamp::ui
 NotificationManager::NotificationManager(wxWindow* parent,
                                          core::ThemeEngine& theme_engine,
                                          core::EventBus& event_bus)
-    : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTRANSPARENT_WINDOW)
+    : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxFULL_REPAINT_ON_RESIZE)
     , theme_engine_(theme_engine)
     , event_bus_(event_bus)
 {

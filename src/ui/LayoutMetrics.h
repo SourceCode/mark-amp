@@ -3,6 +3,7 @@
 #include "ComponentSizeResolver.h"
 #include "DensityProfile.h"
 #include "SpacingGrid.h"
+#include "core/VisualLanguageTokens.h"
 
 #include <cstdint>
 
@@ -91,6 +92,32 @@ public:
 
     /// Standard border width.
     [[nodiscard]] auto border_width() const -> int;
+
+    // ── V22 Phase 01: Extended Geometry ─────────────────────────────────
+
+    /// Corner radius for a given V22 token.
+    [[nodiscard]] static auto corner_radius(core::CornerRadiusToken token) -> int
+    {
+        return core::resolve_corner_radius(token);
+    }
+
+    /// Border weight for a given V22 token.
+    [[nodiscard]] static auto border_weight(core::BorderWeightToken token) -> int
+    {
+        return core::resolve_border_weight(token);
+    }
+
+    /// Tree-specific row height.
+    [[nodiscard]] auto row_height_tree() const -> int;
+
+    /// List-specific row height.
+    [[nodiscard]] auto row_height_list() const -> int;
+
+    /// Standardized panel header height.
+    [[nodiscard]] auto panel_header_height() const -> int;
+
+    /// Breadcrumb bar height.
+    [[nodiscard]] auto breadcrumb_height() const -> int;
 
 private:
     LayoutMetrics() = default;

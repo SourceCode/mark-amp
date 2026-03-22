@@ -104,11 +104,51 @@ enum class ThemeColorToken
     ControlBorderNormal,
     ControlBorderFocus,
     FocusRingColor,
+
+    // V22 Phase 01: Container surface tokens
+    ContainerBgSurface,
+    ContainerBgElevated,
+    ContainerBgSunken,
+    ContainerBorderSubtle,
+    ContainerShadow,
+
+    // V22 Phase 01: State feedback tokens
+    WarningColor,
+    InfoColor,
+    WarningBg,
+    ErrorBg,
+    SuccessBg,
+    InfoBg,
+
+    // V22 Phase 02–05: Navigation & shell chrome tokens
+    BreadcrumbSeparatorFg,
+    TabModifiedDot,
+    TabPreviewBg,
+    TabPinnedBg,
+    SplitterHoverBg,
+    SplitterDragBg,
+    TitleBarInactiveBg,
+
+    // V22 Phase 03–04: Panel & command surface tokens
+    PanelHeaderBg,
+    PanelHeaderFg,
+    PanelHeaderBorder,
+    ToolbarSeparator,
+    CommandPaletteBg,
+    CommandPaletteInputBg,
+    CommandPaletteResultHoverBg,
+    CommandPaletteShortcutFg,
+    ContextMenuBg,
+    ContextMenuBorder,
+    ContextMenuSeparator,
+    TooltipBg,
+    TooltipFg,
+    TooltipBorder,
 };
 
 /// Total number of ThemeColorToken values.
 static constexpr std::size_t kColorTokenCount =
-    static_cast<std::size_t>(ThemeColorToken::FocusRingColor) + 1;
+    static_cast<std::size_t>(ThemeColorToken::TooltipBorder) + 1;
 
 /// Font tokens for themed text rendering.
 enum class ThemeFontToken
@@ -121,6 +161,13 @@ enum class ThemeFontToken
     UISmall,
     UILabel,
     UIHeading,
+
+    // V22 Phase 01: Extended typography scale tokens
+    UICaption,   /// 10px — captions, timestamps, tertiary metadata
+    UIBodyLarge, /// 13px — primary editor text, prominent body
+    UISubtitle,  /// 14px — section headers, panel titles
+    UIDisplay,   /// 20px — hero text, welcome headings
 };
 
 } // namespace markamp::core
+
