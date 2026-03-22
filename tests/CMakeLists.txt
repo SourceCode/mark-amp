@@ -1095,6 +1095,19 @@ target_sources(markamp_core PRIVATE
     ${CMAKE_SOURCE_DIR}/src/core/NotebookVariableInspector.cpp
     # V24 Phase 10: Explorer/Navigation
     ${CMAKE_SOURCE_DIR}/src/core/NavigationHistory.cpp
+    # V25 Phase 01: Release Spine & Gate Enforcement
+    ${CMAKE_SOURCE_DIR}/src/core/V25LedgerBootstrap.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/ReleaseGateEnforcer.cpp
+    # V25 Phase 02: Artifact Lifecycle Unification
+    ${CMAKE_SOURCE_DIR}/src/core/ArtifactCreationController.cpp
+    # V25 Phase 03: Persistence Coordinator
+    ${CMAKE_SOURCE_DIR}/src/core/PersistenceCoordinator.cpp
+    # V25 Phase 04: Action Manifest Bootstrap
+    ${CMAKE_SOURCE_DIR}/src/core/ActionManifestBootstrap.cpp
+    # V25 Phase 05: Panel Readiness & Settings Host
+    ${CMAKE_SOURCE_DIR}/src/core/PanelReadinessController.cpp
+    # V25 Phases 06-20: Release Services
+    ${CMAKE_SOURCE_DIR}/src/core/V25ReleaseServices.cpp
 )
 target_include_directories(markamp_core PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(markamp_core PUBLIC markamp_dependencies)
@@ -7418,3 +7431,128 @@ add_executable(test_v24_p20_release_signoff unit/test_v24_p20_release_signoff.cp
 target_include_directories(test_v24_p20_release_signoff PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(test_v24_p20_release_signoff PRIVATE Catch2::Catch2WithMain markamp_core)
 add_test(NAME test_v24_p20_release_signoff COMMAND test_v24_p20_release_signoff)
+
+# ═══════════════════════════════════════════════════════════════
+# V25 Release Readiness Tests
+# ═══════════════════════════════════════════════════════════════
+
+# V25 Phase 01: Release Spine
+add_executable(test_v25_p01_release_spine unit/test_v25_p01_release_spine.cpp)
+target_include_directories(test_v25_p01_release_spine PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v25_p01_release_spine PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v25_p01_release_spine COMMAND test_v25_p01_release_spine)
+
+# V25 Phase 02: Artifact Lifecycle
+add_executable(test_v25_p02_artifact_lifecycle unit/test_v25_p02_artifact_lifecycle.cpp)
+target_include_directories(test_v25_p02_artifact_lifecycle PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v25_p02_artifact_lifecycle PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v25_p02_artifact_lifecycle COMMAND test_v25_p02_artifact_lifecycle)
+
+# V25 Phase 03: Persistence
+add_executable(test_v25_p03_persistence unit/test_v25_p03_persistence.cpp)
+target_include_directories(test_v25_p03_persistence PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v25_p03_persistence PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v25_p03_persistence COMMAND test_v25_p03_persistence)
+
+# V25 Phase 04: Shell Actions
+add_executable(test_v25_p04_shell_actions unit/test_v25_p04_shell_actions.cpp)
+target_include_directories(test_v25_p04_shell_actions PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v25_p04_shell_actions PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v25_p04_shell_actions COMMAND test_v25_p04_shell_actions)
+
+# V25 Phase 05: Panels & Settings
+add_executable(test_v25_p05_panels_settings unit/test_v25_p05_panels_settings.cpp)
+target_include_directories(test_v25_p05_panels_settings PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v25_p05_panels_settings PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v25_p05_panels_settings COMMAND test_v25_p05_panels_settings)
+
+# V25 Phase 06: Search
+add_executable(test_v25_p06_search unit/test_v25_p06_search.cpp)
+target_include_directories(test_v25_p06_search PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v25_p06_search PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v25_p06_search COMMAND test_v25_p06_search)
+
+# V25 Phase 07: Visual Audit
+add_executable(test_v25_p07_visual_audit unit/test_v25_p07_visual_audit.cpp)
+target_include_directories(test_v25_p07_visual_audit PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v25_p07_visual_audit PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v25_p07_visual_audit COMMAND test_v25_p07_visual_audit)
+
+# V25 Phase 08: Notebook
+add_executable(test_v25_p08_notebook unit/test_v25_p08_notebook.cpp)
+target_include_directories(test_v25_p08_notebook PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v25_p08_notebook PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v25_p08_notebook COMMAND test_v25_p08_notebook)
+
+# V25 Phase 09: Canvas
+add_executable(test_v25_p09_canvas unit/test_v25_p09_canvas.cpp)
+target_include_directories(test_v25_p09_canvas PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v25_p09_canvas PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v25_p09_canvas COMMAND test_v25_p09_canvas)
+
+# V25 Phase 10: Workspace
+add_executable(test_v25_p10_workspace unit/test_v25_p10_workspace.cpp)
+target_include_directories(test_v25_p10_workspace PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v25_p10_workspace PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v25_p10_workspace COMMAND test_v25_p10_workspace)
+
+# V25 Phase 11: Source Control
+add_executable(test_v25_p11_source_control unit/test_v25_p11_source_control.cpp)
+target_include_directories(test_v25_p11_source_control PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v25_p11_source_control PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v25_p11_source_control COMMAND test_v25_p11_source_control)
+
+# V25 Phase 12: Execution Surface
+add_executable(test_v25_p12_execution_surface unit/test_v25_p12_execution_surface.cpp)
+target_include_directories(test_v25_p12_execution_surface PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v25_p12_execution_surface PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v25_p12_execution_surface COMMAND test_v25_p12_execution_surface)
+
+# V25 Phase 13: Settings Schema
+add_executable(test_v25_p13_settings_schema unit/test_v25_p13_settings_schema.cpp)
+target_include_directories(test_v25_p13_settings_schema PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v25_p13_settings_schema PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v25_p13_settings_schema COMMAND test_v25_p13_settings_schema)
+
+# V25 Phase 14: Extension Scope
+add_executable(test_v25_p14_extension_scope unit/test_v25_p14_extension_scope.cpp)
+target_include_directories(test_v25_p14_extension_scope PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v25_p14_extension_scope PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v25_p14_extension_scope COMMAND test_v25_p14_extension_scope)
+
+# V25 Phase 15: Encryption
+add_executable(test_v25_p15_encryption unit/test_v25_p15_encryption.cpp)
+target_include_directories(test_v25_p15_encryption PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v25_p15_encryption PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v25_p15_encryption COMMAND test_v25_p15_encryption)
+
+# V25 Phase 16: Rendering
+add_executable(test_v25_p16_rendering unit/test_v25_p16_rendering.cpp)
+target_include_directories(test_v25_p16_rendering PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v25_p16_rendering PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v25_p16_rendering COMMAND test_v25_p16_rendering)
+
+# V25 Phase 17: Advanced Domains
+add_executable(test_v25_p17_advanced_domains unit/test_v25_p17_advanced_domains.cpp)
+target_include_directories(test_v25_p17_advanced_domains PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v25_p17_advanced_domains PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v25_p17_advanced_domains COMMAND test_v25_p17_advanced_domains)
+
+# V25 Phase 18: Ownership Ledger
+add_executable(test_v25_p18_ownership_ledger unit/test_v25_p18_ownership_ledger.cpp)
+target_include_directories(test_v25_p18_ownership_ledger PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v25_p18_ownership_ledger PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v25_p18_ownership_ledger COMMAND test_v25_p18_ownership_ledger)
+
+# V25 Phase 19: Validation Dashboard
+add_executable(test_v25_p19_validation_dashboard unit/test_v25_p19_validation_dashboard.cpp)
+target_include_directories(test_v25_p19_validation_dashboard PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v25_p19_validation_dashboard PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v25_p19_validation_dashboard COMMAND test_v25_p19_validation_dashboard)
+
+# V25 Phase 20: Release Signoff
+add_executable(test_v25_p20_release_signoff unit/test_v25_p20_release_signoff.cpp)
+target_include_directories(test_v25_p20_release_signoff PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v25_p20_release_signoff PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v25_p20_release_signoff COMMAND test_v25_p20_release_signoff)
+

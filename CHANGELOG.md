@@ -1,5 +1,42 @@
 # MarkAmp Release History
 
+## v2.29.79 — 2026-03-22
+
+### Highlights
+
+V25 Release-Readiness Hardening: All 20 phases (60 tasks) implementing release-path governance, artifact lifecycle unification, persistence coordination, shell action authority, panel readiness, search services, visual auditing, notebook/canvas shell adapters, workspace continuity, real Git backing, execution surface auditing, settings schema consolidation, extension scope gating, authenticated encryption, renderer capability classification, advanced domain triage, duplicate ownership retirement, validation dashboard, and release signoff. 14 new source files, 20 new test files. Build: 800/800 tests pass.
+
+### Added
+
+- **V25 P01 Release Spine** — `V25LedgerBootstrap` (60 tasks with dependencies, 27 subsystem done criteria with evidence templates), `ReleaseGateEnforcer` (aggregates action readiness, completion inventory, subsystem criteria into pass/fail verdict with Markdown export)
+- **V25 P02 Artifact Lifecycle** — `ArtifactCreationController` (canonical routing through `ArtifactCreationService`, bypass detection, surface-based audit trail with creation history)
+- **V25 P03 Persistence** — `PersistenceCoordinator` (artifact-kind-aware save dispatch via `ArtifactRegistry::find()`, recovery draft metadata, session restore entry validation)
+- **V25 P04 Shell Actions** — `ActionManifestBootstrap` (42 release-path actions across 10 categories: File, Edit, View, Navigate, Search, Terminal, Debug, Help, Canvas, Notebook)
+- **V25 P05 Panels & Settings** — `PanelReadinessController` (Real/Gated/MustFinish classification, blocking panel detection), `SettingsHostController` (staged changes with apply/cancel, deep-link activation)
+- **V25 P06–P20 Release Services** — 15 service classes consolidated in `V25ReleaseServices.h/.cpp`:
+  - `SearchServiceImpl` (P06): file indexing, case-insensitive search, result ranking
+  - `ReleasePathVisualAuditor` (P07): placeholder icon/visual violation tracking
+  - `NotebookShellAdapter` (P08): create/open/save/close lifecycle, shell ownership
+  - `CanvasShellAdapter` (P09): lifecycle management, dirty tracking
+  - `WorkspaceContinuityValidator` (P10): restore entry validation, invalid entry detection
+  - `GitServiceRealBacking` (P11): real hashes, real status, branch tracking
+  - `ExecutionSurfaceAuditor` (P12): dead/live/gated control classification
+  - `SettingsSchemaConsolidator` (P13): duplicate key detection, entry lookup
+  - `ExtensionScopeMatrix` (P14): supported/unsupported contribution point classification
+  - `RealEncryptionAdapter` (P15): authenticated encrypt/decrypt roundtrip, empty-key rejection
+  - `RendererCapabilityMatrix` (P16): supported/gated/placeholder renderer classification
+  - `AdvancedDomainGateService` (P17): domain triage (Gated/MustFinish/Deferred), placeholder runtime detection
+  - `DuplicateOwnershipLedger` (P18): legacy path retirement, resolved/unresolved tracking
+  - `ReleaseValidationDashboard` (P19): section-based report generation, blocker aggregation, Markdown export
+  - `ReleaseSignoffRunner` (P20): subsystem signoff (Green/Gated/Blocked verdicts), closure report, Markdown export
+- **20 test files** — `test_v25_p01_release_spine` through `test_v25_p20_release_signoff`
+
+### Changed
+
+- **CMakeLists.txt** — Version bumped to 2.29.79
+- **vcpkg.json** — Version bumped to 2.29.79
+- **tests/CMakeLists.txt** — Added 7 V25 source files to `markamp_core` library and 20 new test targets (tests #781–#800)
+
 ## v2.28.1 — 2026-03-22
 
 ### Highlights
