@@ -68,7 +68,7 @@ static auto parse_color(const YAML::Node& node, const std::string& key, Color& t
         }
         else
         {
-            MARKAMP_LOG_WARN("Invalid color for key '{}': {}", key, result.error());
+            MARKAMP_LOG_DEBUG("Invalid color for key '{}': {}", key, result.error());
         }
     }
 }
@@ -153,7 +153,7 @@ auto ThemeLoader::parse_yaml_content(const std::string& yaml_content)
                 }
                 else
                 {
-                    MARKAMP_LOG_WARN("Invalid color format in semantic tokens for key '{}': {}",
+                    MARKAMP_LOG_DEBUG("Invalid color format in semantic tokens for key '{}': {}",
                                      key_str,
                                      parsed.error());
                 }

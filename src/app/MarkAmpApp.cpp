@@ -354,23 +354,6 @@ bool MarkAmpApp::OnInit()
     // 13. Bind idle handler to drain queued and fast-path EventBus events
     Bind(wxEVT_IDLE, &MarkAmpApp::OnIdle, this);
 
-    // Phase 01 Task 19: Start watchdog in debug builds
-#ifndef NDEBUG
-    watchdog_ = std::make_unique<core::Watchdog>();
-    watchdog_->set_threshold(std::chrono::milliseconds(500));
-    watchdog_->on_stall(
-        [](const core::StallEvent& stall)
-        {
-            MARKAMP_LOG_WARN("UI stall detected: {}ms (threshold: {}ms, severity: {})",
-                             stall.stall_duration.count(),
-                             stall.threshold.count(),
-                             stall.severity == core::StallSeverity::Critical ? "CRITICAL"
-                                                                             : "warning");
-        });
-    watchdog_->start();
-    MARKAMP_LOG_DEBUG("Debug watchdog started (threshold: 500ms)");
-#endif
-
     // Phase 01 Task 20: Register memory budgets
     memory_budget_ = std::make_unique<core::MemoryBudget>();
     memory_budget_->register_subsystem("EventBus",
@@ -387,6 +370,27 @@ bool MarkAmpApp::OnInit()
     startup_timer.checkpoint("initialization_complete");
     startup_timer.dump_to_log();
     MARKAMP_LOG_INFO("MarkAmp initialization complete ({}ms)", startup_timer.total_ms());
+
+    // Phase 01 Task 19: Start watchdog in debug builds
+    // NOTE: Watchdog is started AFTER initialization is complete so that
+    // the first-render and layout passes (which routinely take 1-1.5s on
+    // macOS) do not trigger false stall warnings. Threshold is 2000ms to
+    // only flag genuinely unresponsive UI, not normal heavy rendering.
+#ifndef NDEBUG
+    watchdog_ = std::make_unique<core::Watchdog>();
+    watchdog_->set_threshold(std::chrono::milliseconds(2000));
+    watchdog_->on_stall(
+        [](const core::StallEvent& stall)
+        {
+            MARKAMP_LOG_WARN("UI stall detected: {}ms (threshold: {}ms, severity: {})",
+                             stall.stall_duration.count(),
+                             stall.threshold.count(),
+                             stall.severity == core::StallSeverity::Critical ? "CRITICAL"
+                                                                             : "warning");
+        });
+    watchdog_->start();
+    MARKAMP_LOG_DEBUG("Debug watchdog started (threshold: 2000ms)");
+#endif
 
     return true;
 }
