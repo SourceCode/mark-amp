@@ -124,4 +124,45 @@ auto IconProvider::category_count() const -> size_t
     return category_icons_.size();
 }
 
+auto IconProvider::icon_for_command_v27(const std::string& icon_id,
+                                        const std::string& category) const -> std::string
+{
+    // V27: Resolve to MUI icon identifiers instead of emoji
+    // First try manifest-based resolution
+    if (!icon_id.empty())
+    {
+        const auto& manifest = get_command_manifest();
+        if (manifest.icon_count() > 0)
+        {
+            auto canonical_id = manifest.resolve_command_icon(icon_id);
+            if (canonical_id != IconManifest::kFallbackCommandIcon)
+            {
+                return canonical_id;
+            }
+        }
+
+        auto specific_it = specific_icons_.find(icon_id);
+        if (specific_it != specific_icons_.end())
+        {
+            return specific_it->second;
+        }
+    }
+
+    // V27 category MUI mapping
+    static const std::unordered_map<std::string, std::string> v27_category_map = {
+        {"File", kMuiFileIcon}, {"Edit", kMuiEditIcon}, {"View", kMuiViewIcon},
+        {"Navigation", kMuiNavigationIcon}, {"Go To", kMuiNavigationIcon},
+        {"Terminal", kMuiTerminalIcon}, {"Extensions", kMuiExtensionIcon},
+        {"Editor", kMuiEditorIcon}, {"Search", kMuiSearchIcon},
+        {"Debug", kMuiDebugIcon}, {"Settings", kMuiSettingsIcon},
+        {"Preferences", kMuiSettingsIcon},
+    };
+    auto it = v27_category_map.find(category);
+    if (it != v27_category_map.end())
+    {
+        return it->second;
+    }
+    return kMuiDefaultIcon;
+}
+
 } // namespace markamp::ui

@@ -50,25 +50,43 @@ public:
     /// Get the count of category defaults.
     [[nodiscard]] auto category_count() const -> size_t;
 
-    // ── V27: Canonical MUI icon identifiers replacing legacy emoji ───────
-    static constexpr const char* kFileIcon       = "mui-file-text";
-    static constexpr const char* kEditIcon       = "mui-pencil";
-    static constexpr const char* kViewIcon       = "mui-eye";
-    static constexpr const char* kNavigationIcon = "mui-compass";
-    static constexpr const char* kTerminalIcon   = "mui-terminal";
-    static constexpr const char* kExtensionIcon  = "mui-puzzle-piece";
-    static constexpr const char* kEditorIcon     = "mui-edit-3";
-    static constexpr const char* kSearchIcon     = "mui-search";
-    static constexpr const char* kDebugIcon      = "mui-bug";
-    static constexpr const char* kSettingsIcon   = "mui-settings";
-    static constexpr const char* kDefaultIcon    = "mui-circle-dot";
+    // ── Renderable icon characters (used by wxWidgets text drawing) ────────
+    static constexpr const char* kFileIcon       = "\xF0\x9F\x93\x84"; // 📄
+    static constexpr const char* kEditIcon       = "\xE2\x9C\x8F\xEF\xB8\x8F"; // ✏️
+    static constexpr const char* kViewIcon       = "\xF0\x9F\x91\x81"; // 👁
+    static constexpr const char* kNavigationIcon = "\xF0\x9F\xA7\xAD"; // 🧭
+    static constexpr const char* kTerminalIcon   = "\xF0\x9F\x92\xBB"; // 💻
+    static constexpr const char* kExtensionIcon  = "\xF0\x9F\xA7\xA9"; // 🧩
+    static constexpr const char* kEditorIcon     = "\xF0\x9F\x93\x9D"; // 📝
+    static constexpr const char* kSearchIcon     = "\xF0\x9F\x94\x8D"; // 🔍
+    static constexpr const char* kDebugIcon      = "\xF0\x9F\x90\x9B"; // 🐛
+    static constexpr const char* kSettingsIcon   = "\xE2\x9A\x99\xEF\xB8\x8F"; // ⚙️
+    static constexpr const char* kDefaultIcon    = "\xE2\x96\xAA"; // ▪
+
+    // ── V27: Canonical MUI icon identifiers (for future icon renderer) ───
+    static constexpr const char* kMuiFileIcon       = "mui-file-text";
+    static constexpr const char* kMuiEditIcon       = "mui-pencil";
+    static constexpr const char* kMuiViewIcon       = "mui-eye";
+    static constexpr const char* kMuiNavigationIcon = "mui-compass";
+    static constexpr const char* kMuiTerminalIcon   = "mui-terminal";
+    static constexpr const char* kMuiExtensionIcon  = "mui-puzzle-piece";
+    static constexpr const char* kMuiEditorIcon     = "mui-edit-3";
+    static constexpr const char* kMuiSearchIcon     = "mui-search";
+    static constexpr const char* kMuiDebugIcon      = "mui-bug";
+    static constexpr const char* kMuiSettingsIcon   = "mui-settings";
+    static constexpr const char* kMuiDefaultIcon    = "mui-circle-dot";
 
     // ── V27: Additional category icons ───────────────────────────────────
-    static constexpr const char* kCanvasIcon     = "mui-layout";
-    static constexpr const char* kNotebookIcon   = "mui-book-open";
-    static constexpr const char* kThemeIcon      = "mui-palette";
-    static constexpr const char* kExportIcon     = "mui-share";
-    static constexpr const char* kAIIcon         = "mui-sparkles";
+    static constexpr const char* kCanvasIcon     = "\xF0\x9F\x96\xBC"; // 🖼
+    static constexpr const char* kNotebookIcon   = "\xF0\x9F\x93\x93"; // 📓
+    static constexpr const char* kThemeIcon      = "\xF0\x9F\x8E\xA8"; // 🎨
+    static constexpr const char* kExportIcon     = "\xF0\x9F\x93\xA4"; // 📤
+    static constexpr const char* kAIIcon         = "\xE2\x9C\xA8"; // ✨
+    static constexpr const char* kMuiCanvasIcon     = "mui-layout";
+    static constexpr const char* kMuiNotebookIcon   = "mui-book-open";
+    static constexpr const char* kMuiThemeIcon      = "mui-palette";
+    static constexpr const char* kMuiExportIcon     = "mui-share";
+    static constexpr const char* kMuiAIIcon         = "mui-sparkles";
 
     /// V27: Total number of category icon constants.
     [[nodiscard]] static constexpr auto v27_category_icon_count() noexcept -> int { return 16; }

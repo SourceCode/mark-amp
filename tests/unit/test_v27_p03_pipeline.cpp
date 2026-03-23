@@ -31,25 +31,32 @@ TEST_CASE("V27 P03: V27 component families compile", "[v27][p03]") {
     [[maybe_unused]] auto p = IconComponentFamily::kCommandPalette;
     REQUIRE(true);
 }
-TEST_CASE("V27 P03: IconProvider uses MUI IDs not emoji", "[v27][p03]") {
-    REQUIRE(std::string(IconProvider::kFileIcon) == "mui-file-text");
-    REQUIRE(std::string(IconProvider::kEditIcon) == "mui-pencil");
-    REQUIRE(std::string(IconProvider::kViewIcon) == "mui-eye");
-    REQUIRE(std::string(IconProvider::kNavigationIcon) == "mui-compass");
-    REQUIRE(std::string(IconProvider::kTerminalIcon) == "mui-terminal");
-    REQUIRE(std::string(IconProvider::kExtensionIcon) == "mui-puzzle-piece");
-    REQUIRE(std::string(IconProvider::kEditorIcon) == "mui-edit-3");
-    REQUIRE(std::string(IconProvider::kSearchIcon) == "mui-search");
-    REQUIRE(std::string(IconProvider::kDebugIcon) == "mui-bug");
-    REQUIRE(std::string(IconProvider::kSettingsIcon) == "mui-settings");
-    REQUIRE(std::string(IconProvider::kDefaultIcon) == "mui-circle-dot");
+TEST_CASE("V27 P03: IconProvider V27 MUI IDs", "[v27][p03]") {
+    REQUIRE(std::string(IconProvider::kMuiFileIcon) == "mui-file-text");
+    REQUIRE(std::string(IconProvider::kMuiEditIcon) == "mui-pencil");
+    REQUIRE(std::string(IconProvider::kMuiViewIcon) == "mui-eye");
+    REQUIRE(std::string(IconProvider::kMuiNavigationIcon) == "mui-compass");
+    REQUIRE(std::string(IconProvider::kMuiTerminalIcon) == "mui-terminal");
+    REQUIRE(std::string(IconProvider::kMuiExtensionIcon) == "mui-puzzle-piece");
+    REQUIRE(std::string(IconProvider::kMuiEditorIcon) == "mui-edit-3");
+    REQUIRE(std::string(IconProvider::kMuiSearchIcon) == "mui-search");
+    REQUIRE(std::string(IconProvider::kMuiDebugIcon) == "mui-bug");
+    REQUIRE(std::string(IconProvider::kMuiSettingsIcon) == "mui-settings");
+    REQUIRE(std::string(IconProvider::kMuiDefaultIcon) == "mui-circle-dot");
+}
+TEST_CASE("V27 P03: IconProvider emoji constants are renderable", "[v27][p03]") {
+    // Ensure emoji constants are non-empty UTF-8 characters, not MUI IDs
+    REQUIRE_FALSE(std::string(IconProvider::kFileIcon).empty());
+    REQUIRE(std::string(IconProvider::kFileIcon).find("mui-") == std::string::npos);
+    REQUIRE_FALSE(std::string(IconProvider::kEditIcon).empty());
+    REQUIRE_FALSE(std::string(IconProvider::kDefaultIcon).empty());
 }
 TEST_CASE("V27 P03: IconProvider V27 additional icons", "[v27][p03]") {
-    REQUIRE(std::string(IconProvider::kCanvasIcon) == "mui-layout");
-    REQUIRE(std::string(IconProvider::kNotebookIcon) == "mui-book-open");
-    REQUIRE(std::string(IconProvider::kThemeIcon) == "mui-palette");
-    REQUIRE(std::string(IconProvider::kExportIcon) == "mui-share");
-    REQUIRE(std::string(IconProvider::kAIIcon) == "mui-sparkles");
+    REQUIRE(std::string(IconProvider::kMuiCanvasIcon) == "mui-layout");
+    REQUIRE(std::string(IconProvider::kMuiNotebookIcon) == "mui-book-open");
+    REQUIRE(std::string(IconProvider::kMuiThemeIcon) == "mui-palette");
+    REQUIRE(std::string(IconProvider::kMuiExportIcon) == "mui-share");
+    REQUIRE(std::string(IconProvider::kMuiAIIcon) == "mui-sparkles");
 }
 TEST_CASE("V27 P03: IconProvider category icon count", "[v27][p03]") {
     REQUIRE(IconProvider::v27_category_icon_count() == 16);
