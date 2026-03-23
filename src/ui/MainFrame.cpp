@@ -1185,8 +1185,8 @@ void MainFrame::createMenuBar()
     edit_menu->Append(kMenuInsertDateTime, "Insert &Date/Time");
     edit_menu->AppendSeparator();
     // R10: Multi-cursor and bracket operations
-    edit_menu->Append(kMenuAddCursorBelow, "Add Cursor Bel&ow\tAlt+Cmd+Down");
-    edit_menu->Append(kMenuAddCursorAbove, "Add Cursor Abo&ve\tAlt+Cmd+Up");
+    edit_menu->Append(kMenuAddCursorBelow, "Add Cursor Bel&ow\tAlt+Ctrl+Down");
+    edit_menu->Append(kMenuAddCursorAbove, "Add Cursor Abo&ve\tAlt+Ctrl+Up");
     edit_menu->Append(kMenuAddCursorNextOccurrence, "Add Cursor at Ne&xt Match");
     edit_menu->Append(kMenuRemoveSurroundingBrackets, "&Remove Surrounding Brackets");
     edit_menu->Append(kMenuDuplicateSelectionOrLine, "Duplicate Selectio&n or Line");
