@@ -1,5 +1,25 @@
 # MarkAmp Release History
 
+## v2.31.86 — 2026-03-22
+
+### Highlights
+
+Icon & Debug Log Hardening: Fixed all UI elements displaying '?' fallback icons by adding 17 missing SVG icon registrations to `IconLibrary.cpp`. Resolved wxWidgets debug alerts and eliminated ~70 noisy startup log warnings from theme color parsing and false UI stall detection.
+
+### Fixed
+
+- **17 missing icon registrations** — Added SVG definitions for `toolbar-source`, `toolbar-split`, `toolbar-preview`, `toolbar-settings`, `chevron-down`, `chevron-right`, `file-add`, `folder-add`, `refresh`, `collapse-all`, `filter`, `info`, `warning`, `error`, `check`, `action-collapse-all`, `extensions` (`IconLibrary.cpp`)
+- **SVG rendering** — Added explicit `fill="none" stroke="currentColor" stroke-width="2"` to all inline SVG child elements to work around `SvgDocument` parser not inheriting parent attributes (`IconLibrary.cpp`)
+- **wxWidgets accelerator alerts** — Changed `"Alt+Cmd+Down/Up"` to `"Alt+Ctrl+Down/Up"` in `MainFrame.cpp` (wxWidgets maps Ctrl→Cmd on macOS)
+- **Theme color parse spam** — Demoted CSS gradient/rgba() parse warnings from WARN to DEBUG in `ThemeLoader.cpp` (expected for many themes)
+- **False UI stall detection** — Moved watchdog start to after initialization and raised threshold from 500ms to 2000ms in `MarkAmpApp.cpp`
+- **Emoji icon constants** — Restored emoji icon constants in `IconProvider.h` for wxWidgets rendering compatibility
+
+### Stats
+
+- Build: 840 targets
+- Tests: 840/840 passing
+
 ## v2.30.80 — 2026-03-22
 
 ### Highlights
