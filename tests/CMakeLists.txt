@@ -962,6 +962,13 @@ target_sources(markamp_core PRIVATE
     ${CMAKE_SOURCE_DIR}/src/core/ShellVisualSystem.cpp
     ${CMAKE_SOURCE_DIR}/src/core/IconSemanticMapper.cpp
     ${CMAKE_SOURCE_DIR}/src/core/AccessibilityAuditGate.cpp
+    # V27 Phase 01-03: Icon Audit, Migration Tracker
+    ${CMAKE_SOURCE_DIR}/src/core/V27IconAuditReport.cpp
+    ${CMAKE_SOURCE_DIR}/src/core/V27IconMigrationTracker.cpp
+    # V27 Phase 17: Theme Audit
+    ${CMAKE_SOURCE_DIR}/src/core/V27ThemeAudit.cpp
+    # V27 Phase 20: QA Matrix
+    ${CMAKE_SOURCE_DIR}/src/core/V27QAMatrix.cpp
     # V20 Phase 10: Diagnostics, Validation Harnesses & Consolidation
     ${CMAKE_SOURCE_DIR}/src/core/LifecycleTracer.cpp
     ${CMAKE_SOURCE_DIR}/src/core/WorkflowSmokeRunner.cpp
@@ -7556,3 +7563,248 @@ target_include_directories(test_v25_p20_release_signoff PRIVATE ${CMAKE_SOURCE_D
 target_link_libraries(test_v25_p20_release_signoff PRIVATE Catch2::Catch2WithMain markamp_core)
 add_test(NAME test_v25_p20_release_signoff COMMAND test_v25_p20_release_signoff)
 
+# ── V26 Phase Tests ──────────────────────────────────────────────────────────
+
+# V26 Phase 01: Visual System Convergence
+add_executable(test_v26_p01_visual_system unit/test_v26_p01_visual_system.cpp)
+target_include_directories(test_v26_p01_visual_system PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v26_p01_visual_system PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v26_p01_visual_system COMMAND test_v26_p01_visual_system)
+
+# V26 Phase 02: Shell Frame Layout
+add_executable(test_v26_p02_shell_layout unit/test_v26_p02_shell_layout.cpp)
+target_include_directories(test_v26_p02_shell_layout PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v26_p02_shell_layout PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v26_p02_shell_layout COMMAND test_v26_p02_shell_layout)
+
+# V26 Phase 03: Action Surfaces
+add_executable(test_v26_p03_action_surfaces unit/test_v26_p03_action_surfaces.cpp)
+target_include_directories(test_v26_p03_action_surfaces PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v26_p03_action_surfaces PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v26_p03_action_surfaces COMMAND test_v26_p03_action_surfaces)
+
+# V26 Phase 04: Navigation
+add_executable(test_v26_p04_navigation unit/test_v26_p04_navigation.cpp)
+target_include_directories(test_v26_p04_navigation PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v26_p04_navigation PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v26_p04_navigation COMMAND test_v26_p04_navigation)
+
+# V26 Phase 05: Panels
+add_executable(test_v26_p05_panels unit/test_v26_p05_panels.cpp)
+target_include_directories(test_v26_p05_panels PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v26_p05_panels PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v26_p05_panels COMMAND test_v26_p05_panels)
+
+# V26 Phase 06: Editor Chrome
+add_executable(test_v26_p06_editor_chrome unit/test_v26_p06_editor_chrome.cpp)
+target_include_directories(test_v26_p06_editor_chrome PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v26_p06_editor_chrome PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v26_p06_editor_chrome COMMAND test_v26_p06_editor_chrome)
+
+# V26 Phase 07: Syntax
+add_executable(test_v26_p07_syntax unit/test_v26_p07_syntax.cpp)
+target_include_directories(test_v26_p07_syntax PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v26_p07_syntax PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v26_p07_syntax COMMAND test_v26_p07_syntax)
+
+# V26 Phase 08: Notebook
+add_executable(test_v26_p08_notebook unit/test_v26_p08_notebook.cpp)
+target_include_directories(test_v26_p08_notebook PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v26_p08_notebook PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v26_p08_notebook COMMAND test_v26_p08_notebook)
+
+# V26 Phase 09: Canvas
+add_executable(test_v26_p09_canvas unit/test_v26_p09_canvas.cpp)
+target_include_directories(test_v26_p09_canvas PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v26_p09_canvas PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v26_p09_canvas COMMAND test_v26_p09_canvas)
+
+# V26 Phase 10: Settings
+add_executable(test_v26_p10_settings unit/test_v26_p10_settings.cpp)
+target_include_directories(test_v26_p10_settings PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v26_p10_settings PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v26_p10_settings COMMAND test_v26_p10_settings)
+
+# V26 Phase 11: Dialogs
+add_executable(test_v26_p11_dialogs unit/test_v26_p11_dialogs.cpp)
+target_include_directories(test_v26_p11_dialogs PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v26_p11_dialogs PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v26_p11_dialogs COMMAND test_v26_p11_dialogs)
+
+# V26 Phase 12: Data
+add_executable(test_v26_p12_data unit/test_v26_p12_data.cpp)
+target_include_directories(test_v26_p12_data PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v26_p12_data PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v26_p12_data COMMAND test_v26_p12_data)
+
+# V26 Phase 13: Feedback
+add_executable(test_v26_p13_feedback unit/test_v26_p13_feedback.cpp)
+target_include_directories(test_v26_p13_feedback PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v26_p13_feedback PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v26_p13_feedback COMMAND test_v26_p13_feedback)
+
+# V26 Phase 14: Startup
+add_executable(test_v26_p14_startup unit/test_v26_p14_startup.cpp)
+target_include_directories(test_v26_p14_startup PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v26_p14_startup PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v26_p14_startup COMMAND test_v26_p14_startup)
+
+# V26 Phase 15: Theme Parity
+add_executable(test_v26_p15_theme_parity unit/test_v26_p15_theme_parity.cpp)
+target_include_directories(test_v26_p15_theme_parity PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v26_p15_theme_parity PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v26_p15_theme_parity COMMAND test_v26_p15_theme_parity)
+
+# V26 Phase 16: Icons
+add_executable(test_v26_p16_icons unit/test_v26_p16_icons.cpp)
+target_include_directories(test_v26_p16_icons PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v26_p16_icons PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v26_p16_icons COMMAND test_v26_p16_icons)
+
+# V26 Phase 17: Motion
+add_executable(test_v26_p17_motion unit/test_v26_p17_motion.cpp)
+target_include_directories(test_v26_p17_motion PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v26_p17_motion PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v26_p17_motion COMMAND test_v26_p17_motion)
+
+# V26 Phase 18: Accessibility
+add_executable(test_v26_p18_accessibility unit/test_v26_p18_accessibility.cpp)
+target_include_directories(test_v26_p18_accessibility PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v26_p18_accessibility PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v26_p18_accessibility COMMAND test_v26_p18_accessibility)
+
+# V26 Phase 19: Micro-Interactions
+add_executable(test_v26_p19_microinteractions unit/test_v26_p19_microinteractions.cpp)
+target_include_directories(test_v26_p19_microinteractions PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v26_p19_microinteractions PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v26_p19_microinteractions COMMAND test_v26_p19_microinteractions)
+
+# V26 Phase 20: Visual QA
+add_executable(test_v26_p20_visual_qa unit/test_v26_p20_visual_qa.cpp)
+target_include_directories(test_v26_p20_visual_qa PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v26_p20_visual_qa PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v26_p20_visual_qa COMMAND test_v26_p20_visual_qa)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# V27 Full Icon and Visual Overhaul Tests
+# ══════════════════════════════════════════════════════════════════════════════
+
+# V27 Phase 01: Icon Audit
+add_executable(test_v27_p01_icon_audit unit/test_v27_p01_icon_audit.cpp)
+target_include_directories(test_v27_p01_icon_audit PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v27_p01_icon_audit PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v27_p01_icon_audit COMMAND test_v27_p01_icon_audit)
+
+# V27 Phase 02: Visual Language
+add_executable(test_v27_p02_visual_language unit/test_v27_p02_visual_language.cpp)
+target_include_directories(test_v27_p02_visual_language PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v27_p02_visual_language PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v27_p02_visual_language COMMAND test_v27_p02_visual_language)
+
+# V27 Phase 03: Pipeline
+add_executable(test_v27_p03_pipeline unit/test_v27_p03_pipeline.cpp)
+target_include_directories(test_v27_p03_pipeline PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v27_p03_pipeline PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v27_p03_pipeline COMMAND test_v27_p03_pipeline)
+
+# V27 Phase 04: Shell
+add_executable(test_v27_p04_shell unit/test_v27_p04_shell.cpp)
+target_include_directories(test_v27_p04_shell PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v27_p04_shell PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v27_p04_shell COMMAND test_v27_p04_shell)
+
+# V27 Phase 05: Actions
+add_executable(test_v27_p05_actions unit/test_v27_p05_actions.cpp)
+target_include_directories(test_v27_p05_actions PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v27_p05_actions PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v27_p05_actions COMMAND test_v27_p05_actions)
+
+# V27 Phase 06: Navigation
+add_executable(test_v27_p06_navigation unit/test_v27_p06_navigation.cpp)
+target_include_directories(test_v27_p06_navigation PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v27_p06_navigation PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v27_p06_navigation COMMAND test_v27_p06_navigation)
+
+# V27 Phase 07: Editor
+add_executable(test_v27_p07_editor unit/test_v27_p07_editor.cpp)
+target_include_directories(test_v27_p07_editor PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v27_p07_editor PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v27_p07_editor COMMAND test_v27_p07_editor)
+
+# V27 Phase 08: Syntax
+add_executable(test_v27_p08_syntax unit/test_v27_p08_syntax.cpp)
+target_include_directories(test_v27_p08_syntax PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v27_p08_syntax PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v27_p08_syntax COMMAND test_v27_p08_syntax)
+
+# V27 Phase 09: Notebook
+add_executable(test_v27_p09_notebook unit/test_v27_p09_notebook.cpp)
+target_include_directories(test_v27_p09_notebook PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v27_p09_notebook PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v27_p09_notebook COMMAND test_v27_p09_notebook)
+
+# V27 Phase 10: Canvas
+add_executable(test_v27_p10_canvas unit/test_v27_p10_canvas.cpp)
+target_include_directories(test_v27_p10_canvas PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v27_p10_canvas PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v27_p10_canvas COMMAND test_v27_p10_canvas)
+
+# V27 Phase 11: Panels
+add_executable(test_v27_p11_panels unit/test_v27_p11_panels.cpp)
+target_include_directories(test_v27_p11_panels PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v27_p11_panels PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v27_p11_panels COMMAND test_v27_p11_panels)
+
+# V27 Phase 12: Settings
+add_executable(test_v27_p12_settings unit/test_v27_p12_settings.cpp)
+target_include_directories(test_v27_p12_settings PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v27_p12_settings PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v27_p12_settings COMMAND test_v27_p12_settings)
+
+# V27 Phase 13: Transients
+add_executable(test_v27_p13_transients unit/test_v27_p13_transients.cpp)
+target_include_directories(test_v27_p13_transients PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v27_p13_transients PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v27_p13_transients COMMAND test_v27_p13_transients)
+
+# V27 Phase 14: Structured Data
+add_executable(test_v27_p14_structured unit/test_v27_p14_structured.cpp)
+target_include_directories(test_v27_p14_structured PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v27_p14_structured PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v27_p14_structured COMMAND test_v27_p14_structured)
+
+# V27 Phase 15: Feedback
+add_executable(test_v27_p15_feedback unit/test_v27_p15_feedback.cpp)
+target_include_directories(test_v27_p15_feedback PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v27_p15_feedback PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v27_p15_feedback COMMAND test_v27_p15_feedback)
+
+# V27 Phase 16: Onboarding
+add_executable(test_v27_p16_onboarding unit/test_v27_p16_onboarding.cpp)
+target_include_directories(test_v27_p16_onboarding PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v27_p16_onboarding PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v27_p16_onboarding COMMAND test_v27_p16_onboarding)
+
+# V27 Phase 17: Theme Parity
+add_executable(test_v27_p17_theme_parity unit/test_v27_p17_theme_parity.cpp)
+target_include_directories(test_v27_p17_theme_parity PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v27_p17_theme_parity PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v27_p17_theme_parity COMMAND test_v27_p17_theme_parity)
+
+# V27 Phase 18: Accessibility
+add_executable(test_v27_p18_accessibility unit/test_v27_p18_accessibility.cpp)
+target_include_directories(test_v27_p18_accessibility PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v27_p18_accessibility PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v27_p18_accessibility COMMAND test_v27_p18_accessibility)
+
+# V27 Phase 19: Motion
+add_executable(test_v27_p19_motion unit/test_v27_p19_motion.cpp)
+target_include_directories(test_v27_p19_motion PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v27_p19_motion PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v27_p19_motion COMMAND test_v27_p19_motion)
+
+# V27 Phase 20: QA Gates
+add_executable(test_v27_p20_qa_gates unit/test_v27_p20_qa_gates.cpp)
+target_include_directories(test_v27_p20_qa_gates PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(test_v27_p20_qa_gates PRIVATE Catch2::Catch2WithMain markamp_core)
+add_test(NAME test_v27_p20_qa_gates COMMAND test_v27_p20_qa_gates)

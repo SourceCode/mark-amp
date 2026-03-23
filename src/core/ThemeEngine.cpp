@@ -499,6 +499,118 @@ void ThemeEngine::rebuild_cache()
                 "tooltip.border",
                 current_theme_.colors.border_light);
 
+    // V26 Phase 01: Surface tier tokens
+    cache_color(ThemeColorToken::SurfaceShellBg,
+                "surface.shell",
+                current_theme_.colors.bg_header);
+    cache_color(ThemeColorToken::SurfaceWorkBg,
+                "surface.work",
+                current_theme_.colors.bg_panel);
+    cache_color(ThemeColorToken::SurfaceElevatedBg,
+                "surface.elevated",
+                current_theme_.colors.bg_panel.lighten(0.06F));
+    cache_color(ThemeColorToken::SurfaceOverlayBg,
+                "surface.overlay",
+                current_theme_.colors.bg_panel.lighten(0.1F));
+    cache_color(ThemeColorToken::SurfaceSunkenBg,
+                "surface.sunken",
+                current_theme_.colors.bg_app.blend(Color(0, 0, 0), 0.03F));
+    cache_color(ThemeColorToken::SurfaceCanvasBg,
+                "surface.canvas",
+                current_theme_.colors.bg_app.blend(Color(0, 0, 0), 0.01F));
+
+    // V26 Phase 01: Divider grammar tokens
+    cache_color(ThemeColorToken::DividerSectionColor,
+                "divider.section",
+                current_theme_.colors.border_light);
+    cache_color(ThemeColorToken::DividerGroupColor,
+                "divider.group",
+                current_theme_.colors.border_light.with_alpha(0.6F));
+    cache_color(ThemeColorToken::DividerInlineColor,
+                "divider.inline",
+                current_theme_.colors.border_light.with_alpha(0.4F));
+    cache_color(ThemeColorToken::DividerSurfaceBorderColor,
+                "divider.surfaceBorder",
+                current_theme_.colors.border_light);
+    cache_color(ThemeColorToken::DividerSubtleRuleColor,
+                "divider.subtleRule",
+                current_theme_.colors.border_light.with_alpha(0.3F));
+
+    // V26 Phase 01: Interaction state overlay tokens
+    cache_color(ThemeColorToken::StateHoverOverlay,
+                "state.hoverOverlay",
+                current_theme_.colors.text_main.with_alpha(0.07F));
+    cache_color(ThemeColorToken::StatePressedOverlay,
+                "state.pressedOverlay",
+                current_theme_.colors.text_main.with_alpha(0.12F));
+    cache_color(ThemeColorToken::StateFocusRing,
+                "state.focusRing",
+                current_theme_.colors.accent_primary);
+    cache_color(ThemeColorToken::StateSelectedBg,
+                "state.selectedBg",
+                current_theme_.colors.accent_primary.with_alpha(0.15F));
+    cache_color(ThemeColorToken::StateSelectedFg,
+                "state.selectedFg",
+                current_theme_.colors.text_main);
+    cache_color(ThemeColorToken::StateDisabledFg,
+                "state.disabledFg",
+                current_theme_.colors.text_muted.with_alpha(0.5F));
+    cache_color(ThemeColorToken::StateDisabledBg,
+                "state.disabledBg",
+                current_theme_.colors.bg_panel.blend(Color(128, 128, 128), 0.05F));
+    cache_color(ThemeColorToken::StateDragGhost,
+                "state.dragGhost",
+                current_theme_.colors.accent_primary.with_alpha(0.2F));
+    cache_color(ThemeColorToken::StateDropTargetBorder,
+                "state.dropTargetBorder",
+                current_theme_.colors.accent_primary);
+
+    // V26 Phase 01: Feedback severity tokens
+    cache_color(ThemeColorToken::FeedbackInfoFg,
+                "feedback.infoFg",
+                Color(0x3B, 0xAF, 0xDA));
+    cache_color(ThemeColorToken::FeedbackInfoBorder,
+                "feedback.infoBorder",
+                Color(0x3B, 0xAF, 0xDA, 0x80));
+    cache_color(ThemeColorToken::FeedbackSuccessFg,
+                "feedback.successFg",
+                current_theme_.success_color());
+    cache_color(ThemeColorToken::FeedbackSuccessBorder,
+                "feedback.successBorder",
+                current_theme_.success_color().with_alpha(0.5F));
+    cache_color(ThemeColorToken::FeedbackWarningFg,
+                "feedback.warningFg",
+                Color(0xE0, 0xA5, 0x00));
+    cache_color(ThemeColorToken::FeedbackWarningBorder,
+                "feedback.warningBorder",
+                Color(0xE0, 0xA5, 0x00, 0x80));
+    cache_color(ThemeColorToken::FeedbackErrorFg,
+                "feedback.errorFg",
+                current_theme_.error_color());
+    cache_color(ThemeColorToken::FeedbackErrorBorder,
+                "feedback.errorBorder",
+                current_theme_.error_color().with_alpha(0.5F));
+
+    // V26 Phase 01: Canvas surface tokens
+    cache_color(ThemeColorToken::CanvasGridColor,
+                "canvas.grid",
+                current_theme_.colors.border_light.with_alpha(0.2F));
+    cache_color(ThemeColorToken::CanvasSelectionHandleBg,
+                "canvas.selectionHandleBg",
+                current_theme_.colors.accent_primary);
+    cache_color(ThemeColorToken::CanvasSelectionHandleBorder,
+                "canvas.selectionHandleBorder",
+                Color(0xFF, 0xFF, 0xFF));
+    cache_color(ThemeColorToken::CanvasGuideColor,
+                "canvas.guide",
+                current_theme_.colors.accent_primary.with_alpha(0.4F));
+    cache_color(ThemeColorToken::CanvasInlineEditBg,
+                "canvas.inlineEditBg",
+                current_theme_.colors.bg_input);
+    cache_color(ThemeColorToken::CanvasInlineEditBorder,
+                "canvas.inlineEditBorder",
+                current_theme_.colors.accent_primary);
+
     // Rebuild fonts
     build_fonts();
 }
@@ -538,6 +650,12 @@ void ThemeEngine::build_fonts()
     cache_.fonts[ThemeFontToken::UIBodyLarge] = wxFont(wxFontInfo(13).FaceName(kSansFace));
     cache_.fonts[ThemeFontToken::UISubtitle] = wxFont(wxFontInfo(14).FaceName(kSansFace).Bold());
     cache_.fonts[ThemeFontToken::UIDisplay] = wxFont(wxFontInfo(20).FaceName(kSansFace).Bold());
+
+    // V26 Phase 01: Premium typography role tokens
+    cache_.fonts[ThemeFontToken::UIRowDescription] = wxFont(wxFontInfo(11).FaceName(kSansFace));
+    cache_.fonts[ThemeFontToken::UIBadgeLabel] = wxFont(wxFontInfo(10).FaceName(kSansFace).Bold());
+    cache_.fonts[ThemeFontToken::UIButtonLabel] = wxFont(wxFontInfo(12).FaceName(kSansFace).Bold());
+    cache_.fonts[ThemeFontToken::UIEmptyStateTitle] = wxFont(wxFontInfo(16).FaceName(kSansFace).Bold());
 }
 
 // --- Phase 4: Layered theme application ---

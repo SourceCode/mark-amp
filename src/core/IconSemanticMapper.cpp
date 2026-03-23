@@ -73,31 +73,31 @@ auto IconSemanticMapper::unlabeled_icons() const -> std::vector<SemanticIcon>
 void IconSemanticMapper::register_defaults()
 {
     // File actions
-    register_icon({"file.new", "codicon-new-file", "New File", IconSize::kMedium, true, true});
-    register_icon({"file.open", "codicon-folder-opened", "Open File", IconSize::kMedium, true, true});
-    register_icon({"file.save", "codicon-save", "Save File", IconSize::kMedium, true, true});
-    register_icon({"file.saveAll", "codicon-save-all", "Save All", IconSize::kMedium, true, true});
+    register_icon({"file.new", "codicon-new-file", "New File", IconSize::kMedium, true, true, IconPlacement::kLeading, "toolbar"});
+    register_icon({"file.open", "codicon-folder-opened", "Open File", IconSize::kMedium, true, true, IconPlacement::kLeading, "toolbar"});
+    register_icon({"file.save", "codicon-save", "Save File", IconSize::kMedium, true, true, IconPlacement::kLeading, "toolbar"});
+    register_icon({"file.saveAll", "codicon-save-all", "Save All", IconSize::kMedium, true, true, IconPlacement::kLeading, "toolbar"});
 
     // Notebook actions
-    register_icon({"notebook.new", "codicon-notebook", "New Notebook", IconSize::kMedium, true, true});
-    register_icon({"notebook.run", "codicon-play", "Run Cell", IconSize::kMedium, true, true});
-    register_icon({"notebook.stop", "codicon-debug-stop", "Stop Execution", IconSize::kMedium, true, true});
+    register_icon({"notebook.new", "codicon-notebook", "New Notebook", IconSize::kMedium, true, true, IconPlacement::kLeading, "notebook"});
+    register_icon({"notebook.run", "codicon-play", "Run Cell", IconSize::kMedium, true, true, IconPlacement::kLeading, "notebook"});
+    register_icon({"notebook.stop", "codicon-debug-stop", "Stop Execution", IconSize::kMedium, true, true, IconPlacement::kLeading, "notebook"});
 
     // Canvas actions
-    register_icon({"canvas.new", "codicon-whitespace", "New Canvas", IconSize::kMedium, true, true});
+    register_icon({"canvas.new", "codicon-whitespace", "New Canvas", IconSize::kMedium, true, true, IconPlacement::kLeading, "canvas"});
 
     // Edit actions
-    register_icon({"edit.undo", "codicon-discard", "Undo", IconSize::kMedium, true, true});
-    register_icon({"edit.redo", "codicon-redo", "Redo", IconSize::kMedium, true, true});
-    register_icon({"edit.cut", "codicon-clippy", "Cut", IconSize::kMedium, true, true});
-    register_icon({"edit.copy", "codicon-copy", "Copy", IconSize::kMedium, true, true});
-    register_icon({"edit.paste", "codicon-paste", "Paste", IconSize::kMedium, true, true});
+    register_icon({"edit.undo", "codicon-discard", "Undo", IconSize::kMedium, true, true, IconPlacement::kLeading, "toolbar"});
+    register_icon({"edit.redo", "codicon-redo", "Redo", IconSize::kMedium, true, true, IconPlacement::kLeading, "toolbar"});
+    register_icon({"edit.cut", "codicon-clippy", "Cut", IconSize::kMedium, true, true, IconPlacement::kLeading, "contextmenu"});
+    register_icon({"edit.copy", "codicon-copy", "Copy", IconSize::kMedium, true, true, IconPlacement::kLeading, "contextmenu"});
+    register_icon({"edit.paste", "codicon-paste", "Paste", IconSize::kMedium, true, true, IconPlacement::kLeading, "contextmenu"});
 
     // View actions
-    register_icon({"view.explorer", "codicon-files", "Explorer", IconSize::kLarge, true, true});
-    register_icon({"view.search", "codicon-search", "Search", IconSize::kLarge, true, true});
-    register_icon({"view.extensions", "codicon-extensions", "Extensions", IconSize::kLarge, true, true});
-    register_icon({"view.settings", "codicon-settings-gear", "Settings", IconSize::kMedium, true, true});
+    register_icon({"view.explorer", "codicon-files", "Explorer", IconSize::kLarge, true, true, IconPlacement::kStandalone, "activitybar"});
+    register_icon({"view.search", "codicon-search", "Search", IconSize::kLarge, true, true, IconPlacement::kStandalone, "activitybar"});
+    register_icon({"view.extensions", "codicon-extensions", "Extensions", IconSize::kLarge, true, true, IconPlacement::kStandalone, "activitybar"});
+    register_icon({"view.settings", "codicon-settings-gear", "Settings", IconSize::kMedium, true, true, IconPlacement::kStandalone, "activitybar"});
 
     MARKAMP_LOG_DEBUG("Default icon mappings registered: {} icons", icon_count());
 }

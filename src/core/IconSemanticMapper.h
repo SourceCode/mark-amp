@@ -1,8 +1,10 @@
 /// @file IconSemanticMapper.h
-/// @brief V20 P09-T02: Icon semantic mapping and normalization.
+/// @brief V20 P09-T02 + V27-P01-T02: Icon semantic mapping and normalization.
 ///
 /// Completes icon migration by mapping semantic roles to icon identifiers,
 /// enforcing sizing, labels, and theming consistency across all surfaces.
+/// V27 adds placement rules, per-role usage constraints, and expanded
+/// surface coverage.
 #pragma once
 
 #include "EventBus.h"
@@ -23,6 +25,31 @@ enum class IconSize
     kXLarge     ///< 32px+ (empty states, welcome)
 };
 
+/// V27: Icon placement position within a control or row.
+enum class IconPlacement
+{
+    kLeading,     ///< Before text label (most common)
+    kTrailing,    ///< After text label (e.g. expand/collapse arrows)
+    kStandalone,  ///< Icon-only button, no adjacent text
+    kBadge,       ///< Overlay badge (e.g. notification count)
+    kInline,      ///< Inline within text flow (e.g. severity markers)
+};
+
+/// Total number of icon placement types.
+[[nodiscard]] constexpr auto icon_placement_count() noexcept -> int { return 5; }
+
+/// V27: Per-role icon usage constraint.
+struct IconUsageRule
+{
+    IconSize min_size{IconSize::kMedium};
+    IconSize max_size{IconSize::kLarge};
+    IconPlacement default_placement{IconPlacement::kLeading};
+    bool requires_label{true};         ///< Must have an accessibility label
+    bool requires_theme_aware{true};   ///< Must adapt to light/dark theme
+    bool allows_standalone{false};     ///< Can be used without text
+    int hit_target_min_px{24};         ///< Minimum hit target size
+};
+
 /// Semantic icon mapping entry.
 struct SemanticIcon
 {
@@ -32,6 +59,9 @@ struct SemanticIcon
     IconSize default_size{IconSize::kMedium};
     bool is_theme_aware{true};        ///< Icons adapt to light/dark theme
     bool has_interactive_states{true}; ///< Hover/active/disabled states
+    // V27 additions
+    IconPlacement placement{IconPlacement::kLeading}; ///< V27: default placement
+    std::string surface_hint;         ///< V27: primary surface (e.g. "toolbar", "settings")
 
     [[nodiscard]] auto has_label() const noexcept -> bool { return !accessibility_label.empty(); }
 };
@@ -85,6 +115,20 @@ public:
 
     /// Populate default icon mappings.
     void register_defaults();
+
+    // ── V27 additions ─────────────────────────────────────────────────────
+
+    /// V27: Get usage rules for a specific icon size category.
+    [[nodiscard]] auto v27_usage_rules(IconSize size) const -> IconUsageRule;
+
+    /// V27: Register expanded V27 semantic mappings covering all surfaces.
+    void register_v27_defaults();
+
+    /// V27: Icons with standalone placement (icon-only buttons).
+    [[nodiscard]] auto standalone_icons() const -> std::vector<SemanticIcon>;
+
+    /// V27: Icons by surface hint.
+    [[nodiscard]] auto icons_for_surface(const std::string& surface) const -> std::vector<SemanticIcon>;
 
 private:
     EventBus& event_bus_;

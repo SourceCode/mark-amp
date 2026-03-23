@@ -172,4 +172,72 @@ auto LayoutMetrics::breadcrumb_height() const -> int
     return ComponentSizeResolver::get().resolve(ComponentKind::kBreadcrumbSegment).height;
 }
 
+// ── V26 Phase 01: Premium Layout Metrics ────────────────────────────────────
+
+auto LayoutMetrics::dialog_padding_h() const -> int
+{
+    switch (profile_)
+    {
+        case DensityProfile::kComfortable: return 28;
+        case DensityProfile::kDefault:     return 24;
+        case DensityProfile::kCompact:     return 20;
+    }
+    return 24;
+}
+
+auto LayoutMetrics::dialog_padding_v() const -> int
+{
+    switch (profile_)
+    {
+        case DensityProfile::kComfortable: return 24;
+        case DensityProfile::kDefault:     return 20;
+        case DensityProfile::kCompact:     return 16;
+    }
+    return 20;
+}
+
+auto LayoutMetrics::panel_header_height_v26() const -> int
+{
+    switch (profile_)
+    {
+        case DensityProfile::kComfortable: return 36;
+        case DensityProfile::kDefault:     return 32;
+        case DensityProfile::kCompact:     return 28;
+    }
+    return 32;
+}
+
+auto LayoutMetrics::settings_category_gap() const -> int
+{
+    switch (profile_)
+    {
+        case DensityProfile::kComfortable: return 28;
+        case DensityProfile::kDefault:     return 24;
+        case DensityProfile::kCompact:     return 20;
+    }
+    return 24;
+}
+
+auto LayoutMetrics::settings_group_gap() const -> int
+{
+    switch (profile_)
+    {
+        case DensityProfile::kComfortable: return 20;
+        case DensityProfile::kDefault:     return 16;
+        case DensityProfile::kCompact:     return 12;
+    }
+    return 16;
+}
+
+auto LayoutMetrics::settings_row_min_height() const -> int
+{
+    switch (profile_)
+    {
+        case DensityProfile::kComfortable: return 40;
+        case DensityProfile::kDefault:     return 36;
+        case DensityProfile::kCompact:     return 32;
+    }
+    return 36;
+}
+
 } // namespace markamp::ui

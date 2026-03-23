@@ -521,6 +521,13 @@ add_executable(markamp
     core/MuiIconMigration.cpp
     core/IconMetricsPolicy.cpp
     core/IconValidationGate.cpp
+    # V27 Phase 01-03: Icon Audit, Migration Tracker, Visual Overhaul
+    core/V27IconAuditReport.cpp
+    core/V27IconMigrationTracker.cpp
+    # V27 Phase 17: Theme Audit
+    core/V27ThemeAudit.cpp
+    # V27 Phase 20: QA Matrix
+    core/V27QAMatrix.cpp
     core/ChordShortcutManager.cpp
     core/CommandExecutionLog.cpp
     core/KeybindingEditor.cpp

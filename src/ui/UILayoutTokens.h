@@ -168,4 +168,68 @@ struct TabBarTokens
     static constexpr int kTabIconGap = 6;         // gap between icon and label
 };
 
+// ============================================================================
+// 11. V26 Phase 01: Dialog Layout Tokens
+// ============================================================================
+
+struct DialogTokens
+{
+    static constexpr int kMinWidth = 360;          // minimum dialog width
+    static constexpr int kMaxWidth = 600;          // maximum dialog width
+    static constexpr int kPaddingH = 24;           // horizontal content padding
+    static constexpr int kPaddingV = 20;           // vertical content padding
+    static constexpr int kTitleGap = 12;           // gap below title
+    static constexpr int kBodyGap = 16;            // gap below body
+    static constexpr int kFooterGap = 20;          // gap above footer actions
+    static constexpr int kFooterButtonGap = 8;     // gap between footer buttons
+    static constexpr int kBorderRadius = 8;        // dialog corner radius
+    static constexpr int kBackdropOpacity = 128;   // backdrop alpha (0-255)
+};
+
+// ============================================================================
+// 12. V26 Phase 01: Panel Header Tokens
+// ============================================================================
+
+struct PanelHeaderTokens
+{
+    static constexpr int kHeight = 32;             // standard panel header height
+    static constexpr int kPaddingH = 12;           // horizontal padding
+    static constexpr int kTitleIconGap = 6;        // gap between icon and title
+    static constexpr int kActionGap = 4;           // gap between header actions
+    static constexpr int kActionSize = 20;         // header action button size
+    static constexpr int kDividerHeight = 1;       // bottom divider thickness
+};
+
+// ============================================================================
+// 13. V26 Phase 01: Settings Row Tokens
+// ============================================================================
+
+struct SettingsRowTokens
+{
+    static constexpr int kRowMinHeight = 36;       // minimum settings row height
+    static constexpr int kRowPaddingH = 16;        // horizontal padding
+    static constexpr int kRowPaddingV = 8;         // vertical padding
+    static constexpr int kLabelWidth = 220;        // label column width (preferred)
+    static constexpr int kControlWidth = 200;      // control column width (preferred)
+    static constexpr int kHelpTextGap = 2;         // gap between control and help
+    static constexpr int kCategoryGap = 24;        // gap between setting categories
+    static constexpr int kGroupGap = 16;           // gap between setting groups
+    static constexpr int kIconSize = 16;           // category icon size
+    static constexpr int kIconGap = 8;             // gap between icon and label
+};
+
+// ============================================================================
+// 14. V26 Phase 01: Common Radius Aliases
+// ============================================================================
+
+struct RadiusTokens
+{
+    static constexpr int kNone = 0;                // sharp corners
+    static constexpr int kSm = 2;                  // subtle rounding
+    static constexpr int kMd = 4;                  // standard control
+    static constexpr int kLg = 6;                  // cards, previews
+    static constexpr int kXl = 8;                  // panels, dialogs
+    static constexpr int kPill = 9999;             // fully rounded
+};
+
 } // namespace markamp::ui

@@ -1,5 +1,35 @@
 # MarkAmp Release History
 
+## v2.30.80 — 2026-03-22
+
+### Highlights
+
+V27 Full Icon and Visual Overhaul: All 20 phases (60 tasks) across 5 tiers implementing the canonical MUI icon system, premium visual language redesign, and surface-specific token systems for every UI region. Replaced all legacy emoji constants in `IconProvider.h` with MUI identifiers. 24 new files, 8 modified files, 20 new test files with 80+ test cases. Build: 842/842 targets, 20/20 V27 tests pass.
+
+### Added
+
+- **V27 P01 Icon Audit** — `V27IconAuditReport.h/.cpp` (icon source/surface enums, per-surface migration summaries, baseline data for 11 known emoji icons), `IconSource` enum (kMui, kCodicon, kLucide, kCustomSvg, kEmoji, kCharGlyph), `IconSurface` enum (18 surfaces)
+- **V27 P02 Visual Language** — `V27VisualLanguage.h` (depth tiers, density profiles, spacing scale, radius framework), `V27TypographySystem.h` (16 typography roles with size/weight/mono specs), `V27InteractionStates.h` (8 interaction states, hit targets, focus ring config)
+- **V27 P03 Pipeline** — `V27IconMigrationTracker.h/.cpp` (per-surface migration status tracking with 17-surface baseline populate), `IconPlacement` enum, `IconUsageRule` struct, `IconInventorySource` enum
+- **V27 P04-P06 Primary Surfaces** — `V27ShellTokens.h` (shell region/splitter/activity bar/atmosphere), `V27ActionSurfaceTokens.h` (toolbar/menu/command palette), `V27NavigationTokens.h` (tabs/breadcrumbs/history)
+- **V27 P07-P10 Core Content** — `V27EditorTokens.h` (chrome/overlay/readability), `V27SyntaxPalette.h` (saturation tiers/code contexts), `V27NotebookTokens.h` (cell/output/edge states), `V27CanvasTokens.h` (tool palette/selection/overlay)
+- **V27 P11-P15 Secondary Surfaces** — `V27PanelTokens.h` (panel shell/dense rows), `V27SettingsTokens.h` (settings/theme gallery/controls), `V27TransientSurfaceTokens.h` (modals/tooltips/notifications), `V27StructuredDataTokens.h` (trees/tables/edge states), `V27FeedbackTokens.h` (severity/status bar/banners)
+- **V27 P16-P20 Polish** — `V27OnboardingTokens.h` (startup/empty states/onboarding hints), `V27ThemeAudit.h/.cpp` (theme parity/hardcoded color detection/surface filtering), `V27AccessibilityTokens.h` (focus ring/WCAG contrast/reduced motion), `V27MotionSystem.h` (motion tiers/easing curves/micro-interactions), `V27QAMatrix.h/.cpp` (QA status/5-dimension signoff/18-surface baseline)
+- **20 test files** — `test_v27_p01_icon_audit` through `test_v27_p20_qa_gates` (80+ assertions)
+
+### Changed
+
+- **IconProvider.h** — Replaced all 11 emoji constants (`📄`, `✏️`, `👁`, etc.) with MUI icon IDs (`mui-file-text`, `mui-pencil`, `mui-eye`, etc.); deprecated `icon_for_command()` in favor of `icon_for_command_v27()`; added 5 new V27 icon constants
+- **IconInventory.h/.cpp** — Added `IconInventorySource` enum, `surface_name` field, V27 query methods; existing entries now include source and surface metadata
+- **IconSemanticMapper.h/.cpp** — Added `IconPlacement` enum (kLeading/kTrailing/kStandalone/kBadge/kOverlay), `IconUsageRule` struct; existing 17 mappings now include placement and surface hints
+- **IconValidationGate.h** — Added V27 banned patterns, per-surface validation, emoji checking APIs
+- **MuiIconPipeline.h** — Added 3 new pipeline states, canonical enforcement, V27 alias methods
+- **IconMetricsPolicy.h/.cpp** — Added 8 new `IconComponentFamily` enums (Notebook, Canvas, Settings, EmptyState, Breadcrumb, CommandPalette, Notification, Startup) with corresponding switch cases
+- **CMakeLists.txt** — Version bumped to 2.30.80
+- **vcpkg.json** — Version bumped to 2.30.80
+- **src/CMakeLists.txt** — Added 4 V27 source files to markamp target
+- **tests/CMakeLists.txt** — Added 4 V27 source files to test `markamp_core` library; registered 20 new test targets (#821–#840)
+
 ## v2.29.79 — 2026-03-22
 
 ### Highlights

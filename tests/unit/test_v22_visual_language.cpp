@@ -107,9 +107,11 @@ TEST_CASE("ContainerStyle composition", "[v22][visual_language]")
 
 TEST_CASE("V22 ThemeColorToken count includes new tokens", "[v22][tokens]")
 {
-    // Ensure the new V22 tokens are included in the count
-    auto last_token_idx = static_cast<std::size_t>(ThemeColorToken::TooltipBorder);
+    // Ensure the token count matches the actual last enum value.
+    // V26 Phase 01 extended beyond TooltipBorder with surface/divider/state/feedback/canvas tokens.
+    auto last_token_idx = static_cast<std::size_t>(ThemeColorToken::CanvasInlineEditBorder);
     REQUIRE(kColorTokenCount == last_token_idx + 1);
+    REQUIRE(kColorTokenCount >= 149); // V26 baseline: 149 tokens
 
     // Verify key V22 tokens have expected enum positions
     REQUIRE(static_cast<int>(ThemeColorToken::ContainerBgSurface) >

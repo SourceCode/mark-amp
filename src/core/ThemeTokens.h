@@ -144,11 +144,55 @@ enum class ThemeColorToken
     TooltipBg,
     TooltipFg,
     TooltipBorder,
+
+    // V26 Phase 01: Surface tier tokens
+    SurfaceShellBg,
+    SurfaceWorkBg,
+    SurfaceElevatedBg,
+    SurfaceOverlayBg,
+    SurfaceSunkenBg,
+    SurfaceCanvasBg,
+
+    // V26 Phase 01: Divider grammar tokens
+    DividerSectionColor,
+    DividerGroupColor,
+    DividerInlineColor,
+    DividerSurfaceBorderColor,
+    DividerSubtleRuleColor,
+
+    // V26 Phase 01: Interaction state overlay tokens
+    StateHoverOverlay,
+    StatePressedOverlay,
+    StateFocusRing,
+    StateSelectedBg,
+    StateSelectedFg,
+    StateDisabledFg,
+    StateDisabledBg,
+    StateDragGhost,
+    StateDropTargetBorder,
+
+    // V26 Phase 01: Feedback severity tokens
+    FeedbackInfoFg,
+    FeedbackInfoBorder,
+    FeedbackSuccessFg,
+    FeedbackSuccessBorder,
+    FeedbackWarningFg,
+    FeedbackWarningBorder,
+    FeedbackErrorFg,
+    FeedbackErrorBorder,
+
+    // V26 Phase 01: Canvas surface tokens
+    CanvasGridColor,
+    CanvasSelectionHandleBg,
+    CanvasSelectionHandleBorder,
+    CanvasGuideColor,
+    CanvasInlineEditBg,
+    CanvasInlineEditBorder,
 };
 
 /// Total number of ThemeColorToken values.
 static constexpr std::size_t kColorTokenCount =
-    static_cast<std::size_t>(ThemeColorToken::TooltipBorder) + 1;
+    static_cast<std::size_t>(ThemeColorToken::CanvasInlineEditBorder) + 1;
 
 /// Font tokens for themed text rendering.
 enum class ThemeFontToken
@@ -167,6 +211,12 @@ enum class ThemeFontToken
     UIBodyLarge, /// 13px — primary editor text, prominent body
     UISubtitle,  /// 14px — section headers, panel titles
     UIDisplay,   /// 20px — hero text, welcome headings
+
+    // V26 Phase 01: Premium typography role tokens
+    UIRowDescription,   /// 11px — settings help text, secondary metadata
+    UIBadgeLabel,       /// 10px bold — notification counts, tags
+    UIButtonLabel,      /// 12px semibold — action button text
+    UIEmptyStateTitle,  /// 16px bold — empty panel headings
 };
 
 } // namespace markamp::core

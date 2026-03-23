@@ -66,31 +66,31 @@ auto IconInventory::pending_count() const -> int
 void IconInventory::register_built_in_mappings()
 {
     register_mapping({"explorer", "mui_folder_open", IconRole::kActivityBar,
-                      IconMigrationStatus::kMapped, ""});
+                      IconMigrationStatus::kMapped, "", IconInventorySource::kMui, "ActivityBar"});
     register_mapping({"search", "mui_search", IconRole::kActivityBar,
-                      IconMigrationStatus::kMapped, ""});
+                      IconMigrationStatus::kMapped, "", IconInventorySource::kMui, "ActivityBar"});
     register_mapping({"settings", "mui_settings", IconRole::kActivityBar,
-                      IconMigrationStatus::kMapped, ""});
+                      IconMigrationStatus::kMapped, "", IconInventorySource::kMui, "ActivityBar"});
     register_mapping({"canvas", "mui_dashboard", IconRole::kActivityBar,
-                      IconMigrationStatus::kMapped, ""});
+                      IconMigrationStatus::kMapped, "", IconInventorySource::kMui, "ActivityBar"});
     register_mapping({"notebook", "mui_code", IconRole::kActivityBar,
-                      IconMigrationStatus::kMapped, ""});
+                      IconMigrationStatus::kMapped, "", IconInventorySource::kMui, "ActivityBar"});
     register_mapping({"save", "mui_save", IconRole::kToolbar,
-                      IconMigrationStatus::kMapped, ""});
+                      IconMigrationStatus::kMapped, "", IconInventorySource::kMui, "Toolbar"});
     register_mapping({"undo", "mui_undo", IconRole::kToolbar,
-                      IconMigrationStatus::kMapped, ""});
+                      IconMigrationStatus::kMapped, "", IconInventorySource::kMui, "Toolbar"});
     register_mapping({"redo", "mui_redo", IconRole::kToolbar,
-                      IconMigrationStatus::kMapped, ""});
+                      IconMigrationStatus::kMapped, "", IconInventorySource::kMui, "Toolbar"});
     register_mapping({"close", "mui_close", IconRole::kTab,
-                      IconMigrationStatus::kMapped, ""});
+                      IconMigrationStatus::kMapped, "", IconInventorySource::kMui, "TabBar"});
     register_mapping({"chevron_right", "mui_chevron_right", IconRole::kFileTree,
-                      IconMigrationStatus::kMapped, ""});
+                      IconMigrationStatus::kMapped, "", IconInventorySource::kMui, "FileTree"});
     register_mapping({"chevron_down", "mui_expand_more", IconRole::kFileTree,
-                      IconMigrationStatus::kMapped, ""});
+                      IconMigrationStatus::kMapped, "", IconInventorySource::kMui, "FileTree"});
     register_mapping({"file", "mui_description", IconRole::kFileTree,
-                      IconMigrationStatus::kMapped, ""});
+                      IconMigrationStatus::kMapped, "", IconInventorySource::kMui, "FileTree"});
     register_mapping({"folder", "mui_folder", IconRole::kFileTree,
-                      IconMigrationStatus::kMapped, ""});
+                      IconMigrationStatus::kMapped, "", IconInventorySource::kMui, "FileTree"});
 
     MARKAMP_LOG_INFO("Icon inventory: {} entries ({} mapped)", total_count(), mapped_count());
 }

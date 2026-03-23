@@ -119,6 +119,26 @@ public:
     /// Breadcrumb bar height.
     [[nodiscard]] auto breadcrumb_height() const -> int;
 
+    // ── V26 Phase 01: Premium Layout Metrics ────────────────────────────
+
+    /// Standard dialog padding (horizontal).
+    [[nodiscard]] auto dialog_padding_h() const -> int;
+
+    /// Standard dialog padding (vertical).
+    [[nodiscard]] auto dialog_padding_v() const -> int;
+
+    /// Panel header height.
+    [[nodiscard]] auto panel_header_height_v26() const -> int;
+
+    /// Settings category gap.
+    [[nodiscard]] auto settings_category_gap() const -> int;
+
+    /// Settings group gap.
+    [[nodiscard]] auto settings_group_gap() const -> int;
+
+    /// Settings row minimum height.
+    [[nodiscard]] auto settings_row_min_height() const -> int;
+
 private:
     LayoutMetrics() = default;
     DensityProfile profile_{DensityProfile::kDefault};

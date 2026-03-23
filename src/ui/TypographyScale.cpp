@@ -19,7 +19,8 @@ TypeSpec TypographyScale::resolve(TypeSlot slot) const
 
     // Determine weight
     if (slot == TypeSlot::kBodyStrong || slot == TypeSlot::kSubtitle || slot == TypeSlot::kTitle ||
-        slot == TypeSlot::kHeadline)
+        slot == TypeSlot::kHeadline || slot == TypeSlot::kBadgeLabel ||
+        slot == TypeSlot::kButtonLabel || slot == TypeSlot::kEmptyStateTitle)
     {
         spec.weight = wxFONTWEIGHT_BOLD;
     }
@@ -51,6 +52,22 @@ TypeSpec TypographyScale::resolve(TypeSlot slot) const
             break;
         case TypeSlot::kHeadline:
             base_size = 24;
+            break;
+        // V26 Phase 01: Premium typography role slots
+        case TypeSlot::kRowDescription:
+            base_size = 11;
+            break;
+        case TypeSlot::kBadgeLabel:
+            base_size = 10;
+            break;
+        case TypeSlot::kButtonLabel:
+            base_size = 12;
+            break;
+        case TypeSlot::kEmptyStateTitle:
+            base_size = 16;
+            break;
+        case TypeSlot::kEmptyStateBody:
+            base_size = 12;
             break;
     }
 
