@@ -31,11 +31,10 @@ enum class SurfaceTier : uint8_t
     kElevated  = 3, /// Elevated surfaces (dialogs, command palette, popovers)
     kOverlay   = 4, /// Topmost overlay surfaces (tooltips, drag ghosts, toasts)
     kSunken    = 5, /// Recessed surfaces (editor background, input fields)
-    kCanvas    = 6, /// Canvas workspace background (special creative surface)
 };
 
 /// Return the token count for surface tiers.
-[[nodiscard]] constexpr auto surface_tier_count() -> std::size_t { return 7; }
+[[nodiscard]] constexpr auto surface_tier_count() -> std::size_t { return 6; }
 
 // ============================================================================
 // 2. V26 Divider Grammar

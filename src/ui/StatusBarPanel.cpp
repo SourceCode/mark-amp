@@ -1420,20 +1420,12 @@ auto StatusBarPanel::sidebar_mode_label(const std::string& mode) -> std::string
         return "THEMES";
     if (mode == kSidebarModeExtensions)
         return "EXTENSIONS";
-    if (mode == kSidebarModeNotebooks)
-        return "NOTEBOOKS";
-    if (mode == kSidebarModeCanvas)
-        return "CANVAS";
     if (mode == kSidebarModeGraph)
         return "GRAPH";
     if (mode == kSidebarModeAI)
         return "AI";
-    if (mode == kSidebarModeFlashcards)
-        return "FLASHCARDS";
     if (mode == kSidebarModeGit)
         return "GIT";
-    if (mode == kSidebarModeTasks)
-        return "TASKS";
     if (mode == kSidebarModeDatabase)
         return "DATABASE";
     if (mode == kSidebarModePresentation)

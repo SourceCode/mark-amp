@@ -22,7 +22,7 @@ TEST_CASE("V26 P01: Phase and task counts are correct", "[v26][p01]")
 
 TEST_CASE("V26 P01: Surface tier count", "[v26][p01]")
 {
-    REQUIRE(surface_tier_count() == 7);
+    REQUIRE(surface_tier_count() == 6);
 }
 
 TEST_CASE("V26 P01: Divider grammar resolve returns valid thickness", "[v26][p01]")

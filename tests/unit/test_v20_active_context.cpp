@@ -31,39 +31,12 @@ TEST_CASE("ActiveContext: set context", "[v20][active-context]")
 
     REQUIRE(service.context().has_artifact());
     REQUIRE(service.context().is_editor());
-    REQUIRE_FALSE(service.context().is_canvas());
     REQUIRE(service.update_count() == 1);
 
     // Context keys auto-populated
     REQUIRE(service.get_context_key("activeSurface") == "editor");
     REQUIRE(service.get_context_key("activeLanguage") == "markdown");
     REQUIRE(service.get_context_key("isEditing") == "true");
-}
-
-TEST_CASE("ActiveContext: canvas mode", "[v20][active-context]")
-{
-    ActiveContextService service;
-
-    ActiveContext ctx;
-    ctx.active_artifact = ArtifactId{"board-1"};
-    ctx.active_surface = ActiveSurfaceKind::kCanvas;
-    service.set_context(ctx);
-
-    REQUIRE(service.context().is_canvas());
-    REQUIRE(service.get_context_key("activeSurface") == "canvas");
-}
-
-TEST_CASE("ActiveContext: notebook mode", "[v20][active-context]")
-{
-    ActiveContextService service;
-
-    ActiveContext ctx;
-    ctx.active_artifact = ArtifactId{"nb-1"};
-    ctx.active_surface = ActiveSurfaceKind::kNotebook;
-    service.set_context(ctx);
-
-    REQUIRE(service.context().is_notebook());
-    REQUIRE(service.get_context_key("activeSurface") == "notebook");
 }
 
 TEST_CASE("ActiveContext: context keys", "[v20][active-context]")

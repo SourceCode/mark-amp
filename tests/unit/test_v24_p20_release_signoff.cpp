@@ -29,8 +29,7 @@ TEST_CASE("P20-T01 report partially signed off", "[v24][p20]") {
 // P20-T02: Subsystem enum coverage
 TEST_CASE("P20-T02 subsystem enum distinction", "[v24][p20]") {
     REQUIRE(Subsystem::kGovernance != Subsystem::kEditor);
-    REQUIRE(Subsystem::kEditor != Subsystem::kCanvas);
-    REQUIRE(Subsystem::kCanvas != Subsystem::kNotebook);
+    REQUIRE(Subsystem::kEditor != Subsystem::kPlugins);
 }
 
 TEST_CASE("P20-T02 ledger task status values", "[v24][p20]") {
@@ -90,14 +89,14 @@ TEST_CASE("P20-T05 full v24 signoff gate", "[v24][p20]") {
     SubsystemDoneCriteria criteria;
     DoneCriterion c1; c1.criterion_id = "gov-1"; c1.description = "Governance"; c1.is_required = true;
     DoneCriterion c2; c2.criterion_id = "edit-1"; c2.description = "Editor"; c2.is_required = true;
-    DoneCriterion c3; c3.criterion_id = "canvas-1"; c3.description = "Canvas"; c3.is_required = true;
+    DoneCriterion c3; c3.criterion_id = "plugin-1"; c3.description = "Canvas"; c3.is_required = true;
     criteria.add_criterion(Subsystem::kGovernance, c1);
     criteria.add_criterion(Subsystem::kEditor, c2);
-    criteria.add_criterion(Subsystem::kCanvas, c3);
+    criteria.add_criterion(Subsystem::kPlugins, c3);
 
     [[maybe_unused]] auto r1 = criteria.mark_passed(Subsystem::kGovernance, "gov-1", "All governance tests green");
     [[maybe_unused]] auto r2 = criteria.mark_passed(Subsystem::kEditor, "edit-1", "780/780 tests passing");
-    [[maybe_unused]] auto r3 = criteria.mark_passed(Subsystem::kCanvas, "canvas-1", "Canvas serialization verified");
+    [[maybe_unused]] auto r3 = criteria.mark_passed(Subsystem::kPlugins, "plugin-1", "Plugin lifecycle verified");
 
     auto report = criteria.evaluate_all();
     REQUIRE(report.all_signed_off());

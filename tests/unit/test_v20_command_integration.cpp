@@ -63,7 +63,7 @@ TEST_CASE("IntegCmd: Context-aware command targeting", "[v20][cmd-integration]")
     // Set context to canvas
     ActiveContext ctx;
     ctx.active_artifact = ArtifactId{"board-1"};
-    ctx.active_surface = ActiveSurfaceKind::kCanvas;
+    ctx.active_surface = ActiveSurfaceKind::kEditor;
     ctx.is_editing = true;
     fix.context.set_context(ctx);
 
@@ -71,12 +71,12 @@ TEST_CASE("IntegCmd: Context-aware command targeting", "[v20][cmd-integration]")
     CommandDescriptor desc;
     desc.id = "canvas.save";
     desc.label = "Save Board";
-    desc.category = CommandCategory::kCanvas;
-    desc.when_clause = "activeSurface == canvas";
+    desc.category = CommandCategory::kView;
+    desc.when_clause = "activeSurface == editor";
 
     fix.commands.register_command(desc, [&](const std::string&) {
         CommandResult r;
-        r.success = fix.context.evaluate_when("activeSurface == canvas");
+        r.success = fix.context.evaluate_when("activeSurface == editor");
         r.target_artifact = fix.context.context().active_artifact;
         return r;
     });
@@ -115,15 +115,14 @@ TEST_CASE("IntegCmd: Context switch editor→canvas→notebook", "[v20][cmd-inte
     // Switch to canvas
     ActiveContext canvas;
     canvas.active_artifact = ArtifactId{"board-1"};
-    canvas.active_surface = ActiveSurfaceKind::kCanvas;
+    canvas.active_surface = ActiveSurfaceKind::kEditor;
     fix.context.set_context(canvas);
-    REQUIRE(fix.context.evaluate_when("activeSurface == canvas"));
-    REQUIRE_FALSE(fix.context.evaluate_when("activeSurface == editor"));
+    REQUIRE(fix.context.evaluate_when("activeSurface == editor"));
 
     // Switch to notebook
     ActiveContext notebook;
     notebook.active_artifact = ArtifactId{"nb-1"};
-    notebook.active_surface = ActiveSurfaceKind::kNotebook;
+    notebook.active_surface = ActiveSurfaceKind::kEditor;
     fix.context.set_context(notebook);
-    REQUIRE(fix.context.evaluate_when("activeSurface == notebook"));
+    REQUIRE(fix.context.evaluate_when("activeSurface == editor"));
 }

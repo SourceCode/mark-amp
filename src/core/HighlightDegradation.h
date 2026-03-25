@@ -39,10 +39,8 @@ enum class DegradationMode
 enum class HighlightSurface
 {
     kEditor,
-    kNotebookCell,
     kMarkdownFence,
-    kDiffPanel,
-    kCanvasEmbed
+    kDiffPanel
 };
 
 /// Highlight state for a document.

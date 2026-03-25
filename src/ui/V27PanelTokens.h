@@ -27,4 +27,12 @@ struct V27DenseRowTokens {
     static constexpr int kRowPaddingH = 8;
     static constexpr int kNestGuideWidth = 1;
 };
+struct V27PanelSecondaryTokens {
+    static constexpr int kMinShellHeight = 120;
+    static constexpr int kEmptyIconSize = 32;
+    static constexpr int kEmptyMessageGap = 12;
+    static constexpr int kLoadingBarHeight = 2;
+    static constexpr int kErrorBannerPadding = 8;
+    static constexpr int kStubBadgeSize = 16;
+};
 } // namespace markamp::ui

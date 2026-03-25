@@ -3,7 +3,6 @@
 #include "ActivityBar.h"
 #include "BreadcrumbBar.h"
 #include "BuildPanel.h"
-#include "CanvasWorkspacePanel.h"
 #include "DebugConsolePanel.h"
 #include "EditorPanel.h"
 #include "OutputPanel.h"
@@ -11,7 +10,6 @@
 #include "SplitView.h"
 #include "StatusBarPanel.h"
 #include "TabBar.h"
-#include "TaskListPanel.h"
 #include "ThemeGallery.h"
 #include "Toolbar.h"
 #include "WalkthroughPanel.h"
@@ -1890,23 +1888,9 @@ LayoutManager::LayoutManager(wxWindow* parent,
                 "Feature toggled: {} = {}", evt.feature_id, evt.enabled ? "on" : "off");
         });
 
-    // V8 Phase 6: Subscribe to board open requests
-    board_open_sub_ = event_bus_.subscribe<core::events::BoardOpenRequestEvent>(
-        [this](const core::events::BoardOpenRequestEvent& evt)
-        {
-            ShowCanvasWorkspace();
-            if (canvas_workspace_ != nullptr)
-            {
-                if (evt.board_id.empty())
-                {
-                    canvas_workspace_->NewBoard();
-                }
-                else
-                {
-                    canvas_workspace_->LoadBoard(evt.board_id);
-                }
-            }
-        });
+    // V29: Board/Canvas features removed.
+
+
 
     // Phase 10: Panel notifications to Status Bar
     panel_tabs_sub_ = event_bus_.subscribe<core::events::PanelAreaTabsChangedEvent>(
@@ -2690,36 +2674,6 @@ void LayoutManager::RegisterSidebarPanels()
                                                            "Open the Theme Gallery (Ctrl+T) to browse and apply themes.");
                              });
 
-    // ── Notebooks panel ──
-    panel_registry_.Register(
-        kSidebarModeNotebooks,
-        "NOTEBOOKS",
-        "\xF0\x9F\x93\x93", // 📓
-        [make_feature_panel](wxWindow* parent) -> wxPanel*
-        {
-            return make_feature_panel(
-                parent,
-                "NOTEBOOKS",
-                "\xF0\x9F\x93\x93",
-                {"New", "Run Cell", "Run All", "Clear", "Export"},
-                {},
-                "No notebooks open.\nCreate a new notebook or open an existing one.");
-        });
-
-    // ── Canvas panel ──
-    panel_registry_.Register(kSidebarModeCanvas,
-                             "CANVAS",
-                             "\xF0\x9F\x96\xBC", // 🖼
-                             [make_feature_panel](wxWindow* parent) -> wxPanel*
-                             {
-                                 return make_feature_panel(
-                                     parent,
-                                     "CANVAS",
-                                     "\xF0\x9F\x96\xBC",
-                                     {"New Board", "Templates", "Export"},
-                                     {},
-                                     "No boards open.\nCreate a new board to start designing.");
-                             });
 
     // ── Graph panel ──
     panel_registry_.Register(kSidebarModeGraph,
@@ -2890,22 +2844,6 @@ void LayoutManager::RegisterSidebarPanels()
             return panel;
         });
 
-    // ── Flashcards panel ──
-    panel_registry_.Register(kSidebarModeFlashcards,
-                             "FLASHCARDS",
-                             "\xF0\x9F\x83\x8F", // 🃏
-                             [make_feature_panel](wxWindow* parent) -> wxPanel*
-                             {
-                                 return make_feature_panel(
-                                     parent,
-                                     "FLASHCARDS",
-                                     "\xF0\x9F\x83\x8F",
-                                     {"Review", "Browse", "Create Deck", "Import", "Export"},
-                                     {},
-                                     "No flashcard decks.\nCreate a deck or extract "
-                                     "flashcards\nfrom the current document.");
-                             });
-
     // ── Git panel ──
     panel_registry_.Register(
         kSidebarModeGit,
@@ -3024,92 +2962,6 @@ void LayoutManager::RegisterSidebarPanels()
             {
                 sidebar_sizer->Add(panel, 1, wxEXPAND);
             }
-            return panel;
-        });
-
-    // ── Tasks panel (Improvements 11-14) ──
-    panel_registry_.Register(
-        kSidebarModeTasks,
-        "TASKS",
-        "\xE2\x9C\x85", // ✅
-        [this](wxWindow* parent) -> wxPanel*
-        {
-            auto* panel = new wxPanel(parent, wxID_ANY);
-            panel->SetBackgroundColour(theme_engine().color(core::ThemeColorToken::BgPanel));
-            auto* sizer = new wxBoxSizer(wxVERTICAL);
-
-            // Header with accent
-            auto* hdr = new wxPanel(panel, wxID_ANY, wxDefaultPosition, wxSize(-1, 36));
-            hdr->SetBackgroundColour(
-                theme_engine().color(core::ThemeColorToken::BgPanel).ChangeLightness(108));
-            auto* hdr_sizer = new wxBoxSizer(wxHORIZONTAL);
-            hdr_sizer->AddSpacer(8);
-            auto* title = new wxStaticText(hdr, wxID_ANY, "\xE2\x9C\x85 TASKS");
-            title->SetFont(
-                theme_engine().font(core::ThemeFontToken::MonoRegular).Bold().Scaled(0.85f));
-            title->SetForegroundColour(theme_engine().color(core::ThemeColorToken::TextMain));
-            hdr_sizer->Add(title, 1, wxALIGN_CENTER_VERTICAL);
-
-            // Improvement 13: New Task button
-            auto* new_btn = new wxButton(hdr, wxID_ANY, "+ New Task",
-                wxDefaultPosition, wxDefaultSize, wxBORDER_NONE | wxBU_EXACTFIT);
-            new_btn->SetFont(
-                theme_engine().font(core::ThemeFontToken::MonoRegular).Scaled(0.75f));
-            new_btn->SetBackgroundColour(
-                theme_engine().color(core::ThemeColorToken::AccentPrimary));
-            new_btn->SetForegroundColour(*wxWHITE);
-            new_btn->Bind(wxEVT_BUTTON,
-                [this](wxCommandEvent& /*evt*/)
-                {
-                    MARKAMP_LOG_INFO("New Task button clicked");
-                    core::events::NotificationEvent notif(
-                        "New task added to board",
-                        core::events::NotificationLevel::Info);
-                    event_bus_.publish(notif);
-                });
-            hdr_sizer->Add(new_btn, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
-            hdr->SetSizer(hdr_sizer);
-            sizer->Add(hdr, 0, wxEXPAND);
-
-            // Improvement 15: Filter tabs
-            auto* filter_bar = new wxPanel(panel, wxID_ANY, wxDefaultPosition, wxSize(-1, 28));
-            filter_bar->SetBackgroundColour(
-                theme_engine().color(core::ThemeColorToken::BgPanel));
-            auto* filter_sizer = new wxBoxSizer(wxHORIZONTAL);
-            static const std::vector<std::string> kFilters = {"All", "Todo", "In Progress", "Done"};
-            for (const auto& filter_name : kFilters)
-            {
-                auto* btn = new wxButton(filter_bar, wxID_ANY, filter_name,
-                    wxDefaultPosition, wxDefaultSize, wxBORDER_NONE | wxBU_EXACTFIT);
-                btn->SetFont(
-                    theme_engine().font(core::ThemeFontToken::MonoRegular).Scaled(0.7f));
-                btn->SetMinSize(wxSize(-1, 22));
-                btn->SetBackgroundColour(
-                    theme_engine().color(core::ThemeColorToken::BgPanel).ChangeLightness(105));
-                btn->SetForegroundColour(
-                    theme_engine().color(core::ThemeColorToken::TextMuted));
-                filter_sizer->Add(btn, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 2);
-            }
-            filter_bar->SetSizer(filter_sizer);
-            sizer->Add(filter_bar, 0, wxEXPAND | wxTOP, 2);
-
-            // Task list area
-            auto* list = new wxListBox(panel, wxID_ANY);
-            list->SetBackgroundColour(theme_engine().color(core::ThemeColorToken::BgPanel));
-            list->SetForegroundColour(theme_engine().color(core::ThemeColorToken::TextMain));
-            list->SetFont(
-                theme_engine().font(core::ThemeFontToken::MonoRegular).Scaled(0.8f));
-            sizer->Add(list, 1, wxEXPAND | wxALL, 4);
-
-            // Empty state
-            auto* empty = new wxStaticText(panel, wxID_ANY,
-                "No tasks yet.\nCreate a task or scan documents\nfor task items.",
-                wxDefaultPosition, wxDefaultSize, wxALIGN_CENTER_HORIZONTAL);
-            empty->SetForegroundColour(
-                theme_engine().color(core::ThemeColorToken::TextMuted));
-            sizer->Add(empty, 0, wxALIGN_CENTER | wxALL, 20);
-
-            panel->SetSizer(sizer);
             return panel;
         });
 
@@ -3833,104 +3685,8 @@ void LayoutManager::SetTerminalService(core::TerminalService* terminal_service)
     terminal_service_ = terminal_service;
 }
 
-// --- V8 Phase 6: Canvas mode switching ---
+// Canvas workspace methods removed in V29 feature simplification pass.
 
-void LayoutManager::ShowCanvasWorkspace()
-{
-    if (canvas_mode_)
-    {
-        return;
-    }
-
-    auto* editor_zone = content_container();
-    if (editor_zone == nullptr)
-    {
-        MARKAMP_LOG_WARN("ShowCanvasWorkspace: no editor zone available");
-        return;
-    }
-
-    // Create canvas workspace lazily on first use — parent to editor zone
-    if (canvas_workspace_ == nullptr)
-    {
-        canvas_workspace_ =
-            new CanvasWorkspacePanel(editor_zone, event_bus_, theme_engine(), config_);
-    }
-
-    // Hide all existing children in the editor zone (toolbar, editor group, etc.)
-    auto* sizer = editor_zone->GetSizer();
-    if (sizer != nullptr)
-    {
-        for (auto* child : editor_zone->GetChildren())
-        {
-            if (child != canvas_workspace_)
-            {
-                child->Hide();
-            }
-        }
-
-        // Add canvas to sizer if not already present
-        if (sizer->GetItem(canvas_workspace_) == nullptr)
-        {
-            sizer->Add(canvas_workspace_, 1, wxEXPAND);
-        }
-    }
-
-    canvas_workspace_->Show();
-    editor_zone->Layout();
-
-    canvas_mode_ = true;
-
-    core::events::CanvasModeActivatedEvent evt;
-    event_bus_.publish(evt);
-
-    MARKAMP_LOG_INFO("Switched to canvas mode");
-}
-
-void LayoutManager::ShowEditorWorkspace()
-{
-    if (!canvas_mode_)
-    {
-        return;
-    }
-
-    auto* editor_zone = content_container();
-
-    // Hide canvas workspace
-    if (canvas_workspace_ != nullptr)
-    {
-        canvas_workspace_->Hide();
-    }
-
-    // Re-show all editor zone children except canvas
-    if (editor_zone != nullptr)
-    {
-        for (auto* child : editor_zone->GetChildren())
-        {
-            if (child != canvas_workspace_)
-            {
-                child->Show();
-            }
-        }
-        editor_zone->Layout();
-    }
-
-    canvas_mode_ = false;
-
-    core::events::CanvasModeDeactivatedEvent evt;
-    event_bus_.publish(evt);
-
-    MARKAMP_LOG_INFO("Switched to editor mode");
-}
-
-auto LayoutManager::is_canvas_mode() const -> bool
-{
-    return canvas_mode_;
-}
-
-auto LayoutManager::canvas_workspace() -> CanvasWorkspacePanel*
-{
-    return canvas_workspace_;
-}
 
 // ═══════════════════════════════════════════════════════
 // V8 Phase 11: Unified workbench mode
@@ -3945,16 +3701,6 @@ void LayoutManager::SetWorkbenchMode(core::events::WorkbenchMode mode)
 
     auto previous = workbench_mode_;
     workbench_mode_ = mode;
-
-    // Map workbench modes to canvas/editor switching
-    if (mode == core::events::WorkbenchMode::kCanvas)
-    {
-        ShowCanvasWorkspace();
-    }
-    else if (previous == core::events::WorkbenchMode::kCanvas)
-    {
-        ShowEditorWorkspace();
-    }
 
     core::events::WorkbenchModeChangedEvent evt;
     evt.previous_mode = previous;

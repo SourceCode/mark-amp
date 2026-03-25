@@ -38,4 +38,14 @@ struct V27ControlFamilyTokens {
     static constexpr int kSelectHeight = 28;
     static constexpr int kSelectRadius = 4;
 };
+struct V27SettingsRowTokens {
+    static constexpr int kRowMinHeight = 36;
+    static constexpr int kRowPaddingH = 16;
+    static constexpr int kLabelWidth = 200;
+    static constexpr int kHelpTextGap = 4;
+    static constexpr int kResetButtonSize = 20;
+    static constexpr int kGroupHeaderHeight = 28;
+    static constexpr int kGroupGap = 24;
+    static constexpr int kDividerGap = 16;
+};
 } // namespace markamp::ui

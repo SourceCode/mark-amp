@@ -76,7 +76,6 @@ add_executable(markamp
     ui/FindReplaceModel.cpp
     ui/EditorOverlayModel.cpp
     ui/PreviewControlModel.cpp
-    ui/CanvasControlModel.cpp
     ui/GraphControlModel.cpp
     ui/ExtensionBrowserModel.cpp
     ui/ThemeGalleryModel.cpp
@@ -272,10 +271,8 @@ add_executable(markamp
     core/DebugConsoleService.cpp
     core/ExpressionEvaluator.cpp
     core/CompilerErrorParser.cpp
-    core/TaskConfig.cpp
     core/BuildService.cpp
     ui/BuildPanel.cpp
-    ui/TaskListPanel.cpp
     ui/ProblemsPanel.cpp
     ui/TreeViewHost.cpp
     ui/WebviewHostPanel.cpp
@@ -384,14 +381,7 @@ add_executable(markamp
     core/TextArtifactLifecycle.cpp
     core/EditorMountContext.cpp
     core/FileEntryPointResolver.cpp
-    # V20 Phase 03: Notebook Creation & Computational Document Flows
-    core/NotebookArtifactLifecycle.cpp
-    core/NotebookStorageResolver.cpp
-    core/NotebookCommandRouter.cpp
     # V20 Phase 04: Canvas Creation & Board Workbench Integration
-    core/CanvasArtifactLifecycle.cpp
-    core/CanvasEventBridge.cpp
-    core/CanvasShellIntegration.cpp
     # V20 Phase 05: Persistence, Autosave, Restore & Recovery
     core/PersistenceOutcome.cpp
     core/AtomicWriteService.cpp
@@ -404,10 +394,7 @@ add_executable(markamp
     core/LanguageService.cpp
     core/TokenThemeMapper.cpp
     core/HighlightDegradation.cpp
-    # V20 Phase 08: Editor, Notebook, Canvas Rendering & Content Styling
     core/ContentStyleSystem.cpp
-    core/NotebookCellChrome.cpp
-    core/CanvasContentPresenter.cpp
     # V20 Phase 09: Premium Visual System Polish & MUI Icon Completion
     core/ShellVisualSystem.cpp
     core/IconSemanticMapper.cpp
@@ -471,10 +458,7 @@ add_executable(markamp
     core/PersistenceCompletionAuditor.cpp
     # V23 Phase 05: Editor Feature Completion Auditor
     core/EditorFeatureCompletionAuditor.cpp
-    # V23 Phase 06: Notebook Execution Completion Auditor
-    core/NotebookExecutionCompletionAuditor.cpp
     # V23 Phase 07: Canvas Completion Auditor
-    core/CanvasCompletionAuditor.cpp
     # V23 Phase 08: Specialized Surface Completion Auditor
     core/SpecializedSurfaceCompletionAuditor.cpp
     # V23 Phase 09: Project Workflow Completion Auditor
@@ -501,16 +485,7 @@ add_executable(markamp
     core/TestingRegressionCompletionAuditor.cpp
     # V23 Phase 20: Release Gate Completion Auditor
     core/ReleaseGateCompletionAuditor.cpp
-    core/CanvasWorkbenchMode.cpp
-    core/CanvasShellStateModel.cpp
-    core/CanvasSessionContext.cpp
-    core/CanvasNavigationIntegration.cpp
     core/CrossSurfaceNavigator.cpp
-    core/NotebookShellHost.cpp
-    core/NotebookDocumentLifecycle.cpp
-    core/NotebookCellController.cpp
-    core/NotebookOutputIntegration.cpp
-    core/NotebookCommandProvider.cpp
     core/FeedbackTaxonomy.cpp
     core/StatusBarAdapter.cpp
     core/PanelStateModel.cpp
@@ -528,6 +503,17 @@ add_executable(markamp
     core/V27ThemeAudit.cpp
     # V27 Phase 20: QA Matrix
     core/V27QAMatrix.cpp
+    # V27 Phase 10-15: Design Coordinators
+    # V29: core/V27CanvasDesignCoordinator.cpp removed (canvas feature retired)
+    core/V27PanelDesignCoordinator.cpp
+    core/V27SettingsDesignCoordinator.cpp
+    core/V27TransientDesignCoordinator.cpp
+    core/V27StructuredDataCoordinator.cpp
+    core/V27FeedbackDesignCoordinator.cpp
+    # V27 Phase 16-19: Design Coordinators
+    core/V27OnboardingDesignCoordinator.cpp
+    core/V27AccessibilityDesignCoordinator.cpp
+    core/V27MotionDesignCoordinator.cpp
     core/ChordShortcutManager.cpp
     core/CommandExecutionLog.cpp
     core/KeybindingEditor.cpp
@@ -552,7 +538,6 @@ add_executable(markamp
     core/ActivityCommandProvider.cpp
     core/WorkspaceHookManager.cpp
     core/AutomationRule.cpp
-    core/TaskScheduler.cpp
     core/FileWatcherService.cpp
     core/AutomationCommandProvider.cpp
     core/HooksCommandProvider.cpp
@@ -627,10 +612,8 @@ add_executable(markamp
     core/ObservabilityService.cpp
     core/TracingService.cpp
     core/ObservabilityCommands.cpp
-    # V3 Phases 1–3: Block Data Model, ID Generation, Notebook
     core/Block.cpp
     core/BlockID.cpp
-    core/Notebook.cpp
     # V3 Phases 4–6: SQLite Storage, Document FS, Block Tree Index
     core/BlockDatabase.cpp
     core/DocumentFileSystem.cpp
@@ -688,25 +671,7 @@ add_executable(markamp
     ui/av/AVKanbanCard.cpp
     ui/av/AVRelationEditor.cpp
     ui/av/AVRollupConfigDialog.cpp
-    # Phase 24: FSRS Scheduling Algorithm
-    core/fsrs/FSRSTypes.cpp
-    core/fsrs/FSRSEngine.cpp
-    core/fsrs/FlashcardStore.cpp
-    core/fsrs/FSRSReviewSession.cpp
-    # V9 Phase 22: Flashcard & Spaced Repetition
-    core/fsrs/FlashcardExtractor.cpp
-    core/fsrs/ClozeParser.cpp
-    core/fsrs/FlashcardImportExport.cpp
-    core/fsrs/StudyStreakTracker.cpp
-    core/fsrs/LeechDetector.cpp
-    core/fsrs/FlashcardCommandProvider.cpp
     # Phase 23: Task Management & Calendar
-    core/TaskRecurrence.cpp
-    core/TaskReminder.cpp
-    core/TaskAggregator.cpp
-    core/TaskBoardEngine.cpp
-    core/TaskGanttEngine.cpp
-    core/TaskCommandProvider.cpp
     # Phase 24: Export & Publishing
     core/ExportService.cpp
     core/ExportTemplateEngine.cpp
@@ -715,14 +680,8 @@ add_executable(markamp
     core/PublishingProfileManager.cpp
     core/ExportValidator.cpp
     core/ExportCommandProvider.cpp
-    # Phase 25: Flashcard Deck Management
-    core/DeckStore.cpp
-    core/DeckManager.cpp
-    # Phase 26: Review Session & UI
-    core/ReviewSession.cpp
-    core/CardFactory.cpp
-    ui/FlashcardReviewPanel.cpp
-    ui/FlashcardBrowserPanel.cpp
+    # V29: Deck/Flashcard/Review files removed
+
     # Phase 27: Knowledge Graph Data
     core/ReferenceScanner.cpp
     core/GraphService.cpp
@@ -783,11 +742,8 @@ add_executable(markamp
     # V4 Phase 23: Theme Marketplace
     core/ThemeMarketplace.cpp
     # V4 Phase 24: Task Service
-    core/TaskService.cpp
     # V4 Phase 25: Kanban Engine
-    ui/KanbanEngine.cpp
     # V4 Phase 26: Calendar Engine
-    ui/CalendarEngine.cpp
     # V4 Phase 27: Presentation Engine
     ui/PresentationEngine.cpp
     # V4 Phase 28: Encryption Service
@@ -802,8 +758,6 @@ add_executable(markamp
     ui/DataFrameRenderer.cpp
     # V4 Phase 33: Widget Manager
     core/WidgetManager.cpp
-    # V4 Phase 34: Notebook Cell Manager
-    core/NotebookCellManager.cpp
     # V4 Phase 35: Git Service
     core/GitService.cpp
     core/GitCommandRunner.cpp
@@ -825,7 +779,6 @@ add_executable(markamp
     core/AIInlineCompleter.cpp
     core/AITagSuggester.cpp
     core/AILinkSuggester.cpp
-    core/AIFlashcardGenerator.cpp
     core/AISearchEnhancer.cpp
     core/AICommandProvider.cpp
     # Phase 27: Cloud Sync & Collaboration
@@ -841,239 +794,61 @@ add_executable(markamp
     core/SyncCommandProvider.cpp
     # V4 Phase 36: Local Graph Engine
     core/LocalGraphEngine.cpp
-    # V4 Phase 37: Notebook Export Engine
-    core/NotebookExportEngine.cpp
     # V4 Phase 38: Magic Command Engine
     core/MagicCommandEngine.cpp
     # V4 Phase 39: File Snapshot Service
     core/FileSnapshotService.cpp
-    # V4 Phase 40: Notebook Diff Engine
-    core/NotebookDiffEngine.cpp
     # V5 Phase 01: Canvas Data Model & Coordinate System
-    canvas/CanvasTypes.cpp
-    canvas/CanvasObject.cpp
-    canvas/Quadtree.cpp
-    canvas/ViewportTransform.cpp
     # V5 Phase 02: Canvas Rendering Engine
-    canvas/CanvasRenderer.cpp
-    canvas/TileCache.cpp
-    ui/CanvasPanel.cpp
     # V8 Phase 6: Canvas Workbench Shell
-    ui/CanvasWorkspacePanel.cpp
     # V8 Phase 7: Realtime Collaboration
-    core/CanvasCollabService.cpp
-    canvas/CommentObject.cpp
-    ui/CanvasCommentsPanel.cpp
-    ui/CanvasFacilitationPanel.cpp
     # V8 Phase 8: Canvas Apps Marketplace
-    canvas/AppWidgetObject.cpp
-    core/CanvasIntegrationService.cpp
     # V5 Phase 03: Canvas Input System
-    canvas/CanvasInputManager.cpp
-    canvas/SelectTool.cpp
-    canvas/PanTool.cpp
     # V5 Phase 04: Object Selection & Transform
-    canvas/SelectionManager.cpp
-    canvas/SelectionRenderer.cpp
     # V5 Phase 05: Canvas Serialization & Board Model
-    canvas/Board.cpp
-    canvas/BoardSerializer.cpp
-    canvas/UndoRedoStack.cpp
-    canvas/CanvasCommands.cpp
     # V5 Phase 06: Grid, Snap & Alignment
-    canvas/SnapEngine.cpp
-    canvas/AlignmentGuides.cpp
     # V5 Phase 07: Sticky Notes
-    canvas/StickyNote.cpp
-    canvas/StickyNoteRenderer.cpp
     # V5 Phase 08: Text Boxes
-    canvas/TextBox.cpp
-    canvas/TextBoxRenderer.cpp
     # V5 Phase 09: Shapes Library
-    canvas/ShapeData.cpp
-    canvas/ShapeRenderer.cpp
     # V5 Phase 10: Connectors & Lines
-    canvas/ConnectorData.cpp
-    canvas/ConnectorRenderer.cpp
     # V5 Phase 11: Freehand Drawing Tool
-    canvas/FreehandPath.cpp
-    canvas/FreehandPathRenderer.cpp
-    canvas/DrawTool.cpp
     # V10 Phase 41-45: Canvas Input & Drawing Models
-    canvas/CanvasInputModel.cpp
-    canvas/CanvasToolStateMachine.cpp
-    canvas/PointerEventRouter.cpp
-    canvas/StrokeSmoother.cpp
-    canvas/StrokeStylePreset.cpp
-    canvas/ShapePrimitiveSet.cpp
-    canvas/GeometryHandleController.cpp
-    canvas/ConnectorAnchorModel.cpp
-    canvas/ConnectorRouteEngine.cpp
-    canvas/CanvasTextEditor.cpp
-    canvas/TextStylePreset.cpp
-    canvas/CanvasColorToken.cpp
-    canvas/ColorPaletteController.cpp
-    canvas/StrokeBorderStyle.cpp
-    canvas/FillEffectsController.cpp
-    canvas/SelectionSemantics.cpp
-    canvas/TransformAlignController.cpp
-    canvas/SnapTargetEngine.cpp
-    canvas/GridGuideController.cpp
-    canvas/FreehandModel.cpp
-    canvas/ShapeModel.cpp
-    canvas/ConnectorModel.cpp
-    canvas/CanvasTextModel.cpp
     # V10 Phase 46-50: Canvas Styling Models
-    canvas/CanvasColorModel.cpp
-    canvas/StyleModel.cpp
-    canvas/SelectionTransformModel.cpp
-    canvas/SnappingModel.cpp
-    canvas/LayeringModel.cpp
     # V10 Phase 51-55: Canvas Object Models
-    canvas/FrameContainerModel.cpp
-    canvas/StickyNoteModel.cpp
-    canvas/ImageAssetModel.cpp
-    canvas/MediaEmbedModel.cpp
-    canvas/PdfObjectModel.cpp
     # V10 Phase 56-60: Canvas Data Object Models
-    canvas/TableModel.cpp
-    canvas/StencilModel.cpp
-    canvas/MindMapModel.cpp
-    canvas/KanbanModel.cpp
-    canvas/InspectorModel.cpp
     # V10 Phase 61-65: Canvas Chrome Models
-    canvas/ToolRailModel.cpp
-    canvas/ContextMenuModel.cpp
-    canvas/CanvasSearchModel.cpp
-    canvas/MinimapModel.cpp
-    canvas/CameraModel.cpp
     # V10 Phase 66-70: Canvas Data & Performance Models
-    canvas/ClipboardModel.cpp
-    canvas/UndoRedoModel.cpp
-    canvas/BoardSerializerModel.cpp
-    canvas/LargeBoardModel.cpp
-    canvas/HitTestModel.cpp
     # V10 Phase 71-75: Canvas Completeness Models
-    canvas/ExportModel.cpp
-    canvas/KeyboardCommandModel.cpp
-    canvas/AccessibilityModel.cpp
-    canvas/CanvasThemeModel.cpp
-    canvas/AutoLayoutModel.cpp
     # V10 Phase 76-80: Canvas Quality & Audit Models
-    canvas/IntegrityModel.cpp
-    canvas/BenchmarkModel.cpp
-    canvas/OnboardingModel.cpp
-    canvas/PolishModel.cpp
-    canvas/AuditModel.cpp
     # Phase 01 W11-W20: Canvas Workbench Models
-    canvas/BoardSettingsModel.cpp
-    canvas/CanvasAnalyticsModel.cpp
-    canvas/DragAutoscrollModel.cpp
-    canvas/PenEngineModel.cpp
-    canvas/PenPresetModel.cpp
-    canvas/PrecisionNudgeModel.cpp
-    canvas/SmartSpacingModel.cpp
     # V5 Phase 12: Smart Drawing Recognition
-    canvas/ShapeRecognizer.cpp
     # V5 Phase 13: Image & File Objects
-    canvas/ImageObject.cpp
-    canvas/ImageObjectRenderer.cpp
     # V5 Phase 14: Frames
-    canvas/FrameObject.cpp
-    canvas/FrameRenderer.cpp
     # V5 Phase 15: Board Sections
-    canvas/SectionObject.cpp
-    canvas/SectionRenderer.cpp
     # V5 Phase 16: Object Grouping & Nesting
-    canvas/GroupObject.cpp
-    canvas/GroupingService.cpp
     # V5 Phase 17: Object Layering / Z-Index
-    canvas/LayeringService.cpp
     # V5 Phase 18: Object Locking
-    canvas/LockingService.cpp
     # V5 Phase 19: Table Creation & Editing
-    canvas/TableObject.cpp
-    canvas/TableRenderer.cpp
     # V5 Phase 20: Table Sorting & Filtering
-    canvas/TableSortFilter.cpp
     # V5 Phase 21: Object Metadata System
-    canvas/MetadataPanel.cpp
     # V5 Phase 22: Tags System
-    canvas/TagManager.cpp
-    canvas/TagPanel.cpp
     # V5 Phase 23: Minimap / Board Map
-    canvas/MinimapPanel.cpp
     # V5 Phase 24: Canvas Search
-    canvas/CanvasSearch.cpp
-    canvas/SearchBar.cpp
     # V5 Phase 25: Outline Panel
-    canvas/OutlinePanel.cpp
     # V5 Phase 26: Cross-Board Linking
-    canvas/CrossBoardLink.cpp
-    canvas/BoardNavigator.cpp
     # V5 Phase 27: PDF Import & Page Rendering
-    canvas/PDFPageObject.cpp
-    canvas/PDFImporter.cpp
     # V5 Phase 28: Embedded Video
-    canvas/VideoEmbedObject.cpp
     # V5 Phase 29: Bookmark Cards
-    canvas/BookmarkCardObject.cpp
-    canvas/MetadataScraper.cpp
     # V5 Phase 30: Custom Icons & Emoji Packs
-    canvas/IconObject.cpp
-    canvas/IconLibrary.cpp
     # V5 Phase 31: Smart Layout Engine
-    canvas/LayoutEngine.cpp
-    canvas/StickyAggregator.cpp
     # V5 Phase 32: Mind Map Tool
-    canvas/MindMapNode.cpp
-    canvas/MindMapController.cpp
     # V5 Phase 33: Kanban Board
-    canvas/KanbanObjects.cpp
-    canvas/KanbanController.cpp
     # V5 Phase 34: Diagram Libraries (UML/BPMN)
-    canvas/DiagramShapeObject.cpp
-    canvas/DiagramLibraryPanel.cpp
     # V5 Phase 35: Board Templates System
-    canvas/BoardTemplate.cpp
     # Phase 11: Canvas Workbench Shell
-    canvas/CanvasWorkbench.cpp
-    canvas/CanvasInspector.cpp
-    canvas/CanvasObjectFactory.cpp
-    canvas/CanvasContextMenu.cpp
-    canvas/CanvasPerformanceMonitor.cpp
-    canvas/CanvasAccessibility.cpp
-    canvas/CanvasClipboardService.cpp
-    canvas/CanvasStylePresetService.cpp
-    canvas/ConnectorRoutingService.cpp
-    canvas/DiagramCoordinator.cpp
-    canvas/CanvasObjectLifecycleEvents.cpp
-    canvas/CanvasExportService.cpp
-    canvas/CanvasObjectAligner.cpp
     # Phase 13: Canvas Collaboration & Facilitation
-    canvas/RemoteCursorOverlay.cpp
-    canvas/RemoteSelectionOverlay.cpp
-    canvas/FollowModeController.cpp
-    canvas/BoardLockController.cpp
-    canvas/PrivateRevealController.cpp
-    canvas/CollabUndoRedoManager.cpp
-    canvas/CollabEventLogger.cpp
-    canvas/OfflineSyncQueue.cpp
     # Phase 14: Canvas Extensibility & App Widgets
-    canvas/CustomObjectTypeRegistry.cpp
-    canvas/CanvasToolHost.cpp
-    canvas/WidgetRenderer.cpp
-    canvas/WidgetLifecycleManager.cpp
-    canvas/WidgetPermissionGuard.cpp
-    canvas/CanvasTemplateEngine.cpp
-    canvas/WidgetMessageBus.cpp
-    # Phase 15: Notebook System Completion
-    core/NotebookSerializer.cpp
-    core/NotebookExecutionPipeline.cpp
-    core/NotebookSearchIndex.cpp
-    core/NotebookSessionManager.cpp
     core/CellDependencyTracker.cpp
-    core/NotebookToolbar.cpp
     # Phase 20: File Management & Workspace
     core/FileTreeModel.cpp
     core/WorkspaceSettings.cpp
@@ -1606,12 +1381,7 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "Src" FILES
     # V23 Phase 05: Editor Feature Completion Auditor
     core/EditorFeatureCompletionAuditor.h
     core/EditorFeatureCompletionAuditor.cpp
-    # V23 Phase 06: Notebook Execution Completion Auditor
-    core/NotebookExecutionCompletionAuditor.h
-    core/NotebookExecutionCompletionAuditor.cpp
     # V23 Phase 07: Canvas Completion Auditor
-    core/CanvasCompletionAuditor.h
-    core/CanvasCompletionAuditor.cpp
     # V23 Phase 08: Specialized Surface Completion Auditor
     core/SpecializedSurfaceCompletionAuditor.h
     core/SpecializedSurfaceCompletionAuditor.cpp
@@ -1700,8 +1470,6 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "Src" FILES
     core/WorkspaceHookManager.cpp
     core/AutomationRule.h
     core/AutomationRule.cpp
-    core/TaskScheduler.h
-    core/TaskScheduler.cpp
     core/FileWatcherService.h
     core/FileWatcherService.cpp
     core/AutomationCommandProvider.h

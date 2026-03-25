@@ -2,8 +2,8 @@
 /// @brief P10-T04 + V27-P03-T02: Standardized icon sizing, states, and theme compatibility.
 ///
 /// Shared icon size tokens by component family, state color rules,
-/// and high-DPI scaling factor management. V27 adds families for notebook,
-/// canvas, settings, and empty state surfaces.
+/// and high-DPI scaling factor management. V27 adds families for
+/// settings, and empty state surfaces.
 #pragma once
 
 #include <string>
@@ -23,8 +23,6 @@ enum class IconComponentFamily
     kContextMenu,
     kDialog,
     // V27 additions
-    kNotebook,         ///< V27: notebook cell and toolbar icons
-    kCanvas,           ///< V27: canvas tool palette and object icons
     kSettings,         ///< V27: settings category and row icons
     kEmptyState,       ///< V27: empty state hero icons
     kBreadcrumb,       ///< V27: breadcrumb path icons
@@ -34,7 +32,7 @@ enum class IconComponentFamily
 };
 
 /// Total number of icon component families.
-[[nodiscard]] constexpr auto icon_component_family_count() noexcept -> int { return 16; }
+[[nodiscard]] constexpr auto icon_component_family_count() noexcept -> int { return 14; }
 
 /// Icon metrics for a component family.
 struct IconMetrics

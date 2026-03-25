@@ -43,6 +43,7 @@ TEST_CASE("ArtifactMountService: construction", "[v20][artifact-mount]")
     ArtifactMountService mount_service(bus, registry);
 
     REQUIRE(mount_service.mounted_count() == 0);
+    // No adapters registered at construction
     REQUIRE_FALSE(mount_service.has_adapter(ArtifactKind::kTextFile));
 }
 
@@ -59,7 +60,6 @@ TEST_CASE("ArtifactMountService: register adapter", "[v20][artifact-mount]")
 
     mount_service.register_adapter(ArtifactKind::kTextFile, &adapter);
     REQUIRE(mount_service.has_adapter(ArtifactKind::kTextFile));
-    REQUIRE_FALSE(mount_service.has_adapter(ArtifactKind::kNotebook));
 }
 
 // ============================================================================
@@ -105,7 +105,7 @@ TEST_CASE("ArtifactMountService: mount with no adapter fails", "[v20][artifact-m
     ArtifactMountService mount_service(bus, registry);
 
     ArtifactRecord record;
-    record.kind = ArtifactKind::kNotebook;
+    record.kind = ArtifactKind::kTextFile;
     auto artifact_id = registry.register_artifact(record);
 
     auto result = mount_service.mount_artifact(artifact_id);

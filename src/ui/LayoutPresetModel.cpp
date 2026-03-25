@@ -103,8 +103,6 @@ auto LayoutPresetModel::default_preset_for(ProfileType profile) -> std::string
             return "writing-default";
         case ProfileType::kCoding:
             return "coding-default";
-        case ProfileType::kCanvas:
-            return "canvas-default";
         case ProfileType::kCustom:
             return "custom";
     }

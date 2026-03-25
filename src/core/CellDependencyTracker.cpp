@@ -17,8 +17,7 @@ namespace markamp::core
 // Constructor
 // ============================================================================
 
-CellDependencyTracker::CellDependencyTracker(EventBus& event_bus)
-    : event_bus_(event_bus)
+CellDependencyTracker::CellDependencyTracker(EventBus& /*event_bus*/)
 {
 }
 
@@ -43,11 +42,7 @@ auto CellDependencyTracker::analyze_cell(const std::string& cell_id, const std::
     deps_[cell_id] = std::move(dep);
     graph_dirty_ = true;
 
-    // Publish event.
-    events::CellDependencyChangedEvent evt;
-    evt.cell_id = cell_id;
-    evt.stale_count = 0; // Will be computed when graph is rebuilt.
-    event_bus_.publish(evt);
+    // V29: CellDependencyChangedEvent publish removed (notebook feature retired).
 }
 
 auto CellDependencyTracker::remove_cell(const std::string& cell_id) -> void

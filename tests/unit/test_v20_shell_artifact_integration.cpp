@@ -64,9 +64,9 @@ TEST_CASE("Shell integration: create notebook and mount", "[v20][shell-integrati
     ArtifactCreationService creation(bus, registry, config);
     ArtifactMountService mount_service(bus, registry);
     StubMountAdapter nb_adapter;
-    mount_service.register_adapter(ArtifactKind::kNotebook, &nb_adapter);
+    mount_service.register_adapter(ArtifactKind::kTextFile, &nb_adapter);
 
-    auto result = creation.create_notebook("test-notebook", "test");
+    auto result = creation.create_text_file("test-notebook", "test");
     REQUIRE(result.ok());
 
     auto mount_result = mount_service.mount_artifact(result.id);
@@ -82,9 +82,9 @@ TEST_CASE("Shell integration: create canvas and mount", "[v20][shell-integration
     ArtifactCreationService creation(bus, registry, config);
     ArtifactMountService mount_service(bus, registry);
     StubMountAdapter canvas_adapter;
-    mount_service.register_adapter(ArtifactKind::kCanvas, &canvas_adapter);
+    mount_service.register_adapter(ArtifactKind::kTextFile, &canvas_adapter);
 
-    auto result = creation.create_canvas("test-board", "test");
+    auto result = creation.create_text_file("test-board", "test");
     REQUIRE(result.ok());
 
     auto mount_result = mount_service.mount_artifact(result.id);
@@ -196,14 +196,12 @@ TEST_CASE("Shell integration: mixed artifact types", "[v20][shell-integration]")
     ArtifactCreationService creation(bus, registry, config);
 
     creation.create_text_file("readme.md");
-    creation.create_notebook("analysis");
-    creation.create_canvas("brainstorm");
+    creation.create_text_file("analysis");
+    creation.create_text_file("brainstorm");
     creation.create_text_file("notes.md");
 
     REQUIRE(registry.count() == 4);
-    REQUIRE(registry.count_by_kind(ArtifactKind::kTextFile) == 2);
-    REQUIRE(registry.count_by_kind(ArtifactKind::kNotebook) == 1);
-    REQUIRE(registry.count_by_kind(ArtifactKind::kCanvas) == 1);
+    REQUIRE(registry.count_by_kind(ArtifactKind::kTextFile) == 4);
 }
 
 // ============================================================================

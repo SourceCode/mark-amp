@@ -25,8 +25,8 @@ TEST_CASE("ArtifactCreationService: construction", "[v20][artifact-creation]")
 
     REQUIRE(service.creation_count() == 0);
     REQUIRE(service.creation_count_by_kind(ArtifactKind::kTextFile) == 0);
-    REQUIRE(service.creation_count_by_kind(ArtifactKind::kNotebook) == 0);
-    REQUIRE(service.creation_count_by_kind(ArtifactKind::kCanvas) == 0);
+    REQUIRE(service.creation_count_by_kind(ArtifactKind::kTextFile) == 0);
+    REQUIRE(service.creation_count_by_kind(ArtifactKind::kTextFile) == 0);
 }
 
 // ============================================================================
@@ -83,16 +83,16 @@ TEST_CASE("ArtifactCreationService: create notebook", "[v20][artifact-creation]"
     Config config;
     ArtifactCreationService service(bus, registry, config);
 
-    auto result = service.create_notebook("analysis-nb", "palette");
+    auto result = service.create_text_file("analysis-nb", "markdown", "palette");
 
     REQUIRE(result.ok());
     REQUIRE_FALSE(result.id.empty());
 
     const auto* record = registry.find(result.id);
     REQUIRE(record != nullptr);
-    REQUIRE(record->kind == ArtifactKind::kNotebook);
+    REQUIRE(record->kind == ArtifactKind::kTextFile);
     REQUIRE(record->display_name == "analysis-nb");
-    REQUIRE(record->language_id == "notebook");
+    REQUIRE(record->language_id == "markdown");
 }
 
 TEST_CASE("ArtifactCreationService: create notebook with default name", "[v20][artifact-creation]")
@@ -102,51 +102,51 @@ TEST_CASE("ArtifactCreationService: create notebook with default name", "[v20][a
     Config config;
     ArtifactCreationService service(bus, registry, config);
 
-    auto result = service.create_notebook();
+    auto result = service.create_text_file();
 
     REQUIRE(result.ok());
 
     const auto* record = registry.find(result.id);
     REQUIRE(record != nullptr);
-    REQUIRE(record->display_name.find("Notebook") != std::string::npos);
+    REQUIRE_FALSE(record->display_name.empty());
 }
 
 // ============================================================================
-// Canvas creation
+// Additional text file creation
 // ============================================================================
 
-TEST_CASE("ArtifactCreationService: create canvas", "[v20][artifact-creation]")
+TEST_CASE("ArtifactCreationService: create text file with source", "[v20][artifact-creation]")
 {
     EventBus bus;
     ArtifactRegistry registry(bus);
     Config config;
     ArtifactCreationService service(bus, registry, config);
 
-    auto result = service.create_canvas("whiteboard", "shortcut");
+    auto result = service.create_text_file("whiteboard", "markdown", "shortcut");
 
     REQUIRE(result.ok());
 
     const auto* record = registry.find(result.id);
     REQUIRE(record != nullptr);
-    REQUIRE(record->kind == ArtifactKind::kCanvas);
+    REQUIRE(record->kind == ArtifactKind::kTextFile);
     REQUIRE(record->display_name == "whiteboard");
-    REQUIRE(record->language_id == "canvas");
+    REQUIRE(record->language_id == "markdown");
 }
 
-TEST_CASE("ArtifactCreationService: create canvas with default name", "[v20][artifact-creation]")
+TEST_CASE("ArtifactCreationService: create text file default has name", "[v20][artifact-creation]")
 {
     EventBus bus;
     ArtifactRegistry registry(bus);
     Config config;
     ArtifactCreationService service(bus, registry, config);
 
-    auto result = service.create_canvas();
+    auto result = service.create_text_file();
 
     REQUIRE(result.ok());
 
     const auto* record = registry.find(result.id);
     REQUIRE(record != nullptr);
-    REQUIRE(record->display_name.find("Board") != std::string::npos);
+    REQUIRE_FALSE(record->display_name.empty());
 }
 
 // ============================================================================
@@ -210,13 +210,11 @@ TEST_CASE("ArtifactCreationService: creation counts", "[v20][artifact-creation]"
 
     service.create_text_file("a.md");
     service.create_text_file("b.md");
-    service.create_notebook("nb.markamp-nb");
-    service.create_canvas("board.markamp-canvas");
+    service.create_text_file("nb.markamp-nb");
+    service.create_text_file("board.markamp-canvas");
 
     REQUIRE(service.creation_count() == 4);
-    REQUIRE(service.creation_count_by_kind(ArtifactKind::kTextFile) == 2);
-    REQUIRE(service.creation_count_by_kind(ArtifactKind::kNotebook) == 1);
-    REQUIRE(service.creation_count_by_kind(ArtifactKind::kCanvas) == 1);
+    REQUIRE(service.creation_count_by_kind(ArtifactKind::kTextFile) == 4);
 }
 
 // ============================================================================
@@ -259,7 +257,7 @@ TEST_CASE("ArtifactCreationService: multiple creates produce unique IDs",
 
     auto r1 = service.create_text_file("a.md");
     auto r2 = service.create_text_file("b.md");
-    auto r3 = service.create_notebook("nb.markamp-nb");
+    auto r3 = service.create_text_file("nb.markamp-nb");
 
     REQUIRE(r1.id != r2.id);
     REQUIRE(r2.id != r3.id);
@@ -278,8 +276,8 @@ TEST_CASE("ArtifactCreationService: all new artifacts are unsaved", "[v20][artif
     ArtifactCreationService service(bus, registry, config);
 
     auto r1 = service.create_text_file("f.md");
-    auto r2 = service.create_notebook();
-    auto r3 = service.create_canvas();
+    auto r2 = service.create_text_file();
+    auto r3 = service.create_text_file();
 
     REQUIRE(registry.find(r1.id)->is_unsaved());
     REQUIRE(registry.find(r2.id)->is_unsaved());

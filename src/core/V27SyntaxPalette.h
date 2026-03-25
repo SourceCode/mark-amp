@@ -10,11 +10,10 @@ enum class V27SyntaxSaturation { kMuted, kStandard, kVivid };
 /// V27 syntax weight for scope importance.
 enum class V27SyntaxWeight { kSubtle, kNormal, kStrong };
 /// V27 code context — where code is displayed.
-enum class V27CodeContext { kEditor, kNotebook, kPreview, kInline, kDiff };
-[[nodiscard]] constexpr auto v27_code_context_count() noexcept -> int { return 5; }
+enum class V27CodeContext { kEditor, kPreview, kInline, kDiff };
+[[nodiscard]] constexpr auto v27_code_context_count() noexcept -> int { return 4; }
 struct V27SyntaxPaletteTokens {
     static constexpr int kEditorFontSize = 13;
-    static constexpr int kNotebookFontSize = 12;
     static constexpr int kPreviewFontSize = 12;
     static constexpr int kInlineFontSize = 12;
     static constexpr int kLineNumberOpacityPct = 50;  ///< 50% opacity

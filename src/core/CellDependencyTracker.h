@@ -71,7 +71,7 @@ public:
     auto clear() -> void;
 
 private:
-    EventBus& event_bus_;
+    // V29: event_bus_ removed (only consumer was notebook CellDependencyChangedEvent).
 
     /// Per-cell dependency data, keyed by cell_id.
     std::unordered_map<std::string, CellDependency> deps_;

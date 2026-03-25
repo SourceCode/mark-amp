@@ -5,7 +5,7 @@
 namespace markamp::core
 {
 
-static constexpr int kReleaseActionCount = 42;
+static constexpr int kReleaseActionCount = 34;
 
 void bootstrap_release_actions(ActionManifest& manifest)
 {
@@ -23,9 +23,7 @@ void bootstrap_release_actions(ActionManifest& manifest)
 
     // File actions
     reg("file.new",        "New File",       ActionCategory::kFile, 1);
-    reg("file.newNotebook","New Notebook",   ActionCategory::kFile, 2);
-    reg("file.newCanvas",  "New Canvas",     ActionCategory::kFile, 3);
-    reg("file.open",       "Open File",      ActionCategory::kFile, 4);
+    reg("file.open",       "Open File",      ActionCategory::kFile, 2);
     reg("file.save",       "Save",           ActionCategory::kFile, 5);
     reg("file.saveAs",     "Save As",        ActionCategory::kFile, 6);
     reg("file.close",      "Close",          ActionCategory::kFile, 7);
@@ -63,15 +61,6 @@ void bootstrap_release_actions(ActionManifest& manifest)
     reg("terminal.new",    "New Terminal",    ActionCategory::kTerminal, 1);
     reg("debug.start",     "Start Debugging", ActionCategory::kDebug, 1);
     reg("debug.stop",      "Stop Debugging",  ActionCategory::kDebug, 2);
-
-    // Canvas
-    reg("canvas.newBoard", "New Board",       ActionCategory::kCanvas, 1);
-    reg("canvas.export",   "Export Canvas",   ActionCategory::kCanvas, 2);
-
-    // Notebook
-    reg("notebook.runCell", "Run Cell",       ActionCategory::kNotebook, 1);
-    reg("notebook.runAll",  "Run All Cells",  ActionCategory::kNotebook, 2);
-    reg("notebook.addCell", "Add Cell",       ActionCategory::kNotebook, 3);
 
     // Source Control
     reg("sc.commit",       "Commit",          ActionCategory::kSourceControl, 1);

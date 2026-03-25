@@ -31,14 +31,12 @@ enum class IconRole
     kCommandPalette,   ///< V27: command palette result icons
     kSettingsCategory, ///< V27: settings category sidebar
     kNotification,     ///< V27: notification/toast severity icons
-    kNotebook,         ///< V27: notebook cell and toolbar icons
-    kCanvas,           ///< V27: canvas tool palette and object icons
     kStartup,          ///< V27: startup/welcome surface icons
     kThemeGallery,     ///< V27: theme gallery card icons
 };
 
 /// Total number of icon roles.
-[[nodiscard]] constexpr auto icon_role_count() noexcept -> int { return 18; }
+[[nodiscard]] constexpr auto icon_role_count() noexcept -> int { return 16; }
 
 /// Migration status of an icon.
 enum class IconMigrationStatus

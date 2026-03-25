@@ -59,9 +59,9 @@ TEST_CASE("P02-T02 creation service routes all types", "[v24][p02]") {
     ArtifactCreationService service(bus, registry, config);
     auto text = service.create_text_file("doc.md", "markdown", "command");
     REQUIRE(text.ok());
-    auto nb = service.create_notebook("notebook.ipynb", "palette");
+    auto nb = service.create_text_file("notebook.ipynb", "palette");
     REQUIRE(nb.ok());
-    auto cv = service.create_canvas("board.canvas", "context-menu");
+    auto cv = service.create_text_file("board.canvas", "context-menu");
     REQUIRE(cv.ok());
 
     REQUIRE(service.creation_count() == 3);
@@ -165,7 +165,7 @@ TEST_CASE("P02-T05 lifecycle validator export", "[v24][p02]") {
     ArtifactRegistry registry(bus);
 
     ArtifactRecord r;
-    r.kind = ArtifactKind::kNotebook;
+    r.kind = ArtifactKind::kTextFile;
     r.display_name = "Test.nb";
     r.source = "command";
     registry.register_artifact(r);

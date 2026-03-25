@@ -62,10 +62,8 @@ auto HighlightDegradationService::should_share_tokens(HighlightSurface surface) 
     switch (surface)
     {
     case HighlightSurface::kEditor:
-    case HighlightSurface::kNotebookCell:
     case HighlightSurface::kMarkdownFence:
     case HighlightSurface::kDiffPanel:
-    case HighlightSurface::kCanvasEmbed:
         return true;
     }
     return false;
@@ -73,9 +71,8 @@ auto HighlightDegradationService::should_share_tokens(HighlightSurface surface) 
 
 auto HighlightDegradationService::shared_surfaces() const -> std::vector<HighlightSurface>
 {
-    return {HighlightSurface::kEditor, HighlightSurface::kNotebookCell,
-            HighlightSurface::kMarkdownFence, HighlightSurface::kDiffPanel,
-            HighlightSurface::kCanvasEmbed};
+    return {HighlightSurface::kEditor,
+            HighlightSurface::kMarkdownFence, HighlightSurface::kDiffPanel};
 }
 
 } // namespace markamp::core

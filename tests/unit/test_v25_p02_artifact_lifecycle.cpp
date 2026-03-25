@@ -42,8 +42,8 @@ TEST_CASE("V25 P02: Controller counts by surface", "[v25][p02]")
     ArtifactCreationController controller(service);
 
     controller.create_from_surface("TabBar", ArtifactKind::kTextFile);
-    controller.create_from_surface("TabBar", ArtifactKind::kNotebook);
-    controller.create_from_surface("FileTree", ArtifactKind::kCanvas);
+    controller.create_from_surface("TabBar", ArtifactKind::kTextFile);
+    controller.create_from_surface("FileTree", ArtifactKind::kTextFile);
 
     REQUIRE(controller.count_by_surface("TabBar") == 2);
     REQUIRE(controller.count_by_surface("FileTree") == 1);
@@ -57,9 +57,9 @@ TEST_CASE("V25 P02: Route history preserves artifact kinds", "[v25][p02]")
     ArtifactCreationService service(bus, registry, cfg);
     ArtifactCreationController controller(service);
 
-    controller.create_from_surface("TabBar", ArtifactKind::kNotebook);
+    controller.create_from_surface("TabBar", ArtifactKind::kTextFile);
     auto& history = controller.route_history();
     REQUIRE(history.size() == 1);
-    REQUIRE(history[0].kind == ArtifactKind::kNotebook);
+    REQUIRE(history[0].kind == ArtifactKind::kTextFile);
     REQUIRE(history[0].source_surface == "TabBar");
 }

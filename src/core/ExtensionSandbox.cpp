@@ -68,31 +68,7 @@ auto ExtensionSandbox::from_string(const std::string& perm_str) -> ExtensionPerm
     {
         return ExtensionPermission::kProcessExecution;
     }
-    // V8 Phase 8: Canvas marketplace scopes
-    if (perm_str == "canvas.read")
-    {
-        return ExtensionPermission::kCanvasRead;
-    }
-    if (perm_str == "canvas.write")
-    {
-        return ExtensionPermission::kCanvasWrite;
-    }
-    if (perm_str == "canvas.selection")
-    {
-        return ExtensionPermission::kCanvasSelection;
-    }
-    if (perm_str == "canvas.comments")
-    {
-        return ExtensionPermission::kCanvasComments;
-    }
-    if (perm_str == "canvas.templates")
-    {
-        return ExtensionPermission::kCanvasTemplates;
-    }
-    if (perm_str == "canvas.network")
-    {
-        return ExtensionPermission::kCanvasNetwork;
-    }
+
     throw std::invalid_argument("Unknown permission: " + perm_str);
 }
 
@@ -114,19 +90,7 @@ auto ExtensionSandbox::to_string(ExtensionPermission perm) -> std::string
             return "workspaceSettings";
         case ExtensionPermission::kProcessExecution:
             return "processExecution";
-        // V8 Phase 8: Canvas marketplace scopes
-        case ExtensionPermission::kCanvasRead:
-            return "canvas.read";
-        case ExtensionPermission::kCanvasWrite:
-            return "canvas.write";
-        case ExtensionPermission::kCanvasSelection:
-            return "canvas.selection";
-        case ExtensionPermission::kCanvasComments:
-            return "canvas.comments";
-        case ExtensionPermission::kCanvasTemplates:
-            return "canvas.templates";
-        case ExtensionPermission::kCanvasNetwork:
-            return "canvas.network";
+
     }
     return "unknown";
 }

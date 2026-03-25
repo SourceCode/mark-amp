@@ -16,9 +16,7 @@ enum class SurfaceKind : std::uint8_t
 {
     kEditor,
     kPreview,
-    kCanvas,
-    kGraph,
-    kNotebook
+    kGraph
 };
 
 /// What kind of entity the link targets within a surface.
@@ -26,9 +24,7 @@ enum class EntityKind : std::uint8_t
 {
     kDocument,
     kHeading,
-    kCodeBlock,
-    kCanvasObject,
-    kNotebookCell
+    kCodeBlock
 };
 
 /// A precise anchor within any surface.
@@ -39,9 +35,6 @@ struct LinkAnchor
     std::string file_path;
     int line{0};
     int column{0};
-    std::string board_id;
-    std::string object_id;
-    std::string cell_id;
     std::string heading_id;
 };
 

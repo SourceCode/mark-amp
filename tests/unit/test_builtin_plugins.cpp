@@ -20,7 +20,7 @@ using namespace markamp::core::events;
 namespace
 {
 
-/// The 15 well-known built-in feature IDs from BuiltInPlugins.h.
+/// The well-known built-in feature IDs from BuiltInPlugins.h.
 const std::vector<std::string> kAllBuiltInFeatureIds = {
     builtin_features::kMermaid,
     builtin_features::kTableEditor,
@@ -32,14 +32,9 @@ const std::vector<std::string> kAllBuiltInFeatureIds = {
     builtin_features::kFxEngine,
     builtin_features::kTextFx,
     builtin_features::kVscodeThemes,
-    builtin_features::kCanvasCollab,
-    builtin_features::kCanvasApps,
-    builtin_features::kKanban,
-    builtin_features::kMindMap,
-    builtin_features::kDiagramLibrary,
 };
 
-/// The 15 well-known built-in plugin manifest IDs.
+/// The well-known built-in plugin manifest IDs.
 const std::vector<std::string> kAllBuiltInPluginIds = {
     "markamp.mermaid",
     "markamp.table-editor",
@@ -51,11 +46,6 @@ const std::vector<std::string> kAllBuiltInPluginIds = {
     "markamp.fx-engine",
     "markamp.text-fx",
     "markamp.vscode-themes",
-    "markamp.canvas-collab",
-    "markamp.canvas-apps",
-    "markamp.kanban",
-    "markamp.mind-map",
-    "markamp.diagram-library",
 };
 
 } // anonymous namespace
@@ -74,8 +64,8 @@ TEST_CASE("register_builtin_plugins: registers 15 features", "[builtin-plugins]"
 
     register_builtin_plugins(mgr, registry);
 
-    REQUIRE(registry.feature_count() >= 15);
-    REQUIRE(mgr.plugin_count() >= 15);
+    REQUIRE(registry.feature_count() >= 11);
+    REQUIRE(mgr.plugin_count() >= 11);
 }
 
 TEST_CASE("register_builtin_plugins: all feature IDs are present", "[builtin-plugins]")
@@ -264,12 +254,12 @@ TEST_CASE("register_builtin_plugins: double registration is idempotent or reject
     PluginManager mgr(bus, cfg);
 
     register_builtin_plugins(mgr, registry);
-    REQUIRE(registry.feature_count() >= 15);
-    REQUIRE(mgr.plugin_count() >= 15);
+    REQUIRE(registry.feature_count() >= 11);
+    REQUIRE(mgr.plugin_count() >= 11);
 
     // Second registration: feature registry ignores duplicates,
     // plugin manager should reject duplicate IDs
     register_builtin_plugins(mgr, registry);
-    REQUIRE(registry.feature_count() >= 15); // No duplicates
-    REQUIRE(mgr.plugin_count() >= 15);       // No duplicates
+    REQUIRE(registry.feature_count() >= 11); // No duplicates
+    REQUIRE(mgr.plugin_count() >= 11);       // No duplicates
 }

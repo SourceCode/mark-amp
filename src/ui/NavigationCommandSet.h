@@ -22,7 +22,6 @@ enum class NavigationScope : uint8_t
     kGlobal, ///< Works regardless of active surface
     kPane,   ///< Applies to the currently focused pane
     kEditor, ///< Only available in editor surfaces
-    kCanvas, ///< Only available in canvas surfaces
 };
 
 /// A single navigation command definition.

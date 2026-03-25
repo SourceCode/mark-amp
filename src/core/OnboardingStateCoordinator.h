@@ -21,8 +21,6 @@ public:
     {
         kExplorer,
         kSearch,
-        kCanvas,
-        kNotebook,
         kTerminal,
         kGeneric,
     };

@@ -52,8 +52,6 @@ enum class Subsystem
     kPanels,
     kEditor,
     kSearch,
-    kNotebook,
-    kCanvas,
     kSourceControl,
     kSettings,
     kCloudSync,
@@ -78,8 +76,6 @@ enum class Subsystem
         case Subsystem::kPanels:            return "Panels";
         case Subsystem::kEditor:            return "Editor";
         case Subsystem::kSearch:            return "Search";
-        case Subsystem::kNotebook:          return "Notebook";
-        case Subsystem::kCanvas:            return "Canvas";
         case Subsystem::kSourceControl:     return "SourceControl";
         case Subsystem::kSettings:          return "Settings";
         case Subsystem::kCloudSync:         return "CloudSync";

@@ -36,8 +36,6 @@ public:
 
 private:
     int text_file_seq_{0};
-    int notebook_seq_{0};
-    int canvas_seq_{0};
 
     auto increment_sequence(ArtifactKind kind) -> int;
 };

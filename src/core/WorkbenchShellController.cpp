@@ -3,7 +3,6 @@
 
 #include "WorkbenchShellController.h"
 
-#include "CanvasWorkbenchMode.h"
 #include "Config.h"
 #include "Logger.h"
 #include "ShellLayoutState.h"
@@ -69,10 +68,6 @@ void WorkbenchShellController::set_shell_layout_state(ShellLayoutState* state)
     shell_layout_state_ = state;
 }
 
-void WorkbenchShellController::set_canvas_mode(CanvasWorkbenchMode* canvas)
-{
-    canvas_mode_ = canvas;
-}
 
 void WorkbenchShellController::set_session_restore(WorkspaceSessionRestore* restore)
 {
@@ -106,28 +101,14 @@ void WorkbenchShellController::switch_to(events::WorkbenchMode target,
         case events::WorkbenchMode::kEditor:
             delegate_->ShowEditorWorkspace();
             break;
-        case events::WorkbenchMode::kCanvas:
-            delegate_->ShowCanvasWorkspace();
-            // Notify canvas mode service if available
-            if (canvas_mode_ != nullptr && !canvas_mode_->is_active())
-            {
-                canvas_mode_->enter();
-            }
-            break;
-        case events::WorkbenchMode::kNotebook:
         case events::WorkbenchMode::kGraph:
         case events::WorkbenchMode::kSettings:
             // These surfaces share the editor workspace layout;
             // mode-specific panel activation is handled by the mode changed event.
             break;
+        default:
+            break;
         }
-    }
-
-    // Exit canvas mode if switching away from it
-    if (previous_surface == events::WorkbenchMode::kCanvas && canvas_mode_ != nullptr &&
-        canvas_mode_->is_active())
-    {
-        canvas_mode_->exit();
     }
 
     // Publish mode changed event

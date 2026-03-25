@@ -1,5 +1,5 @@
 /// @file test_v27_p20_qa_gates.cpp
-/// @brief V27 Phase 20: QA matrix, legacy removal, signoff criteria.
+/// @brief V27 Phase 20: QA matrix, legacy removal, signoff criteria, mark_pass.
 #include <catch2/catch_test_macros.hpp>
 #include "core/V27QAMatrix.h"
 using namespace markamp::core;
@@ -34,4 +34,36 @@ TEST_CASE("V27 P20: QA matrix incomplete surfaces", "[v27][p20]") {
     matrix.populate_v27_surfaces();
     auto incomplete = matrix.incomplete_surfaces();
     REQUIRE(incomplete.size() == 18);
+}
+TEST_CASE("V27 P20: QA matrix single surface pass-through", "[v27][p20]") {
+    V27QAMatrix matrix;
+    matrix.register_surface(V27QASurfaceEntry{
+        "TestSurface",
+        V27QAStatus::kPass,
+        V27QAStatus::kPass,
+        V27QAStatus::kPass,
+        V27QAStatus::kPass,
+        V27QAStatus::kPass});
+    REQUIRE(matrix.surface_count() == 1);
+    REQUIRE(matrix.all_pass());
+    REQUIRE(matrix.pass_count() == 1);
+    REQUIRE(matrix.incomplete_surfaces().empty());
+}
+TEST_CASE("V27 P20: QA matrix mixed states", "[v27][p20]") {
+    V27QAMatrix matrix;
+    matrix.register_surface(V27QASurfaceEntry{
+        "Complete",
+        V27QAStatus::kPass, V27QAStatus::kPass,
+        V27QAStatus::kPass, V27QAStatus::kPass,
+        V27QAStatus::kPass});
+    matrix.register_surface(V27QASurfaceEntry{
+        "Partial",
+        V27QAStatus::kPass, V27QAStatus::kInProgress,
+        V27QAStatus::kNotStarted, V27QAStatus::kPass,
+        V27QAStatus::kNotStarted});
+    REQUIRE(matrix.surface_count() == 2);
+    REQUIRE(matrix.pass_count() == 1);
+    REQUIRE_FALSE(matrix.all_pass());
+    REQUIRE(matrix.incomplete_surfaces().size() == 1);
+    REQUIRE(matrix.incomplete_surfaces()[0] == "Partial");
 }

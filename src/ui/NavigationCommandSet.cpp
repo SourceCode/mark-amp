@@ -16,8 +16,6 @@ auto NavigationCommand::scope_label() const -> std::string
             return "Pane";
         case NavigationScope::kEditor:
             return "Editor";
-        case NavigationScope::kCanvas:
-            return "Canvas";
     }
     return "Unknown";
 }
@@ -79,20 +77,12 @@ auto NavigationCommandSet::standard_commands() -> std::vector<NavigationCommand>
          "references",
          NavigationScope::kEditor,
          true},
+        // Editor-specific (go-to-bracket)
         {"nav.go_to_bracket",
          "Go to Bracket",
          "Ctrl+Shift+\\",
          "bracket",
          NavigationScope::kEditor,
-         true},
-
-        // Canvas-specific
-        {"nav.zoom_to_fit", "Zoom to Fit", "Ctrl+0", "zoom-fit", NavigationScope::kCanvas, true},
-        {"nav.center_selection",
-         "Center Selection",
-         "Ctrl+Shift+C",
-         "center",
-         NavigationScope::kCanvas,
          true},
     };
 }
@@ -131,8 +121,7 @@ auto NavigationCommandSet::available_scopes() -> std::vector<NavigationScope>
 {
     return {NavigationScope::kGlobal,
             NavigationScope::kPane,
-            NavigationScope::kEditor,
-            NavigationScope::kCanvas};
+            NavigationScope::kEditor};
 }
 
 } // namespace markamp::ui

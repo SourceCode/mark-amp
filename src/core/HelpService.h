@@ -91,7 +91,7 @@ public:
     // --- Contextual help ---
 
     /// Get help article for the current context (mode).
-    /// Context IDs: "editor", "canvas", "notebook", "graph", "settings"
+    /// Context IDs: "editor", "graph", "settings"
     [[nodiscard]] auto get_contextual_help(const std::string& context_id) const
         -> const HelpArticle*
     {
@@ -205,12 +205,10 @@ private:
             {.id = "syntax.extensions",
              .title = "MarkAmp Extensions",
              .body = "Wiki-links: [[page-name]]\n"
-                     "Task metadata: `due:2024-01-01 priority:high`\n"
-                     "Flashcard: `Q: question :: A: answer`\n"
                      "Embed: `![[embedded-file]]`\n"
                      "Mermaid diagrams: ```mermaid ... ```\n",
              .category = HelpCategory::Syntax,
-             .tags = {"wiki-link", "task", "flashcard", "embed", "mermaid", "extension"}});
+             .tags = {"wiki-link", "embed", "mermaid", "extension"}});
 
         // --- Contextual help articles ---
         registry_.register_article(
@@ -222,23 +220,7 @@ private:
              .category = HelpCategory::General,
              .tags = {"editor", "markdown", "editing"}});
 
-        registry_.register_article(
-            {.id = "context.canvas",
-             .title = "Canvas Mode",
-             .body = "The canvas provides an infinite 2D workspace for visual thinking. "
-                     "Add sticky notes, text boxes, diagrams, and connectors.\n\n"
-                     "Drag to pan, scroll to zoom, double-click to add a note.\n",
-             .category = HelpCategory::General,
-             .tags = {"canvas", "board", "visual", "sticky"}});
-
-        registry_.register_article(
-            {.id = "context.notebook",
-             .title = "Notebook Mode",
-             .body = "Notebooks combine Markdown cells with executable code cells. "
-                     "Use magic commands for environment setup.\n\n"
-                     "Shift+Enter to run a cell, Cmd+Enter to run and advance.\n",
-             .category = HelpCategory::General,
-             .tags = {"notebook", "cell", "code", "magic"}});
+        // V29: Canvas and Notebook context help articles removed (features retired).
 
         registry_.register_article(
             {.id = "context.graph",
@@ -252,8 +234,8 @@ private:
         registry_.register_article(
             {.id = "general.overview",
              .title = "MarkAmp Overview",
-             .body = "MarkAmp is an all-in-one Markdown workbench with editor, canvas, "
-                     "notebooks, knowledge graph, and flashcards.\n\n"
+             .body = "MarkAmp is a focused Markdown workbench with editor, "
+                     "knowledge graph, and powerful document tooling.\n\n"
                      "Press Cmd+Shift+P to open the command palette and explore features.\n",
              .category = HelpCategory::General,
              .tags = {"overview", "getting-started", "introduction"}});
@@ -281,16 +263,7 @@ private:
              .category = HelpCategory::Error,
              .tags = {"markdown", "parse", "syntax", "invalid"}});
 
-        registry_.register_article(
-            {.id = "error.corrupt_board",
-             .title = "Corrupt Board Data",
-             .body = "The canvas board file contains invalid or corrupt JSON data.\n\n"
-                     "**How to fix:**\n"
-                     "- Check the .board file for valid JSON structure\n"
-                     "- Try restoring from a backup or snapshot\n"
-                     "- Create a new board and re-add objects\n",
-             .category = HelpCategory::Error,
-             .tags = {"board", "json", "corrupt", "canvas"}});
+        // V29: Corrupt board error article removed (canvas feature retired).
 
         registry_.register_article({.id = "error.generic",
                                     .title = "General Troubleshooting",
@@ -306,8 +279,6 @@ private:
 
         // --- Register context mappings ---
         context_map_["editor"] = "context.editor";
-        context_map_["canvas"] = "context.canvas";
-        context_map_["notebook"] = "context.notebook";
         context_map_["graph"] = "context.graph";
         context_map_["settings"] = "general.overview";
     }
@@ -332,7 +303,6 @@ private:
             "Search", "⌘+Shift+F", "Search across all files in workspace"};
         tooltips_["sidebar.graph"] = {
             "Knowledge Graph", "⌘+Shift+G", "View connections between documents"};
-        tooltips_["sidebar.canvas"] = {"Canvas", "⌘+Shift+C", "Open the visual canvas workspace"};
     }
 };
 

@@ -22,9 +22,6 @@ void CrossSurfaceNavigator::navigate_to(const NavigationTarget& target)
     case NavigationSurface::kEditor:
         navigate_to_file(target.resource_id, target.line);
         break;
-    case NavigationSurface::kCanvas:
-        navigate_to_board(target.resource_id);
-        break;
     case NavigationSurface::kGraph:
         navigate_to_graph_node(target.resource_id);
         break;
@@ -49,14 +46,6 @@ void CrossSurfaceNavigator::navigate_to_file(const std::string& path, int line)
 
     MARKAMP_LOG_INFO("Cross-surface: editor -> {}{}", path,
                      line > 0 ? ":" + std::to_string(line) : "");
-}
-
-void CrossSurfaceNavigator::navigate_to_board(const std::string& board_id)
-{
-    current_ = NavigationSurface::kCanvas;
-
-    // Publish board open — CanvasWorkbenchMode handles mode switch
-    MARKAMP_LOG_INFO("Cross-surface: canvas -> {}", board_id);
 }
 
 void CrossSurfaceNavigator::navigate_to_graph_node(const std::string& node_id)

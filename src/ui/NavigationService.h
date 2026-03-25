@@ -31,9 +31,6 @@ struct NavigationEntry
     std::string from_surface; ///< Source surface kind (serialized)
     std::string to_surface;   ///< Target surface kind (serialized)
     std::string entity_id;    ///< Target entity unique ID
-    std::string board_id;     ///< Canvas board ID (if applicable)
-    std::string object_id;    ///< Canvas object ID (if applicable)
-    std::string cell_id;      ///< Notebook cell ID (if applicable)
 };
 
 /// Per-pane back/forward navigation history.

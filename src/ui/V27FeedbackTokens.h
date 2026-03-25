@@ -32,4 +32,23 @@ struct V27BannerTokens {
     static constexpr int kProgressBarHeight = 3;
     static constexpr int kProgressBarRadius = 2;
 };
+struct V27ProgressTokens {
+    static constexpr int kBarHeight = 4;
+    static constexpr int kBarRadius = 2;
+    static constexpr int kIndeterminatePulseWidth = 60;
+    static constexpr int kIndeterminateCycleMs = 1200;
+    static constexpr int kLabelGap = 8;
+    static constexpr int kCircularDiameter = 20;
+    static constexpr int kCircularStroke = 2;
+};
+struct V27InlineValidationTokens {
+    static constexpr int kIconSize = 14;
+    static constexpr int kIconGap = 4;
+    static constexpr int kMessagePaddingH = 8;
+    static constexpr int kMessagePaddingV = 4;
+    static constexpr int kFieldUnderlineWidth = 2;
+    static constexpr int kFieldRadius = 4;
+    static constexpr int kShakeAmplitude = 4;
+    static constexpr int kShakeDurationMs = 300;
+};
 } // namespace markamp::ui

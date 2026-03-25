@@ -23,8 +23,7 @@ inline constexpr auto kBreadcrumb = "breadcrumb";
 inline constexpr auto kFxEngine = "fx-engine";
 inline constexpr auto kTextFx = "text-fx";
 inline constexpr auto kVscodeThemes = "vscode-themes";
-inline constexpr auto kCanvasCollab = "canvas-collab";
-inline constexpr auto kCanvasApps = "canvas-apps";
+
 inline constexpr auto kKanban = "kanban";
 inline constexpr auto kMindMap = "mind-map";
 inline constexpr auto kDiagramLibrary = "diagram-library";

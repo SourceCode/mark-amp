@@ -56,15 +56,6 @@ public:
                                          const std::string& source = "command")
         -> ArtifactCreationResult;
 
-    /// Convenience: create a new notebook.
-    [[nodiscard]] auto create_notebook(const std::string& name = {},
-                                        const std::string& source = "command")
-        -> ArtifactCreationResult;
-
-    /// Convenience: create a new canvas.
-    [[nodiscard]] auto create_canvas(const std::string& name = {},
-                                      const std::string& source = "command")
-        -> ArtifactCreationResult;
 
     // ── Tracking ──
 
@@ -81,8 +72,6 @@ private:
 
     int creation_count_{0};
     int text_file_count_{0};
-    int notebook_count_{0};
-    int canvas_count_{0};
 };
 
 } // namespace markamp::core

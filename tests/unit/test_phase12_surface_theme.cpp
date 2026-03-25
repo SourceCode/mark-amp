@@ -46,9 +46,8 @@ TEST_CASE("SurfaceLinkRouter resolves valid cross-surface links", "[phase12][rou
     SurfaceLink link;
     link.from.surface_kind = SurfaceKind::kEditor;
     link.from.file_path = "notes/main.md";
-    link.to.surface_kind = SurfaceKind::kCanvas;
-    link.to.board_id = "board-1";
-    link.to.object_id = "node-7";
+    link.to.surface_kind = SurfaceKind::kGraph;
+    link.to.file_path = "graph/view.md";
 
     auto result = router.resolve(link);
     REQUIRE(result.status == LinkResolveStatus::kResolved);
@@ -62,7 +61,7 @@ TEST_CASE("SurfaceLinkRouter can_route validates surface combinations", "[phase1
     // Editor -> Preview: always routable
     CHECK(router.can_route(SurfaceKind::kEditor, SurfaceKind::kPreview));
     // Editor -> Canvas: always routable
-    CHECK(router.can_route(SurfaceKind::kEditor, SurfaceKind::kCanvas));
+    CHECK(router.can_route(SurfaceKind::kEditor, SurfaceKind::kGraph));
     // Editor -> Graph: always routable
     CHECK(router.can_route(SurfaceKind::kEditor, SurfaceKind::kGraph));
     // Same surface: always routable
@@ -73,9 +72,7 @@ TEST_CASE("SurfaceLinkRouter surface_name returns strings", "[phase12][router]")
 {
     CHECK(SurfaceLinkRouter::surface_name(SurfaceKind::kEditor) == "Editor");
     CHECK(SurfaceLinkRouter::surface_name(SurfaceKind::kPreview) == "Preview");
-    CHECK(SurfaceLinkRouter::surface_name(SurfaceKind::kCanvas) == "Canvas");
     CHECK(SurfaceLinkRouter::surface_name(SurfaceKind::kGraph) == "Graph");
-    CHECK(SurfaceLinkRouter::surface_name(SurfaceKind::kNotebook) == "Notebook");
 }
 
 TEST_CASE("SurfaceLinkRouter emits events on resolve", "[phase12][router]")
@@ -111,10 +108,8 @@ TEST_CASE("NavigationService navigate_via_link records cross-surface history",
     SurfaceLink link;
     link.from.surface_kind = SurfaceKind::kEditor;
     link.from.file_path = "source.md";
-    link.to.surface_kind = SurfaceKind::kCanvas;
-    link.to.file_path = "board.canvas";
-    link.to.board_id = "board-1";
-    link.to.object_id = "node-5";
+    link.to.surface_kind = SurfaceKind::kGraph;
+    link.to.file_path = "graph/view.md";
 
     auto result = nav.navigate_via_link(0, link);
     CHECK(result.status == LinkResolveStatus::kResolved);
@@ -123,9 +118,7 @@ TEST_CASE("NavigationService navigate_via_link records cross-surface history",
     auto* entry = nav.history_for(0).current();
     REQUIRE(entry != nullptr);
     CHECK(entry->from_surface == "Editor");
-    CHECK(entry->to_surface == "Canvas");
-    CHECK(entry->board_id == "board-1");
-    CHECK(entry->object_id == "node-5");
+    CHECK(entry->to_surface == "Graph");
 }
 
 TEST_CASE("NavigationService global_timeline tracks traversals", "[phase12][navigation]")
@@ -143,8 +136,8 @@ TEST_CASE("NavigationService global_timeline tracks traversals", "[phase12][navi
 
     SurfaceLink link2;
     link2.from.surface_kind = SurfaceKind::kEditor;
-    link2.to.surface_kind = SurfaceKind::kCanvas;
-    link2.to.file_path = "b.canvas";
+    link2.to.surface_kind = SurfaceKind::kGraph;
+    link2.to.file_path = "b.md";
 
     nav.navigate_via_link(0, link1);
     nav.navigate_via_link(0, link2);
@@ -182,7 +175,7 @@ TEST_CASE("SurfaceTransitionCoordinator cancel lifecycle", "[phase12][transition
     Config config;
     SurfaceTransitionCoordinator coord(bus, config);
 
-    coord.begin_transition(SurfaceKind::kEditor, SurfaceKind::kCanvas, "test");
+    coord.begin_transition(SurfaceKind::kEditor, SurfaceKind::kGraph, "test");
     coord.cancel("user cancelled");
 
     CHECK_FALSE(coord.is_transitioning());
@@ -201,11 +194,11 @@ TEST_CASE("SurfaceTransitionCoordinator rapid transitions cancel previous", "[ph
         [&](const events::SurfaceTransitionCancelEvent&) { ++cancel_events; });
 
     coord.begin_transition(SurfaceKind::kEditor, SurfaceKind::kPreview, "first");
-    coord.begin_transition(SurfaceKind::kPreview, SurfaceKind::kCanvas, "second");
+    coord.begin_transition(SurfaceKind::kPreview, SurfaceKind::kGraph, "second");
 
     CHECK(cancel_events == 1); // First transition auto-cancelled
     CHECK(coord.is_transitioning());
-    CHECK(coord.to_surface() == SurfaceKind::kCanvas);
+    CHECK(coord.to_surface() == SurfaceKind::kGraph);
 }
 
 TEST_CASE("SurfaceTransitionCoordinator emits events", "[phase12][transition]")

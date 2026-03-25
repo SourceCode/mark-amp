@@ -63,8 +63,6 @@ TEST_CASE("OnboardingStateCoordinator category-specific messages", "[v22][onboar
 
     for (auto cat : {OnboardingStateCoordinator::EmptyStateCategory::kExplorer,
                      OnboardingStateCoordinator::EmptyStateCategory::kSearch,
-                     OnboardingStateCoordinator::EmptyStateCategory::kCanvas,
-                     OnboardingStateCoordinator::EmptyStateCategory::kNotebook,
                      OnboardingStateCoordinator::EmptyStateCategory::kTerminal,
                      OnboardingStateCoordinator::EmptyStateCategory::kGeneric})
     {

@@ -209,18 +209,6 @@ void ActivityBar::CreateItems()
                      "Search",
                      "activity-search",
                      false});
-    model_.add_item({core::events::ActivityBarItemId::kNotebooks,
-                     "Notebooks",
-                     "",
-                     "Notebooks",
-                     "activity-notebooks",
-                     false});
-    model_.add_item({core::events::ActivityBarItemId::kCanvas,
-                     "Canvas",
-                     "",
-                     "Canvas",
-                     "activity-canvas",
-                     false});
     model_.add_item({core::events::ActivityBarItemId::kGraph,
                      "Knowledge Graph",
                      "",
@@ -233,16 +221,10 @@ void ActivityBar::CreateItems()
                      "AI Assistant",
                      "activity-ai",
                      false});
-    model_.add_item({core::events::ActivityBarItemId::kFlashcards,
-                     "Flashcards",
-                     "",
-                     "Flashcards",
-                     "activity-flashcards",
-                     false});
+
     model_.add_item(
         {core::events::ActivityBarItemId::kGit, "Git", "", "Git", "activity-git", false});
-    model_.add_item(
-        {core::events::ActivityBarItemId::kTasks, "Tasks", "", "Tasks", "activity-tasks", false});
+
     model_.add_item({core::events::ActivityBarItemId::kDatabase,
                      "Database",
                      "",

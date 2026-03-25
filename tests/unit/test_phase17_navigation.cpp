@@ -291,9 +291,8 @@ TEST_CASE("DeepLinkService: parse_uri with block ref")
 
 TEST_CASE("DeepLinkService: parse_uri with query params")
 {
-    auto parsed = DeepLinkService::parse_uri("markamp://editor/doc.md?line=42&obj=node-1");
+    auto parsed = DeepLinkService::parse_uri("markamp://editor/doc.md?line=42");
     REQUIRE(parsed.line == 42);
-    REQUIRE(parsed.object_id == "node-1");
 }
 
 TEST_CASE("DeepLinkService: parse_uri rejects invalid scheme")
@@ -393,10 +392,10 @@ TEST_CASE("NavigationCommandProvider: execute returns true when enabled")
 TEST_CASE("NavigationAccessibility: announce_navigation")
 {
     auto announcement = NavigationAccessibility::announce_navigation(
-        SurfaceKind::kEditor, "notes/daily.md", SurfaceKind::kCanvas, "canvas/board.canvas");
+        SurfaceKind::kEditor, "notes/daily.md", SurfaceKind::kGraph, "graph/view.md");
 
     REQUIRE_THAT(announcement, Catch::Matchers::ContainsSubstring("Editor"));
-    REQUIRE_THAT(announcement, Catch::Matchers::ContainsSubstring("Canvas"));
+    REQUIRE_THAT(announcement, Catch::Matchers::ContainsSubstring("Graph"));
 }
 
 TEST_CASE("NavigationAccessibility: announce_back_forward")
@@ -432,18 +431,16 @@ TEST_CASE("CrossSurfaceRouter: breadcrumb generated via route")
     auto name = SurfaceLinkRouter::surface_name(SurfaceKind::kEditor);
     REQUIRE(std::string(name).find("Editor") != std::string::npos);
 
-    auto canvas_name = SurfaceLinkRouter::surface_name(SurfaceKind::kCanvas);
-    REQUIRE(std::string(canvas_name).find("Canvas") != std::string::npos);
+    auto graph_name = SurfaceLinkRouter::surface_name(SurfaceKind::kGraph);
+    REQUIRE(std::string(graph_name).find("Graph") != std::string::npos);
 }
 
 TEST_CASE("CrossSurfaceRouter: routing table coverage")
 {
-    // Verify all 5 SurfaceKind values exist
+    // Verify all 3 SurfaceKind values exist
     REQUIRE(static_cast<int>(SurfaceKind::kEditor) >= 0);
     REQUIRE(static_cast<int>(SurfaceKind::kPreview) >= 0);
-    REQUIRE(static_cast<int>(SurfaceKind::kCanvas) >= 0);
     REQUIRE(static_cast<int>(SurfaceKind::kGraph) >= 0);
-    REQUIRE(static_cast<int>(SurfaceKind::kNotebook) >= 0);
 }
 
 // ============================================================================

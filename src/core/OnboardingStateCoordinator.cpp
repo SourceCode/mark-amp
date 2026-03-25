@@ -12,10 +12,6 @@ auto OnboardingStateCoordinator::empty_message_for_category(EmptyStateCategory c
             return "No folder is open. Open a folder to get started.";
         case EmptyStateCategory::kSearch:
             return "Type to search across your workspace.";
-        case EmptyStateCategory::kCanvas:
-            return "This board is empty. Use the tools to start creating.";
-        case EmptyStateCategory::kNotebook:
-            return "Add a cell to begin writing.";
         case EmptyStateCategory::kTerminal:
             return "No terminal is open. Create a new terminal.";
         case EmptyStateCategory::kGeneric:

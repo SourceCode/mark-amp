@@ -1,5 +1,33 @@
 # MarkAmp Release History
 
+## v2.32.0 — 2026-03-24
+
+### Highlights
+
+**V29 Editor-Only Architecture:** Completed full removal of Canvas and Notebook subsystems, transitioning MarkAmp to an editor-only architecture. Purged 119K lines of dead code across 819 files. All 660 tests pass (100%).
+
+### Removed
+
+- **Canvas subsystem** — Removed all 98 canvas headers, board system, tools, collaboration, spatial indexing
+- **Notebook subsystem** — Removed notebook-related artifact kinds and creation methods
+- **Canvas built-in plugins** — Removed `canvas-collab`, `canvas-apps`, `kanban`, `mind-map`, `diagram-library`
+- **Dead enum variants** — Purged `kCanvas`, `kNotebook`, `kWorkspace`, `kSession`, `kPreview` from `ArtifactKind`, `ProfileType`, `HighlightSurface`, `ActionSurfaceKind`, `Subsystem`, `IconComponentFamily`, `IconSurface`, `SurfaceKind`, `LinkAnchor`, `NavigationEntry`, `CoreJourney`
+- **87 dead test files** — Deleted canvas tests, orphaned-header tests, related fuzz/benchmark files
+- **Memory subsystem** — Removed Canvas memory budget (200MB); total budget reduced 500MB → 300MB
+- **Config profile** — Removed "Notebook" profile from `ConfigProfileManager`
+
+### Changed
+
+- **`ArtifactCreationService`** — Removed `create_canvas()` and `create_notebook()` methods; all artifacts now use `create_text_file()`
+- **`MemoryBudgetEnforcer`** — kGeneral budget adjusted from 200MB to 100MB
+- **`tests/CMakeLists.txt`** — 622 lines removed (6712 → 6090), 660 test targets registered
+
+### Stats
+
+- Build: 660 test targets, 0 errors
+- Tests: 660/660 passing (100%)
+- Removed: ~119,000 lines across 819 files
+
 ## v2.31.86 — 2026-03-22
 
 ### Highlights

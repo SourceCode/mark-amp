@@ -51,7 +51,6 @@ enum class FxSurfaceTarget : uint8_t
     kStatusBar,   ///< Status bar area
     kEditorText,  ///< Editor text content
     kPreviewText, ///< Preview panel text
-    kCanvasText,  ///< Canvas label text
     kOverlays,    ///< Tooltips, popups, overlays
     kAll,         ///< Applied to all surfaces
 };

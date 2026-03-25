@@ -23,7 +23,6 @@ enum class ProfileType : uint8_t
 {
     kWriting,
     kCoding,
-    kCanvas,
     kCustom,
 };
 

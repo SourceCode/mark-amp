@@ -1,9 +1,9 @@
 /// @file ArtifactRegistry.h
-/// @brief V20 P01-T01: Unified artifact registry and unsaved artifact model.
+/// @brief Unified artifact registry and unsaved artifact model.
 ///
 /// Introduces the canonical artifact identity layer used by all creation,
-/// lifecycle, persistence, and shell-integration code in V20. Every file,
-/// notebook, and canvas is represented by an ArtifactRecord in the registry.
+/// lifecycle, persistence, and shell-integration code. Every file
+/// is represented by an ArtifactRecord in the registry.
 #pragma once
 
 #include "EventBus.h"
@@ -21,12 +21,10 @@ namespace markamp::core
 // Core enumerations
 // ============================================================================
 
-/// Discriminates the three first-class artifact families.
+/// Discriminates first-class artifact families.
 enum class ArtifactKind
 {
-    kTextFile,
-    kNotebook,
-    kCanvas
+    kTextFile
 };
 
 /// Lifecycle state machine for an artifact.
@@ -95,16 +93,6 @@ struct ArtifactRecord
     [[nodiscard]] auto is_text_file() const noexcept -> bool
     {
         return kind == ArtifactKind::kTextFile;
-    }
-
-    [[nodiscard]] auto is_notebook() const noexcept -> bool
-    {
-        return kind == ArtifactKind::kNotebook;
-    }
-
-    [[nodiscard]] auto is_canvas() const noexcept -> bool
-    {
-        return kind == ArtifactKind::kCanvas;
     }
 };
 

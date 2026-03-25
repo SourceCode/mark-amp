@@ -42,34 +42,6 @@ TEST_CASE("ArtifactRegistry: register text file", "[v20][artifact-registry]")
     REQUIRE(registry.count() == 1);
 }
 
-TEST_CASE("ArtifactRegistry: register notebook", "[v20][artifact-registry]")
-{
-    EventBus bus;
-    ArtifactRegistry registry(bus);
-
-    ArtifactRecord record;
-    record.kind = ArtifactKind::kNotebook;
-    record.display_name = "analysis.markamp-nb";
-
-    auto artifact_id = registry.register_artifact(record);
-    REQUIRE_FALSE(artifact_id.empty());
-    REQUIRE(registry.count_by_kind(ArtifactKind::kNotebook) == 1);
-}
-
-TEST_CASE("ArtifactRegistry: register canvas", "[v20][artifact-registry]")
-{
-    EventBus bus;
-    ArtifactRegistry registry(bus);
-
-    ArtifactRecord record;
-    record.kind = ArtifactKind::kCanvas;
-    record.display_name = "whiteboard.markamp-canvas";
-
-    auto artifact_id = registry.register_artifact(record);
-    REQUIRE_FALSE(artifact_id.empty());
-    REQUIRE(registry.count_by_kind(ArtifactKind::kCanvas) == 1);
-}
-
 TEST_CASE("ArtifactRegistry: register multiple artifacts", "[v20][artifact-registry]")
 {
     EventBus bus;
@@ -80,21 +52,14 @@ TEST_CASE("ArtifactRegistry: register multiple artifacts", "[v20][artifact-regis
     r1.display_name = "file1.md";
 
     ArtifactRecord r2;
-    r2.kind = ArtifactKind::kNotebook;
-    r2.display_name = "notebook1.markamp-nb";
-
-    ArtifactRecord r3;
-    r3.kind = ArtifactKind::kCanvas;
-    r3.display_name = "board1.markamp-canvas";
+    r2.kind = ArtifactKind::kTextFile;
+    r2.display_name = "workspace1";
 
     registry.register_artifact(r1);
     registry.register_artifact(r2);
-    registry.register_artifact(r3);
 
-    REQUIRE(registry.count() == 3);
-    REQUIRE(registry.count_by_kind(ArtifactKind::kTextFile) == 1);
-    REQUIRE(registry.count_by_kind(ArtifactKind::kNotebook) == 1);
-    REQUIRE(registry.count_by_kind(ArtifactKind::kCanvas) == 1);
+    REQUIRE(registry.count() == 2);
+    REQUIRE(registry.count_by_kind(ArtifactKind::kTextFile) == 2);
 }
 
 // ============================================================================
@@ -367,7 +332,7 @@ TEST_CASE("ArtifactRegistry: artifacts_by_kind", "[v20][artifact-registry]")
     ArtifactRecord r1;
     r1.kind = ArtifactKind::kTextFile;
     ArtifactRecord r2;
-    r2.kind = ArtifactKind::kNotebook;
+    r2.kind = ArtifactKind::kTextFile;
     ArtifactRecord r3;
     r3.kind = ArtifactKind::kTextFile;
 
@@ -375,9 +340,7 @@ TEST_CASE("ArtifactRegistry: artifacts_by_kind", "[v20][artifact-registry]")
     registry.register_artifact(r2);
     registry.register_artifact(r3);
 
-    REQUIRE(registry.artifacts_by_kind(ArtifactKind::kTextFile).size() == 2);
-    REQUIRE(registry.artifacts_by_kind(ArtifactKind::kNotebook).size() == 1);
-    REQUIRE(registry.artifacts_by_kind(ArtifactKind::kCanvas).empty());
+    REQUIRE(registry.artifacts_by_kind(ArtifactKind::kTextFile).size() == 3);
 }
 
 TEST_CASE("ArtifactRegistry: artifacts_by_state", "[v20][artifact-registry]")
@@ -418,23 +381,6 @@ TEST_CASE("ArtifactRegistry: set active artifact", "[v20][artifact-registry]")
 // ============================================================================
 // Counting
 // ============================================================================
-
-TEST_CASE("ArtifactRegistry: count_by_kind", "[v20][artifact-registry]")
-{
-    EventBus bus;
-    ArtifactRegistry registry(bus);
-
-    ArtifactRecord r1;
-    r1.kind = ArtifactKind::kCanvas;
-    ArtifactRecord r2;
-    r2.kind = ArtifactKind::kCanvas;
-
-    registry.register_artifact(r1);
-    registry.register_artifact(r2);
-
-    REQUIRE(registry.count_by_kind(ArtifactKind::kCanvas) == 2);
-    REQUIRE(registry.count_by_kind(ArtifactKind::kTextFile) == 0);
-}
 
 TEST_CASE("ArtifactRegistry: count_by_state", "[v20][artifact-registry]")
 {
@@ -498,8 +444,6 @@ TEST_CASE("ArtifactRecord: convenience queries", "[v20][artifact-registry]")
     REQUIRE_FALSE(record.is_dirty());
     REQUIRE_FALSE(record.is_saved());
     REQUIRE(record.is_text_file());
-    REQUIRE_FALSE(record.is_notebook());
-    REQUIRE_FALSE(record.is_canvas());
     REQUIRE_FALSE(record.has_path());
 
     record.file_path = "/some/path.md";

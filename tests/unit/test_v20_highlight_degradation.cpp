@@ -81,17 +81,17 @@ TEST_CASE("HighlightDegradation: should_share_tokens", "[v20][highlight]")
     HighlightDegradationService service;
 
     REQUIRE(service.should_share_tokens(HighlightSurface::kEditor));
-    REQUIRE(service.should_share_tokens(HighlightSurface::kNotebookCell));
+    REQUIRE(service.should_share_tokens(HighlightSurface::kEditor));
     REQUIRE(service.should_share_tokens(HighlightSurface::kMarkdownFence));
     REQUIRE(service.should_share_tokens(HighlightSurface::kDiffPanel));
-    REQUIRE(service.should_share_tokens(HighlightSurface::kCanvasEmbed));
+    REQUIRE(service.should_share_tokens(HighlightSurface::kEditor));
 }
 
 TEST_CASE("HighlightDegradation: shared_surfaces", "[v20][highlight]")
 {
     HighlightDegradationService service;
     auto surfaces = service.shared_surfaces();
-    REQUIRE(surfaces.size() == 5);
+    REQUIRE(surfaces.size() == 3);
 }
 
 TEST_CASE("HighlightState: coverage_percent", "[v20][highlight]")

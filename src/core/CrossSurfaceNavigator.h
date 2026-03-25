@@ -1,7 +1,7 @@
 /// @file CrossSurfaceNavigator.h
 /// @brief P07-T05: Cross-surface navigation orchestrator.
 ///
-/// Orchestrates navigation among editor, graph, and canvas surfaces.
+/// Orchestrates navigation among editor and graph surfaces.
 /// Resolves target, switches mode, updates history and focus.
 #pragma once
 
@@ -15,7 +15,6 @@ class EventBus;
 enum class NavigationSurface
 {
     kEditor,
-    kCanvas,
     kGraph,
 };
 
@@ -28,7 +27,7 @@ struct NavigationTarget
     std::string context;     ///< Optional context (e.g., section heading)
 };
 
-/// Orchestrates navigation among editor, graph, and canvas.
+/// Orchestrates navigation among editor and graph.
 class CrossSurfaceNavigator
 {
 public:
@@ -39,9 +38,6 @@ public:
 
     /// Navigate to a file in the editor.
     void navigate_to_file(const std::string& path, int line = 0);
-
-    /// Navigate to a board in the canvas.
-    void navigate_to_board(const std::string& board_id);
 
     /// Navigate to a node in the graph.
     void navigate_to_graph_node(const std::string& node_id);

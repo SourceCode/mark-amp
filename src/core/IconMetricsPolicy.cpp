@@ -29,10 +29,6 @@ auto IconMetricsPolicy::metrics_for(IconComponentFamily family) const -> IconMet
     case IconComponentFamily::kDialog:
         return {24, 8, 1.0, 0.4, 0.8};
     // V27 surface-specific families
-    case IconComponentFamily::kNotebook:
-        return {16, 4, 1.0, 0.4, 0.8};
-    case IconComponentFamily::kCanvas:
-        return {18, 6, 1.0, 0.4, 0.8};
     case IconComponentFamily::kSettings:
         return {16, 4, 1.0, 0.4, 0.8};
     case IconComponentFamily::kEmptyState:

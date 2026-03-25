@@ -40,4 +40,13 @@ struct V27IconControlTokens {
     static constexpr int kChipIconSize = 12;      ///< Icon in chip/tag
     static constexpr int kChipCloseSize = 10;     ///< Close button in chip
 };
+struct V27DragFeedbackTokens {
+    static constexpr int kDragShadowOffsetX = 4;
+    static constexpr int kDragShadowOffsetY = 8;
+    static constexpr int kDragGhostOpacityPct = 60;
+    static constexpr int kResizeCursorDelayMs = 50;
+    static constexpr int kDragThresholdPx = 4;
+    static constexpr int kDropTargetHighlightWidth = 2;
+    static constexpr int kDropZoneRadius = 4;
+};
 } // namespace markamp::ui

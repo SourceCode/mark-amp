@@ -3,7 +3,7 @@
 ///
 /// Provides a single authoritative answer to "what is active?" at all times.
 /// Tracks the active artifact, active surface, active selection, and focus
-/// target consistently across editor, notebook, canvas, and shell panels.
+/// target consistently across editor and shell panels.
 #pragma once
 
 #include "ArtifactRegistry.h"
@@ -20,8 +20,6 @@ namespace markamp::core
 enum class ActiveSurfaceKind
 {
     kEditor,
-    kNotebook,
-    kCanvas,
     kExplorer,
     kSearch,
     kOutput,
@@ -51,15 +49,7 @@ struct ActiveContext
         return active_surface == ActiveSurfaceKind::kEditor;
     }
 
-    [[nodiscard]] auto is_canvas() const noexcept -> bool
-    {
-        return active_surface == ActiveSurfaceKind::kCanvas;
-    }
 
-    [[nodiscard]] auto is_notebook() const noexcept -> bool
-    {
-        return active_surface == ActiveSurfaceKind::kNotebook;
-    }
 };
 
 /// Context key for conditional enablement (VS Code-style "when" clauses).

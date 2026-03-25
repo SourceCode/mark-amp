@@ -42,17 +42,13 @@ enum class V27TypographyRole
     kFeedbackTitle,        ///< 12px semibold — feedback/dialog titles
     kFeedbackBody,         ///< 11px — feedback body, toast messages
 
-    // Canvas and creative
-    kCanvasLabel,          ///< 11px — canvas object labels
-    kCanvasMetadata,       ///< 9px — canvas object metadata
-
     // Code and mono
     kCodeInline,           ///< 12px mono — inline code in non-editor contexts
     kCodeSmall,            ///< 10px mono — small code annotations
 };
 
 /// Total V27 typography roles.
-[[nodiscard]] constexpr auto v27_typography_role_count() noexcept -> int { return 16; }
+[[nodiscard]] constexpr auto v27_typography_role_count() noexcept -> int { return 14; }
 
 /// V27 typography specification.
 struct V27TypeSpec
@@ -80,8 +76,6 @@ struct V27TypeSpec
     case V27TypographyRole::kActionShortcut:    return {10, 400, 14, true};
     case V27TypographyRole::kFeedbackTitle:     return {12, 600, 18, false};
     case V27TypographyRole::kFeedbackBody:      return {11, 400, 16, false};
-    case V27TypographyRole::kCanvasLabel:       return {11, 400, 16, false};
-    case V27TypographyRole::kCanvasMetadata:    return {9,  400, 12, false};
     case V27TypographyRole::kCodeInline:        return {12, 400, 18, true};
     case V27TypographyRole::kCodeSmall:         return {10, 400, 14, true};
     }

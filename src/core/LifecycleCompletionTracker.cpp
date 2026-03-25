@@ -89,8 +89,6 @@ auto LifecycleCompletionTracker::gap_report() const -> LifecycleGapReport
             switch (item.artifact_kind)
             {
             case ArtifactKind::kTextFile:  ++report.text_file_gaps; break;
-            case ArtifactKind::kNotebook:  ++report.notebook_gaps; break;
-            case ArtifactKind::kCanvas:    ++report.canvas_gaps; break;
             case ArtifactKind::kWorkspace: ++report.workspace_gaps; break;
             case ArtifactKind::kSession:   ++report.session_gaps; break;
             }
@@ -119,8 +117,6 @@ auto LifecycleCompletionTracker::export_json() const -> std::string
        << "  \"coverage_pct\": " << r.coverage_pct() << ",\n"
        << "  \"gaps_by_kind\": {\n"
        << "    \"text_file\": " << r.text_file_gaps << ",\n"
-       << "    \"notebook\": " << r.notebook_gaps << ",\n"
-       << "    \"canvas\": " << r.canvas_gaps << ",\n"
        << "    \"workspace\": " << r.workspace_gaps << ",\n"
        << "    \"session\": " << r.session_gaps << "\n"
        << "  },\n"
@@ -148,8 +144,6 @@ auto LifecycleCompletionTracker::export_markdown() const -> std::string
        << "**Coverage:** " << r.coverage_pct() << "% (" << r.complete << "/" << r.total_items << ")\n\n"
        << "| Artifact Kind | Gaps |\n|---|---|\n"
        << "| TextFile | " << r.text_file_gaps << " |\n"
-       << "| Notebook | " << r.notebook_gaps << " |\n"
-       << "| Canvas | " << r.canvas_gaps << " |\n"
        << "| Workspace | " << r.workspace_gaps << " |\n"
        << "| Session | " << r.session_gaps << " |\n\n";
 

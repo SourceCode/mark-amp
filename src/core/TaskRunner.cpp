@@ -52,7 +52,16 @@ void TaskRunner::ExecuteTaskConfig(
 {
     const std::string command = task.full_command();
     const std::string working_dir = task.working_directory.empty() ? "." : task.working_directory;
-    const std::string task_type = task_group_name(task.group);
+    auto group_to_string = [](TaskGroup g) -> std::string {
+        switch (g) {
+            case TaskGroup::kBuild: return "build";
+            case TaskGroup::kTest: return "test";
+            case TaskGroup::kDeploy: return "deploy";
+            case TaskGroup::kOther: return "other";
+        }
+        return "other";
+    };
+    const std::string task_type = group_to_string(task.group);
     const std::string task_name = task.label.empty() ? task.name : task.label;
 
     RunCommand(command, working_dir, task_name, task_type, on_complete, nullptr);

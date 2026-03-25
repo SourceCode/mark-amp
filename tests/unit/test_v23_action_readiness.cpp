@@ -17,7 +17,7 @@ TEST_CASE("ActionSurfaceKind — labels", "[v23][p02][label]")
     CHECK(std::string(action_surface_label(ActionSurfaceKind::kToolbar)) == "Toolbar");
     CHECK(std::string(action_surface_label(ActionSurfaceKind::kCommandPalette)) == "CommandPalette");
     CHECK(std::string(action_surface_label(ActionSurfaceKind::kContextMenu)) == "ContextMenu");
-    CHECK(std::string(action_surface_label(ActionSurfaceKind::kCanvasAction)) == "CanvasAction");
+    CHECK(std::string(action_surface_label(ActionSurfaceKind::kPanelAction)) == "PanelAction");
 }
 
 TEST_CASE("ActionBindingStatus — labels", "[v23][p02][label]")
@@ -314,7 +314,7 @@ TEST_CASE("Integration — full action readiness lifecycle", "[v23][p02][integra
 
     ActionReadinessItem gated;
     gated.action_id = "canvas.collaborate";
-    gated.surface = ActionSurfaceKind::kCanvasAction;
+    gated.surface = ActionSurfaceKind::kPanelAction;
     gated.status = ActionBindingStatus::kGated;
     gate.add_action(std::move(gated));
 

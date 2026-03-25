@@ -77,8 +77,7 @@ public:
     static constexpr const char* kMuiDefaultIcon    = "mui-circle-dot";
 
     // ── V27: Additional category icons ───────────────────────────────────
-    static constexpr const char* kCanvasIcon     = "\xF0\x9F\x96\xBC"; // 🖼
-    static constexpr const char* kNotebookIcon   = "\xF0\x9F\x93\x93"; // 📓
+
     static constexpr const char* kThemeIcon      = "\xF0\x9F\x8E\xA8"; // 🎨
     static constexpr const char* kExportIcon     = "\xF0\x9F\x93\xA4"; // 📤
     static constexpr const char* kAIIcon         = "\xE2\x9C\xA8"; // ✨

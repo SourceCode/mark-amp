@@ -56,16 +56,6 @@ void bootstrap_v25_tasks(ExecutionLedger& ledger)
     reg("P07-T02", "P07", "Raise syntax highlighting to release dependability", Subsystem::kVisualSystem, 1);
     reg("P07-T03", "P07", "Normalize empty/loading/error states across surfaces", Subsystem::kVisualSystem, 1);
 
-    // ── Phase 08: Notebook ──
-    reg("P08-T01", "P08", "Finish notebook shell ownership", Subsystem::kNotebook, 0);
-    reg("P08-T02", "P08", "Replace simulated kernel with release-path readiness", Subsystem::kNotebook, 0, {"P08-T01"});
-    reg("P08-T03", "P08", "Persist/restore/validate notebook outputs", Subsystem::kNotebook, 1, {"P08-T01"});
-
-    // ── Phase 09: Canvas ──
-    reg("P09-T01", "P09", "Remove CanvasWorkspacePanel placeholder shell", Subsystem::kCanvas, 0);
-    reg("P09-T02", "P09", "Make canvas persistence and reopen trustworthy", Subsystem::kCanvas, 0, {"P09-T01"});
-    reg("P09-T03", "P09", "Stabilize canvas interaction/selection workflows", Subsystem::kCanvas, 1);
-
     // ── Phase 10: Workspace ──
     reg("P10-T01", "P10", "Harden workspace open/reopen continuity", Subsystem::kWorkspace, 0);
     reg("P10-T02", "P10", "Make explorer/breadcrumbs context-correct", Subsystem::kWorkspace, 1, {"P10-T01"});
@@ -146,10 +136,6 @@ void bootstrap_v25_criteria(SubsystemDoneCriteria& criteria)
     add(Subsystem::kSearch,            "search-indexed",       "Search returns real indexed results");
     add(Subsystem::kEditor,            "editor-diagnostics",   "Diagnostics navigation is trustworthy");
     add(Subsystem::kVisualSystem,      "visual-no-placeholder","No placeholder visuals on release path");
-    add(Subsystem::kNotebook,          "notebook-shell",       "Notebook lifecycle is shell-owned");
-    add(Subsystem::kNotebook,          "notebook-outputs",     "Notebook outputs persist and restore");
-    add(Subsystem::kCanvas,            "canvas-shell",         "Canvas shell is real, not placeholder");
-    add(Subsystem::kCanvas,            "canvas-persist",       "Canvas persistence is trustworthy");
     add(Subsystem::kWorkspace,         "workspace-reopen",     "Workspace reopen is dependable");
     add(Subsystem::kSourceControl,     "sc-real-git",          "No fake Git status/hashes");
     add(Subsystem::kBuildTerminal,     "build-no-dead",        "No dead execution surface controls");

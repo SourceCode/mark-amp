@@ -223,32 +223,6 @@ void ConfigProfileManager::register_builtins()
         };
         profiles_.push_back(std::move(whiteboard));
     }
-
-    // Notebook profile: writing-focused with comfortable typography
-    {
-        ConfigProfile notebook;
-        notebook.name = "Notebook";
-        notebook.description = "Optimized for note-taking with comfortable typography";
-        notebook.profile_id = ProfileId::kNotebook;
-        notebook.overrides = {
-            {"font_size", "15"},
-            {"font_family", "Georgia"},
-            {"word_wrap", "true"},
-            {"word_wrap_column", "72"},
-            {"view_mode", "split"},
-            {"show_line_numbers", "false"},
-            {"show_minimap", "false"},
-            {"highlight_current_line", "true"},
-            {"auto_save", "true"},
-            {"auto_save_interval_seconds", "30"},
-            {"sidebar_visible", "true"},
-            {"editor.line_height", "4"},
-            {"editor.letter_spacing", "0.3"},
-            {"editor.padding_top", "16"},
-            {"editor.padding_bottom", "16"},
-        };
-        profiles_.push_back(std::move(notebook));
-    }
 }
 
 } // namespace markamp::core

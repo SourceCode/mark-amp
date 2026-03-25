@@ -63,8 +63,8 @@ auto V27IconAuditReport::surfaces_with_legacy() const -> std::vector<IconSurface
         IconSurface::kBreadcrumb, IconSurface::kCommandPalette, IconSurface::kContextMenu,
         IconSurface::kFileTree, IconSurface::kPanelHeader, IconSurface::kStatusBar,
         IconSurface::kSettingsCategory, IconSurface::kSettingsRow, IconSurface::kDialog,
-        IconSurface::kNotification, IconSurface::kEmptyState, IconSurface::kNotebook,
-        IconSurface::kCanvas, IconSurface::kThemeGallery, IconSurface::kStartup,
+        IconSurface::kNotification, IconSurface::kEmptyState,
+        IconSurface::kThemeGallery, IconSurface::kStartup,
     };
     for (auto surf : all_surfaces)
     {

@@ -17,7 +17,6 @@ namespace markamp::core
 enum class MemorySubsystem : uint8_t
 {
     kEditor = 0,
-    kCanvas,
     kSearchIndex,
     kExtensions,
     kGeneral,
@@ -30,7 +29,6 @@ enum class MemorySubsystem : uint8_t
 {
     constexpr std::array<std::string_view, static_cast<size_t>(MemorySubsystem::kCount)> kNames = {{
         "Editor",
-        "Canvas",
         "SearchIndex",
         "Extensions",
         "General",
@@ -75,14 +73,13 @@ struct MemorySnapshot
 ///
 /// Tracks allocations per subsystem, warns at 80% usage, critical at 95%.
 /// Default budgets per PRD Task 12:
-///   Editor: 50MB, Canvas: 200MB, SearchIndex: 100MB,
-///   Extensions: 50MB, General: 100MB  (Total: 500MB)
+///   Editor: 50MB, SearchIndex: 100MB,
+///   Extensions: 50MB, General: 100MB  (Total: 300MB)
 class MemoryBudgetEnforcer
 {
 public:
     // Default budgets in bytes (per PRD)
     static constexpr size_t kEditorBudget = 50ULL * 1024 * 1024;       // 50 MB
-    static constexpr size_t kCanvasBudget = 200ULL * 1024 * 1024;      // 200 MB
     static constexpr size_t kSearchIndexBudget = 100ULL * 1024 * 1024; // 100 MB
     static constexpr size_t kExtensionsBudget = 50ULL * 1024 * 1024;   // 50 MB
     static constexpr size_t kGeneralBudget = 100ULL * 1024 * 1024;     // 100 MB

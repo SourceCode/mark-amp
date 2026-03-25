@@ -175,9 +175,6 @@ auto NavigationService::navigate_via_link(int pane_id, const core::SurfaceLink& 
         entry.from_surface =
             std::string(core::SurfaceLinkRouter::surface_name(link.from.surface_kind));
         entry.to_surface = std::string(core::SurfaceLinkRouter::surface_name(link.to.surface_kind));
-        entry.board_id = link.to.board_id;
-        entry.object_id = link.to.object_id;
-        entry.cell_id = link.to.cell_id;
         entry.cursor_line = link.to.line;
 
         histories_[pane_id].push(entry);

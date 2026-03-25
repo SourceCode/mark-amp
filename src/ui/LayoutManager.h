@@ -68,7 +68,7 @@ class SecondarySidebarTabStrip;
 class SplitView;
 class StatusBarPanel;
 class TabBar;
-class TaskListPanel;
+// V29: TaskListPanel removed (task feature retired).
 class TerminalPanel;
 class PanelContainer;
 class PreviewPanel;
@@ -242,7 +242,7 @@ private:
     TerminalPanel* terminal_panel_{nullptr};
     DebugConsolePanel* debug_console_panel_{nullptr};
     BuildPanel* build_panel_{nullptr};
-    TaskListPanel* task_list_panel_{nullptr};
+    // V29: task_list_panel_ removed (task feature retired).
     TreeViewHost* tree_view_host_{nullptr};
     WebviewHostPanel* webview_host_panel_{nullptr};
     bool bottom_panel_visible_{false};

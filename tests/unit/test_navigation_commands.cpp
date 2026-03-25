@@ -52,7 +52,7 @@ TEST_CASE("NavigationCommandSet - scope filtering", "[navigation][commands]")
 {
     auto global_cmds = NavigationCommandSet::commands_for_scope(NavigationScope::kGlobal);
     auto editor_cmds = NavigationCommandSet::commands_for_scope(NavigationScope::kEditor);
-    auto canvas_cmds = NavigationCommandSet::commands_for_scope(NavigationScope::kCanvas);
+    auto canvas_cmds = NavigationCommandSet::commands_for_scope(NavigationScope::kEditor);
     auto pane_cmds = NavigationCommandSet::commands_for_scope(NavigationScope::kPane);
 
     CHECK_FALSE(global_cmds.empty());
@@ -91,7 +91,7 @@ TEST_CASE("NavigationCommandSet - scope labels", "[navigation][commands]")
 TEST_CASE("NavigationCommandSet - available scopes", "[navigation][commands]")
 {
     auto scopes = NavigationCommandSet::available_scopes();
-    CHECK(scopes.size() == 4);
+    CHECK(scopes.size() == 3);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -215,16 +215,15 @@ TEST_CASE("JumpToController - clear targets", "[navigation][jump]")
 TEST_CASE("JumpToController - available kinds", "[navigation][jump]")
 {
     auto kinds = JumpToController::available_kinds();
-    CHECK(kinds.size() == 6);
+    CHECK(kinds.size() == 5);
 }
 
 TEST_CASE("JumpFilter - active count", "[navigation][jump][filter]")
 {
     JumpFilter filter;
-    CHECK(filter.active_count() == 5); // All enabled by default
+    CHECK(filter.active_count() == 4); // All enabled by default
 
     filter.include_symbols = false;
-    filter.include_canvas_nodes = false;
     CHECK(filter.active_count() == 3);
 }
 

@@ -102,14 +102,4 @@ TEST_CASE("ExtensionSandbox: overwrite permissions replaces previous", "[extensi
     REQUIRE(sandbox.has_permission("ext.a", ExtensionPermission::kNetwork));
 }
 
-TEST_CASE("ExtensionSandbox: canvas permissions work", "[extension_sandbox][edge]")
-{
-    ExtensionSandbox sandbox;
-    sandbox.set_permissions("canvas-ext",
-                            {ExtensionPermission::kCanvasRead,
-                             ExtensionPermission::kCanvasWrite,
-                             ExtensionPermission::kCanvasSelection});
-    REQUIRE(sandbox.has_permission("canvas-ext", ExtensionPermission::kCanvasRead));
-    REQUIRE(sandbox.has_permission("canvas-ext", ExtensionPermission::kCanvasWrite));
-    REQUIRE_FALSE(sandbox.has_permission("canvas-ext", ExtensionPermission::kCanvasComments));
-}
+

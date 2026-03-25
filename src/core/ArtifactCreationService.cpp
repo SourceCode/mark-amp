@@ -43,13 +43,6 @@ auto ArtifactCreationService::create(const ArtifactCreationRequest& request)
         record.display_name = naming.generate_name(request.kind);
     }
 
-    // Set target directory if provided (but don't persist yet)
-    if (request.target_directory.has_value())
-    {
-        // Record the intended directory for future first-save resolution
-        // The artifact remains unsaved until an explicit save
-    }
-
     // Set default language if not specified
     if (record.language_id.empty())
     {
@@ -77,12 +70,6 @@ auto ArtifactCreationService::create(const ArtifactCreationRequest& request)
         case ArtifactKind::kTextFile:
             ++text_file_count_;
             break;
-        case ArtifactKind::kNotebook:
-            ++notebook_count_;
-            break;
-        case ArtifactKind::kCanvas:
-            ++canvas_count_;
-            break;
     }
 
     result.success = true;
@@ -106,38 +93,12 @@ auto ArtifactCreationService::create_text_file(const std::string& name,
     return create(req);
 }
 
-auto ArtifactCreationService::create_notebook(const std::string& name, const std::string& source)
-    -> ArtifactCreationResult
-{
-    ArtifactCreationRequest req;
-    req.kind = ArtifactKind::kNotebook;
-    req.display_name = name;
-    req.language_id = "notebook";
-    req.source = source;
-    return create(req);
-}
-
-auto ArtifactCreationService::create_canvas(const std::string& name, const std::string& source)
-    -> ArtifactCreationResult
-{
-    ArtifactCreationRequest req;
-    req.kind = ArtifactKind::kCanvas;
-    req.display_name = name;
-    req.language_id = "canvas";
-    req.source = source;
-    return create(req);
-}
-
 auto ArtifactCreationService::creation_count_by_kind(ArtifactKind kind) const noexcept -> int
 {
     switch (kind)
     {
         case ArtifactKind::kTextFile:
             return text_file_count_;
-        case ArtifactKind::kNotebook:
-            return notebook_count_;
-        case ArtifactKind::kCanvas:
-            return canvas_count_;
     }
     return 0;
 }

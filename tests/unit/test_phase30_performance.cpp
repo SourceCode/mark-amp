@@ -214,7 +214,7 @@ TEST_CASE("MemoryBudgetEnforcer construction", "[phase30][memory]")
     SECTION("default budgets match PRD")
     {
         REQUIRE(enforcer.budget(MemorySubsystem::kEditor) == 50ULL * 1024 * 1024);
-        REQUIRE(enforcer.budget(MemorySubsystem::kCanvas) == 200ULL * 1024 * 1024);
+        REQUIRE(enforcer.budget(MemorySubsystem::kGeneral) == 100ULL * 1024 * 1024);
         REQUIRE(enforcer.budget(MemorySubsystem::kSearchIndex) == 100ULL * 1024 * 1024);
         REQUIRE(enforcer.budget(MemorySubsystem::kExtensions) == 50ULL * 1024 * 1024);
         REQUIRE(enforcer.budget(MemorySubsystem::kGeneral) == 100ULL * 1024 * 1024);
@@ -222,7 +222,7 @@ TEST_CASE("MemoryBudgetEnforcer construction", "[phase30][memory]")
 
     SECTION("total budget is 500MB")
     {
-        REQUIRE(enforcer.total_budget() == 500ULL * 1024 * 1024);
+        REQUIRE(enforcer.total_budget() == 300ULL * 1024 * 1024);
     }
 
     SECTION("initial usage is zero")
@@ -261,9 +261,9 @@ TEST_CASE("MemoryBudgetEnforcer allocation tracking", "[phase30][memory]")
     SECTION("subsystems are independent")
     {
         enforcer.allocate(MemorySubsystem::kEditor, 1000);
-        enforcer.allocate(MemorySubsystem::kCanvas, 2000);
+        enforcer.allocate(MemorySubsystem::kGeneral, 2000);
         REQUIRE(enforcer.usage(MemorySubsystem::kEditor) == 1000);
-        REQUIRE(enforcer.usage(MemorySubsystem::kCanvas) == 2000);
+        REQUIRE(enforcer.usage(MemorySubsystem::kGeneral) == 2000);
         REQUIRE(enforcer.total_usage() == 3000);
     }
 }
@@ -310,7 +310,7 @@ TEST_CASE("MemoryBudgetEnforcer snapshot", "[phase30][memory]")
 {
     MemoryBudgetEnforcer enforcer;
     enforcer.allocate(MemorySubsystem::kEditor, 1024);
-    enforcer.allocate(MemorySubsystem::kCanvas, 2048);
+    enforcer.allocate(MemorySubsystem::kGeneral, 2048);
 
     auto snap = enforcer.snapshot();
     REQUIRE(snap.total_usage == 3072);
@@ -335,21 +335,20 @@ TEST_CASE("MemoryBudgetEnforcer reset", "[phase30][memory]")
 {
     MemoryBudgetEnforcer enforcer;
     enforcer.allocate(MemorySubsystem::kEditor, 1024);
-    enforcer.allocate(MemorySubsystem::kCanvas, 2048);
+    enforcer.allocate(MemorySubsystem::kGeneral, 2048);
 
     enforcer.reset();
     REQUIRE(enforcer.total_usage() == 0);
     REQUIRE(enforcer.usage(MemorySubsystem::kEditor) == 0);
-    REQUIRE(enforcer.usage(MemorySubsystem::kCanvas) == 0);
+    REQUIRE(enforcer.usage(MemorySubsystem::kGeneral) == 0);
 }
 
 TEST_CASE("MemoryBudgetEnforcer subsystem names", "[phase30][memory]")
 {
     REQUIRE(subsystem_name(MemorySubsystem::kEditor) == "Editor");
-    REQUIRE(subsystem_name(MemorySubsystem::kCanvas) == "Canvas");
+    REQUIRE(subsystem_name(MemorySubsystem::kGeneral) == "General");
     REQUIRE(subsystem_name(MemorySubsystem::kSearchIndex) == "SearchIndex");
     REQUIRE(subsystem_name(MemorySubsystem::kExtensions) == "Extensions");
-    REQUIRE(subsystem_name(MemorySubsystem::kGeneral) == "General");
 }
 
 // ============================================================================

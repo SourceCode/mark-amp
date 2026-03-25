@@ -108,7 +108,7 @@ TEST_CASE("CommandModel: list by category", "[v20][command-model]")
     reg("file.new", CommandCategory::kFile);
     reg("file.save", CommandCategory::kFile);
     reg("edit.undo", CommandCategory::kEdit);
-    reg("canvas.draw", CommandCategory::kCanvas);
+    reg("view.toggle", CommandCategory::kView);
 
     auto file_cmds = model.commands_by_category(CommandCategory::kFile);
     REQUIRE(file_cmds.size() == 2);

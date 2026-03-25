@@ -32,7 +32,6 @@ enum class TargetType : uint8_t
     kEmptyArea,
     kTab,
     kEditorSelection,
-    kCanvasObject,
     kPanelItem,
     kTerminalLine,
     kSearchResult,
@@ -49,7 +48,6 @@ enum class TargetType : uint8_t
     case TargetType::kEmptyArea: return "EmptyArea";
     case TargetType::kTab: return "Tab";
     case TargetType::kEditorSelection: return "EditorSelection";
-    case TargetType::kCanvasObject: return "CanvasObject";
     case TargetType::kPanelItem: return "PanelItem";
     case TargetType::kTerminalLine: return "TerminalLine";
     case TargetType::kSearchResult: return "SearchResult";

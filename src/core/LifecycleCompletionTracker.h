@@ -1,9 +1,9 @@
 /// @file LifecycleCompletionTracker.h
 /// @brief V23 Phase 03 — Artifact, workspace, and session lifecycle completion tracker.
 ///
-/// Tracks lifecycle coverage for text files, notebooks, canvases, workspace
-/// membership, and session identity. Verifies each artifact type has authoritative
-/// ownership through creation → open → rename → save → restore → close.
+/// Tracks lifecycle coverage for text files, workspace membership, and session
+/// identity. Verifies each artifact type has authoritative ownership through
+/// creation → open → rename → save → restore → close.
 #pragma once
 
 #include <cstdint>
@@ -20,8 +20,6 @@ namespace markamp::core
 enum class ArtifactKind : uint8_t
 {
     kTextFile,
-    kNotebook,
-    kCanvas,
     kWorkspace,
     kSession,
 };
@@ -32,8 +30,6 @@ enum class ArtifactKind : uint8_t
     switch (kind)
     {
     case ArtifactKind::kTextFile:  return "TextFile";
-    case ArtifactKind::kNotebook: return "Notebook";
-    case ArtifactKind::kCanvas:   return "Canvas";
     case ArtifactKind::kWorkspace: return "Workspace";
     case ArtifactKind::kSession:  return "Session";
     }
@@ -103,8 +99,6 @@ struct LifecycleGapReport
     std::size_t complete{0};
     std::size_t incomplete{0};
     std::size_t text_file_gaps{0};
-    std::size_t notebook_gaps{0};
-    std::size_t canvas_gaps{0};
     std::size_t workspace_gaps{0};
     std::size_t session_gaps{0};
 

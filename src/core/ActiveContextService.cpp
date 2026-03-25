@@ -16,10 +16,7 @@ void ActiveContextService::set_context(const ActiveContext& context)
     // Auto-populate context keys from active state
     set_context_key("activeArtifactId", context.active_artifact.value);
     set_context_key("activeSurface",
-                    context.is_editor()   ? "editor"
-                    : context.is_canvas() ? "canvas"
-                    : context.is_notebook() ? "notebook"
-                                            : "none");
+                    context.is_editor() ? "editor" : "none");
     if (context.active_language.has_value())
     {
         set_context_key("activeLanguage", *context.active_language);

@@ -37,4 +37,26 @@ struct V27StructuredEdgeTokens {
     static constexpr int kErrorIconSize = 16;
     static constexpr int kErrorBannerHeight = 32;
 };
+struct V27GalleryCardTokens {
+    static constexpr int kCardWidth = 200;
+    static constexpr int kCardHeight = 240;
+    static constexpr int kPreviewRatioPct = 60;
+    static constexpr int kCardRadius = 6;
+    static constexpr int kCardGap = 12;
+    static constexpr int kMetadataGap = 8;
+    static constexpr int kMetadataPaddingH = 8;
+    static constexpr int kBadgeOverlapOffset = 4;
+};
+struct V27KanbanTokens {
+    static constexpr int kLaneMinWidth = 240;
+    static constexpr int kLaneMaxWidth = 360;
+    static constexpr int kLaneHeaderHeight = 36;
+    static constexpr int kCardHeight = 80;
+    static constexpr int kCardRadius = 6;
+    static constexpr int kCardGap = 8;
+    static constexpr int kCardPaddingH = 12;
+    static constexpr int kCardPaddingV = 8;
+    static constexpr int kLaneGap = 12;
+    static constexpr int kAddCardHeight = 28;
+};
 } // namespace markamp::ui

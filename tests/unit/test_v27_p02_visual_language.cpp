@@ -53,7 +53,7 @@ TEST_CASE("V27 P02: Interaction visuals for states", "[v27][p02]") {
     REQUIRE(disabled.opacity < 1.0);
 }
 TEST_CASE("V27 P02: Typography role count", "[v27][p02]") {
-    REQUIRE(v27_typography_role_count() == 16);
+    REQUIRE(v27_typography_role_count() == 14);
 }
 TEST_CASE("V27 P02: Typography mono detection", "[v27][p02]") {
     REQUIRE(v27_type_is_mono(V27TypographyRole::kCodeInline));

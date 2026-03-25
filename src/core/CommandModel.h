@@ -24,8 +24,6 @@ enum class CommandCategory
     kFile,       ///< File operations (new, open, save, close)
     kEdit,       ///< Edit operations (undo, redo, cut, copy, paste)
     kView,       ///< View operations (toggle panels, zoom)
-    kCanvas,     ///< Canvas-specific operations
-    kNotebook,   ///< Notebook-specific operations
     kNavigation, ///< Navigation operations
     kHelp        ///< Help operations
 };

@@ -39,4 +39,15 @@ struct V27NotificationTokens {
     static constexpr int kToastDurationMs = 5000;
     static constexpr int kToastShadowBlur = 8;
 };
+struct V27PopoverTokens {
+    static constexpr int kMinWidth = 200;
+    static constexpr int kMaxWidth = 400;
+    static constexpr int kPaddingH = 12;
+    static constexpr int kPaddingV = 8;
+    static constexpr int kRadius = 6;
+    static constexpr int kAnchorGap = 4;
+    static constexpr int kSectionGap = 8;
+    static constexpr int kRowHeight = 28;
+    static constexpr int kShadowBlur = 8;
+};
 } // namespace markamp::ui

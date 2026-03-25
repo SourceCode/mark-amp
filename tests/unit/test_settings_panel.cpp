@@ -112,7 +112,7 @@ TEST_CASE("ConfigProfileManager registers and queries profiles", "[settings][pro
     core::ConfigProfileManager manager;
 
     // Built-in profiles are registered in constructor
-    REQUIRE(manager.profile_count() >= 4);
+    REQUIRE(manager.profile_count() >= 3);
 
     // Profile names are accessible
     auto names = manager.profile_names();

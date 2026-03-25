@@ -27,8 +27,6 @@ enum class ActionCategory
     kTerminal,
     kDebug,
     kHelp,
-    kCanvas,
-    kNotebook,
     kSourceControl,
     kExtension,
     kCustom
@@ -46,8 +44,6 @@ enum class ActionCategory
         case ActionCategory::kTerminal:      return "Terminal";
         case ActionCategory::kDebug:         return "Debug";
         case ActionCategory::kHelp:          return "Help";
-        case ActionCategory::kCanvas:        return "Canvas";
-        case ActionCategory::kNotebook:      return "Notebook";
         case ActionCategory::kSourceControl: return "SourceControl";
         case ActionCategory::kExtension:     return "Extension";
         case ActionCategory::kCustom:        return "Custom";

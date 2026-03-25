@@ -5,7 +5,7 @@
  * @brief Phase 37 Task 1: Named layout preset CRUD and profile support.
  *
  * Save/load named layout presets, tie presets to user profiles
- * (coding, writing, canvas), and provide quick reset to defaults.
+ * (coding, writing), and provide quick reset to defaults.
  */
 
 #include <cstdint>
@@ -20,7 +20,6 @@ enum class ProfileType : uint8_t
 {
     kCoding,
     kWriting,
-    kCanvas,
     kCustom,
 };
 

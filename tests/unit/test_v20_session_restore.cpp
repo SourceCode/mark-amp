@@ -47,8 +47,8 @@ TEST_CASE("SessionRestore: capture session", "[v20][session-restore]")
 {
     SessionFixture fix;
     fix.add_artifact("file.md", ArtifactKind::kTextFile, true);
-    fix.add_artifact("notebook.ipynb", ArtifactKind::kNotebook);
-    auto canvas = fix.add_artifact("board.canvas", ArtifactKind::kCanvas, true);
+    fix.add_artifact("workspace.md", ArtifactKind::kTextFile);
+    auto canvas = fix.add_artifact("session.json", ArtifactKind::kTextFile, true);
     fix.registry.set_active_artifact(canvas);
 
     auto records = fix.session.capture_session();
@@ -59,7 +59,7 @@ TEST_CASE("SessionRestore: capture session", "[v20][session-restore]")
     {
         if (r.was_active)
         {
-            REQUIRE(r.kind == ArtifactKind::kCanvas);
+            REQUIRE(r.kind == ArtifactKind::kTextFile);
             found_active = true;
         }
     }
@@ -82,8 +82,8 @@ TEST_CASE("SessionRestore: apply session", "[v20][session-restore]")
     }
     {
         ArtifactSessionRecord r;
-        r.kind = ArtifactKind::kNotebook;
-        r.display_name = "notebook.ipynb";
+        r.kind = ArtifactKind::kTextFile;
+        r.display_name = "workspace.md";
         r.language_id = "notebook";
         records.push_back(r);
     }
@@ -101,7 +101,7 @@ TEST_CASE("SessionRestore: capture then restore round-trip", "[v20][session-rest
 {
     SessionFixture fix;
     fix.add_artifact("a.md", ArtifactKind::kTextFile, true);
-    fix.add_artifact("b.canvas", ArtifactKind::kCanvas, true);
+    fix.add_artifact("s.json", ArtifactKind::kTextFile, true);
 
     auto captured = fix.session.capture_session();
     REQUIRE(captured.size() == 2);

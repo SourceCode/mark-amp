@@ -57,8 +57,6 @@ enum class PersistenceCapability : uint8_t
 enum class PersistenceArtifactKind : uint8_t
 {
     kTextFile,
-    kNotebook,
-    kCanvas,
     kWorkspace,
     kAll,
 };
@@ -69,8 +67,6 @@ enum class PersistenceArtifactKind : uint8_t
     switch (kind)
     {
     case PersistenceArtifactKind::kTextFile:  return "TextFile";
-    case PersistenceArtifactKind::kNotebook:  return "Notebook";
-    case PersistenceArtifactKind::kCanvas:    return "Canvas";
     case PersistenceArtifactKind::kWorkspace: return "Workspace";
     case PersistenceArtifactKind::kAll:       return "All";
     }

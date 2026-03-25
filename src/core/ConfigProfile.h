@@ -16,7 +16,6 @@ enum class ProfileId
     kDeveloper,
     kResearch,
     kWhiteboard,
-    kNotebook,
     kCustom
 };
 

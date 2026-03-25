@@ -3,7 +3,7 @@
 ///
 /// Header-only. Wraps SurfaceLinkRouter with BlockReferenceResolver and
 /// HeadingJumpProtocol to provide enriched routing across all 5×5 surface
-/// combinations (Editor, Preview, Canvas, Graph, Notebook).
+/// combinations (Editor, Preview, Graph).
 
 #pragma once
 
@@ -119,21 +119,7 @@ public:
             }
         }
 
-        // Enrich with block reference resolution
-        if (!link.to.object_id.empty() && link.to.object_id[0] == '^')
-        {
-            auto block_id = link.to.object_id.substr(1);
-            auto block_ref = block_index_.resolve(link.to.file_path, block_id);
-            if (!block_ref.has_value())
-            {
-                block_ref = block_index_.resolve_any(block_id);
-            }
-            if (block_ref.has_value())
-            {
-                result.resolved_block = block_ref;
-                result.resolved_anchor.line = block_ref->line_number;
-            }
-        }
+        // Block reference resolution removed (V29 cleanup)
 
         // Build breadcrumb label
         result.breadcrumb_label = build_breadcrumb_label(link, result);
@@ -220,9 +206,7 @@ private:
 
         const SurfaceKind surfaces[] = {SurfaceKind::kEditor,
                                         SurfaceKind::kPreview,
-                                        SurfaceKind::kCanvas,
-                                        SurfaceKind::kGraph,
-                                        SurfaceKind::kNotebook};
+                                        SurfaceKind::kGraph};
 
         for (auto from_surface : surfaces)
         {
@@ -248,7 +232,7 @@ private:
         }
 
         // All cross-surface routes are supported
-        // (Editor, Preview, Canvas, Graph, Notebook can all link to each other)
+        // (Editor, Preview, Graph can all link to each other)
         return true;
     }
 

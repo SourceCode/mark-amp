@@ -38,4 +38,12 @@ struct V27OnboardingHintTokens {
     static constexpr int kStepIndicatorSize = 8;
     static constexpr int kStepIndicatorGap = 4;
 };
+struct V27WelcomeAnimationTokens {
+    static constexpr int kFadeInMs = 300;
+    static constexpr int kStaggerDelayMs = 60;
+    static constexpr int kLogoPulseMs = 800;
+    static constexpr int kRecentListDelayMs = 150;
+    static constexpr int kActionRevealMs = 200;
+    static constexpr int kSkeletonShimmerMs = 1200;
+};
 } // namespace markamp::ui

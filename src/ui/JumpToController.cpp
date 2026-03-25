@@ -16,8 +16,6 @@ auto JumpTarget::kind_label() const -> std::string
             return "Heading";
         case JumpTargetKind::kSymbol:
             return "Symbol";
-        case JumpTargetKind::kCanvasNode:
-            return "Canvas Node";
         case JumpTargetKind::kBreadcrumb:
             return "Breadcrumb";
         case JumpTargetKind::kRecentLocation:
@@ -36,8 +34,6 @@ auto JumpFilter::includes(JumpTargetKind target_kind) const -> bool
             return include_headings;
         case JumpTargetKind::kSymbol:
             return include_symbols;
-        case JumpTargetKind::kCanvasNode:
-            return include_canvas_nodes;
         case JumpTargetKind::kRecentLocation:
             return include_recent;
         case JumpTargetKind::kBreadcrumb:
@@ -58,10 +54,6 @@ auto JumpFilter::active_count() const -> int
         ++count;
     }
     if (include_symbols)
-    {
-        ++count;
-    }
-    if (include_canvas_nodes)
     {
         ++count;
     }
@@ -157,7 +149,6 @@ auto JumpToController::available_kinds() -> std::vector<JumpTargetKind>
     return {JumpTargetKind::kFile,
             JumpTargetKind::kHeading,
             JumpTargetKind::kSymbol,
-            JumpTargetKind::kCanvasNode,
             JumpTargetKind::kBreadcrumb,
             JumpTargetKind::kRecentLocation};
 }

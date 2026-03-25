@@ -75,9 +75,9 @@ TEST_CASE("P19-T04 evaluate all subsystems", "[v24][p19]") {
     DoneCriterion c1; c1.criterion_id = "t1"; c1.description = "T1"; c1.is_required = true;
     DoneCriterion c2; c2.criterion_id = "t2"; c2.description = "T2"; c2.is_required = true;
     criteria.add_criterion(Subsystem::kEditor, c1);
-    criteria.add_criterion(Subsystem::kCanvas, c2);
+    criteria.add_criterion(Subsystem::kEditor, c2);
     criteria.mark_passed(Subsystem::kEditor, "t1", "ok");
-    criteria.mark_passed(Subsystem::kCanvas, "t2", "ok");
+    criteria.mark_passed(Subsystem::kEditor, "t2", "ok");
     auto report = criteria.evaluate_all();
     REQUIRE(report.all_signed_off());
 }
@@ -87,7 +87,7 @@ TEST_CASE("P19-T04 report with blocked subsystem", "[v24][p19]") {
     DoneCriterion c1; c1.criterion_id = "t1"; c1.description = "T1"; c1.is_required = true;
     DoneCriterion c2; c2.criterion_id = "t2"; c2.description = "T2"; c2.is_required = true;
     criteria.add_criterion(Subsystem::kEditor, c1);
-    criteria.add_criterion(Subsystem::kCanvas, c2);
+    criteria.add_criterion(Subsystem::kEditor, c2);
     criteria.mark_passed(Subsystem::kEditor, "t1", "ok");
     // Canvas t2 not passed
     auto report = criteria.evaluate_all();

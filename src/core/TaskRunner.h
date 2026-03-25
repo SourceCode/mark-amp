@@ -2,7 +2,6 @@
 
 #include "CompilerErrorParser.h"
 #include "EventBus.h"
-#include "TaskConfig.h"
 
 #include <chrono>
 #include <expected>
@@ -12,6 +11,58 @@
 
 namespace markamp::core
 {
+
+/// Task group classification (build infrastructure).
+enum class TaskGroup
+{
+    kBuild,
+    kTest,
+    kDeploy,
+    kOther,
+};
+
+/// Task type (build infrastructure).
+enum class TaskType
+{
+    kShell,
+    kProcess,
+};
+
+/// Presentation options for task output.
+struct TaskPresentation
+{
+    bool reveal{true};
+    bool focus{false};
+    bool clear_before{false};
+    bool show_rerun{true};
+};
+
+/// A single task definition for build execution.
+struct TaskDefinition
+{
+    std::string name;
+    std::string label;
+    std::string command;
+    std::vector<std::string> args;
+    std::string working_directory;
+    TaskGroup group{TaskGroup::kOther};
+    TaskType type{TaskType::kShell};
+    TaskPresentation presentation;
+    std::string problem_matcher;
+    bool is_default{false};
+    bool is_background{false};
+
+    [[nodiscard]] auto full_command() const -> std::string
+    {
+        std::string result = command;
+        for (const auto& arg : args)
+        {
+            result += " " + arg;
+        }
+        return result;
+    }
+};
+
 
 /// Result of a task execution.
 struct TaskExecutionResult

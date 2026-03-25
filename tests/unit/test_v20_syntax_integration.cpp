@@ -62,7 +62,7 @@ TEST_CASE("SyntaxInteg: Cross-surface consistency", "[v20][syntax-integration]")
 
     // All surfaces should share tokens
     REQUIRE(degradation.should_share_tokens(HighlightSurface::kEditor));
-    REQUIRE(degradation.should_share_tokens(HighlightSurface::kNotebookCell));
+    REQUIRE(degradation.should_share_tokens(HighlightSurface::kEditor));
     REQUIRE(degradation.should_share_tokens(HighlightSurface::kDiffPanel));
 }
 

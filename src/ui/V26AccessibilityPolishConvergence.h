@@ -142,14 +142,12 @@ enum class CoreJourney : uint8_t
     kNewDocument       = 0,
     kOpenEditSave      = 1,
     kSearchReplace     = 2,
-    kCanvasBoard       = 3,
-    kNotebookExec      = 4,
-    kSettingsTheme     = 5,
-    kExportPublish     = 6,
-    kPluginInstall     = 7,
+    kSettingsTheme     = 3,
+    kExportPublish     = 4,
+    kPluginInstall     = 5,
 };
 
 /// Number of core journeys.
-[[nodiscard]] inline constexpr auto core_journey_count() noexcept -> int { return 8; }
+[[nodiscard]] inline constexpr auto core_journey_count() noexcept -> int { return 6; }
 
 } // namespace markamp::ui

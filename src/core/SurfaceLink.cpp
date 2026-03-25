@@ -85,20 +85,16 @@ auto SurfaceLinkRouter::can_route(SurfaceKind from, SurfaceKind to_surface) cons
     }
 
     // Valid cross-surface pairs (bidirectional)
-    // Editor <-> Preview, Editor <-> Canvas, Editor <-> Graph,
-    // Editor <-> Notebook, Preview <-> Graph, Canvas <-> Graph
+    // Editor <-> Preview, Editor <-> Graph,
+    // Preview <-> Graph
     switch (from)
     {
         case SurfaceKind::kEditor:
             return true; // Editor can route to any surface
         case SurfaceKind::kPreview:
             return to_surface == SurfaceKind::kEditor || to_surface == SurfaceKind::kGraph;
-        case SurfaceKind::kCanvas:
-            return to_surface == SurfaceKind::kEditor || to_surface == SurfaceKind::kGraph;
         case SurfaceKind::kGraph:
             return true; // Graph can route to any surface
-        case SurfaceKind::kNotebook:
-            return to_surface == SurfaceKind::kEditor || to_surface == SurfaceKind::kPreview;
     }
     return false;
 }
@@ -111,12 +107,8 @@ auto SurfaceLinkRouter::surface_name(SurfaceKind kind) -> std::string_view
             return "Editor";
         case SurfaceKind::kPreview:
             return "Preview";
-        case SurfaceKind::kCanvas:
-            return "Canvas";
         case SurfaceKind::kGraph:
             return "Graph";
-        case SurfaceKind::kNotebook:
-            return "Notebook";
     }
     return "Unknown";
 }
@@ -125,18 +117,6 @@ auto SurfaceLinkRouter::validate_anchor(const LinkAnchor& anchor) -> bool
 {
     // Lines and columns must be non-negative
     if (anchor.line < 0 || anchor.column < 0)
-    {
-        return false;
-    }
-
-    // Canvas objects need at least a board_id
-    if (anchor.entity_kind == EntityKind::kCanvasObject && anchor.board_id.empty())
-    {
-        return false;
-    }
-
-    // Notebook cells need a cell_id
-    if (anchor.entity_kind == EntityKind::kNotebookCell && anchor.cell_id.empty())
     {
         return false;
     }

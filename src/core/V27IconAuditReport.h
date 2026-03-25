@@ -67,8 +67,6 @@ enum class IconSurface
     kDialog,
     kNotification,
     kEmptyState,
-    kNotebook,
-    kCanvas,
     kThemeGallery,
     kStartup,
 };
@@ -92,8 +90,6 @@ enum class IconSurface
     case IconSurface::kDialog:          return "Dialog";
     case IconSurface::kNotification:    return "Notification";
     case IconSurface::kEmptyState:      return "EmptyState";
-    case IconSurface::kNotebook:        return "Notebook";
-    case IconSurface::kCanvas:          return "Canvas";
     case IconSurface::kThemeGallery:    return "ThemeGallery";
     case IconSurface::kStartup:         return "Startup";
     }
@@ -101,7 +97,7 @@ enum class IconSurface
 }
 
 /// Total number of icon surface types.
-[[nodiscard]] constexpr auto icon_surface_count() noexcept -> int { return 18; }
+[[nodiscard]] constexpr auto icon_surface_count() noexcept -> int { return 16; }
 
 // ============================================================================
 // Audit report entries

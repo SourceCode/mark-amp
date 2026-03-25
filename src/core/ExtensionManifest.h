@@ -1,6 +1,5 @@
 #pragma once
 
-#include "CanvasAppManifest.h"
 
 #include <algorithm>
 #include <optional>
@@ -419,8 +418,6 @@ struct ExtensionManifest
     // Phase 20 Task 13: Raw changelog text (from CHANGELOG.md or manifest)
     std::string changelog;
 
-    // -- V8 Phase 8: Canvas app contributions --
-    CanvasAppManifest canvas_app;
 
     /// Derive an ExtensionIdentifier from publisher + name.
     [[nodiscard]] auto identifier() const -> ExtensionIdentifier;

@@ -4,7 +4,7 @@
  * @file JumpToController.h
  * @brief Phase 30 Task 2: Unified "Jump To" controller.
  *
- * Unified jump modal supporting files, headings, symbols, and canvas
+ * Unified jump modal supporting files, headings, symbols, and
  * nodes with MRU ranking and type filters.
  */
 
@@ -21,7 +21,6 @@ enum class JumpTargetKind : uint8_t
     kFile,
     kHeading,
     kSymbol,
-    kCanvasNode,
     kBreadcrumb,
     kRecentLocation,
 };
@@ -47,7 +46,6 @@ struct JumpFilter
     bool include_files{true};
     bool include_headings{true};
     bool include_symbols{true};
-    bool include_canvas_nodes{true};
     bool include_recent{true};
 
     /// Check if a kind is included.

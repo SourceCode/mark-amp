@@ -13,8 +13,6 @@ auto LayoutPreset::profile_name() const -> std::string
             return "coding";
         case ProfileType::kWriting:
             return "writing";
-        case ProfileType::kCanvas:
-            return "canvas";
         case ProfileType::kCustom:
             return "custom";
     }
@@ -145,13 +143,6 @@ void LayoutPresetController::register_standard_presets()
                    true,
                    {"outline", "editor", "preview"},
                    {"outline", "editor", "preview"}});
-
-    create_preset({"canvas_default",
-                   "Default Canvas",
-                   ProfileType::kCanvas,
-                   true,
-                   {"layers", "canvas", "properties"},
-                   {"layers", "canvas", "properties"}});
 }
 
 } // namespace markamp::ui

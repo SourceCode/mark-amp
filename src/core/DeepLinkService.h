@@ -25,12 +25,11 @@ namespace markamp::core
 struct DeepLinkUri
 {
     std::string scheme{"markamp"};
-    std::string surface;   ///< e.g. "editor", "canvas", "graph"
+    std::string surface;   ///< e.g. "editor", "graph"
     std::string document;  ///< Document path
     std::string heading;   ///< Optional heading fragment
     std::string block_ref; ///< Optional ^block-id
     int line{-1};          ///< Optional line number (-1 = unset)
-    std::string object_id; ///< Optional canvas object / graph node ID
     std::unordered_map<std::string, std::string> query_params;
 
     /// Whether this URI has valid minimum content.
@@ -86,20 +85,10 @@ public:
             oss << "/" << url_encode_path(anchor.file_path);
         }
 
-        // Fragment (heading/block)
-        bool has_fragment = false;
+        // Fragment (heading)
         if (!anchor.heading_id.empty())
         {
             oss << "#" << url_encode(anchor.heading_id);
-            has_fragment = true;
-        }
-        if (!anchor.object_id.empty() && anchor.object_id[0] == '^')
-        {
-            if (!has_fragment)
-            {
-                oss << "#";
-            }
-            oss << anchor.object_id; // Already has ^
         }
 
         // Query params
@@ -107,11 +96,6 @@ public:
         if (anchor.line >= 0)
         {
             oss << (has_query ? "&" : "?") << "line=" << anchor.line;
-            has_query = true;
-        }
-        if (!anchor.object_id.empty() && anchor.object_id[0] != '^')
-        {
-            oss << (has_query ? "&" : "?") << "obj=" << url_encode(anchor.object_id);
         }
 
         return oss.str();
@@ -134,17 +118,9 @@ public:
         {
             anchor.heading_id = parsed.heading;
         }
-        if (!parsed.block_ref.empty())
-        {
-            anchor.object_id = "^" + parsed.block_ref;
-        }
         if (parsed.line >= 0)
         {
             anchor.line = parsed.line;
-        }
-        if (!parsed.object_id.empty())
-        {
-            anchor.object_id = parsed.object_id;
         }
 
         return anchor;
@@ -285,12 +261,8 @@ private:
                 return "editor";
             case SurfaceKind::kPreview:
                 return "preview";
-            case SurfaceKind::kCanvas:
-                return "canvas";
             case SurfaceKind::kGraph:
                 return "graph";
-            case SurfaceKind::kNotebook:
-                return "notebook";
             default:
                 return "editor";
         }
@@ -307,17 +279,9 @@ private:
         {
             return SurfaceKind::kPreview;
         }
-        if (str == "canvas")
-        {
-            return SurfaceKind::kCanvas;
-        }
         if (str == "graph")
         {
             return SurfaceKind::kGraph;
-        }
-        if (str == "notebook")
-        {
-            return SurfaceKind::kNotebook;
         }
         return SurfaceKind::kEditor;
     }
@@ -459,10 +423,6 @@ private:
                     {
                         // Ignore invalid line numbers
                     }
-                }
-                else if (key == "obj")
-                {
-                    result.object_id = url_decode(val);
                 }
                 else
                 {

@@ -27,4 +27,17 @@ struct V27ReducedMotionTokens {
     static constexpr bool kStaticFocusRing = true; ///< Solid focus ring
     static constexpr int kProgressBarMs = 0;       ///< Static progress
 };
+struct V27HighContrastTokens {
+    static constexpr int kOverlayOpacityPct = 85;
+    static constexpr int kBorderEmphasisWidth = 2;
+    static constexpr int kIconStrokeBoost = 1;
+    static constexpr int kSelectionBorderWidth = 2;
+    static constexpr int kDisabledOpacityPct = 50;
+};
+struct V27ScreenReaderTokens {
+    static constexpr int kAriaLabelMaxLen = 120;
+    static constexpr int kLiveRegionDelayMs = 100;
+    static constexpr int kAnnouncementDebounceMs = 300;
+    static constexpr int kDescriptionMaxLen = 250;
+};
 } // namespace markamp::ui

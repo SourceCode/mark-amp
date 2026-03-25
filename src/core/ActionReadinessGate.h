@@ -2,9 +2,8 @@
 /// @brief V23 Phase 02 — Action surface and panel readiness enforcement gate.
 ///
 /// Reconciles visible action surfaces (menus, toolbar, palette, context menus,
-/// panel actions, status actions, notebook actions, canvas actions) with the
-/// canonical manifest. Gates releases on zero dead/stub/unbound actions and
-/// zero placeholder panels.
+/// panel actions, status actions) with the canonical manifest. Gates releases
+/// on zero dead/stub/unbound actions and zero placeholder panels.
 #pragma once
 
 #include <cstdint>
@@ -26,8 +25,6 @@ enum class ActionSurfaceKind : uint8_t
     kContextMenu,
     kPanelAction,
     kStatusAction,
-    kNotebookAction,
-    kCanvasAction,
 };
 
 /// Label for ActionSurfaceKind.
@@ -41,8 +38,6 @@ enum class ActionSurfaceKind : uint8_t
     case ActionSurfaceKind::kContextMenu:    return "ContextMenu";
     case ActionSurfaceKind::kPanelAction:    return "PanelAction";
     case ActionSurfaceKind::kStatusAction:   return "StatusAction";
-    case ActionSurfaceKind::kNotebookAction: return "NotebookAction";
-    case ActionSurfaceKind::kCanvasAction:   return "CanvasAction";
     }
     return "Unknown";
 }

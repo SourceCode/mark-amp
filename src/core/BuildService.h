@@ -21,7 +21,6 @@
 #include "DiagnosticsService.h"
 #include "EventBus.h"
 #include "OutputChannelService.h"
-#include "TaskConfig.h"
 
 #include <chrono>
 #include <cstdint>

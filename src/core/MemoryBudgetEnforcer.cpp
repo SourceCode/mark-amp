@@ -16,7 +16,6 @@ namespace markamp::core
 MemoryBudgetEnforcer::MemoryBudgetEnforcer()
 {
     subsystems_.at(static_cast<size_t>(MemorySubsystem::kEditor)).budget = kEditorBudget;
-    subsystems_.at(static_cast<size_t>(MemorySubsystem::kCanvas)).budget = kCanvasBudget;
     subsystems_.at(static_cast<size_t>(MemorySubsystem::kSearchIndex)).budget = kSearchIndexBudget;
     subsystems_.at(static_cast<size_t>(MemorySubsystem::kExtensions)).budget = kExtensionsBudget;
     subsystems_.at(static_cast<size_t>(MemorySubsystem::kGeneral)).budget = kGeneralBudget;

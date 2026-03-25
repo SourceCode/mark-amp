@@ -351,150 +351,7 @@ public:
     }
 };
 
-// ── V8 Extension Extraction: Canvas Collaboration Plugin ──
-
-class CanvasCollabPlugin final : public BuiltInPlugin
-{
-public:
-    CanvasCollabPlugin()
-        : BuiltInPlugin(
-              PluginManifest{
-                  .id = "markamp.canvas-collab",
-                  .name = "Canvas Collaboration",
-                  .version = "1.0.0",
-                  .description =
-                      "Real-time collaboration for canvas: live cursors, presence, comments, "
-                      "voting, timer, and facilitation tools",
-                  .author = "MarkAmp",
-                  .contributes = {.settings = {{.id = "canvas-collab.enabled",
-                                                .label = "Enable Canvas Collaboration",
-                                                .description =
-                                                    "Enable real-time collaboration features on "
-                                                    "canvas boards",
-                                                .category = "Canvas",
-                                                .type = SettingType::Boolean,
-                                                .default_value = "true"}},
-                                  .commands = {{.id = "feature.toggle.canvas-collab",
-                                                .title = "Toggle Canvas Collaboration"}}}},
-              builtin_features::kCanvasCollab)
-    {
-    }
-};
-
-// ── V8 Extension Extraction: Canvas Apps & Integration Plugin ──
-
-class CanvasAppsPlugin final : public BuiltInPlugin
-{
-public:
-    CanvasAppsPlugin()
-        : BuiltInPlugin(
-              PluginManifest{
-                  .id = "markamp.canvas-apps",
-                  .name = "Canvas Apps & Widgets",
-                  .version = "1.0.0",
-                  .description =
-                      "Canvas app marketplace: embeddable data widgets, integration service, and "
-                      "third-party app hosting",
-                  .author = "MarkAmp",
-                  .contributes = {.settings = {{.id = "canvas-apps.enabled",
-                                                .label = "Enable Canvas Apps",
-                                                .description =
-                                                    "Enable canvas app widgets and integrations",
-                                                .category = "Canvas",
-                                                .type = SettingType::Boolean,
-                                                .default_value = "true"}},
-                                  .commands = {{.id = "feature.toggle.canvas-apps",
-                                                .title = "Toggle Canvas Apps"}}}},
-              builtin_features::kCanvasApps)
-    {
-    }
-};
-
-// ── V8 Extension Extraction: Kanban Board Plugin ──
-
-class KanbanPlugin final : public BuiltInPlugin
-{
-public:
-    KanbanPlugin()
-        : BuiltInPlugin(
-              PluginManifest{
-                  .id = "markamp.kanban",
-                  .name = "Kanban Board",
-                  .version = "1.0.0",
-                  .description =
-                      "Kanban board workflow for canvas: columns, swimlanes, WIP limits, and "
-                      "card management",
-                  .author = "MarkAmp",
-                  .contributes = {.settings = {{.id = "kanban.enabled",
-                                                .label = "Enable Kanban Board",
-                                                .description =
-                                                    "Enable kanban board creation on canvas",
-                                                .category = "Canvas",
-                                                .type = SettingType::Boolean,
-                                                .default_value = "true"}},
-                                  .commands = {{.id = "feature.toggle.kanban",
-                                                .title = "Toggle Kanban Board"}}}},
-              builtin_features::kKanban)
-    {
-    }
-};
-
-// ── V8 Extension Extraction: Mind Map Plugin ──
-
-class MindMapPlugin final : public BuiltInPlugin
-{
-public:
-    MindMapPlugin()
-        : BuiltInPlugin(
-              PluginManifest{
-                  .id = "markamp.mind-map",
-                  .name = "Mind Map",
-                  .version = "1.0.0",
-                  .description = "Mind map tool for canvas: radial/tree layouts, auto-balance, "
-                                 "expand/collapse, "
-                                 "and node styling",
-                  .author = "MarkAmp",
-                  .contributes = {.settings = {{.id = "mind-map.enabled",
-                                                .label = "Enable Mind Map",
-                                                .description = "Enable mind map creation on canvas",
-                                                .category = "Canvas",
-                                                .type = SettingType::Boolean,
-                                                .default_value = "true"}},
-                                  .commands = {{.id = "feature.toggle.mind-map",
-                                                .title = "Toggle Mind Map"}}}},
-              builtin_features::kMindMap)
-    {
-    }
-};
-
-// ── V8 Extension Extraction: Diagram Library Plugin ──
-
-class DiagramLibraryPlugin final : public BuiltInPlugin
-{
-public:
-    DiagramLibraryPlugin()
-        : BuiltInPlugin(
-              PluginManifest{
-                  .id = "markamp.diagram-library",
-                  .name = "Diagram Library",
-                  .version = "1.0.0",
-                  .description =
-                      "UML/BPMN diagram stencils: class diagrams, sequence diagrams, flowcharts, "
-                      "and process model shapes",
-                  .author = "MarkAmp",
-                  .contributes = {.settings = {{.id = "diagram-library.enabled",
-                                                .label = "Enable Diagram Library",
-                                                .description =
-                                                    "Enable UML/BPMN diagram stencils on canvas",
-                                                .category = "Canvas",
-                                                .type = SettingType::Boolean,
-                                                .default_value = "true"}},
-                                  .commands = {{.id = "feature.toggle.diagram-library",
-                                                .title = "Toggle Diagram Library"}}}},
-              builtin_features::kDiagramLibrary)
-    {
-    }
-};
+// V29: Canvas-derived plugins (CanvasCollab, CanvasApps, Kanban, MindMap, DiagramLibrary) removed.
 
 // ── Test Panel API Plugin ──
 
@@ -656,19 +513,7 @@ void register_builtin_plugins(PluginManager& plugin_manager, FeatureRegistry& fe
         {builtin_features::kVscodeThemes,
          "VSCode Theme Adapter",
          "Import and apply VSCode-compatible themes with TextMate scope mapping"},
-        {builtin_features::kCanvasCollab,
-         "Canvas Collaboration",
-         "Real-time collaboration: live cursors, comments, voting, and facilitation"},
-        {builtin_features::kCanvasApps,
-         "Canvas Apps & Widgets",
-         "Canvas app marketplace and embeddable data widgets"},
-        {builtin_features::kKanban, "Kanban Board", "Kanban board workflow for canvas"},
-        {builtin_features::kMindMap,
-         "Mind Map",
-         "Mind map tool for canvas with radial/tree layouts"},
-        {builtin_features::kDiagramLibrary,
-         "Diagram Library",
-         "UML/BPMN diagram stencils for canvas"},
+        // V29: Canvas-derived feature entries removed (Canvas, Kanban, MindMap, Diagram)
         // V11 Node Editor
         {builtin_features::kNodeEditor,
          "Node Editor",
@@ -696,11 +541,7 @@ void register_builtin_plugins(PluginManager& plugin_manager, FeatureRegistry& fe
     plugin_manager.register_plugin(std::make_unique<FxEnginePlugin>());
     plugin_manager.register_plugin(std::make_unique<TextFxPlugin>());
     plugin_manager.register_plugin(std::make_unique<VscodeThemesPlugin>());
-    plugin_manager.register_plugin(std::make_unique<CanvasCollabPlugin>());
-    plugin_manager.register_plugin(std::make_unique<CanvasAppsPlugin>());
-    plugin_manager.register_plugin(std::make_unique<KanbanPlugin>());
-    plugin_manager.register_plugin(std::make_unique<MindMapPlugin>());
-    plugin_manager.register_plugin(std::make_unique<DiagramLibraryPlugin>());
+    // V29: Canvas-derived plugin registrations removed
     plugin_manager.register_plugin(std::make_unique<SamplePanelPlugin>());
     plugin_manager.register_plugin(std::make_unique<TerminalPanelPlugin>());
     plugin_manager.register_plugin(std::make_unique<DebugConsolePanelPlugin>());
