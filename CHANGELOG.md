@@ -1,5 +1,26 @@
 # MarkAmp Release History
 
+## v2.33.89 — 2026-03-24
+
+### Highlights
+
+**Post-V29 Dead Code Cleanup:** Removed remaining ghost references to deleted Canvas and Notebook subsystems from `V25ReleaseServices`, `WalkthroughPanel`, and `test_phase33_observability`. 6 files changed, 175 lines removed. All 660 tests pass (100%).
+
+### Changed
+
+- **V25ReleaseServices.h/.cpp** — Removed `NotebookShellAdapter` and `CanvasShellAdapter` stubs and related method implementations
+- **WalkthroughPanel.cpp** — Removed canvas/notebook walkthrough step references
+- **test_phase33_observability.cpp** — Updated assertion for removed subsystem traces
+- **CMakeLists.txt** — Version bumped to 2.33.89
+- **vcpkg.json** — Version bumped to 2.33.89
+- **AGENTS.md** — Version bumped to 2.33.89
+
+### Stats
+
+- Build: 660 test targets, 0 errors
+- Tests: 660/660 passing (100%)
+- Removed: ~170 lines across 6 files
+
 ## v2.32.0 — 2026-03-24
 
 ### Highlights
