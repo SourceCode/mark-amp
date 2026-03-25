@@ -45,7 +45,6 @@ auto LogChannels::all() -> std::vector<std::string>
     return {
         kGeneral,
         kEditor,
-        kCanvas,
         kSync,
         kPerformance,
         kSecurity,

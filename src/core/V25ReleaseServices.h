@@ -101,61 +101,8 @@ private:
     std::vector<VisualViolation> violations_;
 };
 
-// ════════════════════════════════════════════════════════════════
-// Phase 08: NotebookShellAdapter
-// ════════════════════════════════════════════════════════════════
-
-/// Notebook shell lifecycle state.
-enum class NotebookShellState { kIdle, kCreating, kOpened, kExecuting, kSaving, kClosed };
-
-/// Notebook shell adapter making notebooks first-class shell artifacts.
-class NotebookShellAdapter
-{
-public:
-    NotebookShellAdapter() = default;
-
-    [[nodiscard]] auto create_notebook(const std::string& name) -> bool;
-    [[nodiscard]] auto open_notebook(const std::string& path) -> bool;
-    [[nodiscard]] auto save_notebook() -> bool;
-    [[nodiscard]] auto close_notebook() -> bool;
-    [[nodiscard]] auto state() const noexcept -> NotebookShellState { return state_; }
-    [[nodiscard]] auto is_shell_owned() const noexcept -> bool { return shell_owned_; }
-    [[nodiscard]] auto active_notebook_name() const -> const std::string& { return name_; }
-
-private:
-    NotebookShellState state_{NotebookShellState::kIdle};
-    bool shell_owned_{true};
-    std::string name_;
-};
-
-// ════════════════════════════════════════════════════════════════
-// Phase 09: CanvasShellAdapter
-// ════════════════════════════════════════════════════════════════
-
-/// Canvas shell lifecycle state.
-enum class CanvasShellState { kIdle, kCreating, kOpened, kEditing, kSaving, kClosed };
-
-/// Canvas shell adapter replacing CanvasWorkspacePanel placeholder.
-class CanvasShellAdapter
-{
-public:
-    CanvasShellAdapter() = default;
-
-    [[nodiscard]] auto create_canvas(const std::string& name) -> bool;
-    [[nodiscard]] auto open_canvas(const std::string& path) -> bool;
-    [[nodiscard]] auto save_canvas() -> bool;
-    [[nodiscard]] auto close_canvas() -> bool;
-    [[nodiscard]] auto state() const noexcept -> CanvasShellState { return state_; }
-    [[nodiscard]] auto is_shell_owned() const noexcept -> bool { return shell_owned_; }
-    [[nodiscard]] auto is_dirty() const noexcept -> bool { return dirty_; }
-    void mark_dirty();
-
-private:
-    CanvasShellState state_{CanvasShellState::kIdle};
-    bool shell_owned_{true};
-    bool dirty_{false};
-    std::string name_;
-};
+// V29: Phase 08 (NotebookShellAdapter) and Phase 09 (CanvasShellAdapter) removed.
+// Canvas and Notebook subsystems were deleted in the editor-only architecture transition.
 
 // ════════════════════════════════════════════════════════════════
 // Phase 10: WorkspaceContinuityValidator

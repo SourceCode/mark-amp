@@ -466,7 +466,7 @@ TEST_CASE("extract_module_name — strips path and extension", "[observability][
 TEST_CASE("LogChannels — predefined channels", "[observability][channels]")
 {
     const auto channels = LogChannels::all();
-    REQUIRE(channels.size() == 9);
+    REQUIRE(channels.size() == 8);
     REQUIRE(std::find(channels.begin(), channels.end(), "General") != channels.end());
     REQUIRE(std::find(channels.begin(), channels.end(), "Performance") != channels.end());
     REQUIRE(std::find(channels.begin(), channels.end(), "Health") != channels.end());

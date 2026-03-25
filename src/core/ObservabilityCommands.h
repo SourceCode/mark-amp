@@ -30,7 +30,6 @@ struct LogChannels
 {
     static constexpr const char* kGeneral = "General";
     static constexpr const char* kEditor = "Editor";
-    static constexpr const char* kCanvas = "Canvas";
     static constexpr const char* kSync = "Sync";
     static constexpr const char* kPerformance = "Performance";
     static constexpr const char* kSecurity = "Security";

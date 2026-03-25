@@ -314,53 +314,7 @@ void WalkthroughPanel::load_built_in_walkthroughs()
     };
     built_in_walkthroughs_.push_back(std::move(editor_basics));
 
-    // Canvas walkthrough
-    BuiltInWalkthrough canvas_intro;
-    canvas_intro.walkthrough_id = "canvas_intro";
-    canvas_intro.title = "Canvas Mode";
-    canvas_intro.description = "Visual thinking on an infinite canvas.";
-    canvas_intro.steps = {
-        {.step_id = "open_canvas",
-         .title = "Open Canvas",
-         .description = "Create or open a .board file to start.",
-         .action_label = "Open Canvas",
-         .target_element = "sidebar.canvas"},
-        {.step_id = "add_note",
-         .title = "Add a Sticky Note",
-         .description = "Double-click on the canvas to add a note.",
-         .action_label = "Try It",
-         .target_element = "canvas.area"},
-        {.step_id = "connect",
-         .title = "Connect Objects",
-         .description = "Drag from one object edge to another to create a connector.",
-         .action_label = "Try Connecting",
-         .target_element = "canvas.connector_tool"},
-    };
-    built_in_walkthroughs_.push_back(std::move(canvas_intro));
-
-    // Notebooks walkthrough
-    BuiltInWalkthrough notebooks_intro;
-    notebooks_intro.walkthrough_id = "notebooks_intro";
-    notebooks_intro.title = "Notebooks";
-    notebooks_intro.description = "Combine prose with executable code.";
-    notebooks_intro.steps = {
-        {.step_id = "create_notebook",
-         .title = "Create a Notebook",
-         .description = "Create a .notebook file to get started.",
-         .action_label = "New Notebook",
-         .target_element = "menu.file.new"},
-        {.step_id = "add_cell",
-         .title = "Add a Code Cell",
-         .description = "Click + to add a code cell, then type your code.",
-         .action_label = "Add Cell",
-         .target_element = "notebook.add_cell"},
-        {.step_id = "run_cell",
-         .title = "Run a Cell",
-         .description = "Press Shift+Enter to execute the cell.",
-         .action_label = "Run Cell",
-         .target_element = "notebook.run"},
-    };
-    built_in_walkthroughs_.push_back(std::move(notebooks_intro));
+    // V29: canvas_intro and notebooks_intro walkthroughs removed (editor-only architecture).
 
     // Graph walkthrough
     BuiltInWalkthrough graph_intro;

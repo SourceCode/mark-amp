@@ -59,76 +59,7 @@ auto ReleasePathVisualAuditor::placeholder_icon_count() const -> int
 
 void ReleasePathVisualAuditor::clear() { violations_.clear(); }
 
-// ════════════════════════════════════════════════════════════════
-// Phase 08: NotebookShellAdapter
-// ════════════════════════════════════════════════════════════════
-
-auto NotebookShellAdapter::create_notebook(const std::string& name) -> bool
-{
-    name_ = name;
-    state_ = NotebookShellState::kCreating;
-    state_ = NotebookShellState::kOpened;
-    return true;
-}
-
-auto NotebookShellAdapter::open_notebook(const std::string& path) -> bool
-{
-    name_ = path;
-    state_ = NotebookShellState::kOpened;
-    return true;
-}
-
-auto NotebookShellAdapter::save_notebook() -> bool
-{
-    if (state_ != NotebookShellState::kOpened && state_ != NotebookShellState::kExecuting)
-        return false;
-    state_ = NotebookShellState::kSaving;
-    state_ = NotebookShellState::kOpened;
-    return true;
-}
-
-auto NotebookShellAdapter::close_notebook() -> bool
-{
-    state_ = NotebookShellState::kClosed;
-    return true;
-}
-
-// ════════════════════════════════════════════════════════════════
-// Phase 09: CanvasShellAdapter
-// ════════════════════════════════════════════════════════════════
-
-auto CanvasShellAdapter::create_canvas(const std::string& name) -> bool
-{
-    name_ = name;
-    state_ = CanvasShellState::kCreating;
-    state_ = CanvasShellState::kOpened;
-    return true;
-}
-
-auto CanvasShellAdapter::open_canvas(const std::string& path) -> bool
-{
-    name_ = path;
-    state_ = CanvasShellState::kOpened;
-    return true;
-}
-
-auto CanvasShellAdapter::save_canvas() -> bool
-{
-    if (state_ != CanvasShellState::kOpened && state_ != CanvasShellState::kEditing)
-        return false;
-    state_ = CanvasShellState::kSaving;
-    dirty_ = false;
-    state_ = CanvasShellState::kOpened;
-    return true;
-}
-
-auto CanvasShellAdapter::close_canvas() -> bool
-{
-    state_ = CanvasShellState::kClosed;
-    return true;
-}
-
-void CanvasShellAdapter::mark_dirty() { dirty_ = true; }
+// V29: Phase 08 (NotebookShellAdapter) and Phase 09 (CanvasShellAdapter) implementations removed.
 
 // ════════════════════════════════════════════════════════════════
 // Phase 10: WorkspaceContinuityValidator
